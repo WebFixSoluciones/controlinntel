@@ -1,8 +1,10 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { ArcotelPolicy } from "@/types";
+import { validateDateRange, validateMonetaryAmount } from "@/lib/validation-engine";
 import { X, ShieldPlus, Check } from "lucide-react";
 
 interface PolicyModalProps {
@@ -12,6 +14,7 @@ interface PolicyModalProps {
 
 export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
   const { addPolicy } = useApp();
+  const { showError, showSuccess } = useToast();
 
   const [policyNumber, setPolicyNumber] = useState("");
   const [insuranceCompany, setInsuranceCompany] = useState("Seguros Sucre / La Unión");
@@ -26,8 +29,26 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!policyNumber || !insuranceCompany) {
-      alert("Completa los campos obligatorios");
+
+    if (!policyNumber || policyNumber.trim().length < 4) {
+      showError("Número de Póliza Inválido", "Por favor ingresa un número de póliza válido (ej. POL-2026-99482).");
+      return;
+    }
+
+    if (!insuranceCompany || insuranceCompany.trim().length < 3) {
+      showError("Aseguradora Requerida", "Indica la compañía de seguros emisora de la garantía.");
+      return;
+    }
+
+    const dateVal = validateDateRange(startDate, expirationDate);
+    if (!dateVal.isValid) {
+      showError("Fechas Inválidas", dateVal.error || "La fecha de vencimiento no es coherente.");
+      return;
+    }
+
+    const amountVal = validateMonetaryAmount(insuredAmount, "Monto asegurado");
+    if (!amountVal.isValid) {
+      showError("Monto Inválido", amountVal.error || "El monto asegurado debe ser mayor a cero.");
       return;
     }
 
@@ -49,16 +70,17 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
       notes,
     });
 
+    showSuccess("Póliza Registrada", `Póliza ${policyNumber} guardada en el registro regulatorio ARCOTEL.`);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-              <ShieldPlus className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shadow-xs">
+              <ShieldPlus className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">Registrar Póliza ARCOTEL</h3>
@@ -82,7 +104,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               placeholder="POL-2026-99482"
               value={policyNumber}
               onChange={(e) => setPolicyNumber(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
             />
           </div>
 

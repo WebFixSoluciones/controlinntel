@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { ToastProvider } from "./toast-context";
 import {
   Client,
   ClientService,
@@ -300,45 +301,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AppContext.Provider
-      value={{
-        currentUser,
-        setUserRole,
-        clients,
-        clientServices,
-        plans,
-        nodes,
-        ipPools,
-        policies,
-        vault,
-        tickets,
-        expenses,
-        monthlyCharges,
-        auditLogs,
-        addClient,
-        updateClient,
-        deleteClient,
-        addPolicy,
-        updatePolicy,
-        addVaultCredential,
-        updateVaultCredential,
-        logVaultAccess,
-        addNode,
-        updateNode,
-        addTicket,
-        updateTicketStatus,
-        addExpense,
-        generateMonthlyBillingBatch,
-        markChargeAsPaid,
-        searchQuery,
-        setSearchQuery,
-        isSearchOpen,
-        setIsSearchOpen,
-        resetDataToDefaults,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
+    <ToastProvider>
+      <AppContext.Provider
+        value={{
+          currentUser,
+          setUserRole,
+          clients,
+          clientServices,
+          plans,
+          nodes,
+          ipPools,
+          policies,
+          vault,
+          tickets,
+          expenses,
+          monthlyCharges,
+          auditLogs,
+          addClient,
+          updateClient,
+          deleteClient,
+          addPolicy,
+          updatePolicy,
+          addVaultCredential,
+          updateVaultCredential,
+          logVaultAccess,
+          addNode,
+          updateNode,
+          addTicket,
+          updateTicketStatus,
+          addExpense,
+          generateMonthlyBillingBatch,
+          markChargeAsPaid,
+          searchQuery,
+          setSearchQuery,
+          isSearchOpen,
+          setIsSearchOpen,
+          resetDataToDefaults,
+        }}
+      >
+        {children}
+      </AppContext.Provider>
+    </ToastProvider>
   );
 }
 

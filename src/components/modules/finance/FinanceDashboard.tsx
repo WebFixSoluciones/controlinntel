@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
-import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar, ArrowUpRight } from "lucide-react";
+import { useToast } from "@/lib/toast-context";
+import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar } from "lucide-react";
 import { generateSriBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
 
 interface FinanceDashboardProps {
@@ -11,6 +12,7 @@ interface FinanceDashboardProps {
 
 export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   const { monthlyCharges, markChargeAsPaid, generateMonthlyBillingBatch, clients, expenses } = useApp();
+  const { showSuccess, showError, showConfirm } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(8);
   const [selectedYear, setSelectedYear] = useState(2026);
 
@@ -25,26 +27,37 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
   const handleExportSri = async () => {
     if (currentCharges.length === 0) {
-      alert("No hay registros para este periodo. Genera el lote primero.");
+      showError("Sin Registros", "No hay comprobantes para este periodo. Emite el lote primero.");
       return;
     }
     try {
       const blob = await generateSriBillingBatchExcel(currentCharges);
       triggerBrowserDownload(blob, `Lote_Facturacion_SRI_${selectedMonth}_${selectedYear}.xlsx`);
+      showSuccess("Lote SRI Exportado", `Archivo Excel con ${currentCharges.length} facturas generado exitosamente.`);
     } catch (e) {
-      alert("Error al exportar lote SRI");
+      showError("Error de Exportación", "Ocurrió un problema al construir el archivo Excel del SRI.");
     }
   };
 
   const handleGenerateBatch = () => {
-    if (confirm(`¿Deseas generar los cobros del Día 1 para el periodo ${selectedMonth}/${selectedYear}?`)) {
-      generateMonthlyBillingBatch(selectedMonth, selectedYear);
-    }
+    showConfirm(
+      "¿Emitir Cobros Día 1?",
+      `Se generarán las facturas recurrentes correspondientes a ${clients.length} clientes activos para el periodo ${selectedMonth}/${selectedYear}. ¿Continuar?`,
+      () => {
+        generateMonthlyBillingBatch(selectedMonth, selectedYear);
+        showSuccess("Lote Emitido", `Cobros del Día 1 generados para ${clients.length} abonados.`);
+      },
+      "Generar Lote"
+    );
+  };
+
+  const handleMarkPaid = (charge: any) => {
+    markChargeAsPaid(charge.id, "Transferencia Bancaria");
+    showSuccess("Pago Registrado", `Factura ${charge.invoiceNumber} por $${charge.total.toFixed(2)} USD marcada como pagada.`);
   };
 
   return (
     <div className="space-y-6 select-none">
-      {/* Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -75,7 +88,6 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Facturado</span>
@@ -104,7 +116,6 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
         </div>
       </div>
 
-      {/* Charges Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h3 className="font-bold text-slate-900 text-sm">Detalle de Cobros Emitidos para SRI</h3>
@@ -154,7 +165,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                     <td className="py-3 px-4 text-right">
                       {c.status === "pendiente" ? (
                         <button
-                          onClick={() => markChargeAsPaid(c.id, "Transferencia Bancaria")}
+                          onClick={() => handleMarkPaid(c)}
                           className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-2xs cursor-pointer"
                         >
                           Marcar Pagado

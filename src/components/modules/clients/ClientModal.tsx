@@ -1,9 +1,16 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { Client, IdentificationType, ServiceBillingType } from "@/types";
-import { X, UserPlus, Check } from "lucide-react";
+import {
+  validateIdentification,
+  validateEmail,
+  validatePhoneEcuador,
+  validateMonetaryAmount,
+} from "@/lib/validation-engine";
+import { X, UserPlus, Check, AlertCircle } from "lucide-react";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -13,6 +20,7 @@ interface ClientModalProps {
 
 export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps) {
   const { addClient, updateClient, plans, nodes } = useApp();
+  const { showError, showSuccess, showWarning } = useToast();
 
   const [identificationType, setIdentificationType] = useState<IdentificationType>(
     clientToEdit?.identificationType || "RUC"
@@ -27,7 +35,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   const [email, setEmail] = useState(clientToEdit?.email || "");
   const [phone, setPhone] = useState(clientToEdit?.phone || "");
   const [address, setAddress] = useState(clientToEdit?.address || "");
-  const [sector, setSector] = useState(clientToEdit?.sector || "Norte");
+  const [sector, setSector] = useState(clientToEdit?.sector || "Quito Norte");
   const [requiresSriBilling, setRequiresSriBilling] = useState(
     clientToEdit?.requiresSriBilling ?? true
   );
@@ -42,11 +50,49 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName || !identificationNumber || !phone) {
-      alert("Por favor completa los campos requeridos.");
+
+    // 1. Validar Identificación con Motor Ecuatoriano
+    const idValidation = validateIdentification(identificationType, identificationNumber);
+    if (!idValidation.isValid) {
+      showError("Validación de Identificación Fallida", idValidation.error || "El número de identificación no es válido.");
       return;
     }
 
+    // 2. Validar Razón Social
+    if (!businessName || businessName.trim().length < 3) {
+      showError("Razón Social Inválida", "La razón social o nombre debe tener al menos 3 caracteres.");
+      return;
+    }
+
+    // 3. Validar Email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      showError("Correo Electrónico Inválido", emailValidation.error || "Formato de email no válido.");
+      return;
+    }
+
+    // 4. Validar Teléfono
+    const phoneValidation = validatePhoneEcuador(phone);
+    if (!phoneValidation.isValid) {
+      showWarning("Advertencia de Teléfono", phoneValidation.error || "Verifica el número telefónico.");
+    }
+
+    // 5. Validar Dirección
+    if (!address || address.trim().length < 5) {
+      showError("Dirección Incompleta", "Por favor ingresa una dirección de instalación detallada (mínimo 5 caracteres).");
+      return;
+    }
+
+    // 6. Validar Tarifa (si es nuevo)
+    if (!clientToEdit) {
+      const priceVal = validateMonetaryAmount(customPrice, "Tarifa mensual");
+      if (!priceVal.isValid) {
+        showError("Tarifa Incorrecta", priceVal.error || "El precio pactado debe ser mayor a cero.");
+        return;
+      }
+    }
+
+    // Guardar
     if (clientToEdit) {
       updateClient(clientToEdit.id, {
         identificationType,
@@ -59,6 +105,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         sector,
         requiresSriBilling,
       });
+      showSuccess("Cliente Actualizado", `Los datos de ${businessName} han sido guardados con éxito.`);
     } else {
       addClient(
         {
@@ -83,28 +130,30 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           nodeId,
         }
       );
+      showSuccess("Abonado Registrado", `Nuevo cliente ${businessName} dado de alta con plan y servicio ISP.`);
     }
+
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
-              <UserPlus className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shadow-xs">
+              <UserPlus className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
-                {clientToEdit ? "Editar Cliente" : "Alta de Nuevo Cliente & Servicio"}
+                {clientToEdit ? "Editar Abonado / Cliente" : "Alta de Nuevo Abonado & Servicio ISP"}
               </h3>
-              <p className="text-[11px] text-slate-400">Datos fiscales SRI y configuración de conectividad ISP</p>
+              <p className="text-[11px] text-slate-400">Validación estricta de RUC/Cédula y configuración técnica</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -119,21 +168,23 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800"
               >
-                <option value="RUC">RUC</option>
-                <option value="CEDULA">Cédula</option>
+                <option value="RUC">RUC (13 Dígitos)</option>
+                <option value="CEDULA">Cédula (10 Dígitos)</option>
                 <option value="PASAPORTE">Pasaporte</option>
               </select>
             </div>
 
             <div className="md:col-span-2">
-              <label className="font-bold text-slate-700 block mb-1">Número de Identificación (RUC/CI) *</label>
+              <label className="font-bold text-slate-700 block mb-1">
+                Número de Identificación ({identificationType}) *
+              </label>
               <input
                 type="text"
                 required
-                placeholder="1792841092001"
+                placeholder={identificationType === "RUC" ? "1792841092001" : "1718293041"}
                 value={identificationNumber}
                 onChange={(e) => setIdentificationNumber(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
               />
             </div>
           </div>
@@ -165,7 +216,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Correo Electrónico *</label>
+              <label className="font-bold text-slate-700 block mb-1">Correo Electrónico (Facturas SRI) *</label>
               <input
                 type="email"
                 required
@@ -189,20 +240,33 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
           </div>
 
-          <div>
-            <label className="font-bold text-slate-700 block mb-1">Dirección de Instalación *</label>
-            <input
-              type="text"
-              required
-              placeholder="Av. 10 de Agosto N34-12 y Mariana de Jesús"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="md:col-span-2">
+              <label className="font-bold text-slate-700 block mb-1">Dirección de Instalación *</label>
+              <input
+                type="text"
+                required
+                placeholder="Av. 10 de Agosto N34-12 y Mariana de Jesús"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">Sector / Zona</label>
+              <input
+                type="text"
+                placeholder="Quito Norte / Valles"
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+              />
+            </div>
           </div>
 
           {!clientToEdit && (
-            <div className="p-4 rounded-xl bg-sky-50/50 border border-sky-100 space-y-3">
+            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-3">
               <h4 className="font-bold text-sky-900 text-xs">Asignación Inicial de Plan y Red ISP</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>

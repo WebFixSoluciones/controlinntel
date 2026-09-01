@@ -1,11 +1,14 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
-import { Receipt, Plus, Check } from "lucide-react";
+import { useToast } from "@/lib/toast-context";
+import { validateMonetaryAmount } from "@/lib/validation-engine";
+import { Receipt, Plus, Check, X } from "lucide-react";
 
 export function ExpensesManager() {
-  const { expenses, addExpense, nodes } = useApp();
+  const { expenses, addExpense } = useApp();
+  const { showError, showSuccess } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [supplierName, setSupplierName] = useState("");
   const [amount, setAmount] = useState(150);
@@ -14,7 +17,18 @@ export function ExpensesManager() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierName) return;
+
+    if (!supplierName || supplierName.trim().length < 3) {
+      showError("Proveedor Requerido", "Ingresa la razón social o beneficiario del gasto.");
+      return;
+    }
+
+    const amountVal = validateMonetaryAmount(amount, "Valor del gasto");
+    if (!amountVal.isValid) {
+      showError("Monto Inválido", amountVal.error || "El monto debe ser mayor a cero.");
+      return;
+    }
+
     addExpense({
       supplierName,
       amount: Number(amount),
@@ -23,6 +37,8 @@ export function ExpensesManager() {
       expenseDate: new Date().toISOString().split("T")[0],
       paymentMethod: "transferencia",
     });
+
+    showSuccess("Gasto Registrado", `Efectivo/Transferencia por $${Number(amount).toFixed(2)} USD para ${supplierName} asentado.`);
     setIsModalOpen(false);
     setSupplierName("");
     setDescription("");
@@ -68,10 +84,12 @@ export function ExpensesManager() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-900 text-sm">Registrar Gasto de Operación</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 text-slate-400">✕</button>
+              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <form onSubmit={handleCreate} className="p-4 space-y-3 text-xs">
               <div>
@@ -122,8 +140,12 @@ export function ExpensesManager() {
                 />
               </div>
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold">Guardar Gasto</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold cursor-pointer">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold cursor-pointer">
+                  Guardar Gasto
+                </button>
               </div>
             </form>
           </div>

@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { ArcotelPolicy } from "@/types";
 import { ShieldCheck, Plus, Download, AlertTriangle, FileText, CheckCircle2, Clock } from "lucide-react";
 import { generateArcotelRenewalLetterDocx, triggerBrowserDownload } from "@/lib/doc-generator";
@@ -12,13 +13,15 @@ interface PoliciesListProps {
 
 export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
   const { policies } = useApp();
+  const { showSuccess, showError } = useToast();
 
   const handleDownloadRenewal = async (policy: ArcotelPolicy) => {
     try {
       const blob = await generateArcotelRenewalLetterDocx(policy);
       triggerBrowserDownload(blob, `Oficio_Renovacion_${policy.policyNumber}.docx`);
+      showSuccess("Oficio Generado", `Borrador oficial para ARCOTEL descargado en Word (.docx).`);
     } catch (e) {
-      alert("Error al generar oficio");
+      showError("Error de Descarga", "No se pudo generar el archivo Word.");
     }
   };
 

@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { TicketPriority } from "@/types";
 import { X, Check } from "lucide-react";
 
@@ -11,7 +12,8 @@ interface TicketModalProps {
 }
 
 export function TicketModal({ isOpen, onClose }: TicketModalProps) {
-  const { addTicket, clients, nodes } = useApp();
+  const { addTicket, clients } = useApp();
+  const { showError, showSuccess } = useToast();
 
   const [clientId, setClientId] = useState(clients[0]?.id || "");
   const [title, setTitle] = useState("");
@@ -23,6 +25,22 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!clientId) {
+      showError("Cliente No Seleccionado", "Debes vincular el ticket a un abonado registrado.");
+      return;
+    }
+
+    if (!title || title.trim().length < 5) {
+      showError("Asunto Incompleto", "Describe brevemente la falla (mínimo 5 caracteres).");
+      return;
+    }
+
+    if (!description || description.trim().length < 10) {
+      showError("Detalle Insuficiente", "Ingresa un reporte técnico más detallado para la cuadrilla (mínimo 10 caracteres).");
+      return;
+    }
+
     const client = clients.find((c) => c.id === clientId);
 
     addTicket({
@@ -36,15 +54,18 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
       category: "corte_fibra",
     });
 
+    showSuccess("Ticket Creado", `Incidencia generada y notificada a ${assignedToName}.`);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+      <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-bold text-slate-900 text-sm">Nuevo Ticket de Soporte</h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400">✕</button>
+          <h3 className="font-bold text-slate-900 text-sm">Nuevo Ticket de Soporte Técnico NOC</h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
           <div>
@@ -97,19 +118,21 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
             </div>
           </div>
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Descripción de la Incidencia</label>
+            <label className="font-bold text-slate-700 block mb-1">Descripción Técnica</label>
             <textarea
               rows={3}
               required
-              placeholder="Detalle técnico de la falla reportada..."
+              placeholder="Detalle técnico de la falla reportada (niveles de potencia óptica, alarmas)..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
             />
           </div>
           <div className="pt-2 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 font-bold">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-sm">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 font-bold cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-sm cursor-pointer">
               Crear Ticket
             </button>
           </div>

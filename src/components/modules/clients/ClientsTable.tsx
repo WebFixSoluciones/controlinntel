@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
 import { Search, Plus, Eye, Trash2, CheckCircle2, XCircle, Download } from "lucide-react";
 import { generateAdhesionContractDocx, triggerBrowserDownload } from "@/lib/doc-generator";
@@ -13,6 +14,7 @@ interface ClientsTableProps {
 
 export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
   const { clients, clientServices, deleteClient } = useApp();
+  const { showSuccess, showError, showConfirm } = useToast();
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
 
@@ -31,9 +33,23 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
     try {
       const blob = await generateAdhesionContractDocx(client, srv);
       triggerBrowserDownload(blob, `Contrato_Adhesion_${client.identificationNumber}.docx`);
+      showSuccess("Contrato Generado", `Se descargó el contrato ARCOTEL para ${client.businessName}.`);
     } catch (err) {
-      alert("Error al generar contrato");
+      showError("Error de Generación", "No se pudo generar el archivo Word del contrato.");
     }
+  };
+
+  const handleDeleteClient = (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation();
+    showConfirm(
+      "¿Eliminar Abonado?",
+      `¿Estás seguro de dar de baja definitiva al abonado "${client.businessName}" (${client.identificationNumber})? Esta acción revocará sus servicios asociados.`,
+      () => {
+        deleteClient(client.id);
+        showSuccess("Abonado Eliminado", `El cliente ${client.businessName} ha sido removido del sistema.`);
+      },
+      "Eliminar Cliente"
+    );
   };
 
   return (
@@ -184,11 +200,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm(`¿Eliminar al cliente ${client.businessName}?`)) {
-                              deleteClient(client.id);
-                            }
-                          }}
+                          onClick={(e) => handleDeleteClient(client, e)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           title="Eliminar"
                         >

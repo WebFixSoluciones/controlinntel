@@ -1,11 +1,15 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
-import { Radio, Plus, Server, Activity, ArrowUpRight, Cpu, CheckCircle2, AlertTriangle } from "lucide-react";
+import { useToast } from "@/lib/toast-context";
+import { validateIpv4OrCidr, validateMonetaryAmount } from "@/lib/validation-engine";
+import { Radio, Plus, CheckCircle2, X } from "lucide-react";
 
 export function NodesList() {
   const { nodes, addNode } = useApp();
+  const { showError, showSuccess } = useToast();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -15,7 +19,28 @@ export function NodesList() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !address) return;
+
+    if (!name || name.trim().length < 3) {
+      showError("Nombre de Nodo Inválido", "Ingresa un nombre descriptivo para el POP.");
+      return;
+    }
+
+    if (!address || address.trim().length < 5) {
+      showError("Ubicación Inválida", "Especifica la dirección física del nodo/torre.");
+      return;
+    }
+
+    const ipVal = validateIpv4OrCidr(mikrotikIp);
+    if (!ipVal.isValid) {
+      showError("Dirección IP Inválida", ipVal.error || "La IP del Router MikroTik no tiene un formato válido.");
+      return;
+    }
+
+    if (totalCapacityMbps <= 0) {
+      showError("Capacidad Inválida", "La capacidad total en Mbps debe ser mayor a cero.");
+      return;
+    }
+
     addNode({
       name,
       address,
@@ -27,6 +52,8 @@ export function NodesList() {
       activeClientsCount: 0,
       notes: "Nuevo POP instalado",
     });
+
+    showSuccess("Nodo Registrado", `POP ${name} incorporado a la topología de red.`);
     setIsModalOpen(false);
     setName("");
     setAddress("");
@@ -117,14 +144,13 @@ export function NodesList() {
         })}
       </div>
 
-      {/* Modal Nuevo Nodo */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-900 text-sm">Registrar Nuevo Nodo / POP</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-slate-400">
-                ✕
+              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-4 space-y-3 text-xs">
@@ -162,10 +188,11 @@ export function NodesList() {
                   />
                 </div>
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">IP Router MikroTik</label>
+                  <label className="font-bold text-slate-700 block mb-1">IP Router MikroTik *</label>
                   <input
                     type="text"
                     required
+                    placeholder="10.50.1.1"
                     value={mikrotikIp}
                     onChange={(e) => setMikrotikIp(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold"
@@ -173,10 +200,10 @@ export function NodesList() {
                 </div>
               </div>
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-bold cursor-pointer">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm">
+                <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm cursor-pointer">
                   Guardar Nodo
                 </button>
               </div>

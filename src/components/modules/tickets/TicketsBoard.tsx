@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { Ticket, TicketStatus } from "@/types";
 import { Ticket as TicketIcon, Plus, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
@@ -11,9 +12,19 @@ interface TicketsBoardProps {
 
 export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   const { tickets, updateTicketStatus } = useApp();
+  const { showSuccess, showInfo } = useToast();
   const [filterStatus, setFilterStatus] = useState<string>("todos");
 
   const filtered = tickets.filter((t) => filterStatus === "todos" || t.status === filterStatus);
+
+  const handleStatusChange = (t: Ticket, newStatus: TicketStatus) => {
+    updateTicketStatus(t.id, newStatus);
+    if (newStatus === "resuelto") {
+      showSuccess("Ticket Resuelto", `Incidencia ${t.ticketNumber} marcada como resuelta satisfactoriamente.`);
+    } else {
+      showInfo("Estado Actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
+    }
+  };
 
   return (
     <div className="space-y-6 select-none">
@@ -93,8 +104,8 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
               <select
                 value={t.status}
-                onChange={(e) => updateTicketStatus(t.id, e.target.value as TicketStatus)}
-                className="bg-slate-50 text-xs font-bold text-slate-800 rounded-lg px-2.5 py-1 border border-slate-200"
+                onChange={(e) => handleStatusChange(t, e.target.value as TicketStatus)}
+                className="bg-slate-50 text-xs font-bold text-slate-800 rounded-lg px-2.5 py-1 border border-slate-200 cursor-pointer"
               >
                 <option value="abierto">Abierto</option>
                 <option value="en_progreso">En Progreso</option>

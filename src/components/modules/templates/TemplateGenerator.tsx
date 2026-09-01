@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { FileText, Download, CheckCircle2, FileSpreadsheet, Shield } from "lucide-react";
 import {
   generateAdhesionContractDocx,
@@ -13,29 +14,64 @@ import {
 
 export function TemplateGenerator() {
   const { clients, clientServices, nodes, policies, monthlyCharges } = useApp();
+  const { showSuccess, showError, showWarning } = useToast();
 
   const handleDownloadContract = async () => {
-    if (clients.length === 0) return;
-    const client = clients[0];
-    const srv = clientServices.find((s) => s.clientId === client.id);
-    const blob = await generateAdhesionContractDocx(client, srv);
-    triggerBrowserDownload(blob, `Contrato_Adhesion_ARCOTEL_${client.identificationNumber}.docx`);
+    if (clients.length === 0) {
+      showWarning("Sin Clientes", "No hay abonados registrados para generar el contrato.");
+      return;
+    }
+    try {
+      const client = clients[0];
+      const srv = clientServices.find((s) => s.clientId === client.id);
+      const blob = await generateAdhesionContractDocx(client, srv);
+      triggerBrowserDownload(blob, `Contrato_Adhesion_ARCOTEL_${client.identificationNumber}.docx`);
+      showSuccess("Contrato Generado", `Modelo homologado generado para ${client.businessName}.`);
+    } catch (e) {
+      showError("Error al Generar", "No se pudo crear el documento Word.");
+    }
   };
 
   const handleDownloadSaiExcel = async () => {
-    const blob = await generateSaiInfraExcel(nodes);
-    triggerBrowserDownload(blob, `Registro_Infraestructura_SAI_ARCOTEL_2026.xlsx`);
+    if (nodes.length === 0) {
+      showWarning("Sin Nodos", "No hay infraestructura de red para exportar.");
+      return;
+    }
+    try {
+      const blob = await generateSaiInfraExcel(nodes);
+      triggerBrowserDownload(blob, `Registro_Infraestructura_SAI_ARCOTEL_2026.xlsx`);
+      showSuccess("Reporte SAI Generado", `Se exportó el inventario técnico de ${nodes.length} POPs.`);
+    } catch (e) {
+      showError("Error al Generar", "No se pudo generar el archivo Excel.");
+    }
   };
 
   const handleDownloadSriBatch = async () => {
-    const blob = await generateSriBillingBatchExcel(monthlyCharges);
-    triggerBrowserDownload(blob, `Lote_Facturacion_SRI_INNTEL_CORP.xlsx`);
+    if (monthlyCharges.length === 0) {
+      showWarning("Sin Comprobantes", "Emite el lote del Día 1 en el módulo de Finanzas primero.");
+      return;
+    }
+    try {
+      const blob = await generateSriBillingBatchExcel(monthlyCharges);
+      triggerBrowserDownload(blob, `Lote_Facturacion_SRI_INNTEL_CORP.xlsx`);
+      showSuccess("Lote SRI Generado", `Archivo Excel listo para alimentar el sistema de facturación.`);
+    } catch (e) {
+      showError("Error al Generar", "No se pudo generar el lote para el SRI.");
+    }
   };
 
   const handleDownloadRenewalLetter = async () => {
-    if (policies.length === 0) return;
-    const blob = await generateArcotelRenewalLetterDocx(policies[0]);
-    triggerBrowserDownload(blob, `Oficio_Renovacion_ARCOTEL_${policies[0].policyNumber}.docx`);
+    if (policies.length === 0) {
+      showWarning("Sin Pólizas", "No hay pólizas registradas para solicitar renovación.");
+      return;
+    }
+    try {
+      const blob = await generateArcotelRenewalLetterDocx(policies[0]);
+      triggerBrowserDownload(blob, `Oficio_Renovacion_ARCOTEL_${policies[0].policyNumber}.docx`);
+      showSuccess("Oficio QUIPUX Generado", `Borrador oficial para ARCOTEL listo en Word.`);
+    } catch (e) {
+      showError("Error al Generar", "No se pudo generar el oficio formal.");
+    }
   };
 
   const TEMPLATES = [
