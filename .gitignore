@@ -1,6 +1,9 @@
-﻿# dependencies
+# dependencies
 /node_modules
 /.pnpm-store
+
+# pnpm lockfile - using npm for Vercel compatibility
+pnpm-lock.yaml
 
 # next.js
 /.next/
