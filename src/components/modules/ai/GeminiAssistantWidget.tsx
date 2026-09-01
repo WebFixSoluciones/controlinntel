@@ -19,7 +19,7 @@ export function GeminiAssistantWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP (Gemini Flash 2.5 Lite). Puedo apoyarte en consultas de pólizas ARCOTEL, estado de nodos MikroTik, pre-facturación SRI o redacción de oficios. ¿En qué te puedo colaborar hoy?`,
+      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP (Gemini Flash 2.5 Lite). Puedo apoyarte en consultas de pólizas ARCOTEL, estado de nodos MikroTik, órdenes de cobro o redacción de oficios. ¿En qué te puedo colaborar hoy?`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);

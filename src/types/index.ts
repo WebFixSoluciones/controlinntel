@@ -177,7 +177,7 @@ export interface AuditLog {
   userId: string;
   userEmail: string;
   userRole: UserRole;
-  action: "LOGIN" | "LOGOUT" | "VIEW_VAULT_PASSWORD" | "UPDATE_VAULT" | "GENERATE_DOC" | "CREATE_CLIENT" | "UPDATE_CLIENT" | "CREATE_EXPENSE" | "EXPORT_SRI";
+  action: "LOGIN" | "LOGOUT" | "VIEW_VAULT_PASSWORD" | "UPDATE_VAULT" | "GENERATE_DOC" | "CREATE_CLIENT" | "UPDATE_CLIENT" | "CREATE_EXPENSE" | "EXPORT_BILLING" | "EXPORT_SRI";
   resource: string;
   details: string;
   timestamp: string;

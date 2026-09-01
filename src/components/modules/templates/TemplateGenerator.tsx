@@ -7,7 +7,7 @@ import { FileText, Download, CheckCircle2, FileSpreadsheet, Shield } from "lucid
 import {
   generateAdhesionContractDocx,
   generateSaiInfraExcel,
-  generateSriBillingBatchExcel,
+  generateBillingBatchExcel,
   generateArcotelRenewalLetterDocx,
   triggerBrowserDownload,
 } from "@/lib/doc-generator";
@@ -46,17 +46,17 @@ export function TemplateGenerator() {
     }
   };
 
-  const handleDownloadSriBatch = async () => {
+  const handleDownloadBillingBatch = async () => {
     if (monthlyCharges.length === 0) {
       showWarning("Sin Comprobantes", "Emite el lote del Día 1 en el módulo de Finanzas primero.");
       return;
     }
     try {
-      const blob = await generateSriBillingBatchExcel(monthlyCharges);
-      triggerBrowserDownload(blob, `Lote_Facturacion_SRI_INNTEL_CORP.xlsx`);
-      showSuccess("Lote SRI Generado", `Archivo Excel listo para alimentar el sistema de facturación.`);
+      const blob = await generateBillingBatchExcel(monthlyCharges);
+      triggerBrowserDownload(blob, `Lote_Cobranzas_PreFacturas_INNTEL_CORP.xlsx`);
+      showSuccess("Lote Generado", `Archivo Excel listo con las órdenes de pedido y pre-facturas emitidas.`);
     } catch (e) {
-      showError("Error al Generar", "No se pudo generar el lote para el SRI.");
+      showError("Error al Generar", "No se pudo generar el lote de cobros.");
     }
   };
 
@@ -92,12 +92,12 @@ export function TemplateGenerator() {
       action: handleDownloadSaiExcel,
     },
     {
-      title: "Lote de Facturación Electrónica para SRI",
-      desc: "Estructura estándar compatible para alimentar el software de facturación y emisión oficial SRI.",
+      title: "Lote de Órdenes de Pedido & Pre-Facturas Internas",
+      desc: "Estructura estándar de cotizaciones, tarifas mensuales y seguimiento de cobros por cliente.",
       format: "Excel (.xlsx)",
       icon: FileSpreadsheet,
       color: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      action: handleDownloadSriBatch,
+      action: handleDownloadBillingBatch,
     },
     {
       title: "Oficio Formal de Renovación de Póliza ARCOTEL",

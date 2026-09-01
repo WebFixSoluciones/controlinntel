@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -10,7 +10,7 @@ import {
   validatePhoneEcuador,
   validateMonetaryAmount,
 } from "@/lib/validation-engine";
-import { X, UserPlus, Check, AlertCircle } from "lucide-react";
+import { X, UserPlus, Check } from "lucide-react";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -138,22 +138,22 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-[#0b1c30] text-sm">
                 {clientToEdit ? "Editar Abonado / Cliente" : "Alta de Nuevo Abonado & Servicio ISP"}
               </h3>
-              <p className="text-[11px] text-slate-400">Validación estricta de RUC/Cédula y configuración técnica</p>
+              <p className="text-[11px] text-[#737686]">Validación de RUC/Cédula y configuración técnica</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
+            className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -162,11 +162,11 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Tipo de Identificación *</label>
+              <label className="font-bold text-[#434655] block mb-1">Tipo de Identificación *</label>
               <select
                 value={identificationType}
                 onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               >
                 <option value="RUC">RUC (13 Dígitos)</option>
                 <option value="CEDULA">Cédula (10 Dígitos)</option>
@@ -175,7 +175,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             <div className="md:col-span-2">
-              <label className="font-bold text-slate-700 block mb-1">
+              <label className="font-bold text-[#434655] block mb-1">
                 Número de Identificación ({identificationType}) *
               </label>
               <input
@@ -184,93 +184,93 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 placeholder={identificationType === "RUC" ? "1792841092001" : "1718293041"}
                 value={identificationNumber}
                 onChange={(e) => setIdentificationNumber(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Razón Social o Nombres Completos *</label>
+              <label className="font-bold text-[#434655] block mb-1">Razón Social o Nombres Completos *</label>
               <input
                 type="text"
                 required
                 placeholder="DISTRIBUIDORA ANDINA S.A."
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Representante Legal (opcional)</label>
+              <label className="font-bold text-[#434655] block mb-1">Representante Legal (opcional)</label>
               <input
                 type="text"
                 placeholder="Ing. Juan Pérez"
                 value={legalRepresentative}
                 onChange={(e) => setLegalRepresentative(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Correo Electrónico (Facturas SRI) *</label>
+              <label className="font-bold text-[#434655] block mb-1">Correo Electrónico (Cobranzas) *</label>
               <input
                 type="email"
                 required
                 placeholder="facturacion@empresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Teléfonos de Contacto *</label>
+              <label className="font-bold text-[#434655] block mb-1">Teléfonos de Contacto *</label>
               <input
                 type="text"
                 required
                 placeholder="022548900 / 0998451234"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2">
-              <label className="font-bold text-slate-700 block mb-1">Dirección de Instalación *</label>
+              <label className="font-bold text-[#434655] block mb-1">Dirección de Instalación *</label>
               <input
                 type="text"
                 required
                 placeholder="Av. 10 de Agosto N34-12 y Mariana de Jesús"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Sector / Zona</label>
+              <label className="font-bold text-[#434655] block mb-1">Sector / Zona</label>
               <input
                 type="text"
                 placeholder="Quito Norte / Valles"
                 value={sector}
                 onChange={(e) => setSector(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           </div>
 
           {!clientToEdit && (
-            <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 space-y-3">
-              <h4 className="font-bold text-sky-900 text-xs">Asignación Inicial de Plan y Red ISP</h4>
+            <div className="p-4 rounded-xl bg-[#eff4ff] border border-[#dce9ff] space-y-3">
+              <h4 className="font-bold text-[#004ac6] text-xs">Asignación Inicial de Plan y Red ISP</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Plan de Internet</label>
+                  <label className="font-bold text-[#434655] block mb-1">Plan de Internet</label>
                   <select
                     value={planId}
                     onChange={(e) => {
@@ -278,7 +278,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       setPlanId(e.target.value);
                       if (p) setCustomPrice(p.defaultPrice);
                     }}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30]"
                   >
                     {plans.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -289,23 +289,23 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Precio Pactado ($ USD)</label>
+                  <label className="font-bold text-[#434655] block mb-1">Precio Pactado ($ USD)</label>
                   <input
                     type="number"
                     step="0.01"
                     required
                     value={customPrice}
                     onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-bold text-[#004ac6]"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Nodo / POP</label>
+                  <label className="font-bold text-[#434655] block mb-1">Nodo / POP</label>
                   <select
                     value={nodeId}
                     onChange={(e) => setNodeId(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30]"
                   >
                     {nodes.map((n) => (
                       <option key={n.id} value={n.id}>
@@ -318,30 +318,30 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
           )}
 
-          <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center gap-2 p-3 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0]">
             <input
               type="checkbox"
               id="sriSwitch"
               checked={requiresSriBilling}
               onChange={(e) => setRequiresSriBilling(e.target.checked)}
-              className="w-4 h-4 text-sky-600 rounded cursor-pointer"
+              className="w-4 h-4 text-[#004ac6] rounded cursor-pointer"
             />
-            <label htmlFor="sriSwitch" className="text-xs font-bold text-slate-800 cursor-pointer">
-              Generar Lote de Facturación Electrónica SRI automáticamente el día 1 de cada mes
+            <label htmlFor="sriSwitch" className="text-xs font-semibold text-[#0b1c30] cursor-pointer">
+              Generar Orden de Pedido / Pre-Factura automáticamente el día 1 de cada mes
             </label>
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#e2e8f0]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+              className="px-4 py-2 rounded-lg text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               Guardar Cliente

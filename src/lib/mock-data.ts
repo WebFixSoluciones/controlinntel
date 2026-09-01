@@ -1,4 +1,4 @@
-﻿import {
+import {
   Client,
   ClientService,
   Plan,
@@ -35,7 +35,7 @@ export const SYSTEM_ACCOUNTS: SystemAccount[] = [
       email: "finanzas@inntelcorp.ec",
       displayName: "Lcda. Patricia Andrade",
       role: "finanzas",
-      department: "Contabilidad & Facturación SRI",
+      department: "Contabilidad & Cobranzas",
       phone: "+593 98 432 1098",
     },
     passwordHash: "Finanzas2026*",

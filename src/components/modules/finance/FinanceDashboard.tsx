@@ -3,17 +3,17 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar } from "lucide-react";
-import { generateSriBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
+import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar, FileText } from "lucide-react";
+import { generateBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
 
 interface FinanceDashboardProps {
-  onOpenNewExpense: () => void;
+  onOpenNewExpense?: () => void;
 }
 
 export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   const { monthlyCharges, markChargeAsPaid, generateMonthlyBillingBatch, clients, expenses } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState(8);
+  const [selectedMonth, setSelectedMonth] = useState(9);
   const [selectedYear, setSelectedYear] = useState(2026);
 
   const currentCharges = monthlyCharges.filter(
@@ -25,24 +25,24 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   const totalPending = totalBilled - totalPaid;
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  const handleExportSri = async () => {
+  const handleExportBatch = async () => {
     if (currentCharges.length === 0) {
       showError("Sin Registros", "No hay comprobantes para este periodo. Emite el lote primero.");
       return;
     }
     try {
-      const blob = await generateSriBillingBatchExcel(currentCharges);
-      triggerBrowserDownload(blob, `Lote_Facturacion_SRI_${selectedMonth}_${selectedYear}.xlsx`);
-      showSuccess("Lote SRI Exportado", `Archivo Excel con ${currentCharges.length} facturas generado exitosamente.`);
+      const blob = await generateBillingBatchExcel(currentCharges);
+      triggerBrowserDownload(blob, `Lote_Cobranzas_PreFacturas_${selectedMonth}_${selectedYear}.xlsx`);
+      showSuccess("Lote Exportado", `Archivo Excel con ${currentCharges.length} órdenes de pedido generado exitosamente.`);
     } catch (e) {
-      showError("Error de Exportación", "Ocurrió un problema al construir el archivo Excel del SRI.");
+      showError("Error de Exportación", "Ocurrió un problema al construir el archivo Excel de cobranzas.");
     }
   };
 
   const handleGenerateBatch = () => {
     showConfirm(
-      "¿Emitir Cobros Día 1?",
-      `Se generarán las facturas recurrentes correspondientes a ${clients.length} clientes activos para el periodo ${selectedMonth}/${selectedYear}. ¿Continuar?`,
+      "¿Emitir Cobros / Órdenes del Día 1?",
+      `Se generarán las órdenes de pedido y pre-facturas correspondientes a ${clients.length} clientes activos para el periodo ${selectedMonth}/${selectedYear}. ¿Continuar?`,
       () => {
         generateMonthlyBillingBatch(selectedMonth, selectedYear);
         showSuccess("Lote Emitido", `Cobros del Día 1 generados para ${clients.length} abonados.`);
@@ -53,7 +53,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
   const handleMarkPaid = (charge: any) => {
     markChargeAsPaid(charge.id, "Transferencia Bancaria");
-    showSuccess("Pago Registrado", `Factura ${charge.invoiceNumber} por $${charge.total.toFixed(2)} USD marcada como pagada.`);
+    showSuccess("Pago Registrado", `Pre-Factura ${charge.invoiceNumber} por $${charge.total.toFixed(2)} USD marcada como pagada.`);
   };
 
   return (
@@ -62,10 +62,10 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
         <div>
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-emerald-600" />
-            Control Financiero, Cobros Recurrentes & Pre-Facturación SRI
+            Control Financiero, Cobranzas Recurrentes & Órdenes de Pedido
           </h2>
           <p className="text-xs text-slate-400">
-            Generación automática de cobros Día 1 y lotes exportables compatibles con Facturación Electrónica SRI
+            Generación automática de cobros Día 1, pre-facturas no oficiales y seguimiento de recaudación mensual
           </p>
         </div>
 
@@ -79,20 +79,20 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
           </button>
 
           <button
-            onClick={handleExportSri}
+            onClick={handleExportBatch}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Exportar Lote SRI (.xlsx)</span>
+            <span>Exportar Lote de Cobros (.xlsx)</span>
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Facturado</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Emitido</span>
           <span className="text-xl font-black text-slate-900 mt-1 block">${totalBilled.toFixed(2)} USD</span>
-          <span className="text-[11px] text-slate-400">{currentCharges.length} comprobantes del periodo</span>
+          <span className="text-[11px] text-slate-400">{currentCharges.length} pre-facturas del periodo</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
@@ -118,7 +118,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-bold text-slate-900 text-sm">Detalle de Cobros Emitidos para SRI</h3>
+          <h3 className="font-bold text-slate-900 text-sm">Detalle de Órdenes de Pedido & Pre-Facturas Emitidas</h3>
           <span className="text-xs font-semibold text-slate-500">Periodo {selectedMonth}/{selectedYear}</span>
         </div>
 
@@ -126,11 +126,11 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Cliente / RUC</th>
+                <th className="py-3 px-4">Cliente / Identificación</th>
                 <th className="py-3 px-4">Concepto del Servicio</th>
                 <th className="py-3 px-4">Subtotal (15% IVA)</th>
                 <th className="py-3 px-4">IVA 15%</th>
-                <th className="py-3 px-4">Total</th>
+                <th className="py-3 px-4">Total Cotizado</th>
                 <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4 text-right">Acción</th>
               </tr>

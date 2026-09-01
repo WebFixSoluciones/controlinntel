@@ -330,7 +330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
     setMonthlyCharges((prev) => [...newCharges, ...prev]);
-    addAuditLog("EXPORT_SRI", "Emisión Cobros Día 1", `Lote para ${clients.length} clientes`);
+    addAuditLog("EXPORT_BILLING", "Emisión Cobros Día 1", `Lote para ${clients.length} clientes`);
   };
 
   const markChargeAsPaid = (chargeId: string, method: string) => {

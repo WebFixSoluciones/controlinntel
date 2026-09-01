@@ -40,20 +40,20 @@ export function QuickSearchModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-          <Search className="w-5 h-5 text-slate-400" />
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[80vh]">
+        <div className="p-4 border-b border-[#e2e8f0] flex items-center gap-3 bg-[#f8f9ff]">
+          <Search className="w-5 h-5 text-[#737686]" />
           <input
             type="text"
             autoFocus
             placeholder="Escribe RUC, nombre de cliente, IP de nodo o póliza ARCOTEL..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-none text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden"
+            className="flex-1 bg-transparent border-none text-sm font-medium text-[#0b1c30] placeholder:text-[#737686] focus:outline-hidden"
           />
           <button
             onClick={() => setIsSearchOpen(false)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
+            className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -62,8 +62,8 @@ export function QuickSearchModal() {
         <div className="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
           {filteredClients.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px] mb-2">
-                <Users className="w-3.5 h-3.5" /> Clientes ({filteredClients.length})
+              <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
+                <Users className="w-3.5 h-3.5 text-[#004ac6]" /> Clientes ({filteredClients.length})
               </div>
               <div className="space-y-1.5">
                 {filteredClients.slice(0, 4).map((c) => (
@@ -71,15 +71,15 @@ export function QuickSearchModal() {
                     key={c.id}
                     href="/clientes"
                     onClick={() => setIsSearchOpen(false)}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-sky-50/70 border border-transparent hover:border-sky-100 transition-colors group"
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
                     <div>
-                      <p className="font-bold text-slate-800 group-hover:text-sky-700">{c.businessName}</p>
-                      <p className="text-slate-400 text-[11px]">
+                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{c.businessName}</p>
+                      <p className="text-[#737686] text-[11px]">
                         {c.identificationType}: {c.identificationNumber} • {c.phone}
                       </p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6]">
                       {c.status.toUpperCase()}
                     </span>
                   </Link>
@@ -90,8 +90,8 @@ export function QuickSearchModal() {
 
           {filteredNodes.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px] mb-2">
-                <Radio className="w-3.5 h-3.5" /> Nodos & Red ({filteredNodes.length})
+              <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
+                <Radio className="w-3.5 h-3.5 text-[#10B981]" /> Nodos & Red ({filteredNodes.length})
               </div>
               <div className="space-y-1.5">
                 {filteredNodes.map((n) => (
@@ -99,13 +99,13 @@ export function QuickSearchModal() {
                     key={n.id}
                     href="/red"
                     onClick={() => setIsSearchOpen(false)}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-sky-50/70 border border-transparent hover:border-sky-100 transition-colors group"
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
                     <div>
-                      <p className="font-bold text-slate-800 group-hover:text-sky-700">{n.name}</p>
-                      <p className="text-slate-400 text-[11px]">MikroTik: {n.mikrotikIp || "N/A"} • {n.upstreamProvider}</p>
+                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{n.name}</p>
+                      <p className="text-[#737686] text-[11px]">MikroTik: {n.mikrotikIp || "N/A"} • {n.upstreamProvider}</p>
                     </div>
-                    <span className="text-[11px] font-semibold text-slate-600">
+                    <span className="text-[11px] font-semibold text-[#434655]">
                       {n.usedCapacityMbps} / {n.totalCapacityMbps} Mbps
                     </span>
                   </Link>
@@ -116,8 +116,8 @@ export function QuickSearchModal() {
 
           {filteredPolicies.length > 0 && (
             <div>
-              <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase tracking-wider text-[10px] mb-2">
-                <ShieldCheck className="w-3.5 h-3.5" /> Pólizas ARCOTEL ({filteredPolicies.length})
+              <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Pólizas ARCOTEL ({filteredPolicies.length})
               </div>
               <div className="space-y-1.5">
                 {filteredPolicies.map((p) => (
@@ -125,11 +125,11 @@ export function QuickSearchModal() {
                     key={p.id}
                     href="/arcotel"
                     onClick={() => setIsSearchOpen(false)}
-                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-sky-50/70 border border-transparent hover:border-sky-100 transition-colors group"
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
                     <div>
-                      <p className="font-bold text-slate-800 group-hover:text-sky-700">{p.policyNumber}</p>
-                      <p className="text-slate-400 text-[11px]">{p.insuranceCompany} • Vence: {p.expirationDate}</p>
+                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{p.policyNumber}</p>
+                      <p className="text-[#737686] text-[11px]">{p.insuranceCompany} • Vence: {p.expirationDate}</p>
                     </div>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

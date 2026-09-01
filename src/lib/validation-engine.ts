@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Motor de Validaciones Empresarial para INNTEL CORP
  * Validador oficial para Ecuador: Cédula, RUC (Natural, Privada, Pública),
  * Direccionamiento IPv4 / CIDR, Teléfonos, Fechas y Tarifas.
@@ -121,7 +121,7 @@ export function validateRucEcuador(ruc: string): ValidationResult {
     return { isValid: true };
   }
 
-  return { isValid: false, error: "Estructura de RUC no reconocida por la normativa del SRI." };
+  return { isValid: false, error: "Estructura de RUC no válida según el formato estándar." };
 }
 
 /**
@@ -187,7 +187,7 @@ export function validateIpv4OrCidr(input: string): ValidationResult {
 export function validateEmail(email: string): ValidationResult {
   const trimmed = email.trim();
   if (!trimmed) {
-    return { isValid: false, error: "El correo electrónico es obligatorio para emisión SRI." };
+    return { isValid: false, error: "El correo electrónico es obligatorio para emisión de comprobantes." };
   }
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!emailRegex.test(trimmed)) {

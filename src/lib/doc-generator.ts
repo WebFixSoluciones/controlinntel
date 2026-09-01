@@ -1,4 +1,4 @@
-﻿import { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, Packer } from "docx";
+import { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, Packer } from "docx";
 import ExcelJS from "exceljs";
 import { Client, ClientService, ArcotelPolicy } from "@/types";
 
@@ -99,9 +99,9 @@ export async function generateSaiInfraExcel(nodes: any[]): Promise<Blob> {
   return new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
-export async function generateSriBillingBatchExcel(charges: any[]): Promise<Blob> {
+export async function generateBillingBatchExcel(charges: any[]): Promise<Blob> {
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Lote Facturacion SRI");
+  const sheet = workbook.addWorksheet("Lote Cobranzas y Pre-Facturas");
 
   sheet.getRow(1).values = [
     "TIPO_DOC",
@@ -117,7 +117,7 @@ export async function generateSriBillingBatchExcel(charges: any[]): Promise<Blob
   ];
 
   charges.forEach((c) => {
-    sheet.addRow(["01", c.clientRuc, c.clientName, c.month, c.year, c.serviceDescription, c.subtotal, c.ivaAmount, c.total, c.status]);
+    sheet.addRow(["PRE-FACTURA", c.clientRuc, c.clientName, c.month, c.year, c.serviceDescription, c.subtotal, c.ivaAmount, c.total, c.status]);
   });
 
   sheet.columns.forEach((col) => {
@@ -127,6 +127,8 @@ export async function generateSriBillingBatchExcel(charges: any[]): Promise<Blob
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
+
+export const generateSriBillingBatchExcel = generateBillingBatchExcel;
 
 export async function generateArcotelRenewalLetterDocx(policy: ArcotelPolicy): Promise<Blob> {
   const doc = new Document({

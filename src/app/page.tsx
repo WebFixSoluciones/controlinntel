@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { AppProvider } from "@/lib/state";
@@ -26,7 +26,7 @@ export default function DashboardPage() {
                   Panel de Control Operativo & Regulatorio
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Supervisión en tiempo real de clientes, pólizas ARCOTEL, nodos MikroTik y facturación SRI
+                  Supervisión en tiempo real de clientes, pólizas ARCOTEL, nodos MikroTik y cobranzas
                 </p>
               </div>
             </div>

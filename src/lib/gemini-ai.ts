@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function askGeminiAssistant(
   prompt: string,
@@ -8,7 +8,7 @@ export async function askGeminiAssistant(
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
   const systemContext = `
-Eres el Asistente Inteligente de INNTEL CORP (ISP Telecomunicaciones en Ecuador regulado por ARCOTEL y SRI).
+Eres el Asistente Inteligente de INNTEL CORP (ISP de Telecomunicaciones en Ecuador regulado por ARCOTEL).
 Rol del usuario: "${userRole.toUpperCase()}".
 
 DATOS OPERATIVOS ACTUALES:

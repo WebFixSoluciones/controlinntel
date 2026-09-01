@@ -159,7 +159,7 @@ export function LoginScreen() {
           INNTEL CORP S.A. — Sistema Homologado para Operadores de Telecomunicaciones SAI
         </p>
         <p className="text-[10px] text-slate-500">
-          Supervisión ARCOTEL • Conexión Cifrada MikroTik RouterOS API • Pre-Facturación SRI
+          Supervisión ARCOTEL • Conexión Cifrada MikroTik RouterOS API • Órdenes de Pedido & Cobranzas
         </p>
       </div>
     </div>

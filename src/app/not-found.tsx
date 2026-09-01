@@ -44,7 +44,7 @@ export default function NotFound() {
       </div>
 
       <p className="text-[11px] text-slate-400 mt-6 font-medium">
-        INNTEL CORP S.A. — Sistema de Gestión ISP, ARCOTEL & SRI
+        INNTEL CORP S.A. — Sistema de Gestión ISP & ARCOTEL
       </p>
     </div>
   );
