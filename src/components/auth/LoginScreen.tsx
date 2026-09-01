@@ -9,7 +9,6 @@ import {
   Mail,
   Eye,
   EyeOff,
-  ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 
@@ -61,7 +60,7 @@ export function LoginScreen() {
 
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Header Branding */}
-        <div className="p-8 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center relative">
+        <div className="p-8 pb-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center relative">
           <div className="inline-flex items-center justify-center p-3.5 bg-white rounded-2xl shadow-md border border-slate-100 mb-3">
             <Image
               src="/logo-inntel.webp"
@@ -76,12 +75,6 @@ export function LoginScreen() {
           <h1 className="text-xl font-black text-slate-900 tracking-tight">
             INNTEL CORP S.A.
           </h1>
-          <p className="text-xs font-semibold text-sky-700 uppercase tracking-wider mt-0.5">
-            Plataforma Integral ISP, ARCOTEL & SRI
-          </p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            Ingresa tus credenciales autorizadas para acceder
-          </p>
         </div>
 
         {/* Login Form */}
@@ -106,14 +99,9 @@ export function LoginScreen() {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700">
-                Contraseña de Acceso
-              </label>
-              <span className="text-[10px] text-sky-600 font-semibold">
-                INNTEL Security
-              </span>
-            </div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Contraseña de Acceso
+            </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Lock className="w-4 h-4" />
@@ -136,7 +124,7 @@ export function LoginScreen() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
+          <div className="flex items-center text-xs pt-1">
             <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
               <input
                 type="checkbox"
@@ -146,10 +134,6 @@ export function LoginScreen() {
               />
               <span className="text-[11px] font-medium">Recordar sesión</span>
             </label>
-
-            <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Cifrado 256-bit
-            </span>
           </div>
 
           <button
