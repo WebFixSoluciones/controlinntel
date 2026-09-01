@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
-import { ShieldCheck, AlertTriangle, ArrowRight, Download, FileText } from "lucide-react";
+import { ShieldCheck, AlertTriangle, ArrowRight, Download, Plus } from "lucide-react";
 import { generateArcotelRenewalLetterDocx, triggerBrowserDownload } from "@/lib/doc-generator";
 
 export function ExpirationsTimeline() {
@@ -39,56 +39,64 @@ export function ExpirationsTimeline() {
       </div>
 
       <div className="mt-4 space-y-3">
-        {policies.map((p) => (
-          <div
-            key={p.id}
-            className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
-              p.status === "por_vencer"
-                ? "bg-amber-50/60 border-amber-200"
-                : p.status === "vigente"
-                ? "bg-slate-50/60 border-slate-200"
-                : "bg-rose-50/60 border-rose-200"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  p.status === "por_vencer"
-                    ? "bg-amber-100 text-amber-700"
-                    : p.status === "vigente"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-rose-100 text-rose-700"
-                }`}
-              >
-                {p.status === "por_vencer" ? (
-                  <AlertTriangle className="w-4 h-4 animate-bounce" />
-                ) : (
-                  <ShieldCheck className="w-4 h-4" />
-                )}
-              </div>
-              <div>
-                <p className="font-bold text-xs text-slate-800">{p.policyNumber}</p>
-                <p className="text-[11px] text-slate-500">
-                  {p.insuranceCompany} • Cobertura: ${p.insuredAmount.toLocaleString("es-EC")} USD
-                </p>
-                <p className="text-[10px] font-semibold text-slate-600 mt-0.5">
-                  Vence: <span className="font-bold">{p.expirationDate}</span> ({p.daysUntilExpiration > 0 ? `Quedan ${p.daysUntilExpiration} días` : "Vencida"})
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleDownloadRenewal(p)}
-                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-sky-700 border border-slate-200 text-[11px] font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer"
-                title="Generar Oficio Formal de Renovación en Word"
-              >
-                <Download className="w-3 h-3" />
-                Oficio ARCOTEL
-              </button>
-            </div>
+        {policies.length === 0 ? (
+          <div className="py-8 flex flex-col items-center justify-center text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+            <ShieldCheck className="w-8 h-8 text-slate-300 mb-2" />
+            <p className="text-xs font-bold text-slate-500">Sin pólizas registradas</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Ingresa al módulo ARCOTEL para registrar tus pólizas de garantía.</p>
           </div>
-        ))}
+        ) : (
+          policies.map((p) => (
+            <div
+              key={p.id}
+              className={`p-3.5 rounded-xl border flex items-center justify-between transition-all ${
+                p.status === "por_vencer"
+                  ? "bg-amber-50/60 border-amber-200"
+                  : p.status === "vigente"
+                  ? "bg-slate-50/60 border-slate-200"
+                  : "bg-rose-50/60 border-rose-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                    p.status === "por_vencer"
+                      ? "bg-amber-100 text-amber-700"
+                      : p.status === "vigente"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-rose-100 text-rose-700"
+                  }`}
+                >
+                  {p.status === "por_vencer" ? (
+                    <AlertTriangle className="w-4 h-4 animate-bounce" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-xs text-slate-800">{p.policyNumber}</p>
+                  <p className="text-[11px] text-slate-500">
+                    {p.insuranceCompany} • Cobertura: ${p.insuredAmount.toLocaleString("es-EC")} USD
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-600 mt-0.5">
+                    Vence: <span className="font-bold">{p.expirationDate}</span> ({p.daysUntilExpiration > 0 ? `Quedan ${p.daysUntilExpiration} días` : "Vencida"})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownloadRenewal(p)}
+                  className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-sky-700 border border-slate-200 text-[11px] font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  title="Generar Oficio Formal de Renovación en Word"
+                >
+                  <Download className="w-3 h-3" />
+                  Oficio ARCOTEL
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

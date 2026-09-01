@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ToastProvider } from "./toast-context";
@@ -82,7 +82,7 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_FINAL";
+const STORAGE_KEY = "INNTEL_CORP_STATE_CLEAN_V3";
 const AUTH_KEY = "INNTEL_AUTH_USER";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useApp } from "@/lib/state";
@@ -13,25 +13,31 @@ export function IpPoolsManager() {
         <Network className="w-4 h-4 text-sky-600" />
         Gestión de Subredes & Pools de Direccionamiento IP (IPv4 / IPv6)
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {ipPools.map((pool) => (
-          <div key={pool.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-white border border-slate-200 text-slate-700">
-              {pool.type.replace("_", " ")}
-            </span>
-            <h4 className="font-bold text-slate-800 text-xs mt-2">{pool.name}</h4>
-            <p className="font-mono font-bold text-sky-700 mt-1">{pool.subnetCidr}</p>
-            <div className="mt-2 text-[11px] text-slate-500 flex justify-between">
-              <span>Gateway:</span>
-              <span className="font-mono font-bold">{pool.gateway}</span>
+      {ipPools.length === 0 ? (
+        <div className="py-6 text-center text-xs text-slate-400 italic bg-slate-50 rounded-xl border border-slate-100">
+          No hay pools o subredes IP configuradas aún.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {ipPools.map((pool) => (
+            <div key={pool.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-white border border-slate-200 text-slate-700">
+                {pool.type.replace("_", " ")}
+              </span>
+              <h4 className="font-bold text-slate-800 text-xs mt-2">{pool.name}</h4>
+              <p className="font-mono font-bold text-sky-700 mt-1">{pool.subnetCidr}</p>
+              <div className="mt-2 text-[11px] text-slate-500 flex justify-between">
+                <span>Gateway:</span>
+                <span className="font-mono font-bold">{pool.gateway}</span>
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500 flex justify-between">
+                <span>Asignadas:</span>
+                <span className="font-bold text-emerald-700">{pool.assignedIpsCount} / {pool.usableIpsCount} IPs</span>
+              </div>
             </div>
-            <div className="mt-1 text-[11px] text-slate-500 flex justify-between">
-              <span>Asignadas:</span>
-              <span className="font-bold text-emerald-700">{pool.assignedIpsCount} / {pool.usableIpsCount} IPs</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

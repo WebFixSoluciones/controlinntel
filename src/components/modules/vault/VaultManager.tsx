@@ -96,84 +96,92 @@ export function VaultManager() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vault.map((cred) => {
-          const isRevealed = !!revealedIds[cred.id];
-          const hasAccess = currentUser.role === "admin" || cred.allowedRoles.includes(currentUser.role);
-          const decryptedPass = isRevealed ? simpleDecrypt(cred.encryptedPassword || "") : maskPassword(12);
+      {vault.length === 0 ? (
+        <div className="p-10 rounded-2xl bg-white border border-slate-200 text-center flex flex-col items-center justify-center">
+          <KeyRound className="w-10 h-10 text-slate-300 mb-2" />
+          <h3 className="font-bold text-slate-700 text-sm">Bóveda Vacía</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm">No hay credenciales cifradas almacenadas. Haz clic en "Nueva Credencial" para guardar accesos a portales gubernamentales o routers.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {vault.map((cred) => {
+            const isRevealed = !!revealedIds[cred.id];
+            const hasAccess = currentUser.role === "admin" || cred.allowedRoles.includes(currentUser.role);
+            const decryptedPass = isRevealed ? simpleDecrypt(cred.encryptedPassword || "") : maskPassword(12);
 
-          return (
-            <div
-              key={cred.id}
-              className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
-                    {cred.serviceType.replace("_", " ")}
-                  </span>
-                  {cred.portalUrl && (
-                    <a
-                      href={cred.portalUrl.startsWith("http") ? cred.portalUrl : `http://${cred.portalUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sky-600 hover:text-sky-700 p-1 hover:bg-sky-50 rounded-md transition-colors"
-                      title="Abrir portal oficial"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
-
-                <h3 className="font-bold text-sm text-slate-900 mt-2.5">{cred.serviceName}</h3>
-                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                  Usuario: <span className="font-bold text-slate-800">{cred.username}</span>
-                </p>
-
-                <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                  <span className={`font-mono text-xs ${isRevealed ? "font-bold text-purple-700" : "text-slate-400 tracking-widest"}`}>
-                    {decryptedPass}
-                  </span>
-
-                  {hasAccess && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleReveal(cred)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
-                        title={isRevealed ? "Ocultar" : "Mostrar contraseña (10s)"}
+            return (
+              <div
+                key={cred.id}
+                className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
+                      {cred.serviceType.replace("_", " ")}
+                    </span>
+                    {cred.portalUrl && (
+                      <a
+                        href={cred.portalUrl.startsWith("http") ? cred.portalUrl : `http://${cred.portalUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-600 hover:text-sky-700 p-1 hover:bg-sky-50 rounded-md transition-colors"
+                        title="Abrir portal oficial"
                       >
-                        {isRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleCopy(cred)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
-                        title="Copiar contraseña"
-                      >
-                        {copiedId === cred.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
 
-                {isRevealed && (
-                  <p className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> Auto-ocultamiento en 10 segundos
+                  <h3 className="font-bold text-sm text-slate-900 mt-2.5">{cred.serviceName}</h3>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                    Usuario: <span className="font-bold text-slate-800">{cred.username}</span>
                   </p>
-                )}
 
-                {cred.notes && <p className="text-[11px] text-slate-400 italic mt-3">{cred.notes}</p>}
-              </div>
+                  <div className="mt-4 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <span className={`font-mono text-xs ${isRevealed ? "font-bold text-purple-700" : "text-slate-400 tracking-widest"}`}>
+                      {decryptedPass}
+                    </span>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                <span>Roles: {cred.allowedRoles.join(", ")}</span>
-                {cred.lastAccessedAt && (
-                  <span>Visto: {new Date(cred.lastAccessedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                )}
+                    {hasAccess && (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleToggleReveal(cred)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                          title={isRevealed ? "Ocultar" : "Mostrar contraseña (10s)"}
+                        >
+                          {isRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleCopy(cred)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                          title="Copiar contraseña"
+                        >
+                          {copiedId === cred.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {isRevealed && (
+                    <p className="text-[10px] text-amber-600 font-bold mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Auto-ocultamiento en 10 segundos
+                    </p>
+                  )}
+
+                  {cred.notes && <p className="text-[11px] text-slate-400 italic mt-3">{cred.notes}</p>}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>Roles: {cred.allowedRoles.join(", ")}</span>
+                  {cred.lastAccessedAt && (
+                    <span>Visto: {new Date(cred.lastAccessedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {isNewModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
