@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { SYSTEM_ACCOUNTS } from "@/lib/mock-data";
 import {
   Lock,
   Mail,
@@ -12,19 +11,14 @@ import {
   EyeOff,
   ShieldCheck,
   ArrowRight,
-  Shield,
-  KeyRound,
-  Radio,
-  FileSpreadsheet,
-  CheckCircle2,
 } from "lucide-react";
 
 export function LoginScreen() {
   const { login } = useApp();
   const { showError, showSuccess } = useToast();
 
-  const [email, setEmail] = useState("admin@inntelcorp.ec");
-  const [password, setPassword] = useState("Admin2026*");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,21 +47,10 @@ export function LoginScreen() {
       } else {
         showError(
           "Credenciales Inválidas",
-          "El usuario o la contraseña son incorrectos. Puedes utilizar los accesos rápidos de prueba a continuación."
+          "El usuario o la contraseña ingresados no coinciden con los registros autorizados."
         );
       }
     }, 400);
-  };
-
-  const handleQuickLogin = (accEmail: string, accPass: string) => {
-    setEmail(accEmail);
-    setPassword(accPass);
-    setIsLoading(true);
-    setTimeout(() => {
-      login(accEmail, accPass, rememberMe);
-      setIsLoading(false);
-      showSuccess("Sesión Iniciada", `Conectado como ${accEmail}`);
-    }, 300);
   };
 
   return (
@@ -78,13 +61,13 @@ export function LoginScreen() {
 
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Header Branding */}
-        <div className="p-6 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center relative">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-md border border-slate-100 mb-3">
+        <div className="p-8 bg-gradient-to-b from-slate-50 to-white border-b border-slate-100 text-center relative">
+          <div className="inline-flex items-center justify-center p-3.5 bg-white rounded-2xl shadow-md border border-slate-100 mb-3">
             <Image
               src="/logo-inntel.webp"
               alt="INNTEL CORP"
-              width={64}
-              height={64}
+              width={68}
+              height={68}
               className="object-contain"
               priority
             />
@@ -102,7 +85,7 @@ export function LoginScreen() {
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Correo Electrónico / Usuario
@@ -172,7 +155,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 to-sky-700 hover:from-sky-700 hover:to-sky-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
           >
             {isLoading ? (
               <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -184,39 +167,6 @@ export function LoginScreen() {
             )}
           </button>
         </form>
-
-        {/* Demo Fast Access Role Selector */}
-        <div className="p-5 bg-slate-50 border-t border-slate-100">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Accesos Rápidos por Rol
-            </span>
-            <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded">
-              1-Click Demo
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-left">
-            {SYSTEM_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.user.uid}
-                type="button"
-                onClick={() => handleQuickLogin(acc.user.email, acc.passwordHash)}
-                className="p-2 rounded-xl bg-white hover:bg-sky-50/80 border border-slate-200 hover:border-sky-300 transition-all text-left group cursor-pointer shadow-2xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-800 group-hover:text-sky-800 truncate">
-                    {acc.user.displayName.split(" ")[0]} {acc.user.displayName.split(" ")[1]}
-                  </span>
-                  <span className="text-[9px] font-bold uppercase px-1 rounded bg-slate-100 group-hover:bg-sky-200/60 text-slate-600">
-                    {acc.user.role}
-                  </span>
-                </div>
-                <p className="text-[9px] text-slate-400 truncate mt-0.5">{acc.user.email}</p>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Footer System Disclaimer */}
