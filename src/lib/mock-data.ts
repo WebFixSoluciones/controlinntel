@@ -1,4 +1,4 @@
-﻿import {
+import {
   Client,
   ClientService,
   Plan,
@@ -12,13 +12,70 @@
   UserProfile,
 } from "@/types";
 
-export const INITIAL_USER: UserProfile = {
-  uid: "usr-admin-01",
-  email: "admin@inntelcorp.ec",
-  displayName: "Ing. Santiago Morales",
-  role: "admin",
-  department: "NOC Central & Gerencia Operativa",
-};
+export interface SystemAccount {
+  user: UserProfile;
+  passwordHash: string; // pre-configured demo passwords
+}
+
+export const SYSTEM_ACCOUNTS: SystemAccount[] = [
+  {
+    user: {
+      uid: "usr-admin-01",
+      email: "admin@inntelcorp.ec",
+      displayName: "Ing. Santiago Morales",
+      role: "admin",
+      department: "NOC Central & Gerencia General",
+      phone: "+593 99 876 5432",
+    },
+    passwordHash: "Admin2026*",
+  },
+  {
+    user: {
+      uid: "usr-fin-02",
+      email: "finanzas@inntelcorp.ec",
+      displayName: "Lcda. Patricia Andrade",
+      role: "finanzas",
+      department: "Contabilidad & Facturación SRI",
+      phone: "+593 98 432 1098",
+    },
+    passwordHash: "Finanzas2026*",
+  },
+  {
+    user: {
+      uid: "usr-tec-03",
+      email: "tecnico@inntelcorp.ec",
+      displayName: "Ing. Carlos Benítez",
+      role: "tecnico",
+      department: "Ingeniería NOC & MikroTik",
+      phone: "+593 97 123 4567",
+    },
+    passwordHash: "Tecnico2026*",
+  },
+  {
+    user: {
+      uid: "usr-sop-04",
+      email: "soporte@inntelcorp.ec",
+      displayName: "Téc. Alex Mendoza",
+      role: "soporte",
+      department: "Mesa de Ayuda & Cuadrillas",
+      phone: "+593 96 987 6543",
+    },
+    passwordHash: "Soporte2026*",
+  },
+  {
+    user: {
+      uid: "usr-leg-05",
+      email: "legal@inntelcorp.ec",
+      displayName: "Abg. Fernando Viteri",
+      role: "consulta",
+      department: "Asesoría Legal & ARCOTEL",
+      phone: "+593 95 654 3210",
+    },
+    passwordHash: "Arcotel2026*",
+  },
+];
+
+export const INITIAL_USER: UserProfile = SYSTEM_ACCOUNTS[0].user;
 
 export const INITIAL_PLANS: Plan[] = [
   {

@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +16,7 @@ import {
   DollarSign,
   FileText,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -30,10 +32,23 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, policies, tickets } = useApp();
+  const { currentUser, policies, tickets, logout } = useApp();
+  const { showConfirm, showInfo } = useToast();
 
   const expiringPolicies = policies.filter((p) => p.status === "por_vencer").length;
   const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
+
+  const handleLogout = () => {
+    showConfirm(
+      "¿Cerrar Sesión?",
+      `¿Estás seguro de que deseas salir del panel de INNTEL CORP (${currentUser.displayName})?`,
+      () => {
+        logout();
+        showInfo("Sesión Cerrada", "Has salido del sistema de manera segura.");
+      },
+      "Cerrar Sesión"
+    );
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 min-h-screen select-none">
@@ -116,10 +131,18 @@ export function Sidebar() {
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-800 truncate">{currentUser.displayName}</p>
               <span className="inline-block px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded bg-sky-100 text-sky-800">
-                Rol: {currentUser.role}
+                {currentUser.role}
               </span>
             </div>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

@@ -1,15 +1,29 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { UserRole } from "@/types";
-import { Search, Bell, Shield, RotateCcw } from "lucide-react";
+import { Search, Bell, Shield, RotateCcw, LogOut } from "lucide-react";
 
 export function Header() {
-  const { currentUser, setUserRole, policies, tickets, setIsSearchOpen, resetDataToDefaults } = useApp();
+  const { currentUser, setUserRole, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout } = useApp();
+  const { showConfirm, showInfo } = useToast();
 
   const urgentCount = policies.filter((p) => p.status === "por_vencer").length;
   const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
+
+  const handleLogout = () => {
+    showConfirm(
+      "¿Cerrar Sesión?",
+      `¿Deseas cerrar la sesión activa de ${currentUser.displayName}?`,
+      () => {
+        logout();
+        showInfo("Sesión Cerrada", "Has salido del sistema.");
+      },
+      "Cerrar Sesión"
+    );
+  };
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs select-none">
@@ -73,6 +87,16 @@ export function Header() {
           title="Reiniciar datos de prueba"
         >
           <RotateCcw className="w-4 h-4" />
+        </button>
+
+        {/* Logout button in header */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-xs font-bold transition-all cursor-pointer"
+          title="Salir del sistema"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Salir</span>
         </button>
       </div>
     </header>

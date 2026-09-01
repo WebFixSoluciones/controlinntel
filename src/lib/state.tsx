@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ToastProvider } from "./toast-context";
+import { LoginScreen } from "@/components/auth/LoginScreen";
 import {
   Client,
   ClientService,
@@ -19,6 +20,7 @@ import {
 } from "@/types";
 import {
   INITIAL_USER,
+  SYSTEM_ACCOUNTS,
   INITIAL_PLANS,
   INITIAL_NODES,
   INITIAL_IP_POOLS,
@@ -34,6 +36,10 @@ import {
 interface AppContextType {
   currentUser: UserProfile;
   setUserRole: (role: UserRole) => void;
+  isAuthenticated: boolean;
+  login: (email: string, password: string, remember?: boolean) => boolean;
+  logout: () => void;
+
   clients: Client[];
   clientServices: ClientService[];
   plans: Plan[];
@@ -77,9 +83,13 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 const STORAGE_KEY = "INNTEL_CORP_STATE_FINAL";
+const AUTH_KEY = "INNTEL_AUTH_USER";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER);
+
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [clientServices, setClientServices] = useState<ClientService[]>(INITIAL_CLIENT_SERVICES);
   const [plans, setPlans] = useState<Plan[]>(INITIAL_PLANS);
@@ -96,6 +106,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
+      // Check auth session
+      const savedAuth = localStorage.getItem(AUTH_KEY);
+      if (savedAuth) {
+        const user = JSON.parse(savedAuth);
+        if (user && user.email) {
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        }
+      }
+
+      // Check saved business state
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const p = JSON.parse(saved);
@@ -111,17 +132,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.warn("Could not load state:", e);
+    } finally {
+      setIsAuthLoaded(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!isAuthLoaded) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs })
       );
     } catch (e) {}
-  }, [clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs]);
+  }, [clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs, isAuthLoaded]);
+
+  const login = (email: string, password: string, remember: boolean = true): boolean => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const account = SYSTEM_ACCOUNTS.find(
+      (a) => a.user.email.toLowerCase() === trimmedEmail && a.passwordHash === password
+    );
+
+    if (account) {
+      setCurrentUser(account.user);
+      setIsAuthenticated(true);
+      if (remember) {
+        try {
+          localStorage.setItem(AUTH_KEY, JSON.stringify(account.user));
+        } catch (e) {}
+      }
+      addAuditLog("LOGIN", `Acceso al Sistema: ${account.user.displayName}`, `Rol: ${account.user.role}`);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem(AUTH_KEY);
+    } catch (e) {}
+    addAuditLog("LOGOUT", `Cierre de Sesión: ${currentUser.displayName}`, `Rol: ${currentUser.role}`);
+  };
 
   const addAuditLog = (action: AuditLog["action"], resource: string, details: string) => {
     const newLog: AuditLog = {
@@ -306,6 +358,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         value={{
           currentUser,
           setUserRole,
+          isAuthenticated,
+          login,
+          logout,
           clients,
           clientServices,
           plans,
@@ -339,7 +394,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           resetDataToDefaults,
         }}
       >
-        {children}
+        {isAuthLoaded ? (
+          isAuthenticated ? (
+            children
+          ) : (
+            <LoginScreen />
+          )
+        ) : (
+          <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
       </AppContext.Provider>
     </ToastProvider>
   );

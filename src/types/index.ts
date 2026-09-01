@@ -1,4 +1,4 @@
-﻿export type UserRole = "admin" | "finanzas" | "tecnico" | "soporte" | "consulta";
+export type UserRole = "admin" | "finanzas" | "tecnico" | "soporte" | "consulta";
 
 export interface UserProfile {
   uid: string;
@@ -177,7 +177,7 @@ export interface AuditLog {
   userId: string;
   userEmail: string;
   userRole: UserRole;
-  action: "VIEW_VAULT_PASSWORD" | "UPDATE_VAULT" | "GENERATE_DOC" | "CREATE_CLIENT" | "UPDATE_CLIENT" | "CREATE_EXPENSE" | "EXPORT_SRI";
+  action: "LOGIN" | "LOGOUT" | "VIEW_VAULT_PASSWORD" | "UPDATE_VAULT" | "GENERATE_DOC" | "CREATE_CLIENT" | "UPDATE_CLIENT" | "CREATE_EXPENSE" | "EXPORT_SRI";
   resource: string;
   details: string;
   timestamp: string;
