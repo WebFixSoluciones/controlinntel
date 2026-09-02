@@ -45,25 +45,6 @@ export function Header() {
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
-        {/* Role Switcher */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-[#f8f9ff] p-1 rounded-lg border border-[#e2e8f0]">
-          <Shield className="w-3.5 h-3.5 text-[#004ac6] ml-1.5" />
-          <span className="text-[11px] font-semibold text-[#434655]">Rol:</span>
-          <select
-            value={currentUser.role}
-            onChange={(e) => setUserRole(e.target.value as UserRole)}
-            className="bg-white text-xs font-semibold text-[#0b1c30] rounded px-2 py-1 border border-[#e2e8f0] outline-hidden cursor-pointer"
-          >
-            <option value="superadmin">👑 Super Administrador (Full)</option>
-            <option value="admin">🛡️ Administrador General</option>
-            <option value="finanzas">💰 Finanzas & Cobranzas</option>
-            <option value="tecnico">📡 Técnico & MikroTik</option>
-            <option value="soporte">🎧 Soporte Helpdesk</option>
-            <option value="legal">⚖️ Legal & ARCOTEL</option>
-            <option value="consulta">👁️ Solo Consulta</option>
-          </select>
-        </div>
-
         {/* Notifications Bell */}
         <div className="relative">
           <button

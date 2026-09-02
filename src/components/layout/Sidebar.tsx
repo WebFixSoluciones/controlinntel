@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -131,41 +131,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User Profile Footer */}
+      {/* Logout Footer */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/70">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-8 h-8 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0 ${
-                isSuper
-                  ? "bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-200"
-                  : "bg-gradient-to-br from-sky-600 to-purple-600"
-              }`}
-            >
-              {isSuper ? <Crown className="w-4 h-4" /> : currentUser.displayName.charAt(0)}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{currentUser.displayName}</p>
-              <span
-                className={`inline-block px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded ${
-                  isSuper
-                    ? "bg-amber-100 text-amber-900 border border-amber-300"
-                    : "bg-sky-100 text-sky-800"
-                }`}
-              >
-                {isSuper ? "Super Admin" : currentUser.role}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-            title="Cerrar sesión"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-700 hover:text-rose-600 hover:border-rose-200 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
+        >
+          <LogOut className="w-4 h-4 text-slate-400 group-hover:text-rose-600 transition-colors" />
+          <span>Cerrar Sesión</span>
+        </button>
       </div>
     </aside>
   );
