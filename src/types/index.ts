@@ -216,3 +216,90 @@ export interface AuditLog {
   details: string;
   timestamp: string;
 }
+
+// ==========================================
+// CLIENT-CENTRIC 360° EXTENSION TYPES
+// ==========================================
+
+export type ProjectKanbanColumn =
+  | "factibilidad"
+  | "tendido_fibra"
+  | "fusion_splitters"
+  | "instalacion_ont"
+  | "pruebas_homologacion"
+  | "completado";
+
+export interface ProjectChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface ClientProjectTask {
+  id: string;
+  clientId: string;
+  clientName: string;
+  title: string;
+  description: string;
+  column: ProjectKanbanColumn;
+  priority: "baja" | "media" | "alta" | "urgente";
+  assignedTo: string;
+  dueDate: string;
+  checklist: ProjectChecklistItem[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuoteOrderItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface ClientQuoteOrder {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientRuc: string;
+  quoteNumber: string;
+  title: string;
+  items: QuoteOrderItem[];
+  subtotal: number;
+  ivaAmount: number;
+  total: number;
+  status: "borrador" | "enviada" | "aprobada" | "orden_pedido" | "facturada";
+  validUntil: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ClientVaultItem {
+  id: string;
+  clientId: string;
+  serviceName: string;
+  category: "ont_router" | "wifi" | "pppoe" | "cctv_camaras" | "vpn_remoto" | "otro";
+  username: string;
+  encryptedPassword?: string;
+  ipAddress?: string;
+  port?: number;
+  notes?: string;
+  updatedAt: string;
+}
+
+export interface ClientContractInfo {
+  id: string;
+  clientId: string;
+  contractNumber: string;
+  arcotelHomologationCode: string;
+  planName: string;
+  signedDate: string;
+  expirationDate: string;
+  renewalDate?: string;
+  status: "vigente" | "por_renovar" | "vencido";
+  monthlyPrice: number;
+  notes?: string;
+}
+

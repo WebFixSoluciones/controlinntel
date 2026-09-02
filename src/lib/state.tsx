@@ -18,6 +18,11 @@ import {
   UserProfile,
   UserRole,
   SystemUser,
+  ClientProjectTask,
+  ClientQuoteOrder,
+  ClientVaultItem,
+  ClientContractInfo,
+  ProjectKanbanColumn,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -59,6 +64,27 @@ interface AppContextType {
   monthlyCharges: MonthlyCharge[];
   auditLogs: AuditLog[];
 
+  // Client 360 Extensions
+  clientProjects: ClientProjectTask[];
+  addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => void;
+  updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => void;
+  moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn) => void;
+  deleteClientProjectTask: (id: string) => void;
+
+  clientQuotes: ClientQuoteOrder[];
+  addClientQuote: (quote: Omit<ClientQuoteOrder, "id" | "createdAt">) => void;
+  updateClientQuoteStatus: (id: string, status: ClientQuoteOrder["status"]) => void;
+  deleteClientQuote: (id: string) => void;
+
+  clientVaultItems: ClientVaultItem[];
+  addClientVaultItem: (item: Omit<ClientVaultItem, "id" | "updatedAt">) => void;
+  updateClientVaultItem: (id: string, updates: Partial<ClientVaultItem>) => void;
+  deleteClientVaultItem: (id: string) => void;
+
+  clientContracts: ClientContractInfo[];
+  addClientContract: (contract: Omit<ClientContractInfo, "id">) => void;
+  updateClientContract: (id: string, updates: Partial<ClientContractInfo>) => void;
+
   addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => void;
   updateClient: (id: string, updates: Partial<Client>) => void;
   deleteClient: (id: string) => void;
@@ -89,9 +115,9 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_CLEAN_V4";
-const USERS_KEY = "INNTEL_SYSTEM_USERS_V4";
-const AUTH_KEY = "INNTEL_AUTH_USER_V4";
+const STORAGE_KEY = "INNTEL_CORP_STATE_HUB_V5";
+const USERS_KEY = "INNTEL_SYSTEM_USERS_V5";
+const AUTH_KEY = "INNTEL_AUTH_USER_V5";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -110,6 +136,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+
+  // Client 360 Extensions State
+  const [clientProjects, setClientProjects] = useState<ClientProjectTask[]>([]);
+  const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>([]);
+  const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>([]);
+  const [clientContracts, setClientContracts] = useState<ClientContractInfo[]>([]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -154,6 +187,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (p.expenses) setExpenses(p.expenses);
         if (p.monthlyCharges) setMonthlyCharges(p.monthlyCharges);
         if (p.auditLogs) setAuditLogs(p.auditLogs);
+        if (p.clientProjects) setClientProjects(p.clientProjects);
+        if (p.clientQuotes) setClientQuotes(p.clientQuotes);
+        if (p.clientVaultItems) setClientVaultItems(p.clientVaultItems);
+        if (p.clientContracts) setClientContracts(p.clientContracts);
       }
     } catch (e) {
       console.warn("Could not load state:", e);
@@ -167,11 +204,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs })
+        JSON.stringify({
+          clients,
+          clientServices,
+          nodes,
+          policies,
+          vault,
+          tickets,
+          expenses,
+          monthlyCharges,
+          auditLogs,
+          clientProjects,
+          clientQuotes,
+          clientVaultItems,
+          clientContracts,
+        })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
     } catch (e) {}
-  }, [clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs, systemUsers, isAuthLoaded]);
+  }, [
+    clients,
+    clientServices,
+    nodes,
+    policies,
+    vault,
+    tickets,
+    expenses,
+    monthlyCharges,
+    auditLogs,
+    clientProjects,
+    clientQuotes,
+    clientVaultItems,
+    clientContracts,
+    systemUsers,
+    isAuthLoaded,
+  ]);
 
   const addAuditLog = (action: AuditLog["action"], resource: string, details: string) => {
     const newLog: AuditLog = {
@@ -259,7 +326,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = systemUsers.find((u) => u.uid === uid);
     if (!target) return false;
     if (target.role === "superadmin" && systemUsers.filter((u) => u.role === "superadmin").length <= 1) {
-      return false; // Cannot delete last superadmin
+      return false;
     }
     setSystemUsers((prev) => prev.filter((u) => u.uid !== uid));
     addAuditLog("DELETE_USER", `Usuario: ${target.displayName}`, `Email: ${target.email}`);
@@ -274,6 +341,93 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // Client Project Kanban Methods
+  const addClientProjectTask = (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => {
+    const newTask: ClientProjectTask = {
+      ...taskData,
+      id: "prj-" + Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClientProjects((prev) => [newTask, ...prev]);
+    addAuditLog("CREATE_CLIENT", `Proyecto Kanban: ${newTask.title}`, `Cliente: ${newTask.clientName}`);
+  };
+
+  const updateClientProjectTask = (id: string, updates: Partial<ClientProjectTask>) => {
+    setClientProjects((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t))
+    );
+  };
+
+  const moveProjectTaskColumn = (id: string, newColumn: ProjectKanbanColumn) => {
+    setClientProjects((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, column: newColumn, updatedAt: new Date().toISOString() } : t))
+    );
+  };
+
+  const deleteClientProjectTask = (id: string) => {
+    setClientProjects((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Client Quotes & Orders Methods
+  const addClientQuote = (quoteData: Omit<ClientQuoteOrder, "id" | "createdAt">) => {
+    const newQuote: ClientQuoteOrder = {
+      ...quoteData,
+      id: "qto-" + Date.now(),
+      createdAt: new Date().toISOString(),
+    };
+    setClientQuotes((prev) => [newQuote, ...prev]);
+    addAuditLog("EXPORT_BILLING", `Cotización / Orden: ${newQuote.quoteNumber}`, `Monto: $${newQuote.total.toFixed(2)}`);
+  };
+
+  const updateClientQuoteStatus = (id: string, status: ClientQuoteOrder["status"]) => {
+    setClientQuotes((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, status } : q))
+    );
+  };
+
+  const deleteClientQuote = (id: string) => {
+    setClientQuotes((prev) => prev.filter((q) => q.id !== id));
+  };
+
+  // Client Vault Items Methods
+  const addClientVaultItem = (itemData: Omit<ClientVaultItem, "id" | "updatedAt">) => {
+    const newItem: ClientVaultItem = {
+      ...itemData,
+      id: "clv-" + Date.now(),
+      updatedAt: new Date().toISOString(),
+    };
+    setClientVaultItems((prev) => [newItem, ...prev]);
+    addAuditLog("UPDATE_VAULT", `Clave Cliente: ${newItem.serviceName}`, `Categoría: ${newItem.category}`);
+  };
+
+  const updateClientVaultItem = (id: string, updates: Partial<ClientVaultItem>) => {
+    setClientVaultItems((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, ...updates, updatedAt: new Date().toISOString() } : v))
+    );
+  };
+
+  const deleteClientVaultItem = (id: string) => {
+    setClientVaultItems((prev) => prev.filter((v) => v.id !== id));
+  };
+
+  // Client Contract Methods
+  const addClientContract = (contractData: Omit<ClientContractInfo, "id">) => {
+    const newContract: ClientContractInfo = {
+      ...contractData,
+      id: "cnt-" + Date.now(),
+    };
+    setClientContracts((prev) => [newContract, ...prev]);
+    addAuditLog("GENERATE_DOC", `Contrato ARCOTEL: ${newContract.contractNumber}`, `Homologación: ${newContract.arcotelHomologationCode}`);
+  };
+
+  const updateClientContract = (id: string, updates: Partial<ClientContractInfo>) => {
+    setClientContracts((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+    );
+  };
+
+  // Core Business Methods
   const addClient = (clientData: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => {
     const newId = "cli-" + (clients.length + 1).toString().padStart(3, "0");
     const newClient: Client = {
@@ -300,15 +454,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         customPrice: serviceData.customPrice || plan.defaultPrice,
         billingType: serviceData.billingType || plan.billingType,
         cutoffDay: serviceData.cutoffDay || 1,
-        nodeId: node.id,
-        nodeName: node.name,
+        nodeId: node ? node.id : "nodo-default",
+        nodeName: node ? node.name : "POP Central",
         ipv4Address: serviceData.ipv4Address || `100.64.10.${Math.floor(Math.random() * 200) + 10}`,
         pppoeUser: serviceData.pppoeUser || newClient.identificationNumber,
         status: "activo",
         installationDate: new Date().toISOString().split("T")[0],
       };
       setClientServices((prev) => [...prev, newService]);
+
+      // Auto-create default contract and project task for installation
+      addClientContract({
+        clientId: newId,
+        contractNumber: `CONT-INNTEL-2026-${newId.toUpperCase()}`,
+        arcotelHomologationCode: "ARCOTEL-SAI-HOM-0841",
+        planName: plan.name,
+        signedDate: new Date().toISOString().split("T")[0],
+        expirationDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
+        status: "vigente",
+        monthlyPrice: newService.customPrice,
+        notes: "Contrato estándar de adhesión para servicio de acceso a internet",
+      });
+
+      addClientProjectTask({
+        clientId: newId,
+        clientName: newClient.businessName,
+        title: `Instalación Fibra Óptica: ${plan.name}`,
+        description: `Despliegue de acometida de fibra óptica e instalación de ONT en ${newClient.address}`,
+        column: "factibilidad",
+        priority: "alta",
+        assignedTo: "Cuadrilla NOC Norte",
+        dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+        checklist: [
+          { id: "chk-1", text: "Inspección de caja NAP y nivel de potencia óptica (dBm)", done: false },
+          { id: "chk-2", text: "Tendido de cable drop y herrajes", done: false },
+          { id: "chk-3", text: "Fusión de pigtail y conectorización SC/APC", done: false },
+          { id: "chk-4", text: "Aprovisionamiento de ONT y pruebas de velocidad", done: false },
+        ],
+      });
     }
+
     addAuditLog("CREATE_CLIENT", `Cliente: ${newClient.businessName}`, `ID: ${newClient.identificationNumber}`);
   };
 
@@ -320,6 +505,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteClient = (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id));
     setClientServices((prev) => prev.filter((s) => s.clientId !== id));
+    setClientProjects((prev) => prev.filter((p) => p.clientId !== id));
+    setClientQuotes((prev) => prev.filter((q) => q.clientId !== id));
+    setClientVaultItems((prev) => prev.filter((v) => v.clientId !== id));
+    setClientContracts((prev) => prev.filter((c) => c.clientId !== id));
   };
 
   const addPolicy = (policyData: Omit<ArcotelPolicy, "id">) => {
@@ -433,6 +622,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setExpenses(INITIAL_EXPENSES);
     setMonthlyCharges(INITIAL_MONTHLY_CHARGES);
     setAuditLogs([]);
+    setClientProjects([]);
+    setClientQuotes([]);
+    setClientVaultItems([]);
+    setClientContracts([]);
   };
 
   return (
@@ -449,6 +642,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateSystemUser,
           deleteSystemUser,
           toggleUserStatus,
+          clientProjects,
+          addClientProjectTask,
+          updateClientProjectTask,
+          moveProjectTaskColumn,
+          deleteClientProjectTask,
+          clientQuotes,
+          addClientQuote,
+          updateClientQuoteStatus,
+          deleteClientQuote,
+          clientVaultItems,
+          addClientVaultItem,
+          updateClientVaultItem,
+          deleteClientVaultItem,
+          clientContracts,
+          addClientContract,
+          updateClientContract,
           clients,
           clientServices,
           plans,

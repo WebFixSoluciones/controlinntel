@@ -4,31 +4,32 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
+import { ClientProjectKanban } from "./ClientProjectKanban";
+import { ClientQuotesManager } from "./ClientQuotesManager";
+import { ClientVaultTab } from "./ClientVaultTab";
+import { ClientContractTab } from "./ClientContractTab";
+import { ClientDossierTab } from "./ClientDossierTab";
 import {
   X,
-  Building2,
-  Edit,
-  Download,
-  Phone,
-  Mail,
-  Copy,
-  Check,
-  AlertTriangle,
-  ArrowRight,
-  Router,
-  Eye,
-  EyeOff,
   User,
-  ShieldCheck,
-  CreditCard,
-  Clock,
   Radio,
-  FileText,
+  KeyRound,
+  ShieldCheck,
+  FileSpreadsheet,
   DollarSign,
   Ticket as TicketIcon,
+  Kanban,
+  Printer,
+  Edit2,
+  Download,
+  Copy,
+  Check,
+  Clock,
+  Plus,
+  AlertTriangle,
+  CheckCircle2,
   ShoppingCart,
 } from "lucide-react";
-import { generateAdhesionContractDocx, triggerBrowserDownload } from "@/lib/doc-generator";
 
 interface ClientProfile360Props {
   client: Client | null;
@@ -36,504 +37,399 @@ interface ClientProfile360Props {
   onEdit?: () => void;
 }
 
+type ProfileTab =
+  | "fiscal"
+  | "red"
+  | "boveda"
+  | "contratos"
+  | "cotizaciones"
+  | "finanzas"
+  | "tickets"
+  | "proyectos"
+  | "dossier";
+
 export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Props) {
-  const { clientServices, monthlyCharges, tickets, policies, nodes } = useApp();
-  const { showSuccess, showError } = useToast();
-  const [activeTab, setActiveTab] = useState<
-    "general" | "plan" | "arcotel" | "tecnica" | "tickets" | "pagos" | "pedidos"
-  >("general");
-  const [isIpRevealed, setIsIpRevealed] = useState(false);
+  const { clientServices, monthlyCharges, tickets, clientProjects, clientQuotes, clientVaultItems, clientContracts, markChargeAsPaid } = useApp();
+  const { showSuccess, showConfirm } = useToast();
+
+  const [activeTab, setActiveTab] = useState<ProfileTab>("fiscal");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (!client) return null;
 
   const services = clientServices.filter((s) => s.clientId === client.id);
-  const mainService = services[0];
   const charges = monthlyCharges.filter((c) => c.clientId === client.id);
   const clientTickets = tickets.filter((t) => t.clientId === client.id);
-  const node = nodes.find((n) => n.id === mainService?.nodeId);
+  const projects = clientProjects.filter((p) => p.clientId === client.id);
+  const quotes = clientQuotes.filter((q) => q.clientId === client.id);
+  const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
+  const contracts = clientContracts.filter((c) => c.clientId === client.id);
 
-  const handleCopy = (text: string, fieldName: string) => {
+  const totalMonthlySpend = services.reduce((sum, s) => sum + s.customPrice, 0);
+
+  const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    showSuccess("Copiado al Portapapeles", `${fieldName}: ${text}`);
+    setCopiedField(label);
+    showSuccess("Copiado", `${label} copiado al portapapeles.`);
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleDownloadReport = async () => {
-    try {
-      const blob = await generateAdhesionContractDocx(client, mainService);
-      triggerBrowserDownload(blob, `Ficha_Tecnica_360_${client.identificationNumber}.docx`);
-      showSuccess("Reporte Descargado", `Expediente de ${client.businessName} descargado.`);
-    } catch (e) {
-      showError("Error", "No se pudo generar el reporte.");
-    }
+  const handlePayCharge = (chargeId: string) => {
+    showConfirm(
+      "¿Registrar Cobro?",
+      "¿Confirmas el registro del pago para este comprobante?",
+      () => {
+        markChargeAsPaid(chargeId, "transferencia");
+        showSuccess("Pago Registrado", "Comprobante marcado como PAGADO.");
+      },
+      "Registrar Pago"
+    );
   };
 
+  const tabs: { id: ProfileTab; label: string; icon: any; count?: number }[] = [
+    { id: "fiscal", label: "Identificación & Legal", icon: User },
+    { id: "red", label: "Red & MikroTik", icon: Radio, count: services.length },
+    { id: "boveda", label: "Bóveda de Claves", icon: KeyRound, count: vaultItems.length },
+    { id: "contratos", label: "Contratos & ARCOTEL", icon: ShieldCheck, count: contracts.length },
+    { id: "cotizaciones", label: "Cotizaciones & Órdenes", icon: FileSpreadsheet, count: quotes.length },
+    { id: "finanzas", label: "Cobros & Pagos", icon: DollarSign, count: charges.length },
+    { id: "tickets", label: "Tickets NOC", icon: TicketIcon, count: clientTickets.length },
+    { id: "proyectos", label: "Tablero Obras (Trello)", icon: Kanban, count: projects.length },
+    { id: "dossier", label: "Dossier / Informe 360°", icon: Printer },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in duration-150 select-none overflow-y-auto">
-      <div className="w-full max-w-5xl bg-[#f8f9ff] rounded-2xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Top Breadcrumb & Close Bar */}
-        <div className="px-6 py-3 bg-white border-b border-[#e2e8f0] flex items-center justify-between text-xs text-[#737686]">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="hover:text-[#004ac6] font-medium transition-colors cursor-pointer"
-            >
-              Clientes
-            </button>
-            <span>&rsaquo;</span>
-            <span className="font-bold text-[#0b1c30] uppercase truncate max-w-md">
-              {client.businessName}
-            </span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#f1f5f9] transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Header Card matching Screenshot 1 */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-14 h-14 rounded-xl bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Building2 className="w-7 h-7" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-3 md:p-6 animate-in fade-in duration-150 select-none">
+      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[92vh]">
+        {/* Hub Header */}
+        <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+              {client.businessName.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-black text-slate-900 tracking-tight">{client.businessName}</h2>
+                <span
+                  className={`px-2 py-0.2 rounded-full text-[10px] font-bold uppercase ${
+                    client.status === "activo"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      : "bg-rose-100 text-rose-800 border border-rose-200"
+                  }`}
+                >
+                  {client.status}
+                </span>
               </div>
-
-              <div>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="text-xl font-bold text-[#0b1c30] tracking-tight uppercase">
-                    {client.businessName}
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0]">
-                    Activo
-                  </span>
-                </div>
-
-                <p className="text-xs text-[#737686] font-mono mt-1 flex items-center gap-1.5 font-medium">
-                  <Building2 className="w-3.5 h-3.5 text-[#737686]" />
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 font-medium">
+                <span className="font-mono font-bold text-slate-700">
                   {client.identificationType}: {client.identificationNumber}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#cbd5e1] text-[#004ac6] hover:bg-[#eff4ff] text-xs font-bold transition-all cursor-pointer shadow-2xs"
-              >
-                <Edit className="w-3.5 h-3.5" />
-                <span>Editar</span>
-              </button>
-
-              <button
-                onClick={handleDownloadReport}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#2563eb] text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Descargar Reporte</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Tab Navigation matching Screenshot 1 */}
-          <div className="border-b border-[#e2e8f0] flex gap-8 text-xs font-semibold overflow-x-auto no-scrollbar">
-            {[
-              { id: "general", label: "Información General" },
-              { id: "plan", label: "Plan & Paquete" },
-              { id: "arcotel", label: "ARCOTEL & Documentos" },
-              { id: "tecnica", label: "Área Técnica" },
-              { id: "tickets", label: `Tickets (${clientTickets.length})` },
-              { id: "pagos", label: "Pagos" },
-              { id: "pedidos", label: "Pedidos" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-3 transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-[#004ac6] text-[#004ac6] font-bold"
-                    : "text-[#737686] hover:text-[#0b1c30]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* TAB 1: INFORMACIÓN GENERAL matching Screenshot 1 */}
-          {activeTab === "general" && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column (5 Cols): Información Principal & Ejecutivo Asignado */}
-              <div className="lg:col-span-5 space-y-6">
-                {/* Información Principal Card */}
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
-                  <h3 className="font-bold text-sm text-[#0b1c30] flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#737686]" />
-                    Información Principal
-                  </h3>
-
-                  <div className="space-y-3 text-xs divide-y divide-[#f1f5f9]">
-                    <div className="pt-2">
-                      <span className="text-[#737686] font-semibold block text-[11px]">
-                        Representante Legal
-                      </span>
-                      <span className="font-bold text-[#0b1c30] text-xs mt-0.5 block">
-                        {client.legalRepresentative || "Carlos Mendoza Ribera"}
-                      </span>
-                    </div>
-
-                    <div className="pt-3 flex items-center justify-between">
-                      <div>
-                        <span className="text-[#737686] font-semibold block text-[11px]">
-                          Teléfono Principal
-                        </span>
-                        <span className="font-semibold text-[#0b1c30] text-xs mt-0.5 block font-mono">
-                          {client.phone}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleCopy(client.phone, "Teléfono")}
-                        className="p-1.5 text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md transition-colors cursor-pointer"
-                        title="Copiar teléfono"
-                      >
-                        {copiedField === "Teléfono" ? (
-                          <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="pt-3 flex items-center justify-between">
-                      <div className="min-w-0 pr-2">
-                        <span className="text-[#737686] font-semibold block text-[11px]">
-                          Correo Electrónico
-                        </span>
-                        <span className="font-semibold text-[#0b1c30] text-xs mt-0.5 block truncate">
-                          {client.email}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleCopy(client.email, "Correo")}
-                        className="p-1.5 text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md transition-colors cursor-pointer flex-shrink-0"
-                        title="Copiar email"
-                      >
-                        {copiedField === "Correo" ? (
-                          <Check className="w-3.5 h-3.5 text-[#10B981]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="pt-3">
-                      <span className="text-[#737686] font-semibold block text-[11px]">
-                        Dirección Fiscal
-                      </span>
-                      <span className="font-medium text-[#434655] text-xs mt-0.5 block leading-relaxed">
-                        {client.address}, {client.sector || "Quito, Pichincha"}.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Ejecutivo Asignado Card */}
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-lumina-card">
-                  <span className="text-xs font-bold text-[#0b1c30] block mb-3">
-                    Ejecutivo Asignado
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#004ac6] to-[#712ae2] text-white font-bold text-sm flex items-center justify-center shadow-xs flex-shrink-0">
-                      AT
-                    </div>
-                    <div>
-                      <p className="font-bold text-xs text-[#0b1c30]">Ana Paula Torres</p>
-                      <p className="text-[11px] text-[#737686]">KAM Corporativo</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column (7 Cols): Saldo, Alertas y Detalles de Conexión */}
-              <div className="lg:col-span-7 space-y-6">
-                {/* Top Row: Saldo Pendiente + Aviso de Vencimiento */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Saldo Pendiente */}
-                  <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-lumina-card flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-                          SALDO PENDIENTE
-                        </span>
-                        <div className="w-8 h-8 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
-                          <CreditCard className="w-4 h-4" />
-                        </div>
-                      </div>
-
-                      <div className="mt-2 text-2xl font-black text-[#0b1c30] font-tnum">
-                        ${(mainService?.customPrice || 1450).toLocaleString("es-EC", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-[#f1f5f9] text-[11px] text-[#737686] flex items-center gap-1.5 font-medium">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Último pago: 12/Oct/2023 - $1,200.00</span>
-                    </div>
-                  </div>
-
-                  {/* Aviso de Vencimiento */}
-                  <div className="bg-white rounded-2xl border border-amber-300 ring-1 ring-amber-100 p-5 shadow-lumina-card flex flex-col justify-between border-l-4 border-l-amber-500">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-[#0b1c30] uppercase tracking-wider">
-                          AVISO DE VENCIMIENTO
-                        </span>
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                          <AlertTriangle className="w-4 h-4" />
-                        </div>
-                      </div>
-
-                      <p className="mt-2 text-xs font-bold text-[#0b1c30]">
-                        Póliza de Responsabilidad Civil
-                      </p>
-                      <p className="text-xs text-[#737686] mt-0.5 font-medium">
-                        Vence en 15 días (30/Nov/2023).
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setActiveTab("arcotel")}
-                      className="mt-3 pt-3 border-t border-amber-100 text-xs font-bold text-[#004ac6] hover:text-[#2563eb] flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Gestionar Documento</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Detalles de Conexión (Área Técnica) Card */}
-                <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
-                    <h3 className="font-bold text-sm text-[#0b1c30] flex items-center gap-2">
-                      <Router className="w-4 h-4 text-[#004ac6]" />
-                      Detalles de Conexión (Área Técnica)
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab("tecnica")}
-                      className="text-xs font-bold text-[#004ac6] hover:underline cursor-pointer"
-                    >
-                      Ver Tab Completo
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    {/* Nodo */}
-                    <div>
-                      <span className="text-[#737686] font-semibold block text-[11px] mb-1">
-                        Nodo de Conexión
-                      </span>
-                      <div className="p-2.5 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] flex items-center gap-2 font-bold text-[#0b1c30]">
-                        <Radio className="w-3.5 h-3.5 text-[#004ac6]" />
-                        <span>{node?.name || "POP Central Matriz"}</span>
-                      </div>
-                    </div>
-
-                    {/* Ancho de Banda */}
-                    <div>
-                      <span className="text-[#737686] font-semibold block text-[11px] mb-1">
-                        Ancho de Banda Contratado
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 p-2 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] text-center font-bold text-[#0b1c30]">
-                          {mainService?.downloadMbps || 100} Mbps <span className="text-[10px] text-[#737686]">DL</span>
-                        </div>
-                        <div className="flex-1 p-2 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] text-center font-bold text-[#0b1c30]">
-                          {mainService?.uploadMbps || 100} Mbps <span className="text-[10px] text-[#737686]">UL</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* IP Pública */}
-                    <div>
-                      <span className="text-[#737686] font-semibold block text-[11px] mb-1">
-                        Dirección IP Pública
-                      </span>
-                      <div className="p-2.5 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] flex items-center justify-between font-mono font-bold text-[#0b1c30]">
-                        <span>
-                          {isIpRevealed ? mainService?.ipv4Address || "190.15.142.88" : "•••••••••••••"}
-                        </span>
-                        <button
-                          onClick={() => setIsIpRevealed(!isIpRevealed)}
-                          className="text-[#737686] hover:text-[#004ac6] cursor-pointer"
-                        >
-                          {isIpRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Equipo Cliente CPE */}
-                    <div>
-                      <span className="text-[#737686] font-semibold block text-[11px] mb-1">
-                        Equipo Cliente (CPE)
-                      </span>
-                      <div className="p-2.5 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] font-semibold text-[#0b1c30] truncate">
-                        MikroTik CCR1009 (RouterOS v7.11)
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: PLAN & PAQUETE */}
-          {activeTab === "plan" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Planes y Servicios Activos</h3>
-              {services.map((srv) => (
-                <div
-                  key={srv.id}
-                  className="p-4 rounded-xl border border-[#dce9ff] bg-[#eff4ff]/60 flex flex-wrap items-center justify-between gap-4"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-base text-[#0b1c30]">{srv.planName}</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46]">
-                        {srv.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[#434655] mt-1">
-                      Velocidad: <strong>{srv.downloadMbps}M / {srv.uploadMbps}M</strong> • Tarifa pactada:{" "}
-                      <strong className="text-[#004ac6]">${srv.customPrice.toFixed(2)}/mes</strong>
-                    </p>
-                    <p className="text-xs text-[#737686] mt-0.5 font-mono">
-                      IPv4: {srv.ipv4Address} • PPPoE: {srv.pppoeUser}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[11px] text-[#737686] block">Corte de Facturación</span>
-                    <span className="font-bold text-sm text-[#0b1c30]">Día {srv.cutoffDay} de cada mes</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* TAB 3: ARCOTEL & DOCUMENTOS */}
-          {activeTab === "arcotel" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Documentación Homologada ARCOTEL</h3>
-              <div className="p-4 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-xs text-[#0b1c30]">
-                    Contrato de Adhesión para Servicio de Internet (SAI)
-                  </p>
-                  <p className="text-[11px] text-[#737686]">
-                    Modelo oficial según Resolución ARCOTEL con cláusulas de SLA y datos del abonado
-                  </p>
-                </div>
-                <button
-                  onClick={handleDownloadReport}
-                  className="px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Descargar (.docx)
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: ÁREA TÉCNICA */}
-          {activeTab === "tecnica" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Parámetros de Red & Conexión MikroTik</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0] space-y-2">
-                  <span className="font-bold text-[#0b1c30] block">Enlace Troncal y Concentrador</span>
-                  <p><span className="text-[#737686]">Nodo POP:</span> <strong>{node?.name || "POP Central"}</strong></p>
-                  <p><span className="text-[#737686]">RouterOS IP:</span> <strong className="font-mono">{node?.mikrotikIp || "10.50.1.1"}</strong></p>
-                  <p><span className="text-[#737686]">VLAN de Servicio:</span> <strong>VLAN-104 (GPON)</strong></p>
-                </div>
-                <div className="p-4 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0] space-y-2">
-                  <span className="font-bold text-[#0b1c30] block">Credenciales de Acceso PPPoE</span>
-                  <p><span className="text-[#737686]">Usuario PPPoE:</span> <strong className="font-mono">{mainService?.pppoeUser || "andina_vip"}</strong></p>
-                  <p><span className="text-[#737686]">IPv4 Fija Asignada:</span> <strong className="font-mono text-[#004ac6]">{mainService?.ipv4Address || "190.15.142.88"}</strong></p>
-                  <p><span className="text-[#737686]">Estado de Enlace:</span> <strong className="text-[#10B981]">ONLINE (0% Packet Loss)</strong></p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: TICKETS */}
-          {activeTab === "tickets" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-3">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Historial de Incidencias & Soporte NOC</h3>
-              {clientTickets.length === 0 ? (
-                <p className="text-xs text-[#737686] italic py-6 text-center">No registra tickets de soporte abiertos.</p>
-              ) : (
-                clientTickets.map((t) => (
-                  <div key={t.id} className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-bold text-[#0b1c30]">{t.ticketNumber}: {t.title}</span>
-                      <p className="text-[11px] text-[#737686] mt-0.5">{t.description}</p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-lg bg-white border border-[#cbd5e1] font-bold text-[#0b1c30]">
-                      {t.status.toUpperCase()}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* TAB 6: PAGOS */}
-          {activeTab === "pagos" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-3">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Historial de Pagos y Cobranzas</h3>
-              {charges.length === 0 ? (
-                <p className="text-xs text-[#737686] italic py-6 text-center">No registra cobros generados aún.</p>
-              ) : (
-                charges.map((c) => (
-                  <div key={c.id} className="p-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-[#0b1c30]">{c.serviceDescription}</p>
-                      <p className="text-[11px] text-[#737686]">Factura No. {c.invoiceNumber} • Periodo: {c.month}/{c.year}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-[#0b1c30] block font-tnum">${c.total.toFixed(2)} USD</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46]">
-                        {c.status.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* TAB 7: PEDIDOS */}
-          {activeTab === "pedidos" && (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-3">
-              <h3 className="font-bold text-sm text-[#0b1c30]">Órdenes de Pedido</h3>
-              <div className="p-4 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-xs flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-[#0b1c30]">Orden de Pedido OP-2026-081</p>
-                  <p className="text-[11px] text-[#737686]">Instalación de Fibra Óptica Dedicada 500M</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6]">
-                  ENTREGADO / ACTIVO
+                </span>
+                <span>•</span>
+                <span>{client.address}</span>
+                <span>•</span>
+                <span className="text-emerald-700 font-bold font-mono">
+                  ${totalMonthlySpend.toFixed(2)} USD/mes
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Editar Ficha</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Navigation Ribbon */}
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-slate-200 bg-slate-50/80 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? "bg-white text-sky-700 shadow-xs border border-slate-200/80"
+                    : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? "text-sky-600" : "text-slate-400"}`} />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && tab.count > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive ? "bg-sky-100 text-sky-800" : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content Body */}
+        <div className="p-6 flex-1 overflow-y-auto bg-slate-50/40">
+          {/* TAB 1: FISCAL & LEGAL */}
+          {activeTab === "fiscal" && (
+            <div className="space-y-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+                  Datos de Identificación & Contacto Oficial
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Razón Social / Abonado</label>
+                    <span className="font-bold text-slate-900 text-sm">{client.businessName}</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Documento de Identificación</label>
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      {client.identificationType} {client.identificationNumber}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Representante Legal</label>
+                    <span className="font-medium text-slate-800">{client.legalRepresentative || "No aplica"}</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Correo Electrónico</label>
+                    <span className="font-medium text-slate-800 flex items-center justify-between">
+                      {client.email}
+                      <button
+                        onClick={() => handleCopy(client.email, "Email")}
+                        className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
+                      >
+                        {copiedField === "Email" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Teléfono / WhatsApp</label>
+                    <span className="font-medium text-slate-800 flex items-center justify-between">
+                      {client.phone}
+                      <button
+                        onClick={() => handleCopy(client.phone, "Teléfono")}
+                        className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
+                      >
+                        {copiedField === "Teléfono" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Sector / Zona</label>
+                    <span className="font-medium text-slate-800">{client.sector || "Sector Matriz"}</span>
+                  </div>
+
+                  <div className="col-span-full">
+                    <label className="text-[10px] text-slate-400 font-bold block">Dirección de Instalación</label>
+                    <span className="font-medium text-slate-800">{client.address}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
+
+          {/* TAB 2: RED & MIKROTIK */}
+          {activeTab === "red" && (
+            <div className="space-y-4">
+              {services.length === 0 ? (
+                <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                  <Radio className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="font-bold text-slate-600 text-xs">Sin servicios de red activos</p>
+                </div>
+              ) : (
+                services.map((srv) => (
+                  <div key={srv.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">{srv.planName}</h4>
+                        <p className="text-[11px] text-slate-400">
+                          Instalado el {srv.installationDate} • Nodo: <span className="font-bold text-slate-700">{srv.nodeName}</span>
+                        </p>
+                      </div>
+                      <span className="font-mono text-base font-black text-emerald-700">${srv.customPrice.toFixed(2)} USD/mes</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <label className="text-[10px] text-slate-400 font-bold block">Velocidad</label>
+                        <span className="font-bold text-slate-800">{srv.downloadMbps} Mbps Bajada / {srv.uploadMbps} Mbps Subida</span>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <label className="text-[10px] text-slate-400 font-bold block">Dirección IPv4</label>
+                        <span className="font-mono font-bold text-sky-700">{srv.ipv4Address}</span>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <label className="text-[10px] text-slate-400 font-bold block">Usuario PPPoE</label>
+                        <span className="font-mono font-medium text-slate-800">{srv.pppoeUser}</span>
+                      </div>
+
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <label className="text-[10px] text-slate-400 font-bold block">Corte Mensual</label>
+                        <span className="font-bold text-slate-800">Día {srv.cutoffDay} de cada mes</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: BOVEDA DE CLAVES */}
+          {activeTab === "boveda" && <ClientVaultTab client={client} />}
+
+          {/* TAB 4: CONTRATOS & ARCOTEL */}
+          {activeTab === "contratos" && <ClientContractTab client={client} />}
+
+          {/* TAB 5: COTIZACIONES & ORDENES */}
+          {activeTab === "cotizaciones" && <ClientQuotesManager client={client} />}
+
+          {/* TAB 6: FINANZAS & COBROS */}
+          {activeTab === "finanzas" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-600" />
+                    Historial de Cobros & Pre-Facturas Internas
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Seguimiento de cobros emitidos el día 1 y registro de recaudación</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4">Comprobante</th>
+                      <th className="py-3 px-4">Periodo</th>
+                      <th className="py-3 px-4">Descripción</th>
+                      <th className="py-3 px-4">Total</th>
+                      <th className="py-3 px-4">Estado</th>
+                      <th className="py-3 px-4 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {charges.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                          Sin cobros registrados para este abonado.
+                        </td>
+                      </tr>
+                    ) : (
+                      charges.map((c) => (
+                        <tr key={c.id} className="hover:bg-slate-50/70">
+                          <td className="py-3 px-4 font-mono font-bold text-slate-900">{c.invoiceNumber}</td>
+                          <td className="py-3 px-4 font-semibold">{c.month}/{c.year}</td>
+                          <td className="py-3 px-4 text-slate-600">{c.serviceDescription}</td>
+                          <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                c.status === "pagado"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {c.status === "pendiente" && (
+                              <button
+                                onClick={() => handlePayCharge(c.id)}
+                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer"
+                              >
+                                Cobrar
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: TICKETS NOC */}
+          {activeTab === "tickets" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                    <TicketIcon className="w-4 h-4 text-sky-600" />
+                    Incidencias Técnicas & Tickets de Soporte
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Atención técnica, cuadrillas asignadas y tiempos de resolución SLA</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {clientTickets.length === 0 ? (
+                  <div className="col-span-full py-10 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <TicketIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-bold text-slate-600 text-xs">Sin incidencias técnicas registradas</p>
+                  </div>
+                ) : (
+                  clientTickets.map((t) => (
+                    <div key={t.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-mono text-xs font-bold text-sky-700">{t.ticketNumber}</span>
+                        <span
+                          className={`px-2 py-0.2 rounded-full text-[10px] font-bold uppercase ${
+                            t.status === "resuelto"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {t.status.replace("_", " ")}
+                        </span>
+                      </div>
+                      <h5 className="font-bold text-xs text-slate-900">{t.title}</h5>
+                      <p className="text-[11px] text-slate-500">{t.description}</p>
+                      <div className="pt-2 border-t border-slate-100 flex justify-between text-[10px] text-slate-400">
+                        <span>SLA: {t.priority.toUpperCase()}</span>
+                        <span>{t.createdAt.split("T")[0]}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: PROYECTOS / KANBAN TRELLO */}
+          {activeTab === "proyectos" && <ClientProjectKanban client={client} />}
+
+          {/* TAB 9: DOSSIER TECNICO INTEGRAL */}
+          {activeTab === "dossier" && <ClientDossierTab client={client} />}
         </div>
       </div>
     </div>
