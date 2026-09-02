@@ -1,4 +1,4 @@
-import {
+﻿import {
   Client,
   ClientService,
   Plan,
@@ -10,72 +10,122 @@ import {
   Expense,
   MonthlyCharge,
   UserProfile,
+  SystemUser,
 } from "@/types";
+
+export const INITIAL_SYSTEM_USERS: SystemUser[] = [
+  {
+    uid: "usr-superadmin-00",
+    email: "superadmin@inntelcorp.ec",
+    displayName: "Ing. Santiago Morales",
+    role: "superadmin",
+    department: "Presidencia Ejecutiva & NOC Central",
+    phone: "+593 99 876 5432",
+    status: "activo",
+    passwordHash: "SuperAdmin2026*",
+    permissions: [
+      "all",
+      "manage_users",
+      "manage_vault",
+      "manage_clients",
+      "manage_network",
+      "manage_tickets",
+      "manage_finance",
+      "manage_policies",
+      "export_reports",
+    ],
+    createdAt: "2024-01-01T08:00:00Z",
+  },
+  {
+    uid: "usr-admin-01",
+    email: "admin@inntelcorp.ec",
+    displayName: "Ing. Diego Cárdenas",
+    role: "admin",
+    department: "Gerencia de Operaciones",
+    phone: "+593 99 111 2233",
+    status: "activo",
+    passwordHash: "Admin2026*",
+    permissions: [
+      "manage_vault",
+      "manage_clients",
+      "manage_network",
+      "manage_tickets",
+      "manage_finance",
+      "manage_policies",
+      "export_reports",
+    ],
+    createdAt: "2024-02-15T09:30:00Z",
+  },
+  {
+    uid: "usr-fin-02",
+    email: "finanzas@inntelcorp.ec",
+    displayName: "Lcda. Patricia Andrade",
+    role: "finanzas",
+    department: "Contabilidad & Cobranzas",
+    phone: "+593 98 432 1098",
+    status: "activo",
+    passwordHash: "Finanzas2026*",
+    permissions: ["manage_finance", "manage_clients", "export_reports"],
+    createdAt: "2024-03-01T10:00:00Z",
+  },
+  {
+    uid: "usr-tec-03",
+    email: "tecnico@inntelcorp.ec",
+    displayName: "Ing. Carlos Benítez",
+    role: "tecnico",
+    department: "Ingeniería NOC & MikroTik",
+    phone: "+593 97 123 4567",
+    status: "activo",
+    passwordHash: "Tecnico2026*",
+    permissions: ["manage_network", "manage_tickets", "manage_clients"],
+    createdAt: "2024-03-10T11:15:00Z",
+  },
+  {
+    uid: "usr-sop-04",
+    email: "soporte@inntelcorp.ec",
+    displayName: "Téc. Alex Mendoza",
+    role: "soporte",
+    department: "Mesa de Ayuda & Cuadrillas",
+    phone: "+593 96 987 6543",
+    status: "activo",
+    passwordHash: "Soporte2026*",
+    permissions: ["manage_tickets"],
+    createdAt: "2024-04-05T08:45:00Z",
+  },
+  {
+    uid: "usr-leg-05",
+    email: "legal@inntelcorp.ec",
+    displayName: "Abg. Fernando Viteri",
+    role: "legal",
+    department: "Asesoría Jurídica & ARCOTEL",
+    phone: "+593 95 654 3210",
+    status: "activo",
+    passwordHash: "Arcotel2026*",
+    permissions: ["manage_policies", "export_reports"],
+    createdAt: "2024-04-20T14:00:00Z",
+  },
+];
 
 export interface SystemAccount {
   user: UserProfile;
   passwordHash: string;
 }
 
-export const SYSTEM_ACCOUNTS: SystemAccount[] = [
-  {
-    user: {
-      uid: "usr-admin-01",
-      email: "admin@inntelcorp.ec",
-      displayName: "Ing. Santiago Morales",
-      role: "admin",
-      department: "NOC Central & Gerencia General",
-      phone: "+593 99 876 5432",
-    },
-    passwordHash: "Admin2026*",
+export const SYSTEM_ACCOUNTS: SystemAccount[] = INITIAL_SYSTEM_USERS.map((u) => ({
+  user: {
+    uid: u.uid,
+    email: u.email,
+    displayName: u.displayName,
+    role: u.role,
+    department: u.department,
+    phone: u.phone,
+    status: u.status,
+    permissions: u.permissions,
   },
-  {
-    user: {
-      uid: "usr-fin-02",
-      email: "finanzas@inntelcorp.ec",
-      displayName: "Lcda. Patricia Andrade",
-      role: "finanzas",
-      department: "Contabilidad & Cobranzas",
-      phone: "+593 98 432 1098",
-    },
-    passwordHash: "Finanzas2026*",
-  },
-  {
-    user: {
-      uid: "usr-tec-03",
-      email: "tecnico@inntelcorp.ec",
-      displayName: "Ing. Carlos Benítez",
-      role: "tecnico",
-      department: "Ingeniería NOC & MikroTik",
-      phone: "+593 97 123 4567",
-    },
-    passwordHash: "Tecnico2026*",
-  },
-  {
-    user: {
-      uid: "usr-sop-04",
-      email: "soporte@inntelcorp.ec",
-      displayName: "Téc. Alex Mendoza",
-      role: "soporte",
-      department: "Mesa de Ayuda & Cuadrillas",
-      phone: "+593 96 987 6543",
-    },
-    passwordHash: "Soporte2026*",
-  },
-  {
-    user: {
-      uid: "usr-leg-05",
-      email: "legal@inntelcorp.ec",
-      displayName: "Abg. Fernando Viteri",
-      role: "consulta",
-      department: "Asesoría Legal & ARCOTEL",
-      phone: "+593 95 654 3210",
-    },
-    passwordHash: "Arcotel2026*",
-  },
-];
+  passwordHash: u.passwordHash,
+}));
 
-export const INITIAL_USER: UserProfile = SYSTEM_ACCOUNTS[0].user;
+export const INITIAL_USER: UserProfile = INITIAL_SYSTEM_USERS[0];
 
 export const INITIAL_PLANS: Plan[] = [
   {

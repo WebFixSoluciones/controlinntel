@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -76,20 +76,20 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="w-full max-w-xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
               <ShieldPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">Registrar Póliza ARCOTEL</h3>
-              <p className="text-[11px] text-slate-400">Póliza de fiel cumplimiento o responsabilidad civil</p>
+              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Póliza ARCOTEL</h3>
+              <p className="text-[11px] text-[#737686]">Póliza de fiel cumplimiento o responsabilidad civil</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
+            className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -97,36 +97,36 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
         <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Número de Póliza *</label>
+            <label className="font-bold text-[#434655] block mb-1">Número de Póliza *</label>
             <input
               type="text"
               required
               placeholder="POL-2026-99482"
               value={policyNumber}
               onChange={(e) => setPolicyNumber(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
+              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Aseguradora *</label>
+              <label className="font-bold text-[#434655] block mb-1">Aseguradora *</label>
               <input
                 type="text"
                 required
                 placeholder="Chubb Seguros / Seguros Alianza"
                 value={insuranceCompany}
                 onChange={(e) => setInsuranceCompany(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Tipo de Cobertura</label>
+              <label className="font-bold text-[#434655] block mb-1">Tipo de Cobertura</label>
               <select
                 value={policyType}
                 onChange={(e) => setPolicyType(e.target.value as any)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
               >
                 <option value="fiel_cumplimiento">Fiel Cumplimiento de Título</option>
                 <option value="responsabilidad_civil">Responsabilidad Civil</option>
@@ -137,50 +137,50 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Monto Asegurado ($ USD) *</label>
+              <label className="font-bold text-[#434655] block mb-1">Monto Asegurado ($ USD) *</label>
               <input
                 type="number"
                 required
                 value={insuredAmount}
                 onChange={(e) => setInsuredAmount(Number(e.target.value))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-emerald-700"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#004ac6]"
               />
             </div>
 
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Fecha de Expiración *</label>
+              <label className="font-bold text-[#434655] block mb-1">Fecha de Expiración *</label>
               <input
                 type="date"
                 required
                 value={expirationDate}
                 onChange={(e) => setExpirationDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-800"
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30]"
               />
             </div>
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Notas u Observaciones</label>
+            <label className="font-bold text-[#434655] block mb-1">Notas u Observaciones</label>
             <textarea
               rows={2}
               placeholder="Endoso número 3 remitido por QUIPUX..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
+              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#e2e8f0]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+              className="px-4 py-2 rounded-lg text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               Guardar Póliza

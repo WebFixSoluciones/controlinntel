@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar, FileText } from "lucide-react";
+import { DollarSign, FileSpreadsheet, Plus, CheckCircle2, Download, Calendar } from "lucide-react";
 import { generateBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
 
 interface FinanceDashboardProps {
@@ -60,11 +60,11 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
     <div className="space-y-6 select-none">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
-            Control Financiero, Cobranzas Recurrentes & Órdenes de Pedido
-          </h2>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+            <DollarSign className="w-6 h-6 text-[#004ac6]" />
+            Control Financiero, Cobranzas & Órdenes de Pedido
+          </h1>
+          <p className="text-xs text-[#737686] mt-0.5">
             Generación automática de cobros Día 1, pre-facturas no oficiales y seguimiento de recaudación mensual
           </p>
         </div>
@@ -72,7 +72,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
         <div className="flex items-center gap-3">
           <button
             onClick={handleGenerateBatch}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Calendar className="w-4 h-4" />
             <span>Emitir Cobros Día 1</span>
@@ -80,98 +80,100 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
           <button
             onClick={handleExportBatch}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-[#f8f9ff] text-[#0b1c30] border border-[#cbd5e1] rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Exportar Lote de Cobros (.xlsx)</span>
+            <FileSpreadsheet className="w-4 h-4 text-[#10B981]" />
+            <span>Exportar Lote Excel</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Emitido</span>
-          <span className="text-xl font-black text-slate-900 mt-1 block">${totalBilled.toFixed(2)} USD</span>
-          <span className="text-[11px] text-slate-400">{currentCharges.length} pre-facturas del periodo</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Total Emitido</span>
+          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">${totalBilled.toFixed(2)} USD</span>
+          <span className="text-[11px] text-[#737686]">{currentCharges.length} pre-facturas del periodo</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cobrado / Recaudado</span>
-          <span className="text-xl font-black text-emerald-700 mt-1 block">${totalPaid.toFixed(2)} USD</span>
-          <span className="text-[11px] text-emerald-600 font-bold">
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Cobrado / Recaudado</span>
+          <span className="text-2xl font-black text-[#10B981] mt-1 block font-tnum">${totalPaid.toFixed(2)} USD</span>
+          <span className="text-[11px] text-[#059669] font-bold">
             {totalBilled > 0 ? `${Math.round((totalPaid / totalBilled) * 100)}% de efectividad` : "0%"}
           </span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cartera Pendiente</span>
-          <span className="text-xl font-black text-amber-700 mt-1 block">${totalPending.toFixed(2)} USD</span>
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Cartera Pendiente</span>
+          <span className="text-2xl font-black text-[#f59e0b] mt-1 block font-tnum">${totalPending.toFixed(2)} USD</span>
           <span className="text-[11px] text-amber-600 font-bold">Pendiente de acreditación</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gastos Registrados</span>
-          <span className="text-xl font-black text-rose-700 mt-1 block">${totalExpenses.toFixed(2)} USD</span>
-          <span className="text-[11px] text-slate-400">Nodos, fibra y tránsito</span>
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Gastos Registrados</span>
+          <span className="text-2xl font-black text-[#ef4444] mt-1 block font-tnum">${totalExpenses.toFixed(2)} USD</span>
+          <span className="text-[11px] text-[#737686]">Nodos, fibra y tránsito</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-bold text-slate-900 text-sm">Detalle de Órdenes de Pedido & Pre-Facturas Emitidas</h3>
-          <span className="text-xs font-semibold text-slate-500">Periodo {selectedMonth}/{selectedYear}</span>
+      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-white">
+          <h3 className="font-bold text-[#0b1c30] text-sm">Detalle de Órdenes de Pedido & Pre-Facturas Emitidas</h3>
+          <span className="text-xs font-semibold text-[#737686]">Periodo {selectedMonth}/{selectedYear}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4">Cliente / Identificación</th>
-                <th className="py-3 px-4">Concepto del Servicio</th>
-                <th className="py-3 px-4">Subtotal (15% IVA)</th>
-                <th className="py-3 px-4">IVA 15%</th>
-                <th className="py-3 px-4">Total Cotizado</th>
-                <th className="py-3 px-4">Estado</th>
-                <th className="py-3 px-4 text-right">Acción</th>
+                <th className="py-3.5 px-5">Cliente / Identificación</th>
+                <th className="py-3.5 px-5">Concepto del Servicio</th>
+                <th className="py-3.5 px-5 font-tnum">Subtotal (15% IVA)</th>
+                <th className="py-3.5 px-5 font-tnum">IVA 15%</th>
+                <th className="py-3.5 px-5 font-tnum">Total Cotizado</th>
+                <th className="py-3.5 px-5 text-center">Estado</th>
+                <th className="py-3.5 px-5 text-right">Acción</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {currentCharges.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400 italic">
+                  <td colSpan={7} className="py-8 text-center text-[#737686] italic">
                     No se han generado cobros para este mes. Presiona "Emitir Cobros Día 1".
                   </td>
                 </tr>
               ) : (
                 currentCharges.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3 px-4">
-                      <p className="font-bold text-slate-900">{c.clientName}</p>
-                      <span className="font-mono text-[11px] text-slate-400">{c.clientRuc}</span>
+                  <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
+                    <td className="py-3.5 px-5">
+                      <p className="font-bold text-[#0b1c30]">{c.clientName}</p>
+                      <span className="font-mono text-[11px] text-[#737686]">{c.clientRuc}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-600">{c.serviceDescription}</td>
-                    <td className="py-3 px-4 font-mono">${c.subtotal.toFixed(2)}</td>
-                    <td className="py-3 px-4 font-mono">${c.ivaAmount.toFixed(2)}</td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-5 text-[#434655]">{c.serviceDescription}</td>
+                    <td className="py-3.5 px-5 font-mono">${c.subtotal.toFixed(2)}</td>
+                    <td className="py-3.5 px-5 font-mono">${c.ivaAmount.toFixed(2)}</td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-[#0b1c30]">${c.total.toFixed(2)}</td>
+                    <td className="py-3.5 px-5 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          c.status === "pagado" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          c.status === "pagado"
+                            ? "bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0]"
+                            : "bg-[#fffbeb] text-[#92400e] border border-[#fde68a]"
                         }`}
                       >
                         {c.status.toUpperCase()}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-5 text-right">
                       {c.status === "pendiente" ? (
                         <button
                           onClick={() => handleMarkPaid(c)}
-                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shadow-2xs cursor-pointer"
+                          className="px-3 py-1 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg text-[11px] font-bold shadow-2xs cursor-pointer"
                         >
                           Marcar Pagado
                         </button>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium">{c.paymentDate}</span>
+                        <span className="text-[11px] text-[#737686] font-medium">{c.paymentDate}</span>
                       )}
                     </td>
                   </tr>

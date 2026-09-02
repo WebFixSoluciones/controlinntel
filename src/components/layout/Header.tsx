@@ -54,11 +54,13 @@ export function Header() {
             onChange={(e) => setUserRole(e.target.value as UserRole)}
             className="bg-white text-xs font-semibold text-[#0b1c30] rounded px-2 py-1 border border-[#e2e8f0] outline-hidden cursor-pointer"
           >
-            <option value="admin">Administrador (Full)</option>
-            <option value="finanzas">Finanzas & Cobranzas</option>
-            <option value="tecnico">Técnico & MikroTik</option>
-            <option value="soporte">Soporte Helpdesk</option>
-            <option value="consulta">Solo Consulta</option>
+            <option value="superadmin">👑 Super Administrador (Full)</option>
+            <option value="admin">🛡️ Administrador General</option>
+            <option value="finanzas">💰 Finanzas & Cobranzas</option>
+            <option value="tecnico">📡 Técnico & MikroTik</option>
+            <option value="soporte">🎧 Soporte Helpdesk</option>
+            <option value="legal">⚖️ Legal & ARCOTEL</option>
+            <option value="consulta">👁️ Solo Consulta</option>
           </select>
         </div>
 

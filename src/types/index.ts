@@ -1,4 +1,15 @@
-export type UserRole = "admin" | "finanzas" | "tecnico" | "soporte" | "consulta";
+export type UserRole = "superadmin" | "admin" | "finanzas" | "tecnico" | "soporte" | "legal" | "consulta";
+
+export type SystemPermission =
+  | "all"
+  | "manage_users"
+  | "manage_vault"
+  | "manage_clients"
+  | "manage_network"
+  | "manage_tickets"
+  | "manage_finance"
+  | "manage_policies"
+  | "export_reports";
 
 export interface UserProfile {
   uid: string;
@@ -8,6 +19,16 @@ export interface UserProfile {
   department?: string;
   phone?: string;
   avatarUrl?: string;
+  status?: "activo" | "inactivo";
+  permissions?: SystemPermission[];
+}
+
+export interface SystemUser extends UserProfile {
+  passwordHash: string;
+  status: "activo" | "inactivo";
+  permissions: SystemPermission[];
+  createdAt: string;
+  lastLogin?: string;
 }
 
 export type IdentificationType = "RUC" | "CEDULA" | "PASAPORTE";
@@ -177,7 +198,20 @@ export interface AuditLog {
   userId: string;
   userEmail: string;
   userRole: UserRole;
-  action: "LOGIN" | "LOGOUT" | "VIEW_VAULT_PASSWORD" | "UPDATE_VAULT" | "GENERATE_DOC" | "CREATE_CLIENT" | "UPDATE_CLIENT" | "CREATE_EXPENSE" | "EXPORT_BILLING" | "EXPORT_SRI";
+  action:
+    | "LOGIN"
+    | "LOGOUT"
+    | "VIEW_VAULT_PASSWORD"
+    | "UPDATE_VAULT"
+    | "GENERATE_DOC"
+    | "CREATE_CLIENT"
+    | "UPDATE_CLIENT"
+    | "CREATE_EXPENSE"
+    | "EXPORT_BILLING"
+    | "CREATE_USER"
+    | "UPDATE_USER"
+    | "DELETE_USER"
+    | "EXPORT_SRI";
   resource: string;
   details: string;
   timestamp: string;

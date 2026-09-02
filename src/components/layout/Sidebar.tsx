@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -9,23 +9,33 @@ import { useToast } from "@/lib/toast-context";
 import {
   LayoutDashboard,
   Users,
-  Landmark,
-  Wrench,
+  ShieldCheck,
+  KeyRound,
+  Radio,
   Ticket as TicketIcon,
-  Banknote,
-  Receipt,
-  ShoppingCart,
+  DollarSign,
   FileText,
-  BarChart3,
-  Bot,
-  Settings,
+  ChevronRight,
   LogOut,
-  Building2,
+  Settings,
+  Crown,
 } from "lucide-react";
+
+const NAV_ITEMS = [
+  { href: "/", label: "Dashboard General", icon: LayoutDashboard },
+  { href: "/clientes", label: "Clientes & Ficha 360°", icon: Users, badge: "M1" },
+  { href: "/arcotel", label: "ARCOTEL & Pólizas", icon: ShieldCheck, badge: "M2" },
+  { href: "/boveda", label: "Bóveda de Credenciales", icon: KeyRound, badge: "M2" },
+  { href: "/red", label: "Infraestructura & Nodos", icon: Radio, badge: "M3" },
+  { href: "/tickets", label: "Tickets & Soporte NOC", icon: TicketIcon, badge: "M4" },
+  { href: "/finanzas", label: "Finanzas & Cobranzas", icon: DollarSign, badge: "M5" },
+  { href: "/plantillas", label: "Plantillas Word/Excel", icon: FileText, badge: "M6" },
+  { href: "/configuracion", label: "Configuración & Usuarios", icon: Settings, badge: "RBAC" },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, policies, tickets, logout, setIsSearchOpen } = useApp();
+  const { currentUser, policies, tickets, logout } = useApp();
   const { showConfirm, showInfo } = useToast();
 
   const expiringPolicies = policies.filter((p) => p.status === "por_vencer").length;
@@ -43,110 +53,117 @@ export function Sidebar() {
     );
   };
 
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/clientes", label: "Clientes", icon: Users },
-    { href: "/arcotel", label: "ARCOTEL", icon: Landmark, badge: expiringPolicies > 0 ? expiringPolicies : undefined, badgeColor: "bg-amber-100 text-amber-800" },
-    { href: "/red", label: "Técnica", icon: Wrench },
-    { href: "/tickets", label: "Tickets", icon: TicketIcon, badge: openTickets > 0 ? openTickets : undefined, badgeColor: "bg-blue-100 text-blue-800" },
-    { href: "/finanzas", label: "Finanzas", icon: Banknote },
-    { href: "/finanzas", label: "Gastos", icon: Receipt },
-    { href: "/finanzas", label: "Pedidos", icon: ShoppingCart },
-    { href: "/plantillas", label: "Plantillas", icon: FileText },
-    { href: "/", label: "Reportes", icon: BarChart3 },
-    { href: "/boveda", label: "IA & Bóveda", icon: Bot },
-  ];
+  const isSuper = currentUser.role === "superadmin";
 
   return (
-    <aside className="w-[260px] bg-white border-r border-[#e2e8f0] flex flex-col flex-shrink-0 min-h-screen select-none z-20">
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 min-h-screen select-none">
       {/* Brand Header */}
-      <div className="h-16 px-5 border-b border-[#e2e8f0] flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#2563eb] text-white flex items-center justify-center shadow-xs flex-shrink-0">
-          <Building2 className="w-5 h-5" />
+      <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-white via-slate-50 to-white">
+        <div className="w-11 h-11 relative flex-shrink-0 bg-white rounded-xl p-1 shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden">
+          <Image
+            src="/logo-inntel.webp"
+            alt="Logo INNTEL CORP"
+            width={40}
+            height={40}
+            className="object-contain"
+            priority
+          />
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="font-bold text-[#004ac6] text-sm tracking-tight truncate uppercase">
+          <span className="font-bold text-slate-900 text-sm tracking-tight truncate flex items-center gap-1.5">
             INNTEL CORP
+            <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100"></span>
           </span>
-          <span className="text-[11px] text-[#737686] font-medium leading-none mt-0.5">
-            SaaS ERP System
+          <span className="text-[11px] font-medium text-sky-700 uppercase tracking-wider">
+            ISP Telecom & Operaciones
           </span>
         </div>
       </div>
 
-      {/* Navigation List */}
-      <nav className="flex-1 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map((item, idx) => {
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Módulos Principales
+        </div>
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          // Determine if active: for duplicates like /finanzas, only highlight the first exact or matching label
-          const isActive =
-            item.href === "/"
-              ? pathname === "/" && item.label === "Dashboard"
-              : item.href === "/finanzas"
-              ? pathname === "/finanzas" && item.label === "Finanzas"
-              : pathname.startsWith(item.href);
+          const isActive = pathname === item.href;
 
           return (
             <Link
-              key={`${item.label}-${idx}`}
+              key={item.href}
               href={item.href}
-              className={`flex items-center justify-between px-5 py-2.5 text-xs transition-all ${
+              className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
                 isActive
-                  ? "bg-[#eff4ff] text-[#004ac6] font-semibold border-l-4 border-[#004ac6] rounded-r-xl"
-                  : "text-[#434655] hover:bg-[#eff4ff] hover:text-[#004ac6] font-medium border-l-4 border-transparent"
+                  ? "bg-sky-50 text-sky-700 shadow-sm border border-sky-100 font-bold"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <Icon
                   className={`w-4 h-4 transition-colors ${
-                    isActive ? "text-[#004ac6]" : "text-[#737686]"
+                    isActive ? "text-sky-600" : "text-slate-400 group-hover:text-slate-600"
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
               </div>
 
-              {item.badge && (
-                <span
-                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${item.badgeColor}`}
-                >
-                  {item.badge}
-                </span>
-              )}
+              <div className="flex items-center gap-1.5">
+                {item.href === "/arcotel" && expiringPolicies > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                    {expiringPolicies}
+                  </span>
+                )}
+                {item.href === "/tickets" && openTickets > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+                    {openTickets}
+                  </span>
+                )}
+                {item.badge && item.href !== "/arcotel" && item.href !== "/tickets" && (
+                  <span className="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded bg-slate-100 text-slate-500 group-hover:bg-slate-200/80">
+                    {item.badge}
+                  </span>
+                )}
+                {isActive && <ChevronRight className="w-3.5 h-3.5 text-sky-600" />}
+              </div>
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom Configuration & User */}
-      <div className="p-3 border-t border-[#e2e8f0] space-y-2">
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-[#434655] hover:bg-[#eff4ff] hover:text-[#004ac6] rounded-xl transition-all cursor-pointer"
-        >
-          <Settings className="w-4 h-4 text-[#737686]" />
-          <span>Configuración</span>
-        </button>
-
-        {/* User Card */}
-        <div className="flex items-center justify-between p-2 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0]">
+      {/* User Profile Footer */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-xs">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-full bg-[#004ac6] text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-              {currentUser.displayName.charAt(0)}
+            <div
+              className={`w-8 h-8 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-xs flex-shrink-0 ${
+                isSuper
+                  ? "bg-gradient-to-br from-amber-500 to-amber-700 ring-2 ring-amber-200"
+                  : "bg-gradient-to-br from-sky-600 to-purple-600"
+              }`}
+            >
+              {isSuper ? <Crown className="w-4 h-4" /> : currentUser.displayName.charAt(0)}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-[#0b1c30] truncate">{currentUser.displayName}</p>
-              <span className="text-[10px] text-[#737686] font-medium block truncate">
-                {currentUser.role.toUpperCase()}
+              <p className="text-xs font-bold text-slate-800 truncate">{currentUser.displayName}</p>
+              <span
+                className={`inline-block px-1.5 py-0.2 text-[9px] font-bold uppercase tracking-wider rounded ${
+                  isSuper
+                    ? "bg-amber-100 text-amber-900 border border-amber-300"
+                    : "bg-sky-100 text-sky-800"
+                }`}
+              >
+                {isSuper ? "Super Admin" : currentUser.role}
               </span>
             </div>
           </div>
 
           <button
             onClick={handleLogout}
-            className="p-1.5 rounded-lg text-[#737686] hover:text-[#ef4444] hover:bg-red-50 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
             title="Cerrar sesión"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>

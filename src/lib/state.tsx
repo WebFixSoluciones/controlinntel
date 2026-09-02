@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ToastProvider } from "./toast-context";
@@ -17,10 +17,11 @@ import {
   AuditLog,
   UserProfile,
   UserRole,
+  SystemUser,
 } from "@/types";
 import {
   INITIAL_USER,
-  SYSTEM_ACCOUNTS,
+  INITIAL_SYSTEM_USERS,
   INITIAL_PLANS,
   INITIAL_NODES,
   INITIAL_IP_POOLS,
@@ -39,6 +40,12 @@ interface AppContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => boolean;
   logout: () => void;
+
+  systemUsers: SystemUser[];
+  addSystemUser: (user: Omit<SystemUser, "uid" | "createdAt">) => void;
+  updateSystemUser: (uid: string, updates: Partial<SystemUser>) => void;
+  deleteSystemUser: (uid: string) => boolean;
+  toggleUserStatus: (uid: string) => void;
 
   clients: Client[];
   clientServices: ClientService[];
@@ -82,13 +89,15 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_CLEAN_V3";
-const AUTH_KEY = "INNTEL_AUTH_USER";
+const STORAGE_KEY = "INNTEL_CORP_STATE_CLEAN_V4";
+const USERS_KEY = "INNTEL_SYSTEM_USERS_V4";
+const AUTH_KEY = "INNTEL_AUTH_USER_V4";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER);
+  const [systemUsers, setSystemUsers] = useState<SystemUser[]>(INITIAL_SYSTEM_USERS);
 
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
   const [clientServices, setClientServices] = useState<ClientService[]>(INITIAL_CLIENT_SERVICES);
@@ -106,13 +115,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
+      // Check saved users
+      const savedUsers = localStorage.getItem(USERS_KEY);
+      let activeUsers = INITIAL_SYSTEM_USERS;
+      if (savedUsers) {
+        try {
+          const parsed = JSON.parse(savedUsers);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            activeUsers = parsed;
+            setSystemUsers(parsed);
+          }
+        } catch (e) {}
+      }
+
       // Check auth session
       const savedAuth = localStorage.getItem(AUTH_KEY);
       if (savedAuth) {
         const user = JSON.parse(savedAuth);
         if (user && user.email) {
-          setCurrentUser(user);
-          setIsAuthenticated(true);
+          const matched = activeUsers.find((u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo");
+          if (matched) {
+            setCurrentUser(matched);
+            setIsAuthenticated(true);
+          }
         }
       }
 
@@ -144,36 +169,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         STORAGE_KEY,
         JSON.stringify({ clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs })
       );
+      localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
     } catch (e) {}
-  }, [clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs, isAuthLoaded]);
-
-  const login = (email: string, password: string, remember: boolean = true): boolean => {
-    const trimmedEmail = email.trim().toLowerCase();
-    const account = SYSTEM_ACCOUNTS.find(
-      (a) => a.user.email.toLowerCase() === trimmedEmail && a.passwordHash === password
-    );
-
-    if (account) {
-      setCurrentUser(account.user);
-      setIsAuthenticated(true);
-      if (remember) {
-        try {
-          localStorage.setItem(AUTH_KEY, JSON.stringify(account.user));
-        } catch (e) {}
-      }
-      addAuditLog("LOGIN", `Acceso al Sistema: ${account.user.displayName}`, `Rol: ${account.user.role}`);
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-    try {
-      localStorage.removeItem(AUTH_KEY);
-    } catch (e) {}
-    addAuditLog("LOGOUT", `Cierre de Sesión: ${currentUser.displayName}`, `Rol: ${currentUser.role}`);
-  };
+  }, [clients, clientServices, nodes, policies, vault, tickets, expenses, monthlyCharges, auditLogs, systemUsers, isAuthLoaded]);
 
   const addAuditLog = (action: AuditLog["action"], resource: string, details: string) => {
     const newLog: AuditLog = {
@@ -189,8 +187,91 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
+  const login = (email: string, password: string, remember: boolean = true): boolean => {
+    const trimmedEmail = email.trim().toLowerCase();
+    const account = systemUsers.find(
+      (a) => a.email.toLowerCase() === trimmedEmail && a.passwordHash === password && a.status === "activo"
+    );
+
+    if (account) {
+      const updatedUser: UserProfile = {
+        uid: account.uid,
+        email: account.email,
+        displayName: account.displayName,
+        role: account.role,
+        department: account.department,
+        phone: account.phone,
+        status: account.status,
+        permissions: account.permissions,
+      };
+
+      setCurrentUser(updatedUser);
+      setIsAuthenticated(true);
+
+      // Update last login
+      setSystemUsers((prev) =>
+        prev.map((u) => (u.uid === account.uid ? { ...u, lastLogin: new Date().toISOString() } : u))
+      );
+
+      if (remember) {
+        try {
+          localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
+        } catch (e) {}
+      }
+      addAuditLog("LOGIN", `Acceso al Sistema: ${account.displayName}`, `Rol: ${account.role.toUpperCase()}`);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    try {
+      localStorage.removeItem(AUTH_KEY);
+    } catch (e) {}
+    addAuditLog("LOGOUT", `Cierre de Sesión: ${currentUser.displayName}`, `Rol: ${currentUser.role}`);
+  };
+
   const setUserRole = (role: UserRole) => {
     setCurrentUser((prev) => ({ ...prev, role }));
+  };
+
+  // User Management Methods
+  const addSystemUser = (userData: Omit<SystemUser, "uid" | "createdAt">) => {
+    const newUid = "usr-" + Date.now();
+    const newUser: SystemUser = {
+      ...userData,
+      uid: newUid,
+      createdAt: new Date().toISOString(),
+    };
+    setSystemUsers((prev) => [newUser, ...prev]);
+    addAuditLog("CREATE_USER", `Usuario: ${newUser.displayName}`, `Rol: ${newUser.role} | Email: ${newUser.email}`);
+  };
+
+  const updateSystemUser = (uid: string, updates: Partial<SystemUser>) => {
+    setSystemUsers((prev) =>
+      prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
+    );
+    addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(updates));
+  };
+
+  const deleteSystemUser = (uid: string): boolean => {
+    const target = systemUsers.find((u) => u.uid === uid);
+    if (!target) return false;
+    if (target.role === "superadmin" && systemUsers.filter((u) => u.role === "superadmin").length <= 1) {
+      return false; // Cannot delete last superadmin
+    }
+    setSystemUsers((prev) => prev.filter((u) => u.uid !== uid));
+    addAuditLog("DELETE_USER", `Usuario: ${target.displayName}`, `Email: ${target.email}`);
+    return true;
+  };
+
+  const toggleUserStatus = (uid: string) => {
+    setSystemUsers((prev) =>
+      prev.map((u) =>
+        u.uid === uid ? { ...u, status: u.status === "activo" ? "inactivo" : "activo" } : u
+      )
+    );
   };
 
   const addClient = (clientData: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => {
@@ -341,6 +422,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const resetDataToDefaults = () => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(USERS_KEY);
+    setSystemUsers(INITIAL_SYSTEM_USERS);
     setClients(INITIAL_CLIENTS);
     setClientServices(INITIAL_CLIENT_SERVICES);
     setNodes(INITIAL_NODES);
@@ -361,6 +444,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated,
           login,
           logout,
+          systemUsers,
+          addSystemUser,
+          updateSystemUser,
+          deleteSystemUser,
+          toggleUserStatus,
           clients,
           clientServices,
           plans,
