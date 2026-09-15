@@ -1,6 +1,6 @@
-﻿# INNTEL CORP — Sistema Integral ISP, ARCOTEL & SRI
+# INNTEL CORP — Sistema Integral de Gestión ISP & ARCOTEL
 
-Plataforma empresarial centralizada para la gestión operativa, técnica, financiera (SRI) y regulatoria (ARCOTEL) de **INNTEL CORP S.A.** (Proveedor de Servicios de Acceso a Internet - ISP en Ecuador).
+Plataforma empresarial centralizada para la gestión operativa, técnica, financiera (órdenes de pedido y pre-facturación) y regulatoria (ARCOTEL) de **INNTEL CORP S.A.** (Proveedor de Servicios de Telecomunicaciones e Internet - ISP en Ecuador).
 
 ![INNTEL CORP Logo](/public/logo-inntel.webp)
 
@@ -10,25 +10,25 @@ Plataforma empresarial centralizada para la gestión operativa, técnica, financ
 
 - **Frontend & Backend**: Next.js 14 (App Router, TypeScript, React Server Components).
 - **Estilos & UI/UX**: Tailwind CSS con tema **Light Mode por defecto** y paleta corporativa (Azul INNTEL `#0066B3`, Púrpura `#7A4499`, Celeste WebFix `#00AEEF`).
-- **Base de Datos & Servicios**: Google Cloud Firestore / Firebase (con modelo Pay-as-you-go y capa gratuita amplia para evitar los límites de costo fijos de Supabase).
+- **Base de Datos & Servicios**: Google Cloud Firestore / Firebase (`inntelcorp-45c89`) con sincronización en la nube y resiliencia local.
 - **Seguridad**: Cifrado AES-256 en Bóveda de Credenciales, Cabeceras HTTP endurecidas (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) y control de acceso basado en roles (RBAC).
-- **Generador de Documentos**: Creación de contratos Word `.docx` oficiales de ARCOTEL y reportes Excel `.xlsx` para SAI y Facturación Electrónica SRI.
+- **Generador de Documentos**: Creación de contratos Word `.docx` oficiales de ARCOTEL y reportes consolidados en Excel `.xlsx`.
 - **Asistente IA**: Gemini Flash 2.5 Lite integrado con contexto en vivo de telecomunicaciones y filtrado de respuestas por rol.
 
 ---
 
-## 📦 Módulos del Sistema
+## 📦 Módulos Integrados del Sistema
 
 1. **Dashboard Central**: Monitoreo de MRR, abonados activos, estado de POPs y alerta temprana de vencimientos.
-2. **M1 — Clientes & Ficha Consolidada 360°**: Gestión de abonados, validación RUC/Cédula, tarifas negociadas y toggle de facturación SRI.
-3. **M2 — ARCOTEL, Pólizas & Bóveda Cifrada**:
-   - Monitoreo de pólizas de fiel cumplimiento y responsabilidad civil con semáforo de vencimiento.
-   - Bóveda de credenciales cifradas para SIETEL, FODETEL, QUIPUX, BDH y MikroTik.
-4. **M3 — Infraestructura Multi-Nodo & MikroTik**: Supervisión de concentradores PPPoE, capacidad de tráfico (Mbps) y pools IPv4 (CGNAT) / IPv6.
+2. **M1 — Clientes & Ficha Consolidada 360°**: Gestión de abonados, validación RUC/Cédula, tablero Kanban de proyectos, contratos y bóveda de cliente.
+3. **M2 — ARCOTEL & Pólizas**: Monitoreo de pólizas de fiel cumplimiento y responsabilidad civil con semáforo de vencimiento.
+4. **M3 — Infraestructura Multi-Nodo & MikroTik**: Supervisión de concentradores PPPoE, capacidad de tráfico (Mbps) y pools IPv4 / IPv6.
 5. **M4 — Mesa de Ayuda NOC & Soporte**: Tickets de soporte categorizados, SLA prioritarios y asignación a cuadrillas.
-6. **M5 — Finanzas, OPEX & Pre-Facturación SRI**: Emisión de cobros recurrentes Día 1, cálculo de IVA (15%) y exportación en lote para el SRI.
+6. **M5 — Control Financiero & Pre-Facturación**: Emisión de cobros recurrentes Día 1, órdenes de pedido y exportación en lote en Excel.
 7. **M6 — Automatización de Plantillas Word/Excel**: Contratos de adhesión SAI, formularios de infraestructura técnica y oficios de renovación.
-8. **M7 — Asistente IA Gemini Flash**: Soporte operativo interactivo con guardrails de seguridad por rol.
+8. **M7 — Bóveda de Credenciales Cifradas**: Almacén con cifrado AES-256 para credenciales de portales regulatorios (SIETEL, FODETEL, QUIPUX).
+9. **M8 — Configuración & Usuarios (RBAC)**: Gestión de usuarios del sistema, matriz de permisos y administración de Super Admin.
+10. **Asistente IA Gemini Flash**: Soporte operativo interactivo con guardrails de seguridad por rol.
 
 ---
 
@@ -49,16 +49,16 @@ El sistema incluye cabeceras de seguridad estrictas configuradas en el servidor 
 
 ```bash
 # Instalar dependencias
-pnpm install
+npm install
 
 # Iniciar servidor de desarrollo
-pnpm dev
+npm run dev
 
 # Compilar para producción
-pnpm build
+npm run build
 
 # Iniciar en producción
-pnpm start
+npm start
 ```
 
 Desarrollado para **INNTEL CORP** por **WebFix Soluciones**.
