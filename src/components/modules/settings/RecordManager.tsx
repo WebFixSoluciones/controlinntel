@@ -31,7 +31,7 @@ export function RecordManager({
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
   const source = app[entity as keyof typeof app];
-  const records = (Array.isArray(source) ? source : []) as Record<string, unknown>[];
+  const records = (Array.isArray(source) ? source : []) as unknown as Record<string, unknown>[];
   const rows = filter ? records.filter(filter) : records;
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {

@@ -127,7 +127,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-white">
           <h3 className="font-bold text-[#0b1c30] text-sm">Detalle de Órdenes de Pedido & Pre-Facturas Emitidas</h3>
-          <label className="text-xs font-semibold">Periodo <input type="month" value={`${selectedYear}-${String(selectedMonth).padStart(2,"0")}`} onChange={e=>{if(e.target.value){const [year,month]=e.target.value.split("-").map(Number);setSelectedYear(year);setSelectedMonth(month);}} /></label>
+          <label className="text-xs font-semibold">Periodo <input type="month" value={`${selectedYear}-${String(selectedMonth).padStart(2,"0")}`} onChange={e => { if (e.target.value) { const [year, month] = e.target.value.split("-").map(Number); setSelectedYear(year); setSelectedMonth(month); } }} /></label>
         </div>
 
         <div className="overflow-x-auto">
