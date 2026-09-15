@@ -7,6 +7,7 @@ import { Client } from "@/types";
 import { ClientProjectKanban } from "./ClientProjectKanban";
 import { ClientQuotesManager } from "./ClientQuotesManager";
 import { ClientVaultTab } from "./ClientVaultTab";
+import { ServiceEditor } from "../settings/RecordManager";
 import { ClientContractTab } from "./ClientContractTab";
 import { ClientDossierTab } from "./ClientDossierTab";
 import {
@@ -78,10 +79,14 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     showConfirm(
       "¿Registrar Cobro?",
       "¿Confirmas el registro del pago para este comprobante?",
-      () => {
-        markChargeAsPaid(chargeId, "transferencia");
+      async () => {
+    try {
+
+        await markChargeAsPaid(chargeId, "transferencia");
         showSuccess("Pago Registrado", "Comprobante marcado como PAGADO.");
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Registrar Pago"
     );
   };
@@ -253,6 +258,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           )}
 
           {/* TAB 2: RED & MIKROTIK */}
+          {activeTab === "red" && <ServiceEditor clientId={client.id} />}
           {activeTab === "red" && (
             <div className="space-y-4">
               {services.length === 0 ? (

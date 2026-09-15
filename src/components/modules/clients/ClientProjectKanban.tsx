@@ -65,11 +65,13 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
     setChecklistItems(checklistItems.filter((i) => i.id !== id));
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    addClientProjectTask({
+    await addClientProjectTask({
       clientId: client.id,
       clientName: client.businessName,
       title: newTitle.trim(),
@@ -86,23 +88,33 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
     setNewTitle("");
     setNewDesc("");
     setChecklistItems([]);
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
-  const handleToggleChecklist = (task: ClientProjectTask, chkId: string) => {
+  const handleToggleChecklist = async (task: ClientProjectTask, chkId: string) => {
+    try {
+
     const updatedChecklist = task.checklist.map((c) =>
       c.id === chkId ? { ...c, done: !c.done } : c
     );
-    updateClientProjectTask(task.id, { checklist: updatedChecklist });
-  };
+    await updateClientProjectTask(task.id, { checklist: updatedChecklist });
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   const handleDeleteTask = (task: ClientProjectTask) => {
     showConfirm(
       "¿Eliminar Tarea del Tablero?",
       `¿Deseas remover la tarjeta "${task.title}" del seguimiento de obra?`,
-      () => {
-        deleteClientProjectTask(task.id);
+      async () => {
+    try {
+
+        await deleteClientProjectTask(task.id);
         showSuccess("Tarea Eliminada", "La tarjeta ha sido removida del tablero.");
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Eliminar"
     );
   };
@@ -117,23 +129,31 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, targetCol: ProjectKanbanColumn) => {
+  const handleDrop = async (e: React.DragEvent, targetCol: ProjectKanbanColumn) => {
+    try {
+
     e.preventDefault();
     const id = e.dataTransfer.getData("text/plain") || draggedTaskId;
     if (id) {
-      moveProjectTaskColumn(id, targetCol);
+      await moveProjectTaskColumn(id, targetCol);
       setDraggedTaskId(null);
     }
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
-  const handleShiftColumn = (task: ClientProjectTask, direction: "prev" | "next") => {
+  const handleShiftColumn = async (task: ClientProjectTask, direction: "prev" | "next") => {
+    try {
+
     const currentIndex = KANBAN_COLUMNS.findIndex((c) => c.id === task.column);
     if (direction === "next" && currentIndex < KANBAN_COLUMNS.length - 1) {
-      moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex + 1].id);
+      await moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex + 1].id);
     } else if (direction === "prev" && currentIndex > 0) {
-      moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex - 1].id);
+      await moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex - 1].id);
     }
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="space-y-4 select-none">

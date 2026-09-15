@@ -17,14 +17,18 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
   const filtered = tickets.filter((t) => filterStatus === "todos" || t.status === filterStatus);
 
-  const handleStatusChange = (t: Ticket, newStatus: TicketStatus) => {
-    updateTicketStatus(t.id, newStatus);
+  const handleStatusChange = async (t: Ticket, newStatus: TicketStatus) => {
+    try {
+
+    await updateTicketStatus(t.id, newStatus);
     if (newStatus === "resuelto") {
       showSuccess("Ticket Resuelto", `Incidencia ${t.ticketNumber} marcada como resuelta.`);
     } else {
       showInfo("Estado Actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
     }
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="space-y-6 select-none">

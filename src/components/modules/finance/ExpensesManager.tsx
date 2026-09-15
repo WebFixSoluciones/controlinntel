@@ -15,7 +15,9 @@ export function ExpensesManager() {
   const [category, setCategory] = useState<any>("enlace_transito");
   const [description, setDescription] = useState("");
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     if (!supplierName || supplierName.trim().length < 3) {
@@ -29,7 +31,7 @@ export function ExpensesManager() {
       return;
     }
 
-    addExpense({
+    await addExpense({
       supplierName,
       amount: Number(amount),
       category,
@@ -42,7 +44,9 @@ export function ExpensesManager() {
     setIsModalOpen(false);
     setSupplierName("");
     setDescription("");
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card p-6 space-y-4 select-none">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { ToastItem, ToastNotificationContainer, ToastType } from "@/components/ui/ToastNotification";
@@ -73,6 +73,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       onConfirm,
     });
   }, []);
+
+  React.useEffect(() => {
+    const handleGlobalError = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+      if (customEvent.detail) {
+        showError("Atención", customEvent.detail);
+      }
+    };
+    window.addEventListener("inntel:error", handleGlobalError);
+    return () => window.removeEventListener("inntel:error", handleGlobalError);
+  }, [showError]);
 
   return (
     <ToastContext.Provider

@@ -23,7 +23,9 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     if (!clientId) {
@@ -43,7 +45,7 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
 
     const client = clients.find((c) => c.id === clientId);
 
-    addTicket({
+    await addTicket({
       clientId,
       clientName: client?.businessName || "Cliente",
       title,
@@ -56,7 +58,9 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
 
     showSuccess("Ticket Creado", `Incidencia generada y notificada a ${assignedToName}.`);
     onClose();
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">

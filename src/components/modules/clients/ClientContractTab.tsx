@@ -49,10 +49,12 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
     }
   };
 
-  const handleSaveContract = (e: React.FormEvent) => {
+  const handleSaveContract = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
-    addClientContract({
+    await addClientContract({
       clientId: client.id,
       contractNumber,
       arcotelHomologationCode: homologationCode,
@@ -66,7 +68,9 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
 
     showSuccess("Contrato Guardado", "Registro contractual actualizado con éxito.");
     setIsModalOpen(false);
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="space-y-4 select-none">

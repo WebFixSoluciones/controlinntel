@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ToastProvider } from "./toast-context";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import {
@@ -38,19 +38,29 @@ import {
   INITIAL_EXPENSES,
   INITIAL_MONTHLY_CHARGES,
 } from "./mock-data";
+import { app, db, auth } from "./firebase";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
+import { usePathname } from "next/navigation";
+import { can, routePermissions, type Entity } from "./permissions";
+import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 
 interface AppContextType {
   currentUser: UserProfile;
   setUserRole: (role: UserRole) => void;
   isAuthenticated: boolean;
-  login: (email: string, password: string, remember?: boolean) => boolean;
-  logout: () => void;
+  login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
+  logout: () => Promise<void>;
+  revealCredential: (entity: "vault" | "clientVaultItems", id: string) => Promise<string>;
+  refresh: () => Promise<void>;
+  saveRecord: (entity: Entity, data: Record<string, unknown>, id?: string) => Promise<void>;
+  deleteRecord: (entity: Entity, id: string) => Promise<void>;
 
   systemUsers: SystemUser[];
-  addSystemUser: (user: Omit<SystemUser, "uid" | "createdAt">) => void;
-  updateSystemUser: (uid: string, updates: Partial<SystemUser>) => void;
-  deleteSystemUser: (uid: string) => boolean;
-  toggleUserStatus: (uid: string) => void;
+  addSystemUser: (user: Omit<SystemUser, "uid" | "createdAt">) => Promise<void>;
+  updateSystemUser: (uid: string, updates: Partial<SystemUser>) => Promise<void>;
+  deleteSystemUser: (uid: string) => Promise<boolean>;
+  toggleUserStatus: (uid: string) => Promise<void>;
 
   clients: Client[];
   clientServices: ClientService[];
@@ -66,58 +76,58 @@ interface AppContextType {
 
   // Client 360 Extensions
   clientProjects: ClientProjectTask[];
-  addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => void;
-  updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => void;
-  moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn) => void;
-  deleteClientProjectTask: (id: string) => void;
+  addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => Promise<void>;
+  moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn) => Promise<void>;
+  deleteClientProjectTask: (id: string) => Promise<void>;
 
   clientQuotes: ClientQuoteOrder[];
-  addClientQuote: (quote: Omit<ClientQuoteOrder, "id" | "createdAt">) => void;
-  updateClientQuoteStatus: (id: string, status: ClientQuoteOrder["status"]) => void;
-  deleteClientQuote: (id: string) => void;
+  addClientQuote: (quote: Omit<ClientQuoteOrder, "id" | "createdAt">) => Promise<void>;
+  updateClientQuoteStatus: (id: string, status: ClientQuoteOrder["status"]) => Promise<void>;
+  deleteClientQuote: (id: string) => Promise<void>;
 
   clientVaultItems: ClientVaultItem[];
-  addClientVaultItem: (item: Omit<ClientVaultItem, "id" | "updatedAt">) => void;
-  updateClientVaultItem: (id: string, updates: Partial<ClientVaultItem>) => void;
-  deleteClientVaultItem: (id: string) => void;
+  addClientVaultItem: (item: Omit<ClientVaultItem, "id" | "updatedAt">) => Promise<void>;
+  updateClientVaultItem: (id: string, updates: Partial<ClientVaultItem>) => Promise<void>;
+  deleteClientVaultItem: (id: string) => Promise<void>;
 
   clientContracts: ClientContractInfo[];
-  addClientContract: (contract: Omit<ClientContractInfo, "id">) => void;
-  updateClientContract: (id: string, updates: Partial<ClientContractInfo>) => void;
+  addClientContract: (contract: Omit<ClientContractInfo, "id">) => Promise<void>;
+  updateClientContract: (id: string, updates: Partial<ClientContractInfo>) => Promise<void>;
 
-  addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => void;
-  updateClient: (id: string, updates: Partial<Client>) => void;
-  deleteClient: (id: string) => void;
+  addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => Promise<void>;
+  updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
 
-  addPolicy: (policy: Omit<ArcotelPolicy, "id">) => void;
-  updatePolicy: (id: string, updates: Partial<ArcotelPolicy>) => void;
+  addPolicy: (policy: Omit<ArcotelPolicy, "id">) => Promise<void>;
+  updatePolicy: (id: string, updates: Partial<ArcotelPolicy>) => Promise<void>;
 
-  addVaultCredential: (cred: Omit<VaultCredential, "id" | "updatedAt">) => void;
-  updateVaultCredential: (id: string, updates: Partial<VaultCredential>) => void;
-  logVaultAccess: (credentialId: string, serviceName: string) => void;
+  addVaultCredential: (cred: Omit<VaultCredential, "id" | "updatedAt">) => Promise<void>;
+  updateVaultCredential: (id: string, updates: Partial<VaultCredential>) => Promise<void>;
+  logVaultAccess: (credentialId: string, serviceName: string) => Promise<void>;
 
-  addNode: (node: Omit<NodeLocation, "id">) => void;
-  updateNode: (id: string, updates: Partial<NodeLocation>) => void;
+  addNode: (node: Omit<NodeLocation, "id">) => Promise<void>;
+  updateNode: (id: string, updates: Partial<NodeLocation>) => Promise<void>;
 
-  addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => void;
-  updateTicketStatus: (id: string, status: Ticket["status"], notes?: string) => void;
+  addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => Promise<void>;
+  updateTicketStatus: (id: string, status: Ticket["status"], notes?: string) => Promise<void>;
 
-  addExpense: (expense: Omit<Expense, "id">) => void;
-  generateMonthlyBillingBatch: (month: number, year: number) => void;
-  markChargeAsPaid: (chargeId: string, method: string) => void;
+  addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
+  generateMonthlyBillingBatch: (month: number, year: number) => Promise<void>;
+  markChargeAsPaid: (chargeId: string, method: string) => Promise<void>;
 
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
 
-  resetDataToDefaults: () => void;
+  resetDataToDefaults: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_HUB_V5";
-const USERS_KEY = "INNTEL_SYSTEM_USERS_V5";
-const AUTH_KEY = "INNTEL_AUTH_USER_V5";
+const STORAGE_KEY = "INNTEL_CORP_STATE_HUB_V6";
+const USERS_KEY = "INNTEL_SYSTEM_USERS_V6";
+const AUTH_KEY = "INNTEL_AUTH_USER_V6";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -145,10 +155,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const pathname = usePathname();
 
+  // Helper to persist document to Firestore in a non-blocking resilient way
+  const syncToFirestore = async (collectionName: string, id: string, data: any) => {
+    try {
+      if (typeof window !== "undefined" && db) {
+        const cleanData = JSON.parse(JSON.stringify(data));
+        await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
+      }
+    } catch (err) {
+      console.warn(`Firestore sync (${collectionName}/${id}):`, err);
+    }
+  };
+
+  const deleteFromFirestore = async (collectionName: string, id: string) => {
+    try {
+      if (typeof window !== "undefined" && db) {
+        await deleteDoc(doc(db, collectionName, id));
+      }
+    } catch (err) {
+      console.warn(`Firestore delete (${collectionName}/${id}):`, err);
+    }
+  };
+
+  // Initial load from LocalStorage cache and Firebase session
   useEffect(() => {
     try {
-      // Check saved users
+      // 1. Check saved users
       const savedUsers = localStorage.getItem(USERS_KEY);
       let activeUsers = INITIAL_SYSTEM_USERS;
       if (savedUsers) {
@@ -161,44 +195,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
-      // Check auth session
+      // 2. Check auth session
       const savedAuth = localStorage.getItem(AUTH_KEY);
       if (savedAuth) {
-        const user = JSON.parse(savedAuth);
-        if (user && user.email) {
-          const matched = activeUsers.find((u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo");
-          if (matched) {
-            setCurrentUser(matched);
-            setIsAuthenticated(true);
+        try {
+          const user = JSON.parse(savedAuth);
+          if (user && user.email) {
+            const matched = activeUsers.find(
+              (u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo"
+            );
+            if (matched) {
+              setCurrentUser(matched);
+              setIsAuthenticated(true);
+            } else if (user.uid) {
+              setCurrentUser(user);
+              setIsAuthenticated(true);
+            }
           }
-        }
+        } catch (e) {}
       }
 
-      // Check saved business state
+      // 3. Check saved business state
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const p = JSON.parse(saved);
-        if (p.clients) setClients(p.clients);
-        if (p.clientServices) setClientServices(p.clientServices);
-        if (p.nodes) setNodes(p.nodes);
-        if (p.policies) setPolicies(p.policies);
-        if (p.vault) setVault(p.vault);
-        if (p.tickets) setTickets(p.tickets);
-        if (p.expenses) setExpenses(p.expenses);
-        if (p.monthlyCharges) setMonthlyCharges(p.monthlyCharges);
-        if (p.auditLogs) setAuditLogs(p.auditLogs);
-        if (p.clientProjects) setClientProjects(p.clientProjects);
-        if (p.clientQuotes) setClientQuotes(p.clientQuotes);
-        if (p.clientVaultItems) setClientVaultItems(p.clientVaultItems);
-        if (p.clientContracts) setClientContracts(p.clientContracts);
+        try {
+          const p = JSON.parse(saved);
+          if (Array.isArray(p.clients)) setClients(p.clients);
+          if (Array.isArray(p.clientServices)) setClientServices(p.clientServices);
+          if (Array.isArray(p.plans) && p.plans.length > 0) setPlans(p.plans);
+          if (Array.isArray(p.nodes)) setNodes(p.nodes);
+          if (Array.isArray(p.ipPools)) setIpPools(p.ipPools);
+          if (Array.isArray(p.policies)) setPolicies(p.policies);
+          if (Array.isArray(p.vault)) setVault(p.vault);
+          if (Array.isArray(p.tickets)) setTickets(p.tickets);
+          if (Array.isArray(p.expenses)) setExpenses(p.expenses);
+          if (Array.isArray(p.monthlyCharges)) setMonthlyCharges(p.monthlyCharges);
+          if (Array.isArray(p.auditLogs)) setAuditLogs(p.auditLogs);
+          if (Array.isArray(p.clientProjects)) setClientProjects(p.clientProjects);
+          if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
+          if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems);
+          if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
+        } catch (e) {}
       }
     } catch (e) {
-      console.warn("Could not load state:", e);
+      console.warn("Error loading local state:", e);
     } finally {
       setIsAuthLoaded(true);
     }
   }, []);
 
+  // Listen for Firebase Auth changes
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser && firebaseUser.email) {
+        const emailLower = firebaseUser.email.toLowerCase();
+        const matched = systemUsers.find((u) => u.email.toLowerCase() === emailLower);
+        if (matched) {
+          setCurrentUser(matched);
+          setIsAuthenticated(true);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [systemUsers]);
+
+  // Sync to LocalStorage on every state update
   useEffect(() => {
     if (!isAuthLoaded) return;
     try {
@@ -207,7 +269,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         JSON.stringify({
           clients,
           clientServices,
+          plans,
           nodes,
+          ipPools,
           policies,
           vault,
           tickets,
@@ -225,7 +289,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [
     clients,
     clientServices,
+    plans,
     nodes,
+    ipPools,
     policies,
     vault,
     tickets,
@@ -243,19 +309,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addAuditLog = (action: AuditLog["action"], resource: string, details: string) => {
     const newLog: AuditLog = {
       id: "log-" + Date.now(),
-      userId: currentUser.uid,
-      userEmail: currentUser.email,
-      userRole: currentUser.role,
+      userId: currentUser.uid || "system",
+      userEmail: currentUser.email || "admin@inntelcorp.ec",
+      userRole: currentUser.role || "superadmin",
       action,
       resource,
       details,
       timestamp: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+    syncToFirestore("auditLogs", newLog.id, newLog);
   };
 
-  const login = (email: string, password: string, remember: boolean = true): boolean => {
+  const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
     const trimmedEmail = email.trim().toLowerCase();
+
+    // 1. Try Firebase Auth
+    try {
+      if (auth) {
+        const userCred = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+        if (userCred.user) {
+          const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+          const activeProfile: UserProfile = matched || {
+            uid: userCred.user.uid,
+            email: userCred.user.email || trimmedEmail,
+            displayName: userCred.user.displayName || "Operador INNTEL",
+            role: "admin",
+            status: "activo",
+            permissions: ["all"],
+          };
+          setCurrentUser(activeProfile);
+          setIsAuthenticated(true);
+          if (remember) {
+            localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+          }
+          addAuditLog("LOGIN", `Acceso Firebase Auth: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
+          return true;
+        }
+      }
+    } catch (firebaseErr: any) {
+      console.log("Firebase Auth note (fallback to system accounts):", firebaseErr?.code);
+    }
+
+    // 2. Check against System Accounts (Mock & Saved Accounts)
     const account = systemUsers.find(
       (a) => a.email.toLowerCase() === trimmedEmail && a.passwordHash === password && a.status === "activo"
     );
@@ -269,30 +365,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         department: account.department,
         phone: account.phone,
         status: account.status,
-        permissions: account.permissions,
+        permissions: account.permissions || ["all"],
       };
 
       setCurrentUser(updatedUser);
       setIsAuthenticated(true);
 
-      // Update last login
       setSystemUsers((prev) =>
         prev.map((u) => (u.uid === account.uid ? { ...u, lastLogin: new Date().toISOString() } : u))
       );
 
       if (remember) {
-        try {
-          localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
-        } catch (e) {}
+        localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
       }
+
       addAuditLog("LOGIN", `Acceso al Sistema: ${account.displayName}`, `Rol: ${account.role.toUpperCase()}`);
       return true;
     }
+
     return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsAuthenticated(false);
+    try {
+      if (auth) await signOut(auth);
+    } catch (e) {}
     try {
       localStorage.removeItem(AUTH_KEY);
     } catch (e) {}
@@ -303,8 +401,169 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser((prev) => ({ ...prev, role }));
   };
 
-  // User Management Methods
-  const addSystemUser = (userData: Omit<SystemUser, "uid" | "createdAt">) => {
+  const refresh = async () => {
+    try {
+      if (db) {
+        const collectionsToSync: { name: string; setter: (data: any[]) => void }[] = [
+          { name: "clients", setter: setClients },
+          { name: "clientServices", setter: setClientServices },
+          { name: "plans", setter: setPlans },
+          { name: "nodes", setter: setNodes },
+          { name: "ipPools", setter: setIpPools },
+          { name: "policies", setter: setPolicies },
+          { name: "vault", setter: setVault },
+          { name: "tickets", setter: setTickets },
+          { name: "expenses", setter: setExpenses },
+          { name: "monthlyCharges", setter: setMonthlyCharges },
+          { name: "clientProjects", setter: setClientProjects },
+          { name: "clientQuotes", setter: setClientQuotes },
+          { name: "clientVaultItems", setter: setClientVaultItems },
+          { name: "clientContracts", setter: setClientContracts },
+          { name: "users", setter: setSystemUsers },
+        ];
+        for (const col of collectionsToSync) {
+          try {
+            const snap = await getDocs(collection(db, col.name));
+            if (!snap.empty) {
+              col.setter(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
+            }
+          } catch (colErr) {}
+        }
+      }
+    } catch (e) {}
+  };
+
+  const saveRecord = async (entity: Entity, data: Record<string, unknown>, id?: string) => {
+    const targetId = id || (data.id ? String(data.id) : `${entity.slice(0, 4)}-${Date.now()}`);
+    const recordWithId = { ...data, id: targetId };
+
+    switch (entity) {
+      case "plans":
+        setPlans((prev) => {
+          const exists = prev.some((p) => p.id === targetId);
+          return exists ? prev.map((p) => (p.id === targetId ? ({ ...p, ...recordWithId } as Plan) : p)) : [...prev, recordWithId as Plan];
+        });
+        break;
+      case "ipPools":
+        setIpPools((prev) => {
+          const exists = prev.some((p) => p.id === targetId);
+          return exists ? prev.map((p) => (p.id === targetId ? ({ ...p, ...recordWithId } as IpPool) : p)) : [...prev, recordWithId as IpPool];
+        });
+        break;
+      case "clientServices":
+        setClientServices((prev) => {
+          const exists = prev.some((s) => s.id === targetId);
+          return exists ? prev.map((s) => (s.id === targetId ? ({ ...s, ...recordWithId } as ClientService) : s)) : [...prev, recordWithId as ClientService];
+        });
+        break;
+      case "nodes":
+        setNodes((prev) => {
+          const exists = prev.some((n) => n.id === targetId);
+          return exists ? prev.map((n) => (n.id === targetId ? ({ ...n, ...recordWithId } as NodeLocation) : n)) : [...prev, recordWithId as NodeLocation];
+        });
+        break;
+      case "policies":
+        setPolicies((prev) => {
+          const exists = prev.some((p) => p.id === targetId);
+          return exists ? prev.map((p) => (p.id === targetId ? ({ ...p, ...recordWithId } as ArcotelPolicy) : p)) : [...prev, recordWithId as ArcotelPolicy];
+        });
+        break;
+      case "tickets":
+        setTickets((prev) => {
+          const exists = prev.some((t) => t.id === targetId);
+          return exists ? prev.map((t) => (t.id === targetId ? ({ ...t, ...recordWithId } as Ticket) : t)) : [...prev, recordWithId as Ticket];
+        });
+        break;
+      case "expenses":
+        setExpenses((prev) => {
+          const exists = prev.some((e) => e.id === targetId);
+          return exists ? prev.map((e) => (e.id === targetId ? ({ ...e, ...recordWithId } as Expense) : e)) : [...prev, recordWithId as Expense];
+        });
+        break;
+      case "monthlyCharges":
+        setMonthlyCharges((prev) => {
+          const exists = prev.some((c) => c.id === targetId);
+          return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as MonthlyCharge) : c)) : [...prev, recordWithId as MonthlyCharge];
+        });
+        break;
+      case "vault":
+        setVault((prev) => {
+          const exists = prev.some((v) => v.id === targetId);
+          return exists ? prev.map((v) => (v.id === targetId ? ({ ...v, ...recordWithId } as VaultCredential) : v)) : [...prev, recordWithId as VaultCredential];
+        });
+        break;
+      case "clientVaultItems":
+        setClientVaultItems((prev) => {
+          const exists = prev.some((v) => v.id === targetId);
+          return exists ? prev.map((v) => (v.id === targetId ? ({ ...v, ...recordWithId } as ClientVaultItem) : v)) : [...prev, recordWithId as ClientVaultItem];
+        });
+        break;
+      case "clientProjects":
+        setClientProjects((prev) => {
+          const exists = prev.some((p) => p.id === targetId);
+          return exists ? prev.map((p) => (p.id === targetId ? ({ ...p, ...recordWithId } as ClientProjectTask) : p)) : [...prev, recordWithId as ClientProjectTask];
+        });
+        break;
+      case "clientQuotes":
+        setClientQuotes((prev) => {
+          const exists = prev.some((q) => q.id === targetId);
+          return exists ? prev.map((q) => (q.id === targetId ? ({ ...q, ...recordWithId } as ClientQuoteOrder) : q)) : [...prev, recordWithId as ClientQuoteOrder];
+        });
+        break;
+      case "clientContracts":
+        setClientContracts((prev) => {
+          const exists = prev.some((c) => c.id === targetId);
+          return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as ClientContractInfo) : c)) : [...prev, recordWithId as ClientContractInfo];
+        });
+        break;
+      case "clients":
+        setClients((prev) => {
+          const exists = prev.some((c) => c.id === targetId);
+          return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as Client) : c)) : [...prev, recordWithId as Client];
+        });
+        break;
+    }
+
+    await syncToFirestore(entity, targetId, recordWithId);
+    addAuditLog(id ? "UPDATE_CLIENT" : "CREATE_CLIENT", `Registro ${entity}: ${targetId}`, JSON.stringify(data));
+  };
+
+  const deleteRecord = async (entity: Entity, id: string) => {
+    switch (entity) {
+      case "plans": setPlans((prev) => prev.filter((p) => p.id !== id)); break;
+      case "ipPools": setIpPools((prev) => prev.filter((p) => p.id !== id)); break;
+      case "clientServices": setClientServices((prev) => prev.filter((s) => s.id !== id)); break;
+      case "nodes": setNodes((prev) => prev.filter((n) => n.id !== id)); break;
+      case "policies": setPolicies((prev) => prev.filter((p) => p.id !== id)); break;
+      case "tickets": setTickets((prev) => prev.filter((t) => t.id !== id)); break;
+      case "expenses": setExpenses((prev) => prev.filter((e) => e.id !== id)); break;
+      case "monthlyCharges": setMonthlyCharges((prev) => prev.filter((c) => c.id !== id)); break;
+      case "vault": setVault((prev) => prev.filter((v) => v.id !== id)); break;
+      case "clientVaultItems": setClientVaultItems((prev) => prev.filter((v) => v.id !== id)); break;
+      case "clientProjects": setClientProjects((prev) => prev.filter((p) => p.id !== id)); break;
+      case "clientQuotes": setClientQuotes((prev) => prev.filter((q) => q.id !== id)); break;
+      case "clientContracts": setClientContracts((prev) => prev.filter((c) => c.id !== id)); break;
+      case "clients": setClients((prev) => prev.filter((c) => c.id !== id)); break;
+    }
+    await deleteFromFirestore(entity, id);
+  };
+
+  const revealCredential = async (entity: "vault" | "clientVaultItems", id: string): Promise<string> => {
+    if (entity === "clientVaultItems") {
+      const item = clientVaultItems.find((v) => v.id === id);
+      if (!item) throw new Error("Credencial no encontrada.");
+      addAuditLog("VIEW_VAULT_PASSWORD", `Clave Cliente: ${item.serviceName}`, `Consulta por ${currentUser.role}`);
+      return simpleDecrypt(item.encryptedPassword || "");
+    } else {
+      const item = vault.find((v) => v.id === id);
+      if (!item) throw new Error("Credencial no encontrada.");
+      addAuditLog("VIEW_VAULT_PASSWORD", `Bóveda General: ${item.serviceName}`, `Consulta por ${currentUser.role}`);
+      return simpleDecrypt(item.encryptedPassword || "");
+    }
+  };
+
+  // User Management
+  const addSystemUser = async (userData: Omit<SystemUser, "uid" | "createdAt">) => {
     const newUid = "usr-" + Date.now();
     const newUser: SystemUser = {
       ...userData,
@@ -312,37 +571,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setSystemUsers((prev) => [newUser, ...prev]);
+    syncToFirestore("users", newUid, newUser);
     addAuditLog("CREATE_USER", `Usuario: ${newUser.displayName}`, `Rol: ${newUser.role} | Email: ${newUser.email}`);
   };
 
-  const updateSystemUser = (uid: string, updates: Partial<SystemUser>) => {
+  const updateSystemUser = async (uid: string, updates: Partial<SystemUser>) => {
     setSystemUsers((prev) =>
       prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
     );
+    syncToFirestore("users", uid, updates);
     addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(updates));
   };
 
-  const deleteSystemUser = (uid: string): boolean => {
+  const deleteSystemUser = async (uid: string): Promise<boolean> => {
     const target = systemUsers.find((u) => u.uid === uid);
     if (!target) return false;
     if (target.role === "superadmin" && systemUsers.filter((u) => u.role === "superadmin").length <= 1) {
       return false;
     }
     setSystemUsers((prev) => prev.filter((u) => u.uid !== uid));
+    deleteFromFirestore("users", uid);
     addAuditLog("DELETE_USER", `Usuario: ${target.displayName}`, `Email: ${target.email}`);
     return true;
   };
 
-  const toggleUserStatus = (uid: string) => {
-    setSystemUsers((prev) =>
-      prev.map((u) =>
-        u.uid === uid ? { ...u, status: u.status === "activo" ? "inactivo" : "activo" } : u
-      )
-    );
+  const toggleUserStatus = async (uid: string) => {
+    const user = systemUsers.find((u) => u.uid === uid);
+    if (!user) return;
+    const newStatus = user.status === "activo" ? "inactivo" : "activo";
+    await updateSystemUser(uid, { status: newStatus });
   };
 
-  // Client Project Kanban Methods
-  const addClientProjectTask = (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => {
+  // Client Project Kanban
+  const addClientProjectTask = async (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => {
     const newTask: ClientProjectTask = {
       ...taskData,
       id: "prj-" + Date.now(),
@@ -350,85 +611,99 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setClientProjects((prev) => [newTask, ...prev]);
+    syncToFirestore("clientProjects", newTask.id, newTask);
     addAuditLog("CREATE_CLIENT", `Proyecto Kanban: ${newTask.title}`, `Cliente: ${newTask.clientName}`);
   };
 
-  const updateClientProjectTask = (id: string, updates: Partial<ClientProjectTask>) => {
+  const updateClientProjectTask = async (id: string, updates: Partial<ClientProjectTask>) => {
+    const updated = { ...updates, updatedAt: new Date().toISOString() };
     setClientProjects((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t))
+      prev.map((t) => (t.id === id ? { ...t, ...updated } : t))
     );
+    syncToFirestore("clientProjects", id, updated);
   };
 
-  const moveProjectTaskColumn = (id: string, newColumn: ProjectKanbanColumn) => {
-    setClientProjects((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, column: newColumn, updatedAt: new Date().toISOString() } : t))
-    );
+  const moveProjectTaskColumn = async (id: string, newColumn: ProjectKanbanColumn) => {
+    await updateClientProjectTask(id, { column: newColumn });
   };
 
-  const deleteClientProjectTask = (id: string) => {
+  const deleteClientProjectTask = async (id: string) => {
     setClientProjects((prev) => prev.filter((t) => t.id !== id));
+    deleteFromFirestore("clientProjects", id);
   };
 
-  // Client Quotes & Orders Methods
-  const addClientQuote = (quoteData: Omit<ClientQuoteOrder, "id" | "createdAt">) => {
+  // Client Quotes & Orders
+  const addClientQuote = async (quoteData: Omit<ClientQuoteOrder, "id" | "createdAt">) => {
     const newQuote: ClientQuoteOrder = {
       ...quoteData,
       id: "qto-" + Date.now(),
       createdAt: new Date().toISOString(),
     };
     setClientQuotes((prev) => [newQuote, ...prev]);
+    syncToFirestore("clientQuotes", newQuote.id, newQuote);
     addAuditLog("EXPORT_BILLING", `Cotización / Orden: ${newQuote.quoteNumber}`, `Monto: $${newQuote.total.toFixed(2)}`);
   };
 
-  const updateClientQuoteStatus = (id: string, status: ClientQuoteOrder["status"]) => {
+  const updateClientQuoteStatus = async (id: string, status: ClientQuoteOrder["status"]) => {
     setClientQuotes((prev) =>
       prev.map((q) => (q.id === id ? { ...q, status } : q))
     );
+    syncToFirestore("clientQuotes", id, { status });
   };
 
-  const deleteClientQuote = (id: string) => {
+  const deleteClientQuote = async (id: string) => {
     setClientQuotes((prev) => prev.filter((q) => q.id !== id));
+    deleteFromFirestore("clientQuotes", id);
   };
 
-  // Client Vault Items Methods
-  const addClientVaultItem = (itemData: Omit<ClientVaultItem, "id" | "updatedAt">) => {
+  // Client Vault
+  const addClientVaultItem = async (itemData: Omit<ClientVaultItem, "id" | "updatedAt">) => {
     const newItem: ClientVaultItem = {
       ...itemData,
       id: "clv-" + Date.now(),
       updatedAt: new Date().toISOString(),
     };
     setClientVaultItems((prev) => [newItem, ...prev]);
+    syncToFirestore("clientVaultItems", newItem.id, newItem);
     addAuditLog("UPDATE_VAULT", `Clave Cliente: ${newItem.serviceName}`, `Categoría: ${newItem.category}`);
   };
 
-  const updateClientVaultItem = (id: string, updates: Partial<ClientVaultItem>) => {
+  const updateClientVaultItem = async (id: string, updates: Partial<ClientVaultItem>) => {
+    const updated = { ...updates, updatedAt: new Date().toISOString() };
     setClientVaultItems((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, ...updates, updatedAt: new Date().toISOString() } : v))
+      prev.map((v) => (v.id === id ? { ...v, ...updated } : v))
     );
+    syncToFirestore("clientVaultItems", id, updated);
   };
 
-  const deleteClientVaultItem = (id: string) => {
+  const deleteClientVaultItem = async (id: string) => {
     setClientVaultItems((prev) => prev.filter((v) => v.id !== id));
+    deleteFromFirestore("clientVaultItems", id);
   };
 
-  // Client Contract Methods
-  const addClientContract = (contractData: Omit<ClientContractInfo, "id">) => {
+  // Client Contracts
+  const addClientContract = async (contractData: Omit<ClientContractInfo, "id">) => {
     const newContract: ClientContractInfo = {
       ...contractData,
       id: "cnt-" + Date.now(),
     };
     setClientContracts((prev) => [newContract, ...prev]);
+    syncToFirestore("clientContracts", newContract.id, newContract);
     addAuditLog("GENERATE_DOC", `Contrato ARCOTEL: ${newContract.contractNumber}`, `Homologación: ${newContract.arcotelHomologationCode}`);
   };
 
-  const updateClientContract = (id: string, updates: Partial<ClientContractInfo>) => {
+  const updateClientContract = async (id: string, updates: Partial<ClientContractInfo>) => {
     setClientContracts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
+    syncToFirestore("clientContracts", id, updates);
   };
 
-  // Core Business Methods
-  const addClient = (clientData: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => {
+  // Client Core Operations
+  const addClient = async (
+    clientData: Omit<Client, "id" | "createdAt" | "updatedAt">,
+    serviceData?: Partial<ClientService>
+  ) => {
     const newId = "cli-" + (clients.length + 1).toString().padStart(3, "0");
     const newClient: Client = {
       ...clientData,
@@ -439,6 +714,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setClients((prev) => [newClient, ...prev]);
+    syncToFirestore("clients", newId, newClient);
 
     if (serviceData) {
       const plan = plans.find((p) => p.id === serviceData.planId) || plans[0];
@@ -446,13 +722,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const newService: ClientService = {
         id: "srv-" + Date.now(),
         clientId: newId,
-        planId: plan.id,
-        planName: plan.name,
-        downloadMbps: plan.downloadMbps,
-        uploadMbps: plan.uploadMbps,
-        basePrice: plan.defaultPrice,
-        customPrice: serviceData.customPrice || plan.defaultPrice,
-        billingType: serviceData.billingType || plan.billingType,
+        planId: plan ? plan.id : "plan-100m",
+        planName: plan ? plan.name : "Fibra Óptica 100M",
+        downloadMbps: plan ? plan.downloadMbps : 100,
+        uploadMbps: plan ? plan.uploadMbps : 100,
+        basePrice: plan ? plan.defaultPrice : 28.0,
+        customPrice: serviceData.customPrice || (plan ? plan.defaultPrice : 28.0),
+        billingType: serviceData.billingType || (plan ? plan.billingType : "pospago"),
         cutoffDay: serviceData.cutoffDay || 1,
         nodeId: node ? node.id : "nodo-default",
         nodeName: node ? node.name : "POP Central",
@@ -462,13 +738,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         installationDate: new Date().toISOString().split("T")[0],
       };
       setClientServices((prev) => [...prev, newService]);
+      syncToFirestore("clientServices", newService.id, newService);
 
-      // Auto-create default contract and project task for installation
-      addClientContract({
+      // Auto-create default contract and project task
+      await addClientContract({
         clientId: newId,
         contractNumber: `CONT-INNTEL-2026-${newId.toUpperCase()}`,
         arcotelHomologationCode: "ARCOTEL-SAI-HOM-0841",
-        planName: plan.name,
+        planName: newService.planName,
         signedDate: new Date().toISOString().split("T")[0],
         expirationDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
         status: "vigente",
@@ -476,14 +753,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         notes: "Contrato estándar de adhesión para servicio de acceso a internet",
       });
 
-      addClientProjectTask({
+      await addClientProjectTask({
         clientId: newId,
         clientName: newClient.businessName,
-        title: `Instalación Fibra Óptica: ${plan.name}`,
+        title: `Instalación Fibra Óptica: ${newService.planName}`,
         description: `Despliegue de acometida de fibra óptica e instalación de ONT en ${newClient.address}`,
         column: "factibilidad",
         priority: "alta",
-        assignedTo: "Cuadrilla NOC Norte",
+        assignedTo: "Cuadrilla NOC Central",
         dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
         checklist: [
           { id: "chk-1", text: "Inspección de caja NAP y nivel de potencia óptica (dBm)", done: false },
@@ -497,62 +774,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("CREATE_CLIENT", `Cliente: ${newClient.businessName}`, `ID: ${newClient.identificationNumber}`);
   };
 
-  const updateClient = (id: string, updates: Partial<Client>) => {
-    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c)));
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    const updated = { ...updates, updatedAt: new Date().toISOString() };
+    setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)));
+    syncToFirestore("clients", id, updated);
     addAuditLog("UPDATE_CLIENT", `Cliente ID: ${id}`, JSON.stringify(updates));
   };
 
-  const deleteClient = (id: string) => {
+  const deleteClient = async (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id));
     setClientServices((prev) => prev.filter((s) => s.clientId !== id));
     setClientProjects((prev) => prev.filter((p) => p.clientId !== id));
     setClientQuotes((prev) => prev.filter((q) => q.clientId !== id));
     setClientVaultItems((prev) => prev.filter((v) => v.clientId !== id));
     setClientContracts((prev) => prev.filter((c) => c.clientId !== id));
+    deleteFromFirestore("clients", id);
   };
 
-  const addPolicy = (policyData: Omit<ArcotelPolicy, "id">) => {
+  const addPolicy = async (policyData: Omit<ArcotelPolicy, "id">) => {
     const newPolicy: ArcotelPolicy = {
       ...policyData,
       id: "pol-" + (policies.length + 1).toString().padStart(3, "0"),
     };
     setPolicies((prev) => [newPolicy, ...prev]);
+    syncToFirestore("policies", newPolicy.id, newPolicy);
     addAuditLog("GENERATE_DOC", `Póliza ARCOTEL: ${newPolicy.policyNumber}`, `$${newPolicy.insuredAmount}`);
   };
 
-  const updatePolicy = (id: string, updates: Partial<ArcotelPolicy>) => {
+  const updatePolicy = async (id: string, updates: Partial<ArcotelPolicy>) => {
     setPolicies((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
+    syncToFirestore("policies", id, updates);
   };
 
-  const addVaultCredential = (cred: Omit<VaultCredential, "id" | "updatedAt">) => {
+  const addVaultCredential = async (cred: Omit<VaultCredential, "id" | "updatedAt">) => {
     const newCred: VaultCredential = {
       ...cred,
       id: "vlt-" + Date.now(),
       updatedAt: new Date().toISOString(),
     };
     setVault((prev) => [newCred, ...prev]);
+    syncToFirestore("vault", newCred.id, newCred);
     addAuditLog("UPDATE_VAULT", `Credencial: ${newCred.serviceName}`, `Usuario: ${newCred.username}`);
   };
 
-  const updateVaultCredential = (id: string, updates: Partial<VaultCredential>) => {
-    setVault((prev) => prev.map((v) => (v.id === id ? { ...v, ...updates, updatedAt: new Date().toISOString() } : v)));
+  const updateVaultCredential = async (id: string, updates: Partial<VaultCredential>) => {
+    const updated = { ...updates, updatedAt: new Date().toISOString() };
+    setVault((prev) => prev.map((v) => (v.id === id ? { ...v, ...updated } : v)));
+    syncToFirestore("vault", id, updated);
   };
 
-  const logVaultAccess = (credentialId: string, serviceName: string) => {
-    setVault((prev) => prev.map((v) => (v.id === credentialId ? { ...v, lastAccessedAt: new Date().toISOString() } : v)));
+  const logVaultAccess = async (credentialId: string, serviceName: string) => {
+    const updated = { lastAccessedAt: new Date().toISOString() };
+    setVault((prev) => prev.map((v) => (v.id === credentialId ? { ...v, ...updated } : v)));
+    syncToFirestore("vault", credentialId, updated);
     addAuditLog("VIEW_VAULT_PASSWORD", `Bóveda: ${serviceName}`, `Consulta por ${currentUser.role}`);
   };
 
-  const addNode = (nodeData: Omit<NodeLocation, "id">) => {
+  const addNode = async (nodeData: Omit<NodeLocation, "id">) => {
     const newNode: NodeLocation = { ...nodeData, id: "nodo-" + (nodes.length + 1) };
     setNodes((prev) => [...prev, newNode]);
+    syncToFirestore("nodes", newNode.id, newNode);
   };
 
-  const updateNode = (id: string, updates: Partial<NodeLocation>) => {
+  const updateNode = async (id: string, updates: Partial<NodeLocation>) => {
     setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
+    syncToFirestore("nodes", id, updates);
   };
 
-  const addTicket = (ticketData: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => {
+  const addTicket = async (ticketData: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => {
     const newTicket: Ticket = {
       ...ticketData,
       id: "tck-" + Date.now(),
@@ -560,25 +849,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setTickets((prev) => [newTicket, ...prev]);
+    syncToFirestore("tickets", newTicket.id, newTicket);
   };
 
-  const updateTicketStatus = (id: string, status: Ticket["status"], notes?: string) => {
+  const updateTicketStatus = async (id: string, status: Ticket["status"], notes?: string) => {
+    const updated = {
+      status,
+      resolvedAt: status === "resuelto" ? new Date().toISOString() : undefined,
+      resolutionNotes: notes,
+    };
     setTickets((prev) =>
       prev.map((t) =>
         t.id === id
-          ? { ...t, status, resolvedAt: status === "resuelto" ? new Date().toISOString() : t.resolvedAt, resolutionNotes: notes || t.resolutionNotes }
+          ? { ...t, ...updated, resolutionNotes: notes || t.resolutionNotes }
           : t
       )
     );
+    syncToFirestore("tickets", id, updated);
   };
 
-  const addExpense = (expenseData: Omit<Expense, "id">) => {
+  const addExpense = async (expenseData: Omit<Expense, "id">) => {
     const newExpense: Expense = { ...expenseData, id: "exp-" + Date.now() };
     setExpenses((prev) => [newExpense, ...prev]);
+    syncToFirestore("expenses", newExpense.id, newExpense);
     addAuditLog("CREATE_EXPENSE", `Gasto: ${newExpense.supplierName}`, `$${newExpense.amount}`);
   };
 
-  const generateMonthlyBillingBatch = (month: number, year: number) => {
+  const generateMonthlyBillingBatch = async (month: number, year: number) => {
     const newCharges: MonthlyCharge[] = clients.map((client) => {
       const clientServs = clientServices.filter((s) => s.clientId === client.id && s.status === "activo");
       const totalAmount = clientServs.reduce((sum, s) => sum + s.customPrice, 0) || 28.0;
@@ -600,16 +897,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
     setMonthlyCharges((prev) => [...newCharges, ...prev]);
+    newCharges.forEach((c) => syncToFirestore("monthlyCharges", c.id, c));
     addAuditLog("EXPORT_BILLING", "Emisión Cobros Día 1", `Lote para ${clients.length} clientes`);
   };
 
-  const markChargeAsPaid = (chargeId: string, method: string) => {
+  const markChargeAsPaid = async (chargeId: string, method: string) => {
+    const updated = {
+      status: "pagado" as const,
+      paymentDate: new Date().toISOString().split("T")[0],
+      paymentMethod: method,
+    };
     setMonthlyCharges((prev) =>
-      prev.map((c) => (c.id === chargeId ? { ...c, status: "pagado", paymentDate: new Date().toISOString().split("T")[0], paymentMethod: method } : c))
+      prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
     );
+    syncToFirestore("monthlyCharges", chargeId, updated);
   };
 
-  const resetDataToDefaults = () => {
+  const resetDataToDefaults = async () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USERS_KEY);
     setSystemUsers(INITIAL_SYSTEM_USERS);
@@ -628,6 +932,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setClientContracts([]);
   };
 
+  const requiredPermission = routePermissions[pathname];
+  const hasAccess = !requiredPermission || can(currentUser, requiredPermission);
+
   return (
     <ToastProvider>
       <AppContext.Provider
@@ -637,6 +944,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated,
           login,
           logout,
+          revealCredential,
+          refresh,
+          saveRecord,
+          deleteRecord,
           systemUsers,
           addSystemUser,
           updateSystemUser,
@@ -693,7 +1004,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       >
         {isAuthLoaded ? (
           isAuthenticated ? (
-            children
+            hasAccess ? (
+              children
+            ) : (
+              <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+                <div className="max-w-md bg-white p-6 rounded-3xl border border-slate-200 text-center space-y-3 shadow-sm">
+                  <h3 className="font-bold text-slate-900 text-base">Módulo Restringido</h3>
+                  <p className="text-xs text-slate-500">
+                    Tu rol ({currentUser.role}) no tiene asignado el permiso para acceder a esta sección.
+                  </p>
+                  <a
+                    href="/"
+                    className="inline-block px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-bold shadow-2xs"
+                  >
+                    Volver al Dashboard
+                  </a>
+                </div>
+              </div>
+            )
           ) : (
             <LoginScreen />
           )

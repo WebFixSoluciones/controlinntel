@@ -69,31 +69,39 @@ export function UserManager() {
     showConfirm(
       "¿Eliminar Usuario?",
       `¿Confirmas la revocación total del acceso para ${user.displayName} (${user.email})?`,
-      () => {
-        const ok = deleteSystemUser(user.uid);
+      async () => {
+    try {
+
+        const ok = await deleteSystemUser(user.uid);
         if (ok) {
           showSuccess("Usuario Eliminado", `La cuenta de ${user.displayName} ha sido removida del sistema.`);
         } else {
           showError("Error", "No se pudo eliminar el usuario.");
         }
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Eliminar Acceso"
     );
   };
 
-  const handleToggleStatus = (user: SystemUser) => {
+  const handleToggleStatus = async (user: SystemUser) => {
+    try {
+
     if (user.role === "superadmin" && user.status === "activo" && superAdminsCount <= 1) {
       showError("Acción Bloqueada", "No puedes desactivar al único Super Administrador del sistema.");
       return;
     }
 
-    toggleUserStatus(user.uid);
+    await toggleUserStatus(user.uid);
     const newStatus = user.status === "activo" ? "inactivo" : "activo";
     showSuccess(
       "Estado Actualizado",
       `Usuario ${user.displayName} marcado como ${newStatus.toUpperCase()}.`
     );
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { AppProvider } from "@/lib/state";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
@@ -18,8 +17,7 @@ export default function DashboardPage() {
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
 
   return (
-    <AppProvider>
-      <div className="flex min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
+    <div className="flex min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
@@ -99,6 +97,5 @@ export default function DashboardPage() {
           <GeminiAssistantWidget />
         </div>
       </div>
-    </AppProvider>
   );
 }

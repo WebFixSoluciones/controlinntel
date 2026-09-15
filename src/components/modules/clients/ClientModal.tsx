@@ -48,7 +48,9 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     // 1. Validar Identificación con Motor Ecuatoriano
@@ -94,7 +96,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
     // Guardar
     if (clientToEdit) {
-      updateClient(clientToEdit.id, {
+      await updateClient(clientToEdit.id, {
         identificationType,
         identificationNumber,
         businessName,
@@ -107,7 +109,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
       });
       showSuccess("Cliente Actualizado", `Los datos de ${businessName} han sido guardados con éxito.`);
     } else {
-      addClient(
+      await addClient(
         {
           identificationType,
           identificationNumber,
@@ -134,7 +136,9 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
     }
 
     onClose();
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
@@ -321,12 +325,12 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           <div className="flex items-center gap-2 p-3 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0]">
             <input
               type="checkbox"
-              id="sriSwitch"
+              id="billingSwitch"
               checked={requiresSriBilling}
               onChange={(e) => setRequiresSriBilling(e.target.checked)}
               className="w-4 h-4 text-[#004ac6] rounded cursor-pointer"
             />
-            <label htmlFor="sriSwitch" className="text-xs font-semibold text-[#0b1c30] cursor-pointer">
+            <label htmlFor="billingSwitch" className="text-xs font-semibold text-[#0b1c30] cursor-pointer">
               Generar Orden de Pedido / Pre-Factura automáticamente el día 1 de cada mes
             </label>
           </div>

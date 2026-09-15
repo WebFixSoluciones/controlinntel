@@ -13,8 +13,8 @@ interface FinanceDashboardProps {
 export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   const { monthlyCharges, markChargeAsPaid, generateMonthlyBillingBatch, clients, expenses } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
-  const [selectedMonth, setSelectedMonth] = useState(9);
-  const [selectedYear, setSelectedYear] = useState(2026);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()+1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const currentCharges = monthlyCharges.filter(
     (c) => c.month === selectedMonth && c.year === selectedYear
@@ -23,7 +23,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   const totalBilled = currentCharges.reduce((sum, c) => sum + c.total, 0);
   const totalPaid = currentCharges.filter((c) => c.status === "pagado").reduce((sum, c) => sum + c.total, 0);
   const totalPending = totalBilled - totalPaid;
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = expenses.filter(e=>e.expenseDate.startsWith(`${selectedYear}-${String(selectedMonth).padStart(2,"0")}`)).reduce((sum,e)=>sum+e.amount,0);
 
   const handleExportBatch = async () => {
     if (currentCharges.length === 0) {
@@ -43,18 +43,26 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
     showConfirm(
       "¿Emitir Cobros / Órdenes del Día 1?",
       `Se generarán las órdenes de pedido y pre-facturas correspondientes a ${clients.length} clientes activos para el periodo ${selectedMonth}/${selectedYear}. ¿Continuar?`,
-      () => {
-        generateMonthlyBillingBatch(selectedMonth, selectedYear);
+      async () => {
+    try {
+
+        await generateMonthlyBillingBatch(selectedMonth, selectedYear);
         showSuccess("Lote Emitido", `Cobros del Día 1 generados para ${clients.length} abonados.`);
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Generar Lote"
     );
   };
 
-  const handleMarkPaid = (charge: any) => {
-    markChargeAsPaid(charge.id, "Transferencia Bancaria");
+  const handleMarkPaid = async (charge: any) => {
+    try {
+
+    await markChargeAsPaid(charge.id, "Transferencia Bancaria");
     showSuccess("Pago Registrado", `Pre-Factura ${charge.invoiceNumber} por $${charge.total.toFixed(2)} USD marcada como pagada.`);
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="space-y-6 select-none">
@@ -119,7 +127,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-white">
           <h3 className="font-bold text-[#0b1c30] text-sm">Detalle de Órdenes de Pedido & Pre-Facturas Emitidas</h3>
-          <span className="text-xs font-semibold text-[#737686]">Periodo {selectedMonth}/{selectedYear}</span>
+          <label className="text-xs font-semibold">Periodo <input type="month" value={`${selectedYear}-${String(selectedMonth).padStart(2,"0")}`} onChange={e=>{if(e.target.value){const [year,month]=e.target.value.split("-").map(Number);setSelectedYear(year);setSelectedMonth(month);}} /></label>
         </div>
 
         <div className="overflow-x-auto">

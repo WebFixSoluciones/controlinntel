@@ -27,7 +27,9 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     if (!policyNumber || policyNumber.trim().length < 4) {
@@ -57,7 +59,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
     const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     const status = days < 0 ? "vencida" : days <= 45 ? "por_vencer" : "vigente";
 
-    addPolicy({
+    await addPolicy({
       policyNumber,
       insuranceCompany,
       policyType,
@@ -72,7 +74,9 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
     showSuccess("Póliza Registrada", `Póliza ${policyNumber} guardada en el registro regulatorio ARCOTEL.`);
     onClose();
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">

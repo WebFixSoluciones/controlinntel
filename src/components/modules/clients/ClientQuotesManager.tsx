@@ -65,7 +65,9 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
   const iva = parseFloat((subtotal * 0.15).toFixed(2));
   const total = parseFloat((subtotal + iva).toFixed(2));
 
-  const handleCreateQuote = (e: React.FormEvent) => {
+  const handleCreateQuote = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
     if (items.length === 0) {
       showError("Sin Ítems", "Agrega al menos un servicio o producto a la cotización.");
@@ -74,7 +76,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
 
     const qNumber = `COT-${new Date().getFullYear()}-${(quotes.length + 1).toString().padStart(4, "0")}`;
 
-    addClientQuote({
+    await addClientQuote({
       clientId: client.id,
       clientName: client.businessName,
       clientRuc: client.identificationNumber,
@@ -91,21 +93,31 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
 
     showSuccess("Cotización Creada", `Comprobante ${qNumber} emitido para ${client.businessName}.`);
     setIsModalOpen(false);
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
-  const handleConvertToOrder = (quote: ClientQuoteOrder) => {
-    updateClientQuoteStatus(quote.id, "orden_pedido");
+  const handleConvertToOrder = async (quote: ClientQuoteOrder) => {
+    try {
+
+    await updateClientQuoteStatus(quote.id, "orden_pedido");
     showSuccess("Orden de Pedido Emitida", `La cotización ${quote.quoteNumber} ahora es una Orden de Pedido formal.`);
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   const handleDeleteQuote = (quote: ClientQuoteOrder) => {
     showConfirm(
       "¿Eliminar Cotización?",
       `¿Deseas eliminar la cotización ${quote.quoteNumber}?`,
-      () => {
-        deleteClientQuote(quote.id);
+      async () => {
+    try {
+
+        await deleteClientQuote(quote.id);
         showSuccess("Eliminado", "La cotización fue removida.");
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Eliminar"
     );
   };

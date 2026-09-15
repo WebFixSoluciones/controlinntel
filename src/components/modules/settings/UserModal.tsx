@@ -56,7 +56,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
     if (userToEdit) {
       setDisplayName(userToEdit.displayName);
       setEmail(userToEdit.email);
-      setPassword(userToEdit.passwordHash || "");
+      setPassword("");
       setRole(userToEdit.role);
       setDepartment(userToEdit.department || "");
       setPhone(userToEdit.phone || "");
@@ -119,7 +119,9 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     if (!displayName || displayName.trim().length < 3) {
@@ -145,7 +147,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
     }
 
     if (userToEdit) {
-      updateSystemUser(userToEdit.uid, {
+      await updateSystemUser(userToEdit.uid, {
         displayName,
         email: email.trim().toLowerCase(),
         role,
@@ -157,7 +159,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
       });
       showSuccess("Operador Actualizado", `Los datos y permisos de ${displayName} han sido actualizados.`);
     } else {
-      addSystemUser({
+      await addSystemUser({
         displayName,
         email: email.trim().toLowerCase(),
         passwordHash: password,
@@ -171,7 +173,9 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
     }
 
     onClose();
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">

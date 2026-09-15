@@ -68,10 +68,14 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
     showConfirm(
       "¿Eliminar Abonado?",
       `¿Estás seguro de dar de baja definitiva al abonado "${client.businessName}" (${client.identificationNumber})?`,
-      () => {
-        deleteClient(client.id);
+      async () => {
+    try {
+
+        await deleteClient(client.id);
         showSuccess("Abonado Eliminado", `El cliente ${client.businessName} ha sido removido.`);
-      },
+      
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+},
       "Eliminar Cliente"
     );
   };

@@ -22,7 +22,7 @@ export function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !email.includes("@")) {
@@ -37,8 +37,8 @@ export function LoginScreen() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      const success = login(email, password, rememberMe);
+    {
+      const success = await login(email, password, rememberMe);
       setIsLoading(false);
 
       if (success) {
@@ -49,7 +49,7 @@ export function LoginScreen() {
           "El usuario o la contraseña ingresados no coinciden con los registros autorizados."
         );
       }
-    }, 400);
+    }
   };
 
   return (
@@ -73,9 +73,9 @@ export function LoginScreen() {
           </div>
 
           <h1 className="text-xl font-bold text-[#0b1c30] tracking-tight">
-            INNTEL CORP S.A.
+            INNTEL CORP
           </h1>
-          <p className="text-xs text-[#737686] mt-1 font-medium">Lumina ERP — Sistema de Gestión ISP</p>
+          <p className="text-xs text-[#737686] mt-1 font-medium">Sistema de Control IPS</p>
         </div>
 
         {/* Login Form */}

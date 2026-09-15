@@ -2,11 +2,14 @@
   "name": "controlinntel",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "engines": { "node": ">=22 <25" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

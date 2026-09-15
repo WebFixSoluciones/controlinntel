@@ -76,7 +76,7 @@ export function Header() {
             }
           }}
           className="p-2 rounded-lg text-[#737686] hover:text-[#ef4444] hover:bg-red-50 transition-all cursor-pointer"
-          title="Reiniciar datos de demo"
+          title="Reiniciar datos del sistema"
         >
           <RotateCcw className="w-4 h-4" />
         </button>

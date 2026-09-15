@@ -17,7 +17,9 @@ export function NodesList() {
   const [totalCapacityMbps, setTotalCapacityMbps] = useState(3000);
   const [mikrotikIp, setMikrotikIp] = useState("10.50.1.1");
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
+    try {
+
     e.preventDefault();
 
     if (!name || name.trim().length < 3) {
@@ -41,7 +43,7 @@ export function NodesList() {
       return;
     }
 
-    addNode({
+    await addNode({
       name,
       address,
       upstreamProvider,
@@ -57,7 +59,9 @@ export function NodesList() {
     setIsModalOpen(false);
     setName("");
     setAddress("");
-  };
+  
+    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+};
 
   return (
     <div className="space-y-6 select-none">
