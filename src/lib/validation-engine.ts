@@ -191,7 +191,7 @@ export function validateEmail(email: string): ValidationResult {
   }
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!emailRegex.test(trimmed)) {
-    return { isValid: false, error: "Formato de correo electrónico inválido (ejemplo: contacto@inntelcorp.ec)." };
+    return { isValid: false, error: "Formato de correo electrónico inválido (ejemplo: contacto@inntelcorp.com)." };
   }
   return { isValid: true };
 }

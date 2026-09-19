@@ -16,7 +16,7 @@ import {
 export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   {
     uid: "usr-superadmin-00",
-    email: "superadmin@inntelcorp.ec",
+    email: "superadmin@inntelcorp.com",
     displayName: "Ing. Santiago Morales",
     role: "superadmin",
     department: "Presidencia Ejecutiva & NOC Central",
@@ -38,7 +38,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   },
   {
     uid: "usr-admin-01",
-    email: "admin@inntelcorp.ec",
+    email: "admin@inntelcorp.com",
     displayName: "Ing. Diego Cárdenas",
     role: "admin",
     department: "Gerencia de Operaciones",
@@ -58,7 +58,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   },
   {
     uid: "usr-fin-02",
-    email: "finanzas@inntelcorp.ec",
+    email: "finanzas@inntelcorp.com",
     displayName: "Lcda. Patricia Andrade",
     role: "finanzas",
     department: "Contabilidad & Cobranzas",
@@ -70,7 +70,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   },
   {
     uid: "usr-tec-03",
-    email: "tecnico@inntelcorp.ec",
+    email: "tecnico@inntelcorp.com",
     displayName: "Ing. Carlos Benítez",
     role: "tecnico",
     department: "Ingeniería NOC & MikroTik",
@@ -82,7 +82,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   },
   {
     uid: "usr-sop-04",
-    email: "soporte@inntelcorp.ec",
+    email: "soporte@inntelcorp.com",
     displayName: "Téc. Alex Mendoza",
     role: "soporte",
     department: "Mesa de Ayuda & Cuadrillas",
@@ -94,7 +94,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   },
   {
     uid: "usr-leg-05",
-    email: "legal@inntelcorp.ec",
+    email: "legal@inntelcorp.com",
     displayName: "Abg. Fernando Viteri",
     role: "legal",
     department: "Asesoría Jurídica & ARCOTEL",

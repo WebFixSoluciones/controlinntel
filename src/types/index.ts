@@ -211,7 +211,10 @@ export interface AuditLog {
     | "CREATE_USER"
     | "UPDATE_USER"
     | "DELETE_USER"
-    | "EXPORT_SRI";
+    | "EXPORT_FINANCE"
+    | "EXPORT_ARCOTEL"
+    | "SECURITY_ALERT"
+    | "SECURITY_LOCKDOWN";
   resource: string;
   details: string;
   timestamp: string;

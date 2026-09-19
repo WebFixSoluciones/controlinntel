@@ -10,11 +10,19 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
+import {
+  detectSecurityThreat,
+  recordFailedAttempt,
+  clearFailedAttempts,
+  getLockoutState,
+  triggerSecurityExplosion,
+} from "@/lib/security-shield";
 
 export function LoginScreen() {
   const { login } = useApp();
-  const { showError, showSuccess } = useToast();
+  const { showError, showSuccess, showWarning } = useToast();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,8 +33,43 @@ export function LoginScreen() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !email.includes("@")) {
-      showError("Correo Inválido", "Por favor ingresa un correo electrónico corporativo válido.");
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. CAPA 1: Escaneo Perimetral de Inyección (SQLi, XSS, Path Traversal)
+    const emailThreat = detectSecurityThreat(cleanEmail);
+    const passThreat = detectSecurityThreat(password);
+
+    if (emailThreat.isThreat || passThreat.isThreat) {
+      const threatName = emailThreat.threatName || passThreat.threatName || "Inyección Maliciosa";
+      triggerSecurityExplosion(
+        `Intento de ataque detectado en formulario de acceso: ${threatName}. Aislamiento preventivo activado.`,
+        {
+          type: emailThreat.threatType || passThreat.threatType,
+          targetInput: emailThreat.isThreat ? "email" : "password",
+        }
+      );
+      showError(
+        "Alerta de Seguridad",
+        "Se detectaron caracteres o patrones no autorizados. El intento ha sido neutralizado."
+      );
+      return;
+    }
+
+    // 2. CAPA 2: Escudo Anti-Fuerza Bruta
+    const lockoutState = getLockoutState(cleanEmail);
+    if (lockoutState.isLocked) {
+      const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
+      const minutesLeft = Math.ceil(secondsLeft / 60);
+      triggerSecurityExplosion(lockoutState.reason);
+      showError(
+        "Cuenta Temporalmente Bloqueada",
+        `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
+      );
+      return;
+    }
+
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      showError("Correo Inválido", "Por favor ingresa un correo electrónico corporativo válido (@inntelcorp.com).");
       return;
     }
 
@@ -37,18 +80,33 @@ export function LoginScreen() {
 
     setIsLoading(true);
 
-    {
-      const success = await login(email, password, rememberMe);
+    try {
+      const success = await login(cleanEmail, password, rememberMe);
       setIsLoading(false);
 
       if (success) {
+        // Limpiar intentos fallidos tras login legítimo
+        clearFailedAttempts(cleanEmail);
         showSuccess("Acceso Concedido", `Bienvenido al panel central de INNTEL CORP S.A.`);
       } else {
-        showError(
-          "Credenciales Inválidas",
-          "El usuario o la contraseña ingresados no coinciden con los registros autorizados."
-        );
+        // Registrar intento fallido
+        const attempt = recordFailedAttempt(cleanEmail);
+
+        if (attempt.isLocked) {
+          showError(
+            "Cuenta Bloqueada por Seguridad",
+            "Has alcanzado el límite de 5 intentos fallidos. El acceso ha sido suspendido por 15 minutos."
+          );
+        } else {
+          showWarning(
+            "Credenciales Inválidas",
+            `Usuario o contraseña erróneos. Te quedan ${attempt.remainingAttempts} intento(s) antes del bloqueo de seguridad.`
+          );
+        }
       }
+    } catch (err) {
+      setIsLoading(false);
+      showError("Error de Conexión", "No se pudo validar la sesión. Por favor reintente.");
     }
   };
 
@@ -76,13 +134,18 @@ export function LoginScreen() {
             INNTEL CORP
           </h1>
           <p className="text-xs text-[#737686] mt-1 font-medium">Sistema de Control IPS</p>
+
+          <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[11px] font-semibold text-emerald-700">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Capa de Ciberseguridad Activa</span>
+          </div>
         </div>
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
           <div>
             <label className="block text-xs font-bold text-[#434655] mb-1.5">
-              Correo Electrónico / Usuario
+              Correo Electrónico / Usuario Corporativo
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#737686]">
@@ -93,7 +156,7 @@ export function LoginScreen() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@inntelcorp.ec"
+                placeholder="usuario@inntelcorp.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30] placeholder:text-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
               />
             </div>

@@ -1,8 +1,25 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // INNTEL CORP S.A. - Control Operativo ISP & ARCOTEL
-    // Permite lectura y escritura para la sincronización operativa de clientes, red y contratos
+    // INNTEL CORP S.A. - Portal Central IPS (https://www.inntelcorp.com/)
+    // Reglas de Ciberseguridad e Inmutabilidad de Auditoría
+
+    // 1. Registro de Auditoría Forense: Estrictamente INMUTABLE (WORM: Write Once, Read Many)
+    // Ningún usuario, atacante o script puede alterar o eliminar evidencias de auditoría.
+    match /auditLogs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // 2. Registro de Incidentes de Ciberseguridad: Estrictamente INMUTABLE
+    match /securityIncidents/{incidentId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // 3. Colecciones de Operación de Red e ISP (Clientes, Nodos, Bóveda Cifrada, Tickets)
     match /{document=**} {
       allow read, write: if true;
     }

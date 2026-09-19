@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -229,7 +229,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
                 <input
                   type="email"
                   required
-                  placeholder="operador@inntelcorp.ec"
+                  placeholder="operador@inntelcorp.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"

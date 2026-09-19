@@ -44,6 +44,12 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebas
 import { usePathname } from "next/navigation";
 import { can, collectionPermissions, routePermissions, type Entity } from "./permissions";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
+import {
+  signUserProfile,
+  verifyUserProfileIntegrity,
+  triggerSecurityExplosion,
+} from "./security-shield";
+import { SecurityLockoutModal } from "@/components/security/SecurityLockoutModal";
 
 interface AppContextType {
   currentUser: UserProfile;
@@ -183,25 +189,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try { localStorage.removeItem(k); } catch (e) {}
       });
 
-      // 1. Check saved users
+      // 1. Check saved users & migrate legacy domains
       const savedUsers = localStorage.getItem(USERS_KEY);
       let activeUsers = INITIAL_SYSTEM_USERS;
       if (savedUsers) {
         try {
           const parsed = JSON.parse(savedUsers);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            activeUsers = parsed;
-            setSystemUsers(parsed);
+            const migrated = parsed.map((u: any) => ({
+              ...u,
+              email: u.email ? u.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com") : u.email,
+            }));
+            activeUsers = migrated;
+            setSystemUsers(migrated);
+            localStorage.setItem(USERS_KEY, JSON.stringify(migrated));
           }
         } catch (e) {}
       }
 
-      // 2. Check auth session
+      // 2. Check auth session with Anti-Tampering Integrity Guard
       const savedAuth = localStorage.getItem(AUTH_KEY);
+      const savedSig = localStorage.getItem(`${AUTH_KEY}_SIG`);
       if (savedAuth) {
         try {
           const user = JSON.parse(savedAuth);
           if (user && user.email) {
+            user.email = user.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com");
+
+            // Si hay firma, verificar que el rol/email no hayan sido adulterados
+            if (savedSig) {
+              const isSignatureValid = verifyUserProfileIntegrity(user, savedSig);
+              if (!isSignatureValid) {
+                console.error("[ANTI-TAMPER SHIELD] Sesión adulterada en LocalStorage. Destruyendo sesión.");
+                localStorage.removeItem(AUTH_KEY);
+                localStorage.removeItem(`${AUTH_KEY}_SIG`);
+                triggerSecurityExplosion(
+                  "DETECCIÓN DE MANIPULACIÓN: Se detectó una alteración ilegal de privilegios o roles en el almacenamiento local. La sesión ha sido destruida preventivamente."
+                );
+                return;
+              }
+            } else {
+              // Si no tenía firma, firmar la sesión legítima inicial
+              const { integritySignature } = signUserProfile(user);
+              localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
+            }
+
             const matched = activeUsers.find(
               (u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo"
             );
@@ -261,6 +293,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [systemUsers]);
 
+  // Escucha central de Detonación de Ciberseguridad (Escudo Anti-Hacking)
+  useEffect(() => {
+    const handleLockdown = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const reason = customEvent.detail?.reason || "Alerta Crítica de Ciberseguridad";
+      setIsAuthenticated(false);
+      try {
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(`${AUTH_KEY}_SIG`);
+      } catch (err) {}
+      addAuditLog("SECURITY_ALERT", "ESCUDO DE CIBERSEGURIDAD", reason);
+    };
+
+    window.addEventListener("inntel:security-lockdown", handleLockdown);
+    return () => window.removeEventListener("inntel:security-lockdown", handleLockdown);
+  }, []);
+
   // Sync to LocalStorage on every state update
   useEffect(() => {
     if (!isAuthLoaded) return;
@@ -311,7 +360,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newLog: AuditLog = {
       id: "log-" + Date.now(),
       userId: currentUser.uid || "system",
-      userEmail: currentUser.email || "admin@inntelcorp.ec",
+      userEmail: currentUser.email || "admin@inntelcorp.com",
       userRole: currentUser.role || "superadmin",
       action,
       resource,
@@ -347,7 +396,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(activeProfile);
             setIsAuthenticated(true);
             if (remember) {
+              const { integritySignature } = signUserProfile(activeProfile);
               localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+              localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
             }
             addAuditLog("LOGIN", `Acceso Firebase Auth: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
             return true;
@@ -369,7 +420,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setCurrentUser(activeProfile);
                 setIsAuthenticated(true);
                 if (remember) {
+                  const { integritySignature } = signUserProfile(activeProfile);
                   localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+                  localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
                 }
                 addAuditLog("LOGIN", `Cuenta Creada & Acceso Firebase: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
                 return true;
@@ -409,7 +462,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (remember) {
+        const { integritySignature } = signUserProfile(updatedUser);
         localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
+        localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
       }
 
       addAuditLog("LOGIN", `Acceso al Sistema: ${account.displayName}`, `Rol: ${account.role.toUpperCase()}`);
@@ -426,12 +481,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
     try {
       localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(`${AUTH_KEY}_SIG`);
     } catch (e) {}
     addAuditLog("LOGOUT", `Cierre de Sesión: ${currentUser.displayName}`, `Rol: ${currentUser.role}`);
   };
 
   const setUserRole = (role: UserRole) => {
-    setCurrentUser((prev) => ({ ...prev, role }));
+    setCurrentUser((prev) => {
+      const updated = { ...prev, role };
+      try {
+        if (localStorage.getItem(AUTH_KEY)) {
+          const { integritySignature } = signUserProfile(updated);
+          localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
+          localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
+        }
+      } catch (e) {}
+      return updated;
+    });
   };
 
   const refresh = useCallback(async () => {
@@ -1066,6 +1132,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           resetDataToDefaults,
         }}
       >
+        <SecurityLockoutModal />
         {isAuthLoaded ? (
           isAuthenticated ? (
             hasAccess ? (
