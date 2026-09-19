@@ -30,21 +30,21 @@ export default function ClientsPage() {
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="p-8 space-y-6 flex-1 overflow-y-auto max-w-7xl w-full mx-auto">
-            <ClientsTable
-              onSelectClient={(c) => setSelectedClient(c)}
-              onOpenNewModal={() => {
-                setClientToEdit(null);
-                setIsNewModalOpen(true);
-              }}
-              onEditClient={handleEdit}
-            />
-
-            {selectedClient && (
+          <main className="p-4 md:p-8 space-y-6 flex-1 overflow-y-auto max-w-7xl w-full mx-auto">
+            {selectedClient ? (
               <ClientProfile360
                 client={selectedClient}
                 onClose={() => setSelectedClient(null)}
                 onEdit={() => handleEdit(selectedClient)}
+              />
+            ) : (
+              <ClientsTable
+                onSelectClient={(c) => setSelectedClient(c)}
+                onOpenNewModal={() => {
+                  setClientToEdit(null);
+                  setIsNewModalOpen(true);
+                }}
+                onEditClient={handleEdit}
               />
             )}
 

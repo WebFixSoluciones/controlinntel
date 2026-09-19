@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ShoppingCart,
+  ArrowLeft,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -104,19 +105,56 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-3 md:p-6 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[92vh]">
+    <div className="w-full space-y-4 animate-in fade-in duration-200 select-none">
+      {/* Barra Superior de Navegación & Breadcrumb */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Volver al Listado de Clientes</span>
+          </button>
+          <span className="text-slate-300">/</span>
+          <span className="text-xs font-medium text-slate-500">Módulo Clientes</span>
+          <span className="text-slate-300">/</span>
+          <span className="text-xs font-bold text-slate-900 truncate max-w-sm">{client.businessName}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>Editar Ficha</span>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+            <span>Cerrar Ficha</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Contenedor Principal de la Ficha en Pantalla Completa */}
+      <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
         {/* Hub Header */}
-        <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center font-black text-xl shadow-sm">
               {client.businessName.charAt(0)}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-black text-slate-900 tracking-tight">{client.businessName}</h2>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-lg font-black text-slate-900 tracking-tight">{client.businessName}</h1>
                 <span
-                  className={`px-2 py-0.2 rounded-full text-[10px] font-bold uppercase ${
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
                     client.status === "activo"
                       ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                       : "bg-rose-100 text-rose-800 border border-rose-200"
@@ -125,8 +163,8 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                   {client.status}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 font-medium">
-                <span className="font-mono font-bold text-slate-700">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
+                <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                   {client.identificationType}: {client.identificationNumber}
                 </span>
                 <span>•</span>
@@ -138,28 +176,10 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>Editar Ficha</span>
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
         </div>
 
         {/* Tab Navigation Ribbon */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-slate-200 bg-slate-50/80 overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 py-2.5 border-b border-slate-200 bg-slate-50/80 overflow-x-auto scrollbar-thin">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
