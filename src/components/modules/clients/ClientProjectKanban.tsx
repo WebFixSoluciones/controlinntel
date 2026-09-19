@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -336,7 +336,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
       {/* New Task Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <Kanban className="w-4 h-4 text-sky-600" />

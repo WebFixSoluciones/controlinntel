@@ -28,7 +28,7 @@ export function Header() {
   return (
     <header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between sticky top-0 z-30 select-none">
       {/* Search Bar Trigger matching Mockups */}
-      <div className="flex items-center gap-4 flex-1 max-w-lg">
+      <div className="flex items-center gap-4 flex-1 max-w-xl">
         <button
           onClick={() => setIsSearchOpen(true)}
           className="w-full flex items-center justify-between px-3.5 py-2 rounded-lg bg-white hover:bg-[#f8f9ff] border border-[#cbd5e1] text-[#737686] text-xs transition-all group cursor-pointer shadow-2xs"

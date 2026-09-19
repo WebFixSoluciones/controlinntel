@@ -64,7 +64,7 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
+      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
         <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <h3 className="font-bold text-[#0b1c30] text-sm">Nuevo Ticket de Soporte Técnico NOC</h3>
           <button onClick={onClose} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">

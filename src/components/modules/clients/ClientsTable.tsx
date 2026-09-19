@@ -121,7 +121,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
         {/* Search & Filter Toolbar */}
         <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#ffffff]">
           <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 max-w-lg">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
                 type="text"

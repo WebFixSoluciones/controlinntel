@@ -40,7 +40,7 @@ export function QuickSearchModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[80vh]">
+      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[80vh]">
         <div className="p-4 border-b border-[#e2e8f0] flex items-center gap-3 bg-[#f8f9ff]">
           <Search className="w-5 h-5 text-[#737686]" />
           <input

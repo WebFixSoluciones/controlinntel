@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -258,7 +258,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
       {/* New Quote Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -269,26 +269,28 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
               </button>
             </div>
 
-            <form onSubmit={handleCreateQuote} className="p-5 overflow-y-auto space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Título de la Cotización *</label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-900"
-                />
-              </div>
+            <form onSubmit={handleCreateQuote} className="p-6 overflow-y-auto space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="md:col-span-2">
+                  <label className="font-bold text-slate-700 block mb-1">Título de la Cotización *</label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-900"
+                  />
+                </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Vigencia de la Oferta</label>
-                <input
-                  type="date"
-                  value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Vigencia de la Oferta</label>
+                  <input
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                  />
+                </div>
               </div>
 
               {/* Items Section */}

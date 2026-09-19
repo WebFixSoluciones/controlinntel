@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -183,7 +183,7 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
       {/* Contract Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -194,26 +194,28 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveContract} className="p-5 space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Número de Contrato *</label>
-                <input
-                  type="text"
-                  required
-                  value={contractNumber}
-                  onChange={(e) => setContractNumber(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold"
-                />
-              </div>
+            <form onSubmit={handleSaveContract} className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Número de Contrato *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contractNumber}
+                    onChange={(e) => setContractNumber(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold"
+                  />
+                </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Código Homologación ARCOTEL</label>
-                <input
-                  type="text"
-                  value={homologationCode}
-                  onChange={(e) => setHomologationCode(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
-                />
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Código Homologación ARCOTEL</label>
+                  <input
+                    type="text"
+                    value={homologationCode}
+                    onChange={(e) => setHomologationCode(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">

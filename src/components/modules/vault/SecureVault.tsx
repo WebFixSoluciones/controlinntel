@@ -96,7 +96,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       </div>
 
       {editing && (
-        <form onSubmit={submit} className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-lumina-card grid gap-4 max-w-2xl">
+        <form onSubmit={submit} className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-lumina-card grid gap-4 w-full max-w-4xl">
           <h3 className="font-bold text-xs text-[#0b1c30] flex items-center gap-2 border-b pb-2">
             <Lock className="w-4 h-4 text-[#004ac6]" />
             Registrar Nuevo Acceso Seguro
