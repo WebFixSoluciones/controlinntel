@@ -166,117 +166,12 @@ export const INITIAL_PLANS: Plan[] = [
   },
 ];
 
-export const INITIAL_NODES: NodeLocation[] = [
-  {
-    id: "nodo-01",
-    name: "POP Central - Quito Norte",
-    address: "Av. Amazonas y Naciones Unidas, Edif. La Previsora",
-    coordinates: { lat: -0.1786, lng: -78.4862 },
-    upstreamProvider: "Telconet / CenturyLink",
-    totalCapacityMbps: 10000,
-    usedCapacityMbps: 2350,
-    mikrotikIp: "10.0.0.1",
-    status: "online",
-    activeClientsCount: 0,
-    notes: "Nodal principal con redundancia eléctrica y doble enlace BGP",
-  },
-  {
-    id: "nodo-02",
-    name: "POP Cumbayá - Valle de Tumbaco",
-    address: "Av. Interoceánica km 11.5, Cumbayá",
-    coordinates: { lat: -0.2033, lng: -78.4328 },
-    upstreamProvider: "Claro Empresas",
-    totalCapacityMbps: 5000,
-    usedCapacityMbps: 1100,
-    mikrotikIp: "10.0.0.2",
-    status: "online",
-    activeClientsCount: 0,
-    notes: "Anillo óptico hacia Cumbayá y Tumbaco",
-  },
-  {
-    id: "nodo-03",
-    name: "POP Sur - El Recreo",
-    address: "Av. Pedro Vicente Maldonado, C.C. El Recreo",
-    coordinates: { lat: -0.2458, lng: -78.5192 },
-    upstreamProvider: "Ufinet",
-    totalCapacityMbps: 5000,
-    usedCapacityMbps: 850,
-    mikrotikIp: "10.0.0.3",
-    status: "online",
-    activeClientsCount: 0,
-    notes: "Distribución FTTH para el sector sur de Quito",
-  },
-];
-
-export const INITIAL_IP_POOLS: IpPool[] = [
-  {
-    id: "pool-01",
-    name: "Pool CGNAT Clientes Residenciales",
-    subnetCidr: "100.64.10.0/24",
-    gateway: "100.64.10.1",
-    type: "cgnat",
-    totalIpsCount: 254,
-    usableIpsCount: 252,
-    assignedIpsCount: 0,
-    nodeId: "nodo-01",
-  },
-  {
-    id: "pool-02",
-    name: "Pool IPs Públicas Fijas Corporativas",
-    subnetCidr: "186.46.80.0/28",
-    gateway: "186.46.80.1",
-    type: "publica_fija",
-    totalIpsCount: 16,
-    usableIpsCount: 14,
-    assignedIpsCount: 0,
-    nodeId: "nodo-01",
-  },
-];
-
+export const INITIAL_NODES: NodeLocation[] = [];
+export const INITIAL_IP_POOLS: IpPool[] = [];
 export const INITIAL_CLIENTS: Client[] = [];
 export const INITIAL_CLIENT_SERVICES: ClientService[] = [];
-
-export const INITIAL_POLICIES: ArcotelPolicy[] = [
-  {
-    id: "pol-01",
-    policyNumber: "POL-SEGUROS-2026-8891",
-    insuranceCompany: "Seguros Equinoccial S.A.",
-    policyType: "fiel_cumplimiento",
-    titleGrantCode: "TH-SAI-2024-0091",
-    startDate: "2026-01-01",
-    expirationDate: "2027-01-01",
-    insuredAmount: 15000.0,
-    status: "vigente",
-    daysUntilExpiration: 104,
-    notes: "Garantía bancaria / póliza de fiel cumplimiento depositada ante ARCOTEL",
-  },
-];
-
-export const INITIAL_VAULT: VaultCredential[] = [
-  {
-    id: "vault-01",
-    serviceName: "Router Core MikroTik NOC Central",
-    serviceType: "mikrotik",
-    portalUrl: "winbox://10.0.0.1",
-    username: "admin_noc",
-    encryptedPassword: "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
-    notes: "Acceso Winbox/SSH con privilegios Full para administración BGP y OSPF",
-    allowedRoles: ["superadmin", "tecnico"],
-    updatedAt: "2026-01-15T10:00:00Z",
-  },
-  {
-    id: "vault-02",
-    serviceName: "Portal SIETEL ARCOTEL",
-    serviceType: "sietel",
-    portalUrl: "https://sietel.arcotel.gob.ec/",
-    username: "operador_inntel",
-    encryptedPassword: "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=",
-    notes: "Carga de reportes trimestrales de calidad y abonados",
-    allowedRoles: ["superadmin", "legal", "admin"],
-    updatedAt: "2026-02-01T12:00:00Z",
-  },
-];
-
+export const INITIAL_POLICIES: ArcotelPolicy[] = [];
+export const INITIAL_VAULT: VaultCredential[] = [];
 export const INITIAL_TICKETS: Ticket[] = [];
 export const INITIAL_EXPENSES: Expense[] = [];
 export const INITIAL_MONTHLY_CHARGES: MonthlyCharge[] = [];

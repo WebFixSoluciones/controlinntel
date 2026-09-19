@@ -125,9 +125,9 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_HUB_V6";
-const USERS_KEY = "INNTEL_SYSTEM_USERS_V6";
-const AUTH_KEY = "INNTEL_AUTH_USER_V6";
+const STORAGE_KEY = "INNTEL_CORP_STATE_PROD_CLEAN_V1";
+const USERS_KEY = "INNTEL_SYSTEM_USERS_PROD_V1";
+const AUTH_KEY = "INNTEL_AUTH_USER_PROD_V1";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -178,6 +178,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Initial load from LocalStorage cache and Firebase session
   useEffect(() => {
     try {
+      // 0. Clean legacy demo caches
+      ["INNTEL_CORP_STATE_HUB_V6", "INNTEL_CORP_STATE_HUB_V5", "INNTEL_CORP_STATE_HUB_V4"].forEach((k) => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
+
       // 1. Check saved users
       const savedUsers = localStorage.getItem(USERS_KEY);
       let activeUsers = INITIAL_SYSTEM_USERS;
@@ -434,10 +439,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "clients", setter: setClients },
       { name: "clientServices", setter: setClientServices },
       { name: "plans", setter: setPlans, initialData: INITIAL_PLANS },
-      { name: "nodes", setter: setNodes, initialData: INITIAL_NODES },
-      { name: "ipPools", setter: setIpPools, initialData: INITIAL_IP_POOLS },
-      { name: "policies", setter: setPolicies, initialData: INITIAL_POLICIES },
-      { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
+      { name: "nodes", setter: setNodes },
+      { name: "ipPools", setter: setIpPools },
+      { name: "policies", setter: setPolicies },
+      { name: "vault", setter: setVault },
       { name: "tickets", setter: setTickets },
       { name: "expenses", setter: setExpenses },
       { name: "monthlyCharges", setter: setMonthlyCharges },

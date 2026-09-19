@@ -284,11 +284,15 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                     }}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30]"
                   >
-                    {plans.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.downloadMbps}M)
-                      </option>
-                    ))}
+                    {plans.length === 0 ? (
+                      <option value="">-- Sin plan asignado --</option>
+                    ) : (
+                      plans.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.downloadMbps}M)
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -311,11 +315,15 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                     onChange={(e) => setNodeId(e.target.value)}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30]"
                   >
-                    {nodes.map((n) => (
-                      <option key={n.id} value={n.id}>
-                        {n.name}
-                      </option>
-                    ))}
+                    {nodes.length === 0 ? (
+                      <option value="">-- Sin nodo asignado --</option>
+                    ) : (
+                      nodes.map((n) => (
+                        <option key={n.id} value={n.id}>
+                          {n.name}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
               </div>
