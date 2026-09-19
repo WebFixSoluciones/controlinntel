@@ -37,6 +37,11 @@ import {
   INITIAL_TICKETS,
   INITIAL_EXPENSES,
   INITIAL_MONTHLY_CHARGES,
+  INITIAL_PROJECT_TASKS,
+  INITIAL_QUOTES,
+  INITIAL_CLIENT_VAULT,
+  INITIAL_CONTRACTS,
+  INITIAL_AUDIT_LOGS,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -131,7 +136,7 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_PROD_CLEAN_V1";
+const STORAGE_KEY = "INNTEL_CORP_STATE_PROD_DEMO_CLIENT_V1";
 const USERS_KEY = "INNTEL_SYSTEM_USERS_PROD_V1";
 const AUTH_KEY = "INNTEL_AUTH_USER_PROD_V1";
 
@@ -151,13 +156,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
   // Client 360 Extensions State
-  const [clientProjects, setClientProjects] = useState<ClientProjectTask[]>([]);
-  const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>([]);
-  const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>([]);
-  const [clientContracts, setClientContracts] = useState<ClientContractInfo[]>([]);
+  const [clientProjects, setClientProjects] = useState<ClientProjectTask[]>(INITIAL_PROJECT_TASKS);
+  const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>(INITIAL_QUOTES);
+  const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>(INITIAL_CLIENT_VAULT);
+  const [clientContracts, setClientContracts] = useState<ClientContractInfo[]>(INITIAL_CONTRACTS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -540,22 +545,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     const collectionsToSync: { name: string; setter: (data: any[]) => void; initialData?: any[] }[] = [
-      { name: "clients", setter: setClients },
-      { name: "clientServices", setter: setClientServices },
+      { name: "clients", setter: setClients, initialData: INITIAL_CLIENTS },
+      { name: "clientServices", setter: setClientServices, initialData: INITIAL_CLIENT_SERVICES },
       { name: "plans", setter: setPlans, initialData: INITIAL_PLANS },
-      { name: "nodes", setter: setNodes },
-      { name: "ipPools", setter: setIpPools },
-      { name: "policies", setter: setPolicies },
-      { name: "vault", setter: setVault },
-      { name: "tickets", setter: setTickets },
-      { name: "expenses", setter: setExpenses },
-      { name: "monthlyCharges", setter: setMonthlyCharges },
-      { name: "clientProjects", setter: setClientProjects },
-      { name: "clientQuotes", setter: setClientQuotes },
-      { name: "clientVaultItems", setter: setClientVaultItems },
-      { name: "clientContracts", setter: setClientContracts },
+      { name: "nodes", setter: setNodes, initialData: INITIAL_NODES },
+      { name: "ipPools", setter: setIpPools, initialData: INITIAL_IP_POOLS },
+      { name: "policies", setter: setPolicies, initialData: INITIAL_POLICIES },
+      { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
+      { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
+      { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
+      { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
+      { name: "clientProjects", setter: setClientProjects, initialData: INITIAL_PROJECT_TASKS },
+      { name: "clientQuotes", setter: setClientQuotes, initialData: INITIAL_QUOTES },
+      { name: "clientVaultItems", setter: setClientVaultItems, initialData: INITIAL_CLIENT_VAULT },
+      { name: "clientContracts", setter: setClientContracts, initialData: INITIAL_CONTRACTS },
       { name: "users", setter: setSystemUsers, initialData: INITIAL_SYSTEM_USERS },
-      { name: "auditLogs", setter: setAuditLogs },
+      { name: "auditLogs", setter: setAuditLogs, initialData: INITIAL_AUDIT_LOGS },
     ];
 
     await Promise.all(
