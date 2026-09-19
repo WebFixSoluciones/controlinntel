@@ -124,6 +124,14 @@ export function Sidebar() {
           <LogOut className="w-4 h-4 text-[#737686] group-hover:text-[#ef4444] transition-colors" />
           <span>Cerrar Sesión</span>
         </button>
+        <a
+          href="https://www.inntelcorp.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[10px] text-[#737686] hover:text-[#004ac6] mt-2 font-medium transition-colors"
+        >
+          www.inntelcorp.com
+        </a>
       </div>
     </aside>
   );

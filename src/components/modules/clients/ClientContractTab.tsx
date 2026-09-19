@@ -112,7 +112,7 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
             <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="font-bold text-slate-600 text-xs">Sin contratos registrados</p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Haz clic en "Descargar Contrato Word" para emitir el contrato estándar o "Registrar Renovación".
+              Haz clic en &quot;Descargar Contrato Word&quot; para emitir el contrato estándar o &quot;Registrar Renovación&quot;.
             </p>
           </div>
         ) : (

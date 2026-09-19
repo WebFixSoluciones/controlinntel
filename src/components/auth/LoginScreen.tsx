@@ -162,6 +162,16 @@ export function LoginScreen() {
         <p className="text-[10px] text-[#737686]">
           Supervisión ARCOTEL • Conexión Cifrada MikroTik RouterOS API • Órdenes de Pedido & Cobranzas
         </p>
+        <div className="pt-1">
+          <a
+            href="https://www.inntelcorp.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-semibold text-[#004ac6] hover:underline"
+          >
+            Portal Corporativo Oficial: www.inntelcorp.com
+          </a>
+        </div>
       </div>
     </div>
   );

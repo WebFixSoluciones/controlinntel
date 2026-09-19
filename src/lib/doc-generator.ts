@@ -28,12 +28,24 @@ export async function generateAdhesionContractDocx(client: Client, service?: Cli
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
-                text: "INNTEL CORP — SERVICIOS DE TELECOMUNICACIONES",
+                text: "INNTEL CORP S.A. — SERVICIOS DE TELECOMUNICACIONES",
                 bold: true,
                 size: 28,
                 color: "0066B3",
               }),
             ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: "RUC: 1793211553001 | Portal Web Oficial: https://www.inntelcorp.com/",
+                italics: true,
+                size: 16,
+                color: "666666",
+              }),
+            ],
+            spacing: { after: 150 },
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,

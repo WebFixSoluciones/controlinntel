@@ -147,7 +147,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
               {currentCharges.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-[#737686] italic">
-                    No se han generado cobros para este mes. Presiona "Emitir Cobros Día 1".
+                    No se han generado cobros para este mes. Presiona &quot;Emitir Cobros Día 1&quot;.
                   </td>
                 </tr>
               ) : (

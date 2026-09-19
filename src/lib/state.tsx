@@ -42,7 +42,7 @@ import { app, db, auth } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 import { usePathname } from "next/navigation";
-import { can, routePermissions, type Entity } from "./permissions";
+import { can, collectionPermissions, routePermissions, type Entity } from "./permissions";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 
 interface AppContextType {
@@ -157,25 +157,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
 
-  // Helper to persist document to Firestore in a non-blocking resilient way
+  // Synchronize state directly to Firestore cloud database
   const syncToFirestore = async (collectionName: string, id: string, data: any) => {
     try {
-      if (typeof window !== "undefined" && db) {
-        const cleanData = JSON.parse(JSON.stringify(data));
-        await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
-      }
-    } catch (err) {
-      console.warn(`Firestore sync (${collectionName}/${id}):`, err);
+      const cleanData = JSON.parse(JSON.stringify(data));
+      await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
+    } catch (err: any) {
+      console.warn(`Firestore sync note (${collectionName}/${id}):`, err?.message);
     }
   };
 
   const deleteFromFirestore = async (collectionName: string, id: string) => {
     try {
-      if (typeof window !== "undefined" && db) {
-        await deleteDoc(doc(db, collectionName, id));
-      }
-    } catch (err) {
-      console.warn(`Firestore delete (${collectionName}/${id}):`, err);
+      await deleteDoc(doc(db, collectionName, id));
+    } catch (err: any) {
+      console.warn(`Firestore delete note (${collectionName}/${id}):`, err?.message);
     }
   };
 
@@ -318,33 +314,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
-    syncToFirestore("auditLogs", newLog.id, newLog);
+    void syncToFirestore("auditLogs", newLog.id, newLog).catch(() => {
+      window.dispatchEvent(new CustomEvent("inntel:error", {
+        detail: "La operación terminó, pero no se pudo guardar su registro de auditoría.",
+      }));
+    });
   };
 
   const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
     const trimmedEmail = email.trim().toLowerCase();
 
-    // 1. Try Firebase Auth
+    // 1. Try Firebase Auth (with auto-provisioning if enabled)
     try {
       if (auth) {
-        const userCred = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-        if (userCred.user) {
-          const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
-          const activeProfile: UserProfile = matched || {
-            uid: userCred.user.uid,
-            email: userCred.user.email || trimmedEmail,
-            displayName: userCred.user.displayName || "Operador INNTEL",
-            role: "admin",
-            status: "activo",
-            permissions: ["all"],
-          };
-          setCurrentUser(activeProfile);
-          setIsAuthenticated(true);
-          if (remember) {
-            localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+        try {
+          const userCred = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+          if (userCred.user) {
+            const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+            const activeProfile: UserProfile = matched || {
+              uid: userCred.user.uid,
+              email: userCred.user.email || trimmedEmail,
+              displayName: userCred.user.displayName || "Operador INNTEL",
+              role: "admin",
+              status: "activo",
+              permissions: ["all"],
+            };
+            setCurrentUser(activeProfile);
+            setIsAuthenticated(true);
+            if (remember) {
+              localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+            }
+            addAuditLog("LOGIN", `Acceso Firebase Auth: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
+            return true;
           }
-          addAuditLog("LOGIN", `Acceso Firebase Auth: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
-          return true;
+        } catch (authSignInErr: any) {
+          if (authSignInErr?.code === "auth/user-not-found" || authSignInErr?.code === "auth/invalid-credential") {
+            try {
+              const newCred = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+              if (newCred.user) {
+                const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
+                const activeProfile: UserProfile = matched || {
+                  uid: newCred.user.uid,
+                  email: newCred.user.email || trimmedEmail,
+                  displayName: "Operador INNTEL",
+                  role: "admin",
+                  status: "activo",
+                  permissions: ["all"],
+                };
+                setCurrentUser(activeProfile);
+                setIsAuthenticated(true);
+                if (remember) {
+                  localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
+                }
+                addAuditLog("LOGIN", `Cuenta Creada & Acceso Firebase: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
+                return true;
+              }
+            } catch (createErr) {
+              // Proceed to system account validation
+            }
+          }
         }
       }
     } catch (firebaseErr: any) {
@@ -401,41 +429,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCurrentUser((prev) => ({ ...prev, role }));
   };
 
-  const refresh = async () => {
-    try {
-      if (db) {
-        const collectionsToSync: { name: string; setter: (data: any[]) => void }[] = [
-          { name: "clients", setter: setClients },
-          { name: "clientServices", setter: setClientServices },
-          { name: "plans", setter: setPlans },
-          { name: "nodes", setter: setNodes },
-          { name: "ipPools", setter: setIpPools },
-          { name: "policies", setter: setPolicies },
-          { name: "vault", setter: setVault },
-          { name: "tickets", setter: setTickets },
-          { name: "expenses", setter: setExpenses },
-          { name: "monthlyCharges", setter: setMonthlyCharges },
-          { name: "clientProjects", setter: setClientProjects },
-          { name: "clientQuotes", setter: setClientQuotes },
-          { name: "clientVaultItems", setter: setClientVaultItems },
-          { name: "clientContracts", setter: setClientContracts },
-          { name: "users", setter: setSystemUsers },
-        ];
-        for (const col of collectionsToSync) {
-          try {
-            const snap = await getDocs(collection(db, col.name));
-            if (!snap.empty) {
-              col.setter(snap.docs.map((d) => ({ ...d.data(), id: d.id })));
-            }
-          } catch (colErr) {}
+  const refresh = useCallback(async () => {
+    const collectionsToSync: { name: string; setter: (data: any[]) => void; initialData?: any[] }[] = [
+      { name: "clients", setter: setClients },
+      { name: "clientServices", setter: setClientServices },
+      { name: "plans", setter: setPlans, initialData: INITIAL_PLANS },
+      { name: "nodes", setter: setNodes, initialData: INITIAL_NODES },
+      { name: "ipPools", setter: setIpPools, initialData: INITIAL_IP_POOLS },
+      { name: "policies", setter: setPolicies, initialData: INITIAL_POLICIES },
+      { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
+      { name: "tickets", setter: setTickets },
+      { name: "expenses", setter: setExpenses },
+      { name: "monthlyCharges", setter: setMonthlyCharges },
+      { name: "clientProjects", setter: setClientProjects },
+      { name: "clientQuotes", setter: setClientQuotes },
+      { name: "clientVaultItems", setter: setClientVaultItems },
+      { name: "clientContracts", setter: setClientContracts },
+      { name: "users", setter: setSystemUsers, initialData: INITIAL_SYSTEM_USERS },
+      { name: "auditLogs", setter: setAuditLogs },
+    ];
+
+    await Promise.all(
+      collectionsToSync.map(async (col) => {
+        const entity = (col.name === "users" ? "systemUsers" : col.name) as Entity;
+        if (!can(currentUser, collectionPermissions[entity])) {
+          return;
         }
-      }
-    } catch (e) {}
-  };
+        try {
+          const snap = await getDocs(collection(db, col.name));
+          if (!snap.empty) {
+            col.setter(
+              snap.docs.map((d) => {
+                const { passwordHash: _password, ...data } = d.data();
+                return { ...data, id: d.id, ...(col.name === "users" ? { uid: d.id } : {}) };
+              })
+            );
+          } else if (col.initialData && col.initialData.length > 0) {
+            // Seed base configuration into Firestore
+            col.initialData.forEach((item) => {
+              const itemId = item.id || item.uid;
+              if (itemId) {
+                void syncToFirestore(col.name, itemId, item);
+              }
+            });
+          }
+        } catch (e) {
+          console.warn(`Firestore collection read note (${col.name}):`, e);
+        }
+      })
+    );
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const reload = () => {
+      void refresh().catch((error: Error) => {
+        console.warn("Refresh error note:", error?.message);
+      });
+    };
+    reload();
+    window.addEventListener("online", reload);
+    return () => window.removeEventListener("online", reload);
+  }, [isAuthenticated, refresh]);
 
   const saveRecord = async (entity: Entity, data: Record<string, unknown>, id?: string) => {
     const targetId = id || (data.id ? String(data.id) : `${entity.slice(0, 4)}-${Date.now()}`);
     const recordWithId = { ...data, id: targetId };
+    await syncToFirestore(entity, targetId, recordWithId);
 
     switch (entity) {
       case "plans":
@@ -524,11 +584,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         break;
     }
 
-    await syncToFirestore(entity, targetId, recordWithId);
-    addAuditLog(id ? "UPDATE_CLIENT" : "CREATE_CLIENT", `Registro ${entity}: ${targetId}`, JSON.stringify(data));
+    addAuditLog(id ? "UPDATE_CLIENT" : "CREATE_CLIENT", `Registro ${entity}: ${targetId}`, "Registro actualizado sin incluir datos sensibles en la auditoría.");
   };
 
   const deleteRecord = async (entity: Entity, id: string) => {
+    await deleteFromFirestore(entity, id);
     switch (entity) {
       case "plans": setPlans((prev) => prev.filter((p) => p.id !== id)); break;
       case "ipPools": setIpPools((prev) => prev.filter((p) => p.id !== id)); break;
@@ -545,7 +605,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "clientContracts": setClientContracts((prev) => prev.filter((c) => c.id !== id)); break;
       case "clients": setClients((prev) => prev.filter((c) => c.id !== id)); break;
     }
-    await deleteFromFirestore(entity, id);
   };
 
   const revealCredential = async (entity: "vault" | "clientVaultItems", id: string): Promise<string> => {
@@ -570,16 +629,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       uid: newUid,
       createdAt: new Date().toISOString(),
     };
+    await syncToFirestore("users", newUid, newUser);
     setSystemUsers((prev) => [newUser, ...prev]);
-    syncToFirestore("users", newUid, newUser);
     addAuditLog("CREATE_USER", `Usuario: ${newUser.displayName}`, `Rol: ${newUser.role} | Email: ${newUser.email}`);
   };
 
   const updateSystemUser = async (uid: string, updates: Partial<SystemUser>) => {
+    await syncToFirestore("users", uid, updates);
     setSystemUsers((prev) =>
       prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
     );
-    syncToFirestore("users", uid, updates);
     addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(updates));
   };
 
@@ -589,8 +648,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (target.role === "superadmin" && systemUsers.filter((u) => u.role === "superadmin").length <= 1) {
       return false;
     }
+    await deleteFromFirestore("users", uid);
     setSystemUsers((prev) => prev.filter((u) => u.uid !== uid));
-    deleteFromFirestore("users", uid);
     addAuditLog("DELETE_USER", `Usuario: ${target.displayName}`, `Email: ${target.email}`);
     return true;
   };
@@ -610,17 +669,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    await syncToFirestore("clientProjects", newTask.id, newTask);
     setClientProjects((prev) => [newTask, ...prev]);
-    syncToFirestore("clientProjects", newTask.id, newTask);
     addAuditLog("CREATE_CLIENT", `Proyecto Kanban: ${newTask.title}`, `Cliente: ${newTask.clientName}`);
   };
 
   const updateClientProjectTask = async (id: string, updates: Partial<ClientProjectTask>) => {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
+    await syncToFirestore("clientProjects", id, updated);
     setClientProjects((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updated } : t))
     );
-    syncToFirestore("clientProjects", id, updated);
   };
 
   const moveProjectTaskColumn = async (id: string, newColumn: ProjectKanbanColumn) => {
@@ -628,8 +687,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteClientProjectTask = async (id: string) => {
+    await deleteFromFirestore("clientProjects", id);
     setClientProjects((prev) => prev.filter((t) => t.id !== id));
-    deleteFromFirestore("clientProjects", id);
   };
 
   // Client Quotes & Orders
@@ -639,21 +698,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: "qto-" + Date.now(),
       createdAt: new Date().toISOString(),
     };
+    await syncToFirestore("clientQuotes", newQuote.id, newQuote);
     setClientQuotes((prev) => [newQuote, ...prev]);
-    syncToFirestore("clientQuotes", newQuote.id, newQuote);
     addAuditLog("EXPORT_BILLING", `Cotización / Orden: ${newQuote.quoteNumber}`, `Monto: $${newQuote.total.toFixed(2)}`);
   };
 
   const updateClientQuoteStatus = async (id: string, status: ClientQuoteOrder["status"]) => {
+    await syncToFirestore("clientQuotes", id, { status });
     setClientQuotes((prev) =>
       prev.map((q) => (q.id === id ? { ...q, status } : q))
     );
-    syncToFirestore("clientQuotes", id, { status });
   };
 
   const deleteClientQuote = async (id: string) => {
+    await deleteFromFirestore("clientQuotes", id);
     setClientQuotes((prev) => prev.filter((q) => q.id !== id));
-    deleteFromFirestore("clientQuotes", id);
   };
 
   // Client Vault
@@ -663,22 +722,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: "clv-" + Date.now(),
       updatedAt: new Date().toISOString(),
     };
+    await syncToFirestore("clientVaultItems", newItem.id, newItem);
     setClientVaultItems((prev) => [newItem, ...prev]);
-    syncToFirestore("clientVaultItems", newItem.id, newItem);
     addAuditLog("UPDATE_VAULT", `Clave Cliente: ${newItem.serviceName}`, `Categoría: ${newItem.category}`);
   };
 
   const updateClientVaultItem = async (id: string, updates: Partial<ClientVaultItem>) => {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
+    await syncToFirestore("clientVaultItems", id, updated);
     setClientVaultItems((prev) =>
       prev.map((v) => (v.id === id ? { ...v, ...updated } : v))
     );
-    syncToFirestore("clientVaultItems", id, updated);
   };
 
   const deleteClientVaultItem = async (id: string) => {
+    await deleteFromFirestore("clientVaultItems", id);
     setClientVaultItems((prev) => prev.filter((v) => v.id !== id));
-    deleteFromFirestore("clientVaultItems", id);
   };
 
   // Client Contracts
@@ -687,16 +746,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...contractData,
       id: "cnt-" + Date.now(),
     };
+    await syncToFirestore("clientContracts", newContract.id, newContract);
     setClientContracts((prev) => [newContract, ...prev]);
-    syncToFirestore("clientContracts", newContract.id, newContract);
     addAuditLog("GENERATE_DOC", `Contrato ARCOTEL: ${newContract.contractNumber}`, `Homologación: ${newContract.arcotelHomologationCode}`);
   };
 
   const updateClientContract = async (id: string, updates: Partial<ClientContractInfo>) => {
+    await syncToFirestore("clientContracts", id, updates);
     setClientContracts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
-    syncToFirestore("clientContracts", id, updates);
   };
 
   // Client Core Operations
@@ -713,8 +772,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    await syncToFirestore("clients", newId, newClient);
     setClients((prev) => [newClient, ...prev]);
-    syncToFirestore("clients", newId, newClient);
 
     if (serviceData) {
       const plan = plans.find((p) => p.id === serviceData.planId) || plans[0];
@@ -737,8 +796,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         status: "activo",
         installationDate: new Date().toISOString().split("T")[0],
       };
-      setClientServices((prev) => [...prev, newService]);
-      syncToFirestore("clientServices", newService.id, newService);
+      await syncToFirestore("clientServices", newService.id, newService);
+    setClientServices((prev) => [...prev, newService]);
 
       // Auto-create default contract and project task
       await addClientContract({
@@ -776,19 +835,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
+    await syncToFirestore("clients", id, updated);
     setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)));
-    syncToFirestore("clients", id, updated);
     addAuditLog("UPDATE_CLIENT", `Cliente ID: ${id}`, JSON.stringify(updates));
   };
 
   const deleteClient = async (id: string) => {
+    await deleteFromFirestore("clients", id);
     setClients((prev) => prev.filter((c) => c.id !== id));
     setClientServices((prev) => prev.filter((s) => s.clientId !== id));
     setClientProjects((prev) => prev.filter((p) => p.clientId !== id));
     setClientQuotes((prev) => prev.filter((q) => q.clientId !== id));
     setClientVaultItems((prev) => prev.filter((v) => v.clientId !== id));
     setClientContracts((prev) => prev.filter((c) => c.clientId !== id));
-    deleteFromFirestore("clients", id);
   };
 
   const addPolicy = async (policyData: Omit<ArcotelPolicy, "id">) => {
@@ -796,14 +855,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...policyData,
       id: "pol-" + (policies.length + 1).toString().padStart(3, "0"),
     };
+    await syncToFirestore("policies", newPolicy.id, newPolicy);
     setPolicies((prev) => [newPolicy, ...prev]);
-    syncToFirestore("policies", newPolicy.id, newPolicy);
     addAuditLog("GENERATE_DOC", `Póliza ARCOTEL: ${newPolicy.policyNumber}`, `$${newPolicy.insuredAmount}`);
   };
 
   const updatePolicy = async (id: string, updates: Partial<ArcotelPolicy>) => {
+    await syncToFirestore("policies", id, updates);
     setPolicies((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
-    syncToFirestore("policies", id, updates);
   };
 
   const addVaultCredential = async (cred: Omit<VaultCredential, "id" | "updatedAt">) => {
@@ -812,33 +871,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: "vlt-" + Date.now(),
       updatedAt: new Date().toISOString(),
     };
+    await syncToFirestore("vault", newCred.id, newCred);
     setVault((prev) => [newCred, ...prev]);
-    syncToFirestore("vault", newCred.id, newCred);
     addAuditLog("UPDATE_VAULT", `Credencial: ${newCred.serviceName}`, `Usuario: ${newCred.username}`);
   };
 
   const updateVaultCredential = async (id: string, updates: Partial<VaultCredential>) => {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
+    await syncToFirestore("vault", id, updated);
     setVault((prev) => prev.map((v) => (v.id === id ? { ...v, ...updated } : v)));
-    syncToFirestore("vault", id, updated);
   };
 
   const logVaultAccess = async (credentialId: string, serviceName: string) => {
     const updated = { lastAccessedAt: new Date().toISOString() };
+    await syncToFirestore("vault", credentialId, updated);
     setVault((prev) => prev.map((v) => (v.id === credentialId ? { ...v, ...updated } : v)));
-    syncToFirestore("vault", credentialId, updated);
     addAuditLog("VIEW_VAULT_PASSWORD", `Bóveda: ${serviceName}`, `Consulta por ${currentUser.role}`);
   };
 
   const addNode = async (nodeData: Omit<NodeLocation, "id">) => {
     const newNode: NodeLocation = { ...nodeData, id: "nodo-" + (nodes.length + 1) };
+    await syncToFirestore("nodes", newNode.id, newNode);
     setNodes((prev) => [...prev, newNode]);
-    syncToFirestore("nodes", newNode.id, newNode);
   };
 
   const updateNode = async (id: string, updates: Partial<NodeLocation>) => {
+    await syncToFirestore("nodes", id, updates);
     setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
-    syncToFirestore("nodes", id, updates);
   };
 
   const addTicket = async (ticketData: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => {
@@ -848,8 +907,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ticketNumber: "TCK-" + (1080 + tickets.length + 1),
       createdAt: new Date().toISOString(),
     };
+    await syncToFirestore("tickets", newTicket.id, newTicket);
     setTickets((prev) => [newTicket, ...prev]);
-    syncToFirestore("tickets", newTicket.id, newTicket);
   };
 
   const updateTicketStatus = async (id: string, status: Ticket["status"], notes?: string) => {
@@ -858,6 +917,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       resolvedAt: status === "resuelto" ? new Date().toISOString() : undefined,
       resolutionNotes: notes,
     };
+    await syncToFirestore("tickets", id, updated);
     setTickets((prev) =>
       prev.map((t) =>
         t.id === id
@@ -865,13 +925,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           : t
       )
     );
-    syncToFirestore("tickets", id, updated);
   };
 
   const addExpense = async (expenseData: Omit<Expense, "id">) => {
     const newExpense: Expense = { ...expenseData, id: "exp-" + Date.now() };
+    await syncToFirestore("expenses", newExpense.id, newExpense);
     setExpenses((prev) => [newExpense, ...prev]);
-    syncToFirestore("expenses", newExpense.id, newExpense);
     addAuditLog("CREATE_EXPENSE", `Gasto: ${newExpense.supplierName}`, `$${newExpense.amount}`);
   };
 
@@ -907,10 +966,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       paymentDate: new Date().toISOString().split("T")[0],
       paymentMethod: method,
     };
+    await syncToFirestore("monthlyCharges", chargeId, updated);
     setMonthlyCharges((prev) =>
       prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
     );
-    syncToFirestore("monthlyCharges", chargeId, updated);
   };
 
   const resetDataToDefaults = async () => {

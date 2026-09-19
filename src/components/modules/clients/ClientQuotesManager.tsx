@@ -180,7 +180,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
           <div className="col-span-2 py-10 text-center bg-white rounded-2xl border border-dashed border-slate-200">
             <ShoppingCart className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="font-bold text-slate-600 text-xs">Sin cotizaciones registradas</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Haz clic en "Nueva Cotización / Orden" para armar una propuesta comercial.</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Haz clic en &quot;Nueva Cotización / Orden&quot; para armar una propuesta comercial.</p>
           </div>
         ) : (
           quotes.map((q) => (
