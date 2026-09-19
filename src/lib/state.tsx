@@ -293,6 +293,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [systemUsers]);
 
+  // Sincronización en tiempo real con la colección 'users' de Firestore
+  useEffect(() => {
+    if (!db) return;
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const firestoreUsers = snapshot.docs.map((d) => {
+            const data = d.data();
+            return {
+              uid: d.id,
+              email: data.email,
+              displayName: data.displayName,
+              role: data.role,
+              department: data.department || "",
+              phone: data.phone || "",
+              status: data.status || "activo",
+              passwordHash:
+                data.passwordHash ||
+                INITIAL_SYSTEM_USERS.find((u) => u.uid === d.id)?.passwordHash ||
+                "",
+              permissions: data.permissions || ["all"],
+              createdAt: data.createdAt || new Date().toISOString(),
+            } as SystemUser;
+          });
+          setSystemUsers(firestoreUsers);
+          try {
+            localStorage.setItem(USERS_KEY, JSON.stringify(firestoreUsers));
+          } catch (e) {}
+        }
+      },
+      (error) => {
+        console.warn("Firestore users sync note:", error?.message);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
   // Escucha central de Detonación de Ciberseguridad (Escudo Anti-Hacking)
   useEffect(() => {
     const handleLockdown = (e: Event) => {
