@@ -93,15 +93,15 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   };
 
   const tabs: { id: ProfileTab; label: string; icon: any; count?: number }[] = [
-    { id: "fiscal", label: "Identificación & Legal", icon: User },
-    { id: "red", label: "Red & MikroTik", icon: Radio, count: services.length },
-    { id: "boveda", label: "Bóveda de Claves", icon: KeyRound, count: vaultItems.length },
-    { id: "contratos", label: "Contratos & ARCOTEL", icon: ShieldCheck, count: contracts.length },
-    { id: "cotizaciones", label: "Cotizaciones & Órdenes", icon: FileSpreadsheet, count: quotes.length },
-    { id: "finanzas", label: "Cobros & Pagos", icon: DollarSign, count: charges.length },
-    { id: "tickets", label: "Tickets NOC", icon: TicketIcon, count: clientTickets.length },
-    { id: "proyectos", label: "Tablero Obras (Trello)", icon: Kanban, count: projects.length },
-    { id: "dossier", label: "Dossier / Informe 360°", icon: Printer },
+    { id: "fiscal", label: "Identificación", icon: User },
+    { id: "red", label: "Red & IP", icon: Radio, count: services.length },
+    { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length },
+    { id: "contratos", label: "Contratos", icon: ShieldCheck, count: contracts.length },
+    { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length },
+    { id: "finanzas", label: "Cobros", icon: DollarSign, count: charges.length },
+    { id: "tickets", label: "Tickets", icon: TicketIcon, count: clientTickets.length },
+    { id: "proyectos", label: "Obras", icon: Kanban, count: projects.length },
+    { id: "dossier", label: "Informe 360°", icon: Printer },
   ];
 
   return (
@@ -178,8 +178,8 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           </div>
         </div>
 
-        {/* Tab Navigation Ribbon */}
-        <div className="flex items-center gap-1 px-4 py-2.5 border-b border-slate-200 bg-slate-50/80 overflow-x-auto scrollbar-thin">
+        {/* Tab Navigation Ribbon - Compact & High Contrast */}
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -188,18 +188,20 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
                   isActive
-                    ? "bg-white text-sky-700 shadow-xs border border-slate-200/80"
-                    : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
+                    ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
+                    : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-sky-600" : "text-slate-400"}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      isActive ? "bg-sky-100 text-sky-800" : "bg-slate-200 text-slate-600"
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono ${
+                      isActive
+                        ? "bg-white/25 text-white border border-white/30"
+                        : "bg-slate-100 text-slate-800 border border-slate-300"
                     }`}
                   >
                     {tab.count}
