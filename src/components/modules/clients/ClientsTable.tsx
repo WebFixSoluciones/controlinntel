@@ -95,7 +95,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="w-full space-y-6 select-none">
       {/* Page Header matching Screenshot 3 */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

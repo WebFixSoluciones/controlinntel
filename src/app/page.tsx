@@ -21,7 +21,7 @@ export default function DashboardPage() {
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="p-6 md:p-8 space-y-8 flex-1 overflow-y-auto max-w-[1720px] w-full mx-auto">
+          <main className="p-6 md:p-8 space-y-8 flex-1 overflow-y-auto w-full min-w-0">
             {/* Header matching Screenshot 2 */}
             <div className="flex flex-wrap items-center justify-between gap-4 select-none">
               <div>
