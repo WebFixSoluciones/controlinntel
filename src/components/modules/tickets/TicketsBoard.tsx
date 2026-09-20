@@ -65,64 +65,71 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {filtered.map((t) => (
-          <div
-            key={t.id}
-            className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="font-mono font-semibold text-xs text-[#0b1c30] bg-[#f8f9ff] px-2.5 py-0.5 rounded-md border border-[#e2e8f0]">
-                  {t.ticketNumber}
-                </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
+        <table className="min-w-[1250px] w-full text-left text-xs">
+          <caption className="sr-only">Tickets de soporte registrados</caption>
+          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+            <tr>
+              <th scope="col" className="px-5 py-3 font-bold">Ticket</th>
+              <th scope="col" className="px-5 py-3 font-bold">Incidencia</th>
+              <th scope="col" className="px-5 py-3 font-bold">Cliente / Nodo</th>
+              <th scope="col" className="px-5 py-3 font-bold">Asignado a</th>
+              <th scope="col" className="px-5 py-3 font-bold">Prioridad</th>
+              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
+              <th scope="col" className="px-5 py-3 text-right font-bold">Fecha</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-xs italic text-[#737686]">
+                  No hay tickets que coincidan con el filtro seleccionado.
+                </td>
+              </tr>
+            ) : filtered.map((t) => (
+              <tr key={t.id} className="hover:bg-[#f8f9ff]">
+                <th scope="row" className="px-5 py-4 font-mono font-bold">{t.ticketNumber}</th>
+                <td className="max-w-sm px-5 py-4">
+                  <div className="font-bold">{t.title}</div>
+                  <div className="mt-0.5 line-clamp-2 text-[11px] text-[#737686]">{t.description}</div>
+                  {t.resolutionNotes && <div className="mt-1 line-clamp-1 text-[10px] font-semibold text-[#065f46]">✓ {t.resolutionNotes}</div>}
+                </td>
+                <td className="px-5 py-4">
+                  <div className="font-bold">{t.clientName}</div>
+                  {t.nodeName && <div className="mt-0.5 text-[11px] text-[#737686]">Nodo: {t.nodeName}</div>}
+                </td>
+                <td className="px-5 py-4 font-semibold text-[#004ac6]">{t.assignedToName || "NOC Central"}</td>
+                <td className="px-5 py-4">
+                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                     t.priority === "critica"
-                      ? "bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]"
+                      ? "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]"
                       : t.priority === "alta"
-                      ? "bg-[#fffbeb] text-[#92400e] border border-[#fde68a]"
-                      : "bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]"
-                  }`}
-                >
-                  {t.priority}
-                </span>
-              </div>
-
-              <h3 className="font-bold text-base text-[#0b1c30] mt-3">{t.title}</h3>
-              <p className="text-xs text-[#737686] mt-1">{t.description}</p>
-
-              <div className="mt-4 p-3.5 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0] space-y-1.5 text-xs">
-                <p><span className="text-[#737686]">Cliente:</span> <span className="font-bold text-[#0b1c30]">{t.clientName}</span></p>
-                <p><span className="text-[#737686]">Asignado a:</span> <span className="font-bold text-[#004ac6]">{t.assignedToName || "NOC Central"}</span></p>
-                {t.nodeName && <p><span className="text-[#737686]">Nodo:</span> {t.nodeName}</p>}
-              </div>
-
-              {t.resolutionNotes && (
-                <p className="text-[11px] text-[#065f46] bg-[#ecfdf5] border border-[#a7f3d0] p-2.5 rounded-lg mt-2">
-                  ✓ {t.resolutionNotes}
-                </p>
-              )}
-            </div>
-
-            <div className="mt-5 pt-3 border-t border-[#f1f5f9] flex items-center justify-between">
-              <select
-                value={t.status}
-                onChange={(e) => handleStatusChange(t, e.target.value as TicketStatus)}
-                className="bg-[#f8f9ff] text-xs font-bold text-[#0b1c30] rounded-lg px-2.5 py-1 border border-[#cbd5e1] cursor-pointer"
-              >
-                <option value="abierto">Abierto</option>
-                <option value="en_progreso">En Progreso</option>
-                <option value="resuelto">Resuelto</option>
-                <option value="cerrado">Cerrado</option>
-              </select>
-
-              <span className="text-[10px] text-[#737686] font-mono">
-                {new Date(t.createdAt).toLocaleDateString("es-EC")}
-              </span>
-            </div>
-          </div>
-        ))}
+                      ? "border-[#fde68a] bg-[#fffbeb] text-[#92400e]"
+                      : "border-[#dce9ff] bg-[#eff4ff] text-[#004ac6]"
+                  }`}>
+                    {t.priority}
+                  </span>
+                </td>
+                <td className="px-5 py-4">
+                  <select
+                    value={t.status}
+                    onChange={(e) => void handleStatusChange(t, e.target.value as TicketStatus)}
+                    aria-label={`Estado del ticket ${t.ticketNumber}`}
+                    className="rounded-lg border border-[#cbd5e1] bg-[#f8f9ff] px-2.5 py-1 text-xs font-bold text-[#0b1c30]"
+                  >
+                    <option value="abierto">Abierto</option>
+                    <option value="en_progreso">En Progreso</option>
+                    <option value="resuelto">Resuelto</option>
+                    <option value="cerrado">Cerrado</option>
+                  </select>
+                </td>
+                <td className="px-5 py-4 text-right font-mono text-[10px] text-[#737686]">
+                  {new Date(t.createdAt).toLocaleDateString("es-EC")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

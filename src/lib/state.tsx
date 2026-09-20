@@ -44,7 +44,7 @@ import {
   INITIAL_AUDIT_LOGS,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 import { usePathname } from "next/navigation";
 import { can, collectionPermissions, routePermissions, type Entity } from "./permissions";

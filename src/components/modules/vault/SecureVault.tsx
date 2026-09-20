@@ -130,65 +130,68 @@ export function SecureVault({ clientId }: { clientId?: string }) {
         </form>
       )}
 
-      {!items.length && (
-        <div className="p-8 bg-white rounded-2xl border border-[#e2e8f0] text-center text-xs text-[#737686] italic">
-          No hay credenciales registradas aún en esta bóveda.
-        </div>
-      )}
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((item) => (
-          <article key={item.id} className="bg-white rounded-2xl border border-[#e2e8f0] p-5 space-y-3 shadow-lumina-card flex flex-col justify-between">
-            <div>
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-bold text-xs text-[#0b1c30]">{item.serviceName}</h3>
-                  <p className="text-[11px] text-[#737686] mt-0.5">Usuario: <span className="font-mono text-[#0b1c30] font-semibold">{item.username}</span></p>
-                </div>
-                <button
-                  onClick={() => handleDelete(item.id, item.serviceName)}
-                  className="p-1 text-[#737686] hover:text-red-600 rounded cursor-pointer transition-colors"
-                  title="Eliminar credencial"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="mt-3 p-2.5 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0]">
-                <span className="text-[9px] font-bold uppercase text-[#737686] block">Contraseña Cifrada</span>
-                <p className="font-mono text-xs font-bold text-[#004ac6] break-all mt-0.5">
-                  {visible[item.id] || "••••••••••••••••"}
-                </p>
-              </div>
-
-              {item.notes && (
-                <p className="text-[11px] text-[#737686] mt-2 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
-                  {item.notes}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={() => void show(item.id)}
-                className="flex items-center gap-1 text-[11px] text-[#004ac6] hover:text-[#2563eb] font-bold cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>{visible[item.id] ? "Ocultar" : "Ver (10s)"}</span>
-              </button>
-              <span className="text-slate-300">•</span>
-              <button
-                onClick={() => void show(item.id, true)}
-                className="flex items-center gap-1 text-[11px] text-[#004ac6] hover:text-[#2563eb] font-bold cursor-pointer"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copiar</span>
-              </button>
-            </div>
-          </article>
-        ))}
+      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
+        <table className="min-w-[900px] w-full text-left text-xs">
+          <caption className="sr-only">Credenciales registradas en la bóveda</caption>
+          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+            <tr>
+              <th scope="col" className="px-5 py-3 font-bold">Servicio / Destino</th>
+              <th scope="col" className="px-5 py-3 font-bold">Usuario</th>
+              <th scope="col" className="px-5 py-3 font-bold">Contraseña</th>
+              <th scope="col" className="px-5 py-3 font-bold">Notas</th>
+              <th scope="col" className="px-5 py-3 text-right font-bold">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center text-xs italic text-[#737686]">
+                  No hay credenciales registradas aún en esta bóveda.
+                </td>
+              </tr>
+            ) : items.map((item) => (
+              <tr key={item.id} className="hover:bg-[#f8f9ff]">
+                <th scope="row" className="px-5 py-4 font-bold">{item.serviceName}</th>
+                <td className="px-5 py-4 font-mono font-semibold">{item.username}</td>
+                <td className="px-5 py-4">
+                  <span className="font-mono font-bold text-[#004ac6]">
+                    {visible[item.id] || "••••••••••••••••"}
+                  </span>
+                </td>
+                <td className="max-w-xs px-5 py-4 text-[#737686]">
+                  <span className="line-clamp-2">{item.notes || "—"}</span>
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                    <button
+                      onClick={() => void show(item.id)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-[#004ac6] hover:text-[#2563eb]"
+                    >
+                      <Eye className="size-3.5" />
+                      <span>{visible[item.id] ? "Ocultar" : "Ver (10s)"}</span>
+                    </button>
+                    <button
+                      onClick={() => void show(item.id, true)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-[#004ac6] hover:text-[#2563eb]"
+                    >
+                      <Copy className="size-3.5" />
+                      <span>Copiar</span>
+                    </button>
+                    <button
+                      onClick={() => void handleDelete(item.id, item.serviceName)}
+                      className="rounded p-1 text-[#737686] hover:text-red-600"
+                      title="Eliminar credencial"
+                      aria-label={`Eliminar credencial ${item.serviceName}`}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );
 }
-

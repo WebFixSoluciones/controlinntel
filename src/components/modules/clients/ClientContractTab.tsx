@@ -9,13 +9,8 @@ import {
   ShieldCheck,
   Download,
   FileText,
-  Calendar,
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
   Plus,
   X,
-  Edit2,
 } from "lucide-react";
 
 interface ClientContractTabProps {
@@ -106,78 +101,65 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
       </div>
 
       {/* Contracts List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {contracts.length === 0 ? (
-          <div className="col-span-full p-8 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-            <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="font-bold text-slate-600 text-xs">Sin contratos registrados</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Haz clic en &quot;Descargar Contrato Word&quot; para emitir el contrato estándar o &quot;Registrar Renovación&quot;.
-            </p>
-          </div>
-        ) : (
-          contracts.map((cnt) => (
-            <div
-              key={cnt.id}
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-4"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                    {cnt.contractNumber}
-                  </span>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      cnt.status === "vigente"
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        : cnt.status === "por_renovar"
-                        ? "bg-amber-100 text-amber-800 border border-amber-200"
-                        : "bg-rose-100 text-rose-800 border border-rose-200"
-                    }`}
-                  >
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="min-w-[1050px] w-full text-left text-xs">
+          <caption className="sr-only">Contratos de adhesión del cliente</caption>
+          <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
+            <tr>
+              <th scope="col" className="px-5 py-3 font-bold">Contrato</th>
+              <th scope="col" className="px-5 py-3 font-bold">Homologación ARCOTEL</th>
+              <th scope="col" className="px-5 py-3 font-bold">Servicio</th>
+              <th scope="col" className="px-5 py-3 font-bold">Tarifa mensual</th>
+              <th scope="col" className="px-5 py-3 font-bold">Vigencia</th>
+              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
+              <th scope="col" className="px-5 py-3 text-right font-bold">Documento</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-800">
+            {contracts.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center">
+                  <FileText className="mx-auto mb-2 size-8 text-slate-300" />
+                  <p className="font-bold text-slate-600">Sin contratos registrados</p>
+                  <p className="mt-0.5 text-[11px] text-slate-400">
+                    Haz clic en &quot;Descargar Contrato Word&quot; para emitir el contrato estándar o &quot;Registrar Renovación&quot;.
+                  </p>
+                </td>
+              </tr>
+            ) : contracts.map((cnt) => (
+              <tr key={cnt.id} className="hover:bg-slate-50">
+                <th scope="row" className="px-5 py-4 font-mono font-bold text-slate-900">{cnt.contractNumber}</th>
+                <td className="px-5 py-4 font-mono font-bold text-sky-700">{cnt.arcotelHomologationCode}</td>
+                <td className="px-5 py-4 font-semibold">{cnt.planName}</td>
+                <td className="px-5 py-4 font-mono font-bold text-emerald-700">${cnt.monthlyPrice.toFixed(2)} USD</td>
+                <td className="px-5 py-4">
+                  <div className="font-semibold">Firma: {cnt.signedDate}</div>
+                  <div className="mt-0.5 text-[11px] text-slate-500">Vence: {cnt.expirationDate}</div>
+                </td>
+                <td className="px-5 py-4">
+                  <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    cnt.status === "vigente"
+                      ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                      : cnt.status === "por_renovar"
+                      ? "border-amber-200 bg-amber-100 text-amber-800"
+                      : "border-rose-200 bg-rose-100 text-rose-800"
+                  }`}>
                     {cnt.status.replace("_", " ")}
                   </span>
-                </div>
-
-                <div className="mt-3 space-y-1.5 text-xs text-slate-700">
-                  <p>
-                    <span className="font-bold text-slate-900">Homologación ARCOTEL:</span>{" "}
-                    <span className="font-mono font-bold text-sky-700">{cnt.arcotelHomologationCode}</span>
-                  </p>
-                  <p>
-                    <span className="font-bold text-slate-900">Servicio Contratado:</span> {cnt.planName}
-                  </p>
-                  <p>
-                    <span className="font-bold text-slate-900">Tarifa Mensual:</span>{" "}
-                    <span className="font-mono font-bold text-emerald-700">${cnt.monthlyPrice.toFixed(2)} USD</span>
-                  </p>
-                </div>
-
-                <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 gap-2 text-[11px]">
-                  <div>
-                    <span className="text-slate-400 block font-bold">Fecha Suscripción</span>
-                    <span className="font-semibold text-slate-800">{cnt.signedDate}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block font-bold">Fecha Vencimiento</span>
-                    <span className="font-semibold text-slate-800">{cnt.expirationDate}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-medium">Cláusulas Homologadas ARCOTEL</span>
-                <button
-                  onClick={() => handleDownloadDocx(cnt)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-sky-50 text-sky-700 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border border-slate-200"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Descargar Word</span>
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <button
+                    onClick={() => void handleDownloadDocx(cnt)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-50"
+                  >
+                    <Download className="size-3.5" />
+                    <span>Descargar Word</span>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Contract Modal */}

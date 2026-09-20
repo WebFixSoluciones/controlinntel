@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { validateIpv4OrCidr } from "@/lib/validation-engine";
-import { Radio, Plus, CheckCircle2, X } from "lucide-react";
+import { Radio, Plus, X } from "lucide-react";
 
 export function NodesList() {
   const { nodes, addNode } = useApp();
@@ -85,67 +85,65 @@ export function NodesList() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {nodes.map((n) => {
-          const usagePercent = Math.round((n.usedCapacityMbps / n.totalCapacityMbps) * 100);
-          const isHighUsage = usagePercent > 80;
+      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
+        <table className="min-w-[1050px] w-full text-left text-xs">
+          <caption className="sr-only">Nodos de infraestructura registrados</caption>
+          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+            <tr>
+              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
+              <th scope="col" className="px-5 py-3 font-bold">Nodo / Ubicación</th>
+              <th scope="col" className="px-5 py-3 font-bold">Proveedor</th>
+              <th scope="col" className="px-5 py-3 font-bold">RouterOS</th>
+              <th scope="col" className="px-5 py-3 font-bold">Capacidad</th>
+              <th scope="col" className="px-5 py-3 text-right font-bold">Abonados</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+            {nodes.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-xs italic text-[#737686]">
+                  No hay nodos registrados aún.
+                </td>
+              </tr>
+            ) : nodes.map((n) => {
+              const usagePercent = Math.round((n.usedCapacityMbps / n.totalCapacityMbps) * 100);
+              const isHighUsage = usagePercent > 80;
 
-          return (
-            <div
-              key={n.id}
-              className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+              return (
+                <tr key={n.id} className="hover:bg-[#f8f9ff]">
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       n.status === "online"
-                        ? "bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0]"
-                        : "bg-[#fffbeb] text-[#92400e] border border-[#fde68a]"
-                    }`}
-                  >
-                    {n.status.toUpperCase()}
-                  </span>
-                  <span className="font-mono text-xs font-semibold text-[#0b1c30] bg-[#f8f9ff] px-2.5 py-0.5 rounded-md border border-[#e2e8f0]">
-                    RouterOS: {n.mikrotikIp || "N/A"}
-                  </span>
-                </div>
-
-                <h3 className="font-bold text-base text-[#0b1c30] mt-3">{n.name}</h3>
-                <p className="text-xs text-[#737686] font-medium">{n.address}</p>
-                <p className="text-[11px] text-[#004ac6] font-bold mt-1">Proveedor: {n.upstreamProvider}</p>
-
-                <div className="mt-4 space-y-1.5">
-                  <div className="flex justify-between text-xs font-bold font-tnum">
-                    <span className="text-[#737686]">Capacidad de Tráfico:</span>
-                    <span className={isHighUsage ? "text-[#ef4444]" : "text-[#0b1c30]"}>
-                      {n.usedCapacityMbps} / {n.totalCapacityMbps} Mbps ({usagePercent}%)
+                        ? "border-[#a7f3d0] bg-[#ecfdf5] text-[#065f46]"
+                        : "border-[#fde68a] bg-[#fffbeb] text-[#92400e]"
+                    }`}>
+                      {n.status.toUpperCase()}
                     </span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-[#f1f5f9] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        isHighUsage ? "bg-[#ef4444]" : "bg-[#10B981]"
-                      }`}
-                      style={{ width: `${usagePercent}%` }}
-                    />
-                  </div>
-                </div>
-
-                {n.notes && <p className="text-[11px] text-[#737686] italic mt-3 bg-[#f8f9ff] p-2.5 rounded-lg border border-[#e2e8f0]">{n.notes}</p>}
-              </div>
-
-              <div className="mt-5 pt-3 border-t border-[#f1f5f9] flex items-center justify-between text-xs">
-                <span className="font-bold text-[#434655]">
-                  {n.activeClientsCount} abonados activos
-                </span>
-                <span className="text-[#059669] font-bold flex items-center gap-1 text-[11px]">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Enlace Troncal Estable
-                </span>
-              </div>
-            </div>
-          );
-        })}
+                  </td>
+                  <th scope="row" className="px-5 py-4">
+                    <div className="font-bold">{n.name}</div>
+                    <div className="mt-0.5 max-w-xs text-[11px] font-medium text-[#737686]">{n.address}</div>
+                    {n.notes && <div className="mt-1 max-w-xs truncate text-[10px] italic text-[#737686]">{n.notes}</div>}
+                  </th>
+                  <td className="px-5 py-4 font-semibold text-[#004ac6]">{n.upstreamProvider}</td>
+                  <td className="px-5 py-4 font-mono font-semibold">{n.mikrotikIp || "N/A"}</td>
+                  <td className="px-5 py-4">
+                    <div className={`font-bold ${isHighUsage ? "text-[#ef4444]" : "text-[#0b1c30]"}`}>
+                      {n.usedCapacityMbps} / {n.totalCapacityMbps} Mbps ({usagePercent}%)
+                    </div>
+                    <div className="mt-1 h-2 w-40 overflow-hidden rounded-full bg-[#f1f5f9]">
+                      <div
+                        className={`h-full rounded-full ${isHighUsage ? "bg-[#ef4444]" : "bg-[#10B981]"}`}
+                        style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-right font-bold tabular-nums">{n.activeClientsCount}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {isModalOpen && (
