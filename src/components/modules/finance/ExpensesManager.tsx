@@ -56,7 +56,6 @@ export function ExpensesManager() {
             <Receipt className="w-4 h-4 text-[#712ae2]" />
             Registro de Gastos Operativos (OPEX)
           </h3>
-          <p className="text-xs text-[#737686]">Control de arriendos de torres, tránsito Telconet/CenturyLink y compras de fibra</p>
         </div>
 
         <button

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Image from "next/image";
@@ -47,9 +47,6 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
             <FileText className="w-4 h-4 text-sky-600" />
             Dossier Consolidado & Ficha Técnica Integral 360°
           </h4>
-          <p className="text-[11px] text-slate-400">
-            Resumen ejecutivo que reúne datos legales, red, credenciales, contratos ARCOTEL, estado de obras y facturación
-          </p>
         </div>
 
         <button

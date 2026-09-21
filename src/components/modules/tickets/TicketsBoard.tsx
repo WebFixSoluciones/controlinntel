@@ -38,9 +38,6 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             <TicketIcon className="w-6 h-6 text-[#004ac6]" />
             Mesa de Ayuda Técnica NOC & Soporte
           </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Registro, asignación de cuadrillas y seguimiento de incidencias de fibra y enrutamiento
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

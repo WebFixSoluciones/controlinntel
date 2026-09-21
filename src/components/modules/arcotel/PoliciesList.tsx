@@ -33,9 +33,6 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
             <ShieldCheck className="w-6 h-6 text-[#004ac6]" />
             Control Regulatorio de Pólizas & Títulos ARCOTEL
           </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Seguimiento de garantías de fiel cumplimiento, responsabilidad civil y renovaciones periódicas
-          </p>
         </div>
 
         <button

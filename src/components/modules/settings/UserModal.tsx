@@ -190,9 +190,6 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
               <h3 className="font-bold text-slate-900 text-sm">
                 {userToEdit ? "Editar Operador & Permisos" : "Registrar Nuevo Usuario / Operador"}
               </h3>
-              <p className="text-[11px] text-slate-400">
-                Control de acceso RBAC, roles departamentales y credenciales
-              </p>
             </div>
           </div>
           <button

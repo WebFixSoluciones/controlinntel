@@ -71,9 +71,6 @@ export function NodesList() {
             <Radio className="w-6 h-6 text-[#004ac6]" />
             Infraestructura Multi-Nodo & MikroTik RouterOS
           </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Control de POPs, capacidades contratadas de tránsito IP y concentradores PPPoE
-          </p>
         </div>
 
         <button

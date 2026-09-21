@@ -160,9 +160,6 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
             Cotizaciones Comerciales & Órdenes de Pedido
           </h4>
-          <p className="text-[11px] text-slate-400">
-            Gestión de propuestas tarifarias, cálculo de IVA 15% y conversión a órdenes de cobro
-          </p>
         </div>
 
         <button

@@ -88,7 +88,6 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Póliza ARCOTEL</h3>
-              <p className="text-[11px] text-[#737686]">Póliza de fiel cumplimiento o responsabilidad civil</p>
             </div>
           </div>
           <button

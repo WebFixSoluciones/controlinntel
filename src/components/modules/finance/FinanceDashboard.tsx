@@ -72,9 +72,6 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
             <DollarSign className="w-6 h-6 text-[#004ac6]" />
             Control Financiero, Cobranzas & Órdenes de Pedido
           </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Generación automática de cobros Día 1, pre-facturas no oficiales y seguimiento de recaudación mensual
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

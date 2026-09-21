@@ -159,9 +159,6 @@ export function UserManager() {
             <Crown className="w-5 h-5 text-amber-500" />
             Configuración del Sistema: Control de Usuarios & Permisos RBAC
           </h2>
-          <p className="text-xs text-slate-400">
-            Administración de operadores, asignación de privilegios departamentales y control de Super Administradores
-          </p>
         </div>
 
         <button

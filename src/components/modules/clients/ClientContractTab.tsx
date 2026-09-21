@@ -76,9 +76,6 @@ export function ClientContractTab({ client }: ClientContractTabProps) {
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             Contratos de Adhesión Homologados & Control ARCOTEL
           </h4>
-          <p className="text-[11px] text-slate-400">
-            Supervisión de plazos forzosos, vigencia de 12/24 meses y generación instantánea del modelo Word homologado
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

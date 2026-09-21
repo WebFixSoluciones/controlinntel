@@ -28,9 +28,6 @@ export default function DashboardPage() {
                 <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
                   Dashboard Operativo
                 </h1>
-                <p className="text-xs text-[#737686] mt-0.5">
-                  Resumen general y métricas clave de la operación.
-                </p>
               </div>
 
               <div className="flex items-center gap-2.5">

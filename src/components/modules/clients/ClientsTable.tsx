@@ -102,9 +102,6 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
           <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
             Gestión de Abonados & Ficha 360°
           </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Directorio principal de clientes B2B y residenciales.
-          </p>
         </div>
 
         <button

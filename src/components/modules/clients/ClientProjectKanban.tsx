@@ -164,9 +164,6 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
             <Kanban className="w-4 h-4 text-sky-600" />
             Tablero de Despliegue de Obra & Proyectos (Tipo Trello)
           </h4>
-          <p className="text-[11px] text-slate-400">
-            Arrastra y suelta las tarjetas entre fases técnicas o utiliza los controles de avance rápido
-          </p>
         </div>
 
         <button

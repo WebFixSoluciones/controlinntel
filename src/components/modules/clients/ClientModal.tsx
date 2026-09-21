@@ -152,7 +152,6 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               <h3 className="font-bold text-[#0b1c30] text-sm">
                 {clientToEdit ? "Editar Abonado / Cliente" : "Alta de Nuevo Abonado & Servicio ISP"}
               </h3>
-              <p className="text-[11px] text-[#737686]">Validación de RUC/Cédula y configuración técnica</p>
             </div>
           </div>
           <button

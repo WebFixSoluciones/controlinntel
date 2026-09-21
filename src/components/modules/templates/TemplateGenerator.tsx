@@ -116,9 +116,6 @@ export function TemplateGenerator() {
           <FileText className="w-6 h-6 text-[#004ac6]" />
           Automatización de Plantillas Regulatorias & Comerciales
         </h1>
-        <p className="text-xs text-[#737686] mt-0.5">
-          Generación instantánea de contratos Word, cuadros tarifarios y reportes regulatorios con inyección de datos en vivo
-        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

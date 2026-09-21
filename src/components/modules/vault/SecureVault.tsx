@@ -82,9 +82,6 @@ export function SecureVault({ clientId }: { clientId?: string }) {
             <KeyRound className="w-5 h-5 text-[#004ac6]" />
             Bóveda Cifrada de Credenciales {clientId ? "del Cliente" : "del Sistema"}
           </h2>
-          <p className="text-xs text-[#737686]">
-            Protección de accesos con cifrado AES-256 y auditoría estricta de consultas.
-          </p>
         </div>
         <button
           onClick={() => setEditing(!editing)}
