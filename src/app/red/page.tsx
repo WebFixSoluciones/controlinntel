@@ -5,9 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
-import { NodesList } from "@/components/modules/network/NodesList";
-import { IpPoolsManager } from "@/components/modules/network/IpPoolsManager";
-import { PoolsEditor } from "@/components/modules/settings/RecordManager";
+import { ClientNodesManager } from "@/components/modules/network/ClientNodesManager";
 
 export default function RedPage() {
   return (
@@ -16,9 +14,7 @@ export default function RedPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="p-6 md:p-8 space-y-8 flex-1 overflow-y-auto w-full min-w-0">
-          <NodesList />
-          <IpPoolsManager />
-          <PoolsEditor />
+          <ClientNodesManager />
         </main>
 
         {/* Institutional Footer */}

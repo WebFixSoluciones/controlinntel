@@ -6,7 +6,7 @@ import { useApp } from "@/lib/state";
 import { Search, Users, ShieldCheck, Radio, X } from "lucide-react";
 
 export function QuickSearchModal() {
-  const { isSearchOpen, setIsSearchOpen, searchQuery, setSearchQuery, clients, nodes, policies } = useApp();
+  const { isSearchOpen, setIsSearchOpen, searchQuery, setSearchQuery, clients, nodes, clientContracts } = useApp();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -34,8 +34,8 @@ export function QuickSearchModal() {
     (n) => n.name.toLowerCase().includes(q) || n.address.toLowerCase().includes(q) || (n.mikrotikIp && n.mikrotikIp.includes(q))
   );
 
-  const filteredPolicies = policies.filter(
-    (p) => p.policyNumber.toLowerCase().includes(q) || p.insuranceCompany.toLowerCase().includes(q)
+  const filteredPolicies = clientContracts.filter(
+    (p) => p.contractNumber.toLowerCase().includes(q) || clients.find(c => c.id === p.clientId)?.businessName.toLowerCase().includes(q)
   );
 
   return (
@@ -46,7 +46,7 @@ export function QuickSearchModal() {
           <input
             type="text"
             autoFocus
-            placeholder="Escribe RUC, nombre de cliente, IP de nodo o póliza ARCOTEL..."
+            placeholder="Escribe RUC, nombre de cliente, IP de nodo o número de contrato..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 bg-transparent border-none text-sm font-medium text-[#0b1c30] placeholder:text-[#737686] focus:outline-hidden"
@@ -117,7 +117,7 @@ export function QuickSearchModal() {
           {filteredPolicies.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Pólizas ARCOTEL ({filteredPolicies.length})
+                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Contratos de abonados ({filteredPolicies.length})
               </div>
               <div className="space-y-1.5">
                 {filteredPolicies.map((p) => (
@@ -128,12 +128,12 @@ export function QuickSearchModal() {
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
                     <div>
-                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{p.policyNumber}</p>
-                      <p className="text-[#737686] text-[11px]">{p.insuranceCompany} • Vence: {p.expirationDate}</p>
+                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{p.contractNumber}</p>
+                      <p className="text-[#737686] text-[11px]">{clients.find(c => c.id === p.clientId)?.businessName || "Abonado no disponible"} • Vence: {p.expirationDate}</p>
                     </div>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        p.status === "por_vencer"
+                        p.status === "por_renovar"
                           ? "bg-amber-100 text-amber-800"
                           : p.status === "vigente"
                           ? "bg-emerald-100 text-emerald-800"

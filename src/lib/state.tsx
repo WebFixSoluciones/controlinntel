@@ -45,7 +45,7 @@ import {
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 import { usePathname } from "next/navigation";
 import { can, collectionPermissions, routePermissions, type Entity } from "./permissions";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
@@ -122,6 +122,7 @@ interface AppContextType {
 
   addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => Promise<void>;
   updateTicketStatus: (id: string, status: Ticket["status"], notes?: string) => Promise<void>;
+  replyToTicket: (id: string, body: string) => Promise<void>;
 
   addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
   generateMonthlyBillingBatch: (month: number, year: number) => Promise<void>;
@@ -175,6 +176,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
     } catch (err: any) {
       console.warn(`Firestore sync note (${collectionName}/${id}):`, err?.message);
+      if (["clientContracts", "clientVaultItems", "vault", "nodes", "tickets"].includes(collectionName)) throw err;
     }
   };
 
@@ -183,6 +185,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await deleteDoc(doc(db, collectionName, id));
     } catch (err: any) {
       console.warn(`Firestore delete note (${collectionName}/${id}):`, err?.message);
+      if (["clientContracts", "clientVaultItems", "vault", "nodes", "tickets"].includes(collectionName)) throw err;
     }
   };
 
@@ -583,7 +586,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             col.initialData.forEach((item) => {
               const itemId = item.id || item.uid;
               if (itemId) {
-                void syncToFirestore(col.name, itemId, item);
+                void syncToFirestore(col.name, itemId, item).catch(() => {
+                  window.dispatchEvent(new CustomEvent("inntel:error", { detail: "No se pudieron guardar los datos iniciales de " + col.name }));
+                });
               }
             });
           }
@@ -1004,7 +1009,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addNode = async (nodeData: Omit<NodeLocation, "id">) => {
-    const newNode: NodeLocation = { ...nodeData, id: "nodo-" + (nodes.length + 1) };
+    const newNode: NodeLocation = { ...nodeData, id: "nodo-" + crypto.randomUUID() };
     await syncToFirestore("nodes", newNode.id, newNode);
     setNodes((prev) => [...prev, newNode]);
   };
@@ -1023,6 +1028,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     await syncToFirestore("tickets", newTicket.id, newTicket);
     setTickets((prev) => [newTicket, ...prev]);
+  };
+
+  const replyToTicket = async (id: string, body: string) => {
+    if (!auth.currentUser || !can(currentUser, "manage_tickets")) throw new Error("No tienes permiso para responder tickets.");
+    const text = body.trim();
+    if (!text || text.length > 5000) throw new Error("La respuesta debe tener entre 1 y 5000 caracteres.");
+    if (!tickets.some(t => t.id === id)) throw new Error("Ticket no encontrado.");
+    const message = { id: crypto.randomUUID(), body: text, authorId: auth.currentUser.uid, authorName: currentUser.displayName, createdAt: new Date().toISOString() };
+    await updateDoc(doc(db, "tickets", id), { messages: arrayUnion(message) });
+    setTickets(prev => prev.map(t => t.id === id
+      ? { ...t, messages: [...(t.messages || []).filter(m => m.id !== message.id), message] } : t));
   };
 
   const updateTicketStatus = async (id: string, status: Ticket["status"], notes?: string) => {
@@ -1165,6 +1181,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateNode,
           addTicket,
           updateTicketStatus,
+          replyToTicket,
           addExpense,
           generateMonthlyBillingBatch,
           markChargeAsPaid,

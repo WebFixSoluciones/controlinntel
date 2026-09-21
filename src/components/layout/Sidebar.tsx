@@ -35,10 +35,10 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, policies, tickets, logout } = useApp();
+  const { currentUser, clientContracts, tickets, logout } = useApp();
   const { showConfirm, showInfo } = useToast();
 
-  const expiringPolicies = policies.filter((p) => p.status === "por_vencer").length;
+  const expiringPolicies = clientContracts.filter((p) => p.status === "por_renovar").length;
   const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
 
   const handleLogout = () => {

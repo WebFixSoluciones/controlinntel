@@ -12,8 +12,7 @@ export function can(user: UserProfile, permission: string) {
   return user.status === "activo" && !!user.permissions?.some(p => p === "all" || p === permission);
 }
 export const routePermissions: Record<string, string> = {
-  "/clientes": "manage_clients", "/arcotel": "manage_policies", "/boveda": "manage_vault",
+  "/clientes": "manage_clients", "/arcotel": "manage_clients", "/boveda": "manage_vault",
   "/red": "manage_network", "/tickets": "manage_tickets", "/finanzas": "manage_finance",
   "/plantillas": "export_reports", "/configuracion": "manage_users",
 };
-

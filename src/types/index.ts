@@ -119,6 +119,7 @@ export interface VaultCredential {
 
 export interface NodeLocation {
   id: string;
+  clientIds?: string[];
   name: string;
   address: string;
   coordinates?: { lat: number; lng: number };
@@ -149,6 +150,7 @@ export type TicketStatus = "abierto" | "en_progreso" | "resuelto" | "cerrado";
 export interface Ticket {
   id: string;
   ticketNumber: string;
+  messages?: TicketMessage[];
   clientId: string;
   clientName: string;
   title: string;
@@ -162,6 +164,14 @@ export interface Ticket {
   resolvedAt?: string;
   resolutionNotes?: string;
   nodeName?: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface Expense {
