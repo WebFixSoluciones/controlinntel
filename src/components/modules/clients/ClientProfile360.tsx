@@ -4,10 +4,10 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
+import { can, tabPermissions } from "@/lib/permissions";
 import { ClientProjectKanban } from "./ClientProjectKanban";
 import { ClientQuotesManager } from "./ClientQuotesManager";
 import { ClientVaultTab } from "./ClientVaultTab";
-import { ServiceEditor } from "../settings/RecordManager";
 import { ClientContractTab } from "./ClientContractTab";
 import { ClientDossierTab } from "./ClientDossierTab";
 import {
@@ -25,12 +25,14 @@ import {
   Download,
   Copy,
   Check,
-  Clock,
-  Plus,
-  AlertTriangle,
-  CheckCircle2,
-  ShoppingCart,
+  Globe,
+  Key,
+  Eye,
+  EyeOff,
+  ShieldAlert,
   ArrowLeft,
+  Server,
+  AlertCircle,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -51,7 +53,18 @@ type ProfileTab =
   | "dossier";
 
 export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Props) {
-  const { clientServices, monthlyCharges, tickets, clientProjects, clientQuotes, clientVaultItems, clientContracts, markChargeAsPaid } = useApp();
+  const {
+    clientServices,
+    monthlyCharges,
+    tickets,
+    clientProjects,
+    clientQuotes,
+    clientVaultItems,
+    clientContracts,
+    nodes,
+    currentUser,
+    markChargeAsPaid,
+  } = useApp();
   const { showSuccess, showConfirm } = useToast();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("fiscal");
@@ -67,8 +80,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
   const contracts = clientContracts.filter((c) => c.clientId === client.id);
 
-  const totalMonthlySpend = services.reduce((sum, s) => sum + s.customPrice, 0);
-
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(label);
@@ -81,28 +92,36 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
       "¿Registrar Cobro?",
       "¿Confirmas el registro del pago para este comprobante?",
       async () => {
-    try {
-
-        await markChargeAsPaid(chargeId, "transferencia");
-        showSuccess("Pago Registrado", "Comprobante marcado como PAGADO.");
-      
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-},
+        try {
+          await markChargeAsPaid(chargeId, "transferencia");
+          showSuccess("Pago Registrado", "Comprobante marcado como PAGADO.");
+        } catch (error) {
+          window.dispatchEvent(
+            new CustomEvent("inntel:error", {
+              detail: error instanceof Error ? error.message : "No se pudo guardar.",
+            })
+          );
+        }
+      },
       "Registrar Pago"
     );
   };
 
-  const tabs: { id: ProfileTab; label: string; icon: any; count?: number }[] = [
-    { id: "fiscal", label: "Identificación", icon: User },
-    { id: "red", label: "Red & IP", icon: Radio, count: services.length },
-    { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length },
-    { id: "contratos", label: "Contratos", icon: ShieldCheck, count: contracts.length },
-    { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length },
-    { id: "finanzas", label: "Cobros", icon: DollarSign, count: charges.length },
-    { id: "tickets", label: "Tickets", icon: TicketIcon, count: clientTickets.length },
-    { id: "proyectos", label: "Obras", icon: Kanban, count: projects.length },
-    { id: "dossier", label: "Informe 360°", icon: Printer },
+  const allTabs: { id: ProfileTab; label: string; icon: any; count?: number; permission: string }[] = [
+    { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
+    { id: "red", label: "Red & IP", icon: Radio, count: services.length, permission: "manage_network" },
+    { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length, permission: "manage_vault" },
+    { id: "contratos", label: "Contratos", icon: ShieldCheck, count: contracts.length, permission: "manage_policies" },
+    { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length, permission: "manage_finance" },
+    { id: "finanzas", label: "Cobros", icon: DollarSign, count: charges.length, permission: "manage_finance" },
+    { id: "tickets", label: "Tickets", icon: TicketIcon, count: clientTickets.length, permission: "manage_tickets" },
+    { id: "proyectos", label: "Obras", icon: Kanban, count: projects.length, permission: "manage_network" },
+    { id: "dossier", label: "Informe 360°", icon: Printer, permission: "manage_clients" },
   ];
+
+  // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
+  const authorizedTabs = allTabs.filter((t) => can(currentUser, t.permission));
+  const currentTabAllowed = authorizedTabs.some((t) => t.id === activeTab);
 
   return (
     <div className="w-full space-y-4 animate-in fade-in duration-200 select-none">
@@ -144,7 +163,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
       {/* Contenedor Principal de la Ficha en Pantalla Completa */}
       <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
-        {/* Hub Header */}
+        {/* Hub Header (Sin montos ni valores en cumplimiento de privacidad) */}
         <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center font-black text-xl shadow-sm">
@@ -174,9 +193,9 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           </div>
         </div>
 
-        {/* Tab Navigation Ribbon - Compact & High Contrast */}
+        {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}
         <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
-          {tabs.map((tab) => {
+          {authorizedTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
 
@@ -210,8 +229,18 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
         {/* Tab Content Body */}
         <div className="p-6 flex-1 overflow-y-auto bg-slate-50/40">
-          {/* TAB 1: FISCAL & LEGAL */}
-          {activeTab === "fiscal" && (
+          {!currentTabAllowed && (
+            <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
+              <ShieldAlert className="w-10 h-10 text-amber-500 mx-auto" />
+              <h3 className="font-bold text-slate-900 text-sm">Pestaña Restringida</h3>
+              <p className="text-xs text-slate-500">
+                Tu perfil de usuario ({currentUser.role}) no tiene permisos para ver esta sección.
+              </p>
+            </div>
+          )}
+
+          {/* TAB 1: IDENTIFICACION */}
+          {currentTabAllowed && activeTab === "fiscal" && (
             <div className="space-y-4">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                 <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
@@ -243,7 +272,11 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                         onClick={() => handleCopy(client.email, "Email")}
                         className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
                       >
-                        {copiedField === "Email" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedField === "Email" ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </span>
                   </div>
@@ -256,7 +289,11 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                         onClick={() => handleCopy(client.phone, "Teléfono")}
                         className="p-1 text-slate-400 hover:text-sky-600 cursor-pointer"
                       >
-                        {copiedField === "Teléfono" ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiedField === "Teléfono" ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </span>
                   </div>
@@ -273,7 +310,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 </div>
               </div>
 
-              {/* Tarjeta de Persona de Contacto */}
+              {/* Tarjeta de Persona de Contacto (PDF Página 2) */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                 <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
                   Datos de Contacto de una Persona
@@ -300,66 +337,179 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </div>
           )}
 
-          {/* TAB 2: RED & MIKROTIK */}
-          {activeTab === "red" && <ServiceEditor clientId={client.id} />}
-          {activeTab === "red" && (
-            <div className="space-y-4">
+          {/* TAB 2: RED & IP -> DESPLIEGUE DE NODOS E INFRAESTRUCTURA (PDF Página 2 & 6) */}
+          {currentTabAllowed && activeTab === "red" && (
+            <div className="space-y-5">
               {services.length === 0 ? (
-                <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-xs">
                   <Radio className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="font-bold text-slate-600 text-xs">Sin servicios de red activos</p>
+                  <p className="font-bold text-slate-600 text-xs">Sin servicios de red activos asignados</p>
                 </div>
               ) : (
-                services.map((srv) => (
-                  <div key={srv.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{srv.planName}</h4>
-                        <p className="text-[11px] text-slate-400">
-                          Instalado el {srv.installationDate} • Nodo: <span className="font-bold text-slate-700">{srv.nodeName}</span>
-                        </p>
+                services.map((srv) => {
+                  const assignedNode = nodes.find((n) => n.id === srv.nodeId || n.name === srv.nodeName);
+                  const carriers = assignedNode?.providers || [];
+                  const systems = assignedNode?.services || [];
+
+                  return (
+                    <div key={srv.id} className="space-y-4">
+                      {/* Tarjeta del Nodo Asignado */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#004ac6] to-indigo-900 text-white flex items-center justify-center font-bold shadow-xs">
+                              <Radio className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-slate-900 text-sm">
+                                  {assignedNode ? assignedNode.name : srv.nodeName || "POP Asignado"}
+                                </h4>
+                                {assignedNode && (
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                      assignedNode.status === "online"
+                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                                    }`}
+                                  >
+                                    {assignedNode.status === "online" ? "En Línea" : assignedNode.status}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                {assignedNode ? assignedNode.address : "Ubicación física del POP"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {assignedNode?.mikrotikIp && (
+                              <span className="font-mono text-xs font-bold text-[#004ac6] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                                MikroTik Core: {assignedNode.mikrotikIp}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Proveedores Multi-Carrier del Nodo */}
+                        {carriers.length > 0 && (
+                          <div className="space-y-2">
+                            <h5 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5" />
+                              Proveedores Upstream del Nodo (Multi-Carrier)
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                              {carriers.map((c, cIdx) => (
+                                <div
+                                  key={c.id || cIdx}
+                                  className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1"
+                                >
+                                  <div className="flex items-center justify-between font-bold text-slate-900">
+                                    <span>{c.providerName}</span>
+                                    <span className="font-mono text-[10px] bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[#004ac6]">
+                                      {c.capacityMbps} Mbps
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 space-y-0.5">
+                                    {c.circuitId && (
+                                      <div>
+                                        ID Circuito: <span className="font-mono font-bold text-slate-700">{c.circuitId}</span>
+                                      </div>
+                                    )}
+                                    {c.ipv4Subnet && (
+                                      <div>
+                                        IPv4: <span className="font-mono text-slate-700">{c.ipv4Subnet}</span>
+                                      </div>
+                                    )}
+                                    {c.ipv6Prefix && (
+                                      <div>
+                                        IPv6: <span className="font-mono text-slate-700">{c.ipv6Prefix}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sistemas y Credenciales del Nodo */}
+                        {systems.length > 0 && (
+                          <div className="space-y-2">
+                            <h5 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
+                              <Key className="w-3.5 h-3.5" />
+                              Equipos y Sistemas en este POP
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                              {systems.map((s, sIdx) => (
+                                <div
+                                  key={s.id || sIdx}
+                                  className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1"
+                                >
+                                  <div className="font-bold text-slate-900 truncate">{s.systemName}</div>
+                                  <div className="font-mono text-[11px] text-[#004ac6] truncate flex items-center justify-between">
+                                    <span>{s.linkOrIp}</span>
+                                    <button
+                                      onClick={() => handleCopy(s.linkOrIp, "IP/Link")}
+                                      className="p-0.5 text-slate-400 hover:text-[#004ac6]"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  {s.notes && <div className="text-[10px] text-slate-400 italic">{s.notes}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className="font-mono text-base font-black text-emerald-700">${srv.customPrice.toFixed(2)} USD/mes</span>
+
+                      {/* Parámetros de Enlace del Cliente (Sin mostrar precios) */}
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                        <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+                          Parámetros del Enlace del Abonado
+                        </h5>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <label className="text-[10px] text-slate-400 font-bold block">Plan Homologado</label>
+                            <span className="font-bold text-slate-800">{srv.planName}</span>
+                          </div>
+
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <label className="text-[10px] text-slate-400 font-bold block">Dirección IPv4</label>
+                            <span className="font-mono font-bold text-sky-700">{srv.ipv4Address || "CGNAT"}</span>
+                          </div>
+
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <label className="text-[10px] text-slate-400 font-bold block">Usuario PPPoE</label>
+                            <span className="font-mono font-medium text-slate-800">{srv.pppoeUser || "No asignado"}</span>
+                          </div>
+
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <label className="text-[10px] text-slate-400 font-bold block">Fecha Instalación</label>
+                            <span className="font-medium text-slate-800">{srv.installationDate}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <label className="text-[10px] text-slate-400 font-bold block">Velocidad</label>
-                        <span className="font-bold text-slate-800">{srv.downloadMbps} Mbps Bajada / {srv.uploadMbps} Mbps Subida</span>
-                      </div>
-
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <label className="text-[10px] text-slate-400 font-bold block">Dirección IPv4</label>
-                        <span className="font-mono font-bold text-sky-700">{srv.ipv4Address}</span>
-                      </div>
-
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <label className="text-[10px] text-slate-400 font-bold block">Usuario PPPoE</label>
-                        <span className="font-mono font-medium text-slate-800">{srv.pppoeUser}</span>
-                      </div>
-
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <label className="text-[10px] text-slate-400 font-bold block">Corte Mensual</label>
-                        <span className="font-bold text-slate-800">Día {srv.cutoffDay} de cada mes</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
 
           {/* TAB 3: BOVEDA DE CLAVES */}
-          {activeTab === "boveda" && <ClientVaultTab client={client} />}
+          {currentTabAllowed && activeTab === "boveda" && <ClientVaultTab client={client} />}
 
           {/* TAB 4: CONTRATOS & ARCOTEL */}
-          {activeTab === "contratos" && <ClientContractTab client={client} />}
+          {currentTabAllowed && activeTab === "contratos" && <ClientContractTab client={client} />}
 
           {/* TAB 5: COTIZACIONES & ORDENES */}
-          {activeTab === "cotizaciones" && <ClientQuotesManager client={client} />}
+          {currentTabAllowed && activeTab === "cotizaciones" && <ClientQuotesManager client={client} />}
 
           {/* TAB 6: FINANZAS & COBROS */}
-          {activeTab === "finanzas" && (
+          {currentTabAllowed && activeTab === "finanzas" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <div>
@@ -393,7 +543,9 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                       charges.map((c) => (
                         <tr key={c.id} className="hover:bg-slate-50/70">
                           <td className="py-3 px-4 font-mono font-bold text-slate-900">{c.invoiceNumber}</td>
-                          <td className="py-3 px-4 font-semibold">{c.month}/{c.year}</td>
+                          <td className="py-3 px-4 font-semibold">
+                            {c.month}/{c.year}
+                          </td>
                           <td className="py-3 px-4 text-slate-600">{c.serviceDescription}</td>
                           <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
                           <td className="py-3 px-4">
@@ -427,7 +579,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           )}
 
           {/* TAB 7: TICKETS NOC */}
-          {activeTab === "tickets" && (
+          {currentTabAllowed && activeTab === "tickets" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <div>
@@ -473,10 +625,10 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           )}
 
           {/* TAB 8: PROYECTOS / KANBAN TRELLO */}
-          {activeTab === "proyectos" && <ClientProjectKanban client={client} />}
+          {currentTabAllowed && activeTab === "proyectos" && <ClientProjectKanban client={client} />}
 
           {/* TAB 9: DOSSIER TECNICO INTEGRAL */}
-          {activeTab === "dossier" && <ClientDossierTab client={client} />}
+          {currentTabAllowed && activeTab === "dossier" && <ClientDossierTab client={client} />}
         </div>
       </div>
     </div>

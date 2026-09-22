@@ -27,15 +27,15 @@ interface UserModalProps {
 }
 
 const ALL_PERMISSIONS: { id: SystemPermission; label: string; desc: string }[] = [
-  { id: "all", label: "Control Total del Sistema", desc: "Acceso irrestricto a todas las funciones (Super Admin)" },
+  { id: "all", label: "Control Total del Sistema (Super Admin)", desc: "Acceso irrestricto a todos los módulos y pestañas" },
+  { id: "manage_network", label: "Nodos & Infraestructura (Red IP)", desc: "Módulo Nodos multi-carrier y pestaña Red & IP en Ficha 360°" },
+  { id: "manage_policies", label: "ARCOTEL & Cumplimiento Regulatorio", desc: "Módulo ARCOTEL (SIETEL, FODETEL, BDH) y pestaña Contratos en Ficha 360°" },
+  { id: "manage_finance", label: "Cobros & Finanzas", desc: "Módulo Finanzas (Facturas, Pagos, OPEX) y pestañas Cobros / Cotizaciones" },
+  { id: "manage_clients", label: "Clientes & Ficha 360°", desc: "Creación y administración de clientes, pestaña Identificación e Informe 360°" },
+  { id: "manage_tickets", label: "Mesa de Soporte & Tickets NOC", desc: "Módulo Soporte y pestaña Tickets en Ficha 360°" },
+  { id: "manage_vault", label: "Bóveda de Credenciales", desc: "Módulo Credenciales y pestaña Bóveda en Ficha 360°" },
   { id: "manage_users", label: "Gestión de Usuarios & Roles", desc: "Crear, editar, activar y eliminar operadores del sistema" },
-  { id: "manage_vault", label: "Bóveda de Contraseñas (AES-256)", desc: "Acceso a claves de SIETEL, QUIPUX y Routers MikroTik" },
-  { id: "manage_clients", label: "Gestión de Clientes & Ficha 360°", desc: "Crear abonados, asignar planes, IPs y editar fichas" },
-  { id: "manage_network", label: "Infraestructura & MikroTik", desc: "Supervisar POPs, RouterOS, pools CGNAT e IPv6" },
-  { id: "manage_tickets", label: "Mesa de Ayuda & Tickets NOC", desc: "Crear incidencias, asignar cuadrillas y resolver fallas" },
-  { id: "manage_finance", label: "Finanzas & Órdenes de Pedido", desc: "Emisión Día 1, cotizaciones y seguimiento de cobros" },
-  { id: "manage_policies", label: "Regulatorio ARCOTEL & Pólizas", desc: "Control de vigencias y descarga de oficios formales" },
-  { id: "export_reports", label: "Exportación de Plantillas & Excel", desc: "Descarga de contratos Word y reportes de red en Excel" },
+  { id: "export_reports", label: "Plantillas & Reportería Oficial", desc: "Descarga de plantillas Word/Excel y exportación de datos" },
 ];
 
 export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {

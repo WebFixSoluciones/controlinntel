@@ -23,6 +23,9 @@ import {
   ClientVaultItem,
   ClientContractInfo,
   ProjectKanbanColumn,
+  ArcotelConcessionInfo,
+  ArcotelPeriodicFile,
+  ClientDocumentFile,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -42,6 +45,9 @@ import {
   INITIAL_CLIENT_VAULT,
   INITIAL_CONTRACTS,
   INITIAL_AUDIT_LOGS,
+  INITIAL_CONCESSION_INFO,
+  INITIAL_ARCOTEL_FILES,
+  INITIAL_CLIENT_DOCUMENTS,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -119,6 +125,18 @@ interface AppContextType {
 
   addNode: (node: Omit<NodeLocation, "id">) => Promise<void>;
   updateNode: (id: string, updates: Partial<NodeLocation>) => Promise<void>;
+  deleteNode: (id: string) => Promise<void>;
+
+  arcotelConcession: ArcotelConcessionInfo;
+  updateArcotelConcession: (updates: Partial<ArcotelConcessionInfo>) => Promise<void>;
+
+  arcotelFiles: ArcotelPeriodicFile[];
+  addArcotelFile: (file: Omit<ArcotelPeriodicFile, "id" | "uploadedAt">) => Promise<void>;
+  deleteArcotelFile: (id: string) => Promise<void>;
+
+  clientDocuments: ClientDocumentFile[];
+  addClientDocument: (doc: Omit<ClientDocumentFile, "id" | "uploadedAt">) => Promise<void>;
+  deleteClientDocument: (id: string) => Promise<void>;
 
   addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => Promise<void>;
   updateTicketStatus: (id: string, status: Ticket["status"], notes?: string) => Promise<void>;
@@ -171,6 +189,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>(INITIAL_QUOTES);
   const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>(INITIAL_CLIENT_VAULT);
   const [clientContracts, setClientContracts] = useState<ClientContractInfo[]>(INITIAL_CONTRACTS);
+  const [arcotelConcession, setArcotelConcession] = useState<ArcotelConcessionInfo>(INITIAL_CONCESSION_INFO);
+  const [arcotelFiles, setArcotelFiles] = useState<ArcotelPeriodicFile[]>(INITIAL_ARCOTEL_FILES);
+  const [clientDocuments, setClientDocuments] = useState<ClientDocumentFile[]>(INITIAL_CLIENT_DOCUMENTS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -283,6 +304,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
           if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems);
           if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
+          if (p.arcotelConcession) setArcotelConcession(p.arcotelConcession);
+          if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
+          if (Array.isArray(p.clientDocuments)) setClientDocuments(p.clientDocuments);
         } catch (e) {}
       }
     } catch (e) {
@@ -385,6 +409,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           clientQuotes,
           clientVaultItems,
           clientContracts,
+          arcotelConcession,
+          arcotelFiles,
+          clientDocuments,
         })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
@@ -405,6 +432,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     clientQuotes,
     clientVaultItems,
     clientContracts,
+    arcotelConcession,
+    arcotelFiles,
+    clientDocuments,
     systemUsers,
     isAuthLoaded,
   ]);
@@ -1026,6 +1056,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, ...updates } : n)));
   };
 
+  const deleteNode = async (id: string) => {
+    await deleteFromFirestore("nodes", id);
+    setNodes((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const updateArcotelConcession = async (updates: Partial<ArcotelConcessionInfo>) => {
+    setArcotelConcession((prev) => ({ ...prev, ...updates }));
+  };
+
+  const addArcotelFile = async (fileData: Omit<ArcotelPeriodicFile, "id" | "uploadedAt">) => {
+    const newFile: ArcotelPeriodicFile = {
+      ...fileData,
+      id: "arc-" + Date.now(),
+      uploadedAt: new Date().toISOString(),
+    };
+    await syncToFirestore("arcotelFiles", newFile.id, newFile);
+    setArcotelFiles((prev) => [newFile, ...prev]);
+    addAuditLog("GENERATE_DOC", `Archivo Regulatorio ARCOTEL: ${newFile.fileName}`, `Sub-sistema: ${newFile.subsystem}`);
+  };
+
+  const deleteArcotelFile = async (id: string) => {
+    await deleteFromFirestore("arcotelFiles", id);
+    setArcotelFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const addClientDocument = async (docData: Omit<ClientDocumentFile, "id" | "uploadedAt">) => {
+    const newDoc: ClientDocumentFile = {
+      ...docData,
+      id: "cdoc-" + Date.now(),
+      uploadedAt: new Date().toISOString(),
+    };
+    await syncToFirestore("clientDocuments", newDoc.id, newDoc);
+    setClientDocuments((prev) => [newDoc, ...prev]);
+  };
+
+  const deleteClientDocument = async (id: string) => {
+    await deleteFromFirestore("clientDocuments", id);
+    setClientDocuments((prev) => prev.filter((d) => d.id !== id));
+  };
+
   const addTicket = async (ticketData: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => {
     const newTicket: Ticket = {
       ...ticketData,
@@ -1248,6 +1318,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           logVaultAccess,
           addNode,
           updateNode,
+          deleteNode,
+          arcotelConcession,
+          updateArcotelConcession,
+          arcotelFiles,
+          addArcotelFile,
+          deleteArcotelFile,
+          clientDocuments,
+          addClientDocument,
+          deleteClientDocument,
           addTicket,
           updateTicketStatus,
           replyToTicket,

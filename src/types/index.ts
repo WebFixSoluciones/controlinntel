@@ -121,6 +121,23 @@ export interface VaultCredential {
   updatedAt: string;
 }
 
+export interface NodeCarrierProvider {
+  id: string;
+  providerName: string;
+  capacityMbps: number;
+  circuitId?: string;
+  ipv4Subnet?: string;
+  ipv6Prefix?: string;
+}
+
+export interface NodeSystemService {
+  id: string;
+  systemName: string;
+  linkOrIp: string;
+  credentials: string;
+  notes?: string;
+}
+
 export interface NodeLocation {
   id: string;
   clientIds?: string[];
@@ -134,6 +151,54 @@ export interface NodeLocation {
   status: "online" | "warning" | "offline";
   activeClientsCount: number;
   notes?: string;
+  providers?: NodeCarrierProvider[];
+  services?: NodeSystemService[];
+}
+
+export interface ArcotelConcessionInfo {
+  titleName: string;
+  titleDate: string;
+  concessionaireCode: string;
+  lastPolicyDate: string;
+  reminderDays: number;
+  websiteUrl: string;
+  additionalFields?: { id: string; label: string; value: string }[];
+}
+
+export type ArcotelSubsystem =
+  | "sietel_lopam"
+  | "sietel_tarifas"
+  | "sietel_usuarios"
+  | "sietel_calidad"
+  | "sietel_encuestas"
+  | "sietel_capacidades"
+  | "fodetel"
+  | "contingencia"
+  | "bdh";
+
+export interface ArcotelPeriodicFile {
+  id: string;
+  subsystem: ArcotelSubsystem;
+  fileName: string;
+  fileSize: string;
+  period: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  fileType: "xlsx" | "pdf" | "docx" | "csv" | "txt";
+  fileUrl?: string;
+  status: "vigente" | "enviado" | "archivado";
+  notes?: string;
+}
+
+export interface ClientDocumentFile {
+  id: string;
+  clientId: string;
+  title: string;
+  documentType: "contrato_adhesion" | "proteccion_datos" | "cedula_ruc" | "acta_entrega" | "otro";
+  fileName: string;
+  fileSize: string;
+  uploadedAt: string;
+  fileUrl?: string;
 }
 
 export interface IpPool {

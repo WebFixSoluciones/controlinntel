@@ -24,7 +24,7 @@ import {
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/arcotel", label: "Contratos", icon: ShieldCheck },
+  { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/red", label: "Nodos", icon: Radio },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },

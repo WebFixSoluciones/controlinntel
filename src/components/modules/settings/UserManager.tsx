@@ -294,19 +294,34 @@ export function UserManager() {
                               Acceso Total
                             </span>
                           ) : (
-                            u.permissions?.slice(0, 3).map((p) => (
-                              <span
-                                key={p}
-                                className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded"
-                              >
-                                {p.replace("manage_", "").replace("export_", "")}
-                              </span>
-                            ))
-                          )}
-                          {(u.permissions?.length || 0) > 3 && !u.permissions?.includes("all") && (
-                            <span className="text-[9px] text-slate-400 font-bold">
-                              +{(u.permissions?.length || 0) - 3}
-                            </span>
+                            <>
+                              {u.permissions?.includes("manage_network") && (
+                                <span className="text-[9px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200 px-1.5 py-0.2 rounded">
+                                  Nodos
+                                </span>
+                              )}
+                              {u.permissions?.includes("manage_policies") && (
+                                <span className="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded">
+                                  Arcotel
+                                </span>
+                              )}
+                              {u.permissions?.includes("manage_finance") && (
+                                <span className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                  Cobros
+                                </span>
+                              )}
+                              {u.permissions
+                                ?.filter((p) => !["all", "manage_network", "manage_policies", "manage_finance"].includes(p))
+                                .slice(0, 2)
+                                .map((p) => (
+                                  <span
+                                    key={p}
+                                    className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded"
+                                  >
+                                    {p.replace("manage_", "").replace("export_", "")}
+                                  </span>
+                                ))}
+                            </>
                           )}
                         </div>
                       </td>
