@@ -346,7 +346,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                     <DollarSign className="w-4 h-4 text-emerald-600" />
                     Historial de Cobros & Pre-Facturas Internas
                   </h4>
-                  <p className="text-[11px] text-slate-400">Seguimiento de cobros emitidos el día 1 y registro de recaudación</p>
                 </div>
               </div>
 
@@ -415,7 +414,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                     <TicketIcon className="w-4 h-4 text-sky-600" />
                     Incidencias Técnicas & Tickets de Soporte
                   </h4>
-                  <p className="text-[11px] text-slate-400">Atención técnica, cuadrillas asignadas y tiempos de resolución SLA</p>
                 </div>
               </div>
 

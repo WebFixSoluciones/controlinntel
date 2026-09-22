@@ -1,100 +1,627 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import { ClientContractInfo } from "@/types";
+import { generateAdhesionContractDocx, triggerBrowserDownload } from "@/lib/doc-generator";
+import { PoliciesList } from "../arcotel/PoliciesList";
+import { PolicyModal } from "../arcotel/PolicyModal";
+import {
+  Search,
+  Plus,
+  ShieldCheck,
+  FileText,
+  Download,
+  Edit2,
+  RotateCcw,
+  X,
+  Shield,
+  Calendar,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 
 type Draft = Omit<ClientContractInfo, "id">;
 
 export function ContractsManager({ clientId }: { clientId?: string }) {
-  const { clients, clientContracts, addClientContract, updateClientContract } = useApp();
+  const { clients, clientContracts, clientServices, addClientContract, updateClientContract, policies } = useApp();
+  const { showSuccess, showError } = useToast();
+
+  const [activeTab, setActiveTab] = useState<"contratos" | "polizas">("contratos");
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+
   const [query, setQuery] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [status, setStatus] = useState("");
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const field = "block mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900";
-  const clientName = (id: string) => clients.find(c => c.id === id)?.businessName || "Abonado no disponible";
-  const filtered = clientContracts.filter(c =>
-    (!clientId || c.clientId === clientId) && (!clientFilter || c.clientId === clientFilter) &&
-    (!status || c.status === status) && (!from || c.expirationDate >= from) && (!until || c.expirationDate <= until) &&
-    `${clientName(c.clientId)} ${c.contractNumber} ${c.arcotelHomologationCode} ${c.planName}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-  );
-  function open(contract?: ClientContractInfo) {
+  const [formError, setFormError] = useState("");
+
+  const clientName = (id: string) => clients.find((c) => c.id === id)?.businessName || "Abonado no disponible";
+
+  const filteredContracts = clientContracts.filter((c) => {
+    const matchesClientScope = !clientId || c.clientId === clientId;
+    const matchesClientDropdown = !clientFilter || c.clientId === clientFilter;
+    const matchesStatus = !status || c.status === status;
+    const matchesFrom = !from || c.expirationDate >= from;
+    const matchesUntil = !until || c.expirationDate <= until;
+    const textTarget = `${clientName(c.clientId)} ${c.contractNumber} ${c.arcotelHomologationCode || ""} ${c.planName}`.toLowerCase();
+    const matchesQuery = !query.trim() || textTarget.includes(query.trim().toLowerCase());
+
+    return matchesClientScope && matchesClientDropdown && matchesStatus && matchesFrom && matchesUntil && matchesQuery;
+  });
+
+  const handleOpenForm = (contract?: ClientContractInfo) => {
     setEditingId(contract?.id || null);
-    setDraft(contract ? { ...contract } : {
-      clientId: clientId || clientFilter, contractNumber: "", arcotelHomologationCode: "", planName: "",
-      signedDate: "", expirationDate: "", status: "vigente", monthlyPrice: 0, notes: "",
-    });
-    setError(""); setMessage("");
-  }
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
+    setDraft(
+      contract
+        ? { ...contract }
+        : {
+            clientId: clientId || clientFilter || (clients.length > 0 ? clients[0].id : ""),
+            contractNumber: `CONT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            arcotelHomologationCode: "ARCOTEL-SAI-2026",
+            planName: "Plan Corporativo Fibra Óptica Dedicado",
+            signedDate: new Date().toISOString().split("T")[0],
+            expirationDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
+            status: "vigente",
+            monthlyPrice: 120,
+            notes: "Servicio de telecomunicaciones homologado bajo normativa ARCOTEL con SLA garantizado del 99.8%.",
+          }
+    );
+    setFormError("");
+    setIsFormOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!draft || busy) return;
-    if (!draft.clientId || !draft.contractNumber.trim() || !draft.planName.trim() || !draft.signedDate || !draft.expirationDate || draft.expirationDate < draft.signedDate || !Number.isFinite(draft.monthlyPrice) || draft.monthlyPrice < 0) {
-      setError("Completa abonado, número, servicio y fechas válidas. La fecha de fin debe ser igual o posterior al inicio y la tarifa no puede ser negativa."); return;
+
+    if (
+      !draft.clientId ||
+      !draft.contractNumber.trim() ||
+      !draft.planName.trim() ||
+      !draft.signedDate ||
+      !draft.expirationDate ||
+      draft.expirationDate < draft.signedDate ||
+      !Number.isFinite(draft.monthlyPrice) ||
+      draft.monthlyPrice < 0
+    ) {
+      setFormError("Verifica los campos obligatorios: Abonado, Número, Servicio y Fechas coherentes.");
+      return;
     }
-    if (clientContracts.some(c => c.id !== editingId && c.clientId === draft.clientId && c.contractNumber.trim().toLocaleLowerCase() === draft.contractNumber.trim().toLocaleLowerCase())) {
-      setError("Este abonado ya tiene un contrato con ese número."); return;
+
+    const isDuplicate = clientContracts.some(
+      (c) =>
+        c.id !== editingId &&
+        c.clientId === draft.clientId &&
+        c.contractNumber.trim().toLowerCase() === draft.contractNumber.trim().toLowerCase()
+    );
+    if (isDuplicate) {
+      setFormError("Este abonado ya cuenta con un contrato registrado con ese número.");
+      return;
     }
-    setBusy(true); setError("");
+
+    setBusy(true);
+    setFormError("");
+
     try {
-      const data = { ...draft, contractNumber: draft.contractNumber.trim(), planName: draft.planName.trim() };
-      if (editingId) await updateClientContract(editingId, data);
-      else await addClientContract(data);
-      setDraft(null); setMessage("Contrato guardado. La ficha 360 y el listado utilizan este mismo registro.");
-    } catch (e) { setError(e instanceof Error ? e.message : "No se pudo guardar el contrato."); }
-    finally { setBusy(false); }
-  }
-  if (draft) return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6">
-      <h2 className="text-xl font-bold text-balance">{editingId ? `Administrar contrato ${draft.contractNumber}` : "Registrar contrato de abonado"}</h2>
-      <form onSubmit={save} className="mt-5 space-y-4">
-        <fieldset disabled={busy} className="grid gap-4 md:grid-cols-2 disabled:opacity-60">
-          <label>Abonado<select required disabled={!!clientId || !!editingId} className={field} value={draft.clientId} onChange={e => setDraft({ ...draft, clientId: e.target.value })}>
-            <option value="">Selecciona un abonado</option>
-            {!clients.some(c => c.id === draft.clientId) && draft.clientId && <option value={draft.clientId}>Abonado no disponible</option>}
-            {clients.map(c => <option key={c.id} value={c.id}>{c.businessName}</option>)}
-          </select></label>
-          <label>Número de contrato<input required className={field} value={draft.contractNumber} onChange={e => setDraft({ ...draft, contractNumber: e.target.value })} /></label>
-          <label>Servicio / infraestructura contratada<input required className={field} value={draft.planName} onChange={e => setDraft({ ...draft, planName: e.target.value })} /></label>
-          <label>Código de homologación<input className={field} value={draft.arcotelHomologationCode} onChange={e => setDraft({ ...draft, arcotelHomologationCode: e.target.value })} /></label>
-          <label>Fecha de inicio<input required type="date" className={field} value={draft.signedDate} onChange={e => setDraft({ ...draft, signedDate: e.target.value })} /></label>
-          <label>Fecha de fin<input required type="date" min={draft.signedDate} className={field} value={draft.expirationDate} onChange={e => setDraft({ ...draft, expirationDate: e.target.value })} /></label>
-          <label>Tarifa mensual (USD)<input required type="number" min="0" step="0.01" className={field} value={draft.monthlyPrice} onChange={e => setDraft({ ...draft, monthlyPrice: Number(e.target.value) })} /></label>
-          <label>Estado<select className={field} value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value as ClientContractInfo["status"] })}>
-            <option value="vigente">Vigente</option><option value="por_renovar">Por renovar</option><option value="vencido">Vencido</option>
-          </select></label>
-          <label className="md:col-span-2">Qué incluye el servicio / condiciones del contrato<textarea rows={5} className={field} value={draft.notes || ""} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></label>
-        </fieldset>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-        <div className="flex gap-3"><button disabled={busy} type="submit" className="rounded-lg bg-blue-700 px-4 py-2 text-white disabled:opacity-60">{busy ? "Guardando…" : "Guardar contrato"}</button><button disabled={busy} type="button" onClick={() => setDraft(null)} className="rounded-lg border px-4 py-2">Volver al listado</button></div>
-      </form>
-    </section>
-  );
-  return <section className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold text-balance">Contratos de abonados</h1><p className="text-sm text-slate-500 text-pretty">Seguimiento de servicios, infraestructura, adhesión y homologación de cada cliente.</p></div><button onClick={() => open()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white">Registrar contrato</button></div>
-    {message && <p role="status" className="text-sm text-green-700">{message}</p>}
-    <div className="flex flex-wrap gap-3 rounded-xl border bg-white p-4 text-xs">
-      <label className="flex-1 min-w-48">Buscar<input className={field} placeholder="Cliente, número, servicio u homologación" value={query} onChange={e => setQuery(e.target.value)} /></label>
-      {!clientId && <label>Abonado<select className={field} value={clientFilter} onChange={e => setClientFilter(e.target.value)}><option value="">Todos los abonados</option>{clients.map(c => <option key={c.id} value={c.id}>{c.businessName}</option>)}</select></label>}
-      <label>Estado<select className={field} value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos</option><option value="vigente">Vigente</option><option value="por_renovar">Por renovar</option><option value="vencido">Vencido</option></select></label>
-      <label>Vence desde<input type="date" className={field} value={from} onChange={e => setFrom(e.target.value)} /></label><label>Vence hasta<input type="date" className={field} value={until} onChange={e => setUntil(e.target.value)} /></label>
-      <button onClick={() => { setQuery(""); setClientFilter(""); setStatus(""); setFrom(""); setUntil(""); }} className="self-end rounded-lg border px-3 py-2">Limpiar filtros</button>
+      const data = {
+        ...draft,
+        contractNumber: draft.contractNumber.trim(),
+        planName: draft.planName.trim(),
+      };
+
+      if (editingId) {
+        await updateClientContract(editingId, data);
+        showSuccess("Contrato Actualizado", `Contrato ${draft.contractNumber} actualizado con éxito.`);
+      } else {
+        await addClientContract(data);
+        showSuccess("Contrato Registrado", `Contrato ${draft.contractNumber} registrado y sincronizado en la Ficha 360.`);
+      }
+
+      setIsFormOpen(false);
+      setDraft(null);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Error al guardar el contrato.");
+      showError("Error", "No se pudo guardar el contrato.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownloadDocx = async (contract: ClientContractInfo) => {
+    const client = clients.find((c) => c.id === contract.clientId);
+    if (!client) {
+      showError("Error", "No se encontró el registro del cliente.");
+      return;
+    }
+    const service = clientServices.find((s) => s.clientId === client.id);
+    try {
+      const blob = await generateAdhesionContractDocx(client, service);
+      triggerBrowserDownload(blob, `Contrato_Adhesion_${contract.contractNumber}_${client.identificationNumber}.docx`);
+      showSuccess("Descarga Exitosa", `Modelo Word generado para ${client.businessName}.`);
+    } catch {
+      showError("Error", "No se pudo generar el documento Word.");
+    }
+  };
+
+  const renderStatusBadge = (contractStatus: ClientContractInfo["status"]) => {
+    switch (contractStatus) {
+      case "vigente":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Vigente
+          </span>
+        );
+      case "por_renovar":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Por Renovar
+          </span>
+        );
+      case "vencido":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            Vencido
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-200">
+            {contractStatus}
+          </span>
+        );
+    }
+  };
+
+  const clearFilters = () => {
+    setQuery("");
+    setClientFilter("");
+    setStatus("");
+    setFrom("");
+    setUntil("");
+  };
+
+  return (
+    <div className="w-full space-y-6 select-none">
+      {/* Top Header - Only when rendered as standalone page */}
+      {!clientId && (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#004ac6] to-[#1e293b] flex items-center justify-center text-white shadow-xs">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
+                Contratos & Control Regulatorio ARCOTEL
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {activeTab === "contratos" ? (
+              <button
+                onClick={() => handleOpenForm()}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Registrar Contrato</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsPolicyModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Registrar Póliza</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs Switcher for standalone mode */}
+      {!clientId && (
+        <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2">
+          <button
+            onClick={() => setActiveTab("contratos")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "contratos"
+                ? "bg-[#004ac6] text-white shadow-xs"
+                : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Contratos de Abonados (SAI)</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeTab === "contratos" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
+              }`}
+            >
+              {clientContracts.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("polizas")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "polizas"
+                ? "bg-[#004ac6] text-white shadow-xs"
+                : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Pólizas de Título Habilitante ARCOTEL</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeTab === "polizas" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
+              }`}
+            >
+              {policies.length}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Subtab Content: Pólizas */}
+      {!clientId && activeTab === "polizas" ? (
+        <>
+          <PoliciesList onOpenNewModal={() => setIsPolicyModalOpen(true)} />
+          <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />
+        </>
+      ) : (
+        /* Subtab Content: Contratos de Abonados */
+        <div className="space-y-4">
+          {/* Action Bar for Client 360 mode */}
+          {clientId && (
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#004ac6]" />
+                Contratos Homologados del Abonado
+              </h3>
+              <button
+                onClick={() => handleOpenForm()}
+                className="flex items-center gap-2 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nuevo Contrato</span>
+              </button>
+            </div>
+          )}
+
+          {/* Search & Filter Toolbar Card */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Buscar contrato, servicio u homologación..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                />
+              </div>
+
+              {!clientId && (
+                <select
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer max-w-xs"
+                >
+                  <option value="">Todos los Abonados</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.businessName}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+              >
+                <option value="">Estado: Todos</option>
+                <option value="vigente">Vigente</option>
+                <option value="por_renovar">Por Renovar</option>
+                <option value="vencido">Vencido</option>
+              </select>
+
+              <div className="flex items-center gap-1.5 text-xs text-[#737686]">
+                <Calendar className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-semibold">Vence:</span>
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="bg-white text-xs rounded-xl px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
+                />
+                <span>a</span>
+                <input
+                  type="date"
+                  value={until}
+                  onChange={(e) => setUntil(e.target.value)}
+                  className="bg-white text-xs rounded-xl px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
+                />
+              </div>
+            </div>
+
+            {(query || clientFilter || status || from || until) && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
+                <span>Limpiar</span>
+              </button>
+            )}
+          </div>
+
+          {/* Table Container Card */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[1000px]">
+                <caption className="sr-only">Contratos de abonados registrados</caption>
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <tr>
+                    <th className="py-3.5 px-5">Abonado / Razón Social</th>
+                    <th className="py-3.5 px-5">N° Contrato</th>
+                    <th className="py-3.5 px-5">Servicio / Infraestructura</th>
+                    <th className="py-3.5 px-5">Homologación</th>
+                    <th className="py-3.5 px-5">Vigencia</th>
+                    <th className="py-3.5 px-5 text-center">Estado</th>
+                    <th className="py-3.5 px-5 text-right">Tarifa Mensual</th>
+                    <th className="py-3.5 px-5 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+                  {filteredContracts.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-xs text-[#737686]">
+                        <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                        <p className="font-bold text-slate-600">No se encontraron contratos registrados.</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Ajusta los filtros de búsqueda o registra un nuevo contrato.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredContracts.map((c) => (
+                      <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-4 px-5">
+                          <div className="font-bold text-[#0b1c30]">{clientName(c.clientId)}</div>
+                          <div className="text-[10px] text-[#737686] font-mono">
+                            {clients.find((cl) => cl.id === c.clientId)?.identificationNumber}
+                          </div>
+                        </td>
+                        <td className="py-4 px-5 font-mono font-bold text-[#004ac6]">{c.contractNumber}</td>
+                        <td className="py-4 px-5">
+                          <div className="font-medium text-[#0b1c30]">{c.planName}</div>
+                          {c.notes && <div className="text-[10px] text-[#737686] truncate max-w-xs">{c.notes}</div>}
+                        </td>
+                        <td className="py-4 px-5 font-mono text-[11px] font-semibold text-[#434655]">
+                          {c.arcotelHomologationCode || "ARCOTEL-SAI-2026"}
+                        </td>
+                        <td className="py-4 px-5 whitespace-nowrap">
+                          <div className="font-medium text-[#0b1c30]">{c.expirationDate}</div>
+                          <div className="text-[10px] text-[#737686]">Desde: {c.signedDate}</div>
+                        </td>
+                        <td className="py-4 px-5 text-center">{renderStatusBadge(c.status)}</td>
+                        <td className="py-4 px-5 text-right font-mono font-bold text-emerald-700">
+                          ${c.monthlyPrice.toFixed(2)} USD
+                        </td>
+                        <td className="py-4 px-5 text-right">
+                          <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                            <button
+                              onClick={() => handleDownloadDocx(c)}
+                              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-[#434655] hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Descargar Adhesión Word"
+                            >
+                              <Download className="w-3.5 h-3.5 text-[#004ac6]" />
+                              <span>Word</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenForm(c)}
+                              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
+                              title="Editar contrato"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-3 px-5 border-t border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between text-xs text-[#737686]">
+              <span>
+                Mostrando <strong className="text-[#0b1c30]">{filteredContracts.length}</strong> de{" "}
+                <strong className="text-[#0b1c30]">{clientContracts.length}</strong> contratos totales
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contract Create/Edit Modal */}
+      {isFormOpen && draft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden my-8">
+            <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-5 h-5 text-[#004ac6]" />
+                <h3 className="font-bold text-[#0b1c30] text-sm">
+                  {editingId ? `Editar Contrato: ${draft.contractNumber}` : "Registrar Contrato de Abonado"}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsFormOpen(false)}
+                className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
+              <fieldset disabled={busy} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Abonado / Cliente *</label>
+                  <select
+                    required
+                    disabled={!!clientId || !!editingId}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent disabled:bg-slate-100"
+                    value={draft.clientId}
+                    onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
+                  >
+                    <option value="">Selecciona un abonado</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.businessName} ({c.identificationNumber})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Número de Contrato *</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.contractNumber}
+                    onChange={(e) => setDraft({ ...draft, contractNumber: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Servicio / Plan Contratado *</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.planName}
+                    onChange={(e) => setDraft({ ...draft, planName: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Código de Homologación ARCOTEL</label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.arcotelHomologationCode || ""}
+                    onChange={(e) => setDraft({ ...draft, arcotelHomologationCode: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Fecha de Inicio *</label>
+                  <input
+                    required
+                    type="date"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.signedDate}
+                    onChange={(e) => setDraft({ ...draft, signedDate: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Fecha de Vencimiento *</label>
+                  <input
+                    required
+                    type="date"
+                    min={draft.signedDate}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.expirationDate}
+                    onChange={(e) => setDraft({ ...draft, expirationDate: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Tarifa Mensual (USD) *</label>
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.monthlyPrice}
+                    onChange={(e) => setDraft({ ...draft, monthlyPrice: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#434655] block mb-1">Estado de Vigencia *</label>
+                  <select
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.status}
+                    onChange={(e) => setDraft({ ...draft, status: e.target.value as ClientContractInfo["status"] })}
+                  >
+                    <option value="vigente">Vigente</option>
+                    <option value="por_renovar">Por Renovar</option>
+                    <option value="vencido">Vencido</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="font-bold text-[#434655] block mb-1">
+                    Condiciones Particulares & Especificaciones del Servicio
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    value={draft.notes || ""}
+                    onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+                    placeholder="Detalles de ancho de banda, permanencia mínima, SLA, equipos entregados..."
+                  />
+                </div>
+              </fieldset>
+
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              <div className="pt-3 flex justify-end gap-2.5 border-t border-[#e2e8f0]">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setIsFormOpen(false)}
+                  className="px-4 py-2.5 text-[#737686] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-2"
+                >
+                  {busy ? "Guardando..." : "Guardar Contrato"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
-    <p className="text-xs text-slate-500" role="status">{filtered.length} contratos encontrados. Selecciona el número para administrar el contrato.</p>
-    <div className="overflow-x-auto rounded-xl border bg-white"><table className="w-full min-w-[1000px] text-left text-xs tabular-nums">
-      <caption className="sr-only">Contratos registrados en las fichas 360 de los abonados</caption>
-      <thead className="bg-slate-50 text-slate-600"><tr>{["Abonado", "Número de contrato", "Servicio / infraestructura", "Homologación", "Inicio", "Fin", "Estado", "Mensualidad"].map(h => <th scope="col" key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
-      <tbody className="divide-y">{filtered.map(c => <tr key={c.id} className="hover:bg-slate-50">
-        <td className="px-4 py-4 font-semibold">{clientName(c.clientId)}</td><th scope="row" className="px-4 py-4"><button onClick={() => open(c)} className="font-bold text-blue-700 underline">{c.contractNumber}</button></th>
-        <td className="px-4 py-4">{c.planName}</td><td className="px-4 py-4">{c.arcotelHomologationCode || "—"}</td><td className="px-4 py-4 whitespace-nowrap">{c.signedDate}</td><td className="px-4 py-4 whitespace-nowrap">{c.expirationDate}</td><td className="px-4 py-4">{c.status.replaceAll("_", " ")}</td><td className="px-4 py-4">${c.monthlyPrice.toFixed(2)}</td>
-      </tr>)}{!filtered.length && <tr><td colSpan={8} className="p-8 text-center text-slate-500">No hay contratos para estos filtros. Puedes limpiar los filtros o registrar un contrato.</td></tr>}</tbody>
-    </table></div>
-  </section>;
+  );
 }
