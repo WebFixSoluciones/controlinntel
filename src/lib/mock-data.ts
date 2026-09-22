@@ -192,6 +192,10 @@ export const DEMO_CLIENT: Client = {
   currentBalance: 109.25,
   createdAt: "2024-01-15T08:00:00Z",
   updatedAt: "2026-09-18T10:00:00Z",
+  contactName: "Ing. Patricio Echeverría",
+  contactRole: "Director de Operaciones & IT",
+  contactPhone: "0998451234",
+  contactAddress: "Av. República de El Salvador N36-140, Quito",
 };
 
 export const DEMO_NODE: NodeLocation = {

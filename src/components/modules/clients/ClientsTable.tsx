@@ -173,7 +173,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
               <tr>
                 <th className="py-3.5 px-5">Cliente / Razón Social</th>
                 <th className="py-3.5 px-5">Identificación</th>
-                <th className="py-3.5 px-5">Servicio & Tarifa</th>
+                <th className="py-3.5 px-5">Servicio Contratado</th>
                 <th className="py-3.5 px-5">Modalidad</th>
                 <th className="py-3.5 px-5 text-center">Facturable</th>
                 <th className="py-3.5 px-5 text-center">Estado</th>
@@ -222,15 +222,12 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
                         <span className="text-[10px] text-[#737686] block mt-0.5">{client.identificationType}</span>
                       </td>
 
-                      {/* Servicio & Tarifa */}
-                      <td className="py-3.5 px-5 font-tnum">
+                      {/* Servicio Contratado (Sin valores numéricos de precio) */}
+                      <td className="py-3.5 px-5">
                         {srv ? (
-                          <div>
-                            <p className="font-semibold text-[#0b1c30]">{srv.planName}</p>
-                            <span className="text-[#004ac6] font-bold text-xs">
-                              ${srv.customPrice.toFixed(2)} / mes
-                            </span>
-                          </div>
+                          <span className="font-semibold text-[#0b1c30] block">
+                            {srv.planName}
+                          </span>
                         ) : (
                           <span className="text-[#737686] italic">Sin servicio activo</span>
                         )}

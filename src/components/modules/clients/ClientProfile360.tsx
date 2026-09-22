@@ -169,10 +169,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 </span>
                 <span>•</span>
                 <span>{client.address}</span>
-                <span>•</span>
-                <span className="text-emerald-700 font-bold font-mono">
-                  ${totalMonthlySpend.toFixed(2)} USD/mes
-                </span>
               </div>
             </div>
           </div>
@@ -271,8 +267,33 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                   </div>
 
                   <div className="col-span-full">
-                    <label className="text-[10px] text-slate-400 font-bold block">Dirección de Instalación</label>
+                    <label className="text-[10px] text-slate-400 font-bold block">Dirección</label>
                     <span className="font-medium text-slate-800">{client.address}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tarjeta de Persona de Contacto */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+                  Datos de Contacto de una Persona
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Nombre</label>
+                    <span className="font-bold text-slate-900">{client.contactName || "No registrado"}</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Cargo</label>
+                    <span className="font-medium text-slate-800">{client.contactRole || "No especificado"}</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Teléfono</label>
+                    <span className="font-medium text-slate-800">{client.contactPhone || client.phone}</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-bold block">Dirección</label>
+                    <span className="font-medium text-slate-800">{client.contactAddress || client.address}</span>
                   </div>
                 </div>
               </div>

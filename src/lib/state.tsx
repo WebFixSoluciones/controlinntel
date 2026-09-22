@@ -896,20 +896,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (serviceData) {
       const plan = plans.find((p) => p.id === serviceData.planId) || plans[0];
-      const node = nodes.find((n) => n.id === serviceData.nodeId) || nodes[0];
+      const node = serviceData.nodeId ? nodes.find((n) => n.id === serviceData.nodeId) : null;
       const newService: ClientService = {
         id: "srv-" + Date.now(),
         clientId: newId,
         planId: plan ? plan.id : "plan-100m",
-        planName: plan ? plan.name : "Fibra Óptica 100M",
+        planName: plan ? plan.name : "Fibra Óptica Dedicado",
         downloadMbps: plan ? plan.downloadMbps : 100,
         uploadMbps: plan ? plan.uploadMbps : 100,
         basePrice: plan ? plan.defaultPrice : 28.0,
         customPrice: serviceData.customPrice || (plan ? plan.defaultPrice : 28.0),
         billingType: serviceData.billingType || (plan ? plan.billingType : "pospago"),
         cutoffDay: serviceData.cutoffDay || 1,
-        nodeId: node ? node.id : "nodo-default",
-        nodeName: node ? node.name : "POP Central",
+        nodeId: node ? node.id : "",
+        nodeName: node ? node.name : "Sin nodo asignado",
         ipv4Address: serviceData.ipv4Address || `100.64.10.${Math.floor(Math.random() * 200) + 10}`,
         pppoeUser: serviceData.pppoeUser || newClient.identificationNumber,
         status: "activo",

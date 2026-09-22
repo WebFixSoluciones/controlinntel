@@ -76,6 +76,10 @@ export interface Client {
   currentBalance: number;
   createdAt: string;
   updatedAt: string;
+  contactName?: string;
+  contactRole?: string;
+  contactPhone?: string;
+  contactAddress?: string;
 }
 
 export interface Plan {
