@@ -151,19 +151,19 @@ export function UserManager() {
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="w-full space-y-6 select-none">
       {/* Header Banner */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Crown className="w-5 h-5 text-amber-500" />
+          <h2 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+            <Crown className="w-6 h-6 text-amber-500" />
             Configuración del Sistema: Control de Usuarios & Permisos RBAC
           </h2>
         </div>
 
         <button
           onClick={handleOpenNew}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Nuevo Usuario / Operador</span>
@@ -172,50 +172,50 @@ export function UserManager() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Usuarios</span>
-          <span className="text-xl font-black text-slate-900 mt-1 block">{totalUsers}</span>
-          <span className="text-[11px] text-slate-400">Operadores registrados</span>
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[10px] font-bold text-[#737686] uppercase tracking-wider block">Total Usuarios</span>
+          <span className="text-xl font-black text-[#0b1c30] mt-1 block">{totalUsers}</span>
+          <span className="text-[11px] text-[#737686]">Operadores registrados</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Super Administradores</span>
           <span className="text-xl font-black text-amber-700 mt-1 block">{superAdminsCount}</span>
           <span className="text-[11px] text-amber-600 font-bold">Control total del sistema</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Cuentas Activas</span>
           <span className="text-xl font-black text-emerald-700 mt-1 block">{activeCount}</span>
           <span className="text-[11px] text-emerald-600 font-bold">Habilitados para login</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bloqueados / Inactivos</span>
-          <span className="text-xl font-black text-slate-600 mt-1 block">{inactiveCount}</span>
-          <span className="text-[11px] text-slate-400">Acceso suspendido</span>
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[10px] font-bold text-[#737686] uppercase tracking-wider block">Bloqueados / Inactivos</span>
+          <span className="text-xl font-black text-[#434655] mt-1 block">{inactiveCount}</span>
+          <span className="text-[11px] text-[#737686]">Acceso suspendido</span>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 max-w-lg">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Buscar por nombre, correo o departamento..."
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-sky-500 font-medium"
+            className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] font-medium"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
+          <Filter className="w-3.5 h-3.5 text-[#737686]" />
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-slate-50 text-xs font-semibold text-slate-700 rounded-xl px-3 py-1.5 border border-slate-200 focus:outline-hidden cursor-pointer"
+            className="bg-white text-xs font-semibold text-[#434655] rounded-lg px-3 py-1.5 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
           >
             <option value="todos">Todos los Roles</option>
             <option value="superadmin">Super Admin</option>
@@ -230,23 +230,23 @@ export function UserManager() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4">Operador / Correo</th>
-                <th className="py-3 px-4">Rol & Nivel</th>
-                <th className="py-3 px-4">Departamento</th>
-                <th className="py-3 px-4">Permisos Asignados</th>
-                <th className="py-3 px-4">Estado</th>
-                <th className="py-3 px-4 text-right">Acciones</th>
+                <th className="py-3.5 px-5">Operador / Correo</th>
+                <th className="py-3.5 px-5">Rol & Nivel</th>
+                <th className="py-3.5 px-5">Departamento</th>
+                <th className="py-3.5 px-5">Permisos Asignados</th>
+                <th className="py-3.5 px-5">Estado</th>
+                <th className="py-3.5 px-5 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                  <td colSpan={6} className="py-8 text-center text-[#737686] italic">
                     No se encontraron usuarios con el criterio de búsqueda.
                   </td>
                 </tr>
@@ -255,7 +255,7 @@ export function UserManager() {
                   const isSuper = u.role === "superadmin";
 
                   return (
-                    <tr key={u.uid} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={u.uid} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div

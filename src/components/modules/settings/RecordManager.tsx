@@ -82,26 +82,26 @@ export function RecordManager({
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-[#e2e8f0] text-[#737686]">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+            <tr>
               {fields.slice(0, 4).map((f) => (
-                <th key={f.key} className="text-left py-2 px-3 font-semibold">
+                <th key={f.key} className="text-left py-3 px-4 font-bold">
                   {f.label}
                 </th>
               ))}
-              <th className="text-right py-2 px-3 font-semibold">Acciones</th>
+              <th className="text-right py-3 px-4 font-bold">Acciones</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
             {rows.map((row) => (
-              <tr key={String(row.id)} className="border-b border-slate-100 hover:bg-[#f8f9ff]">
+              <tr key={String(row.id)} className="hover:bg-[#f8f9ff] transition-colors">
                 {fields.slice(0, 4).map((f) => (
-                  <td key={f.key} className="py-2.5 px-3 font-medium text-[#0b1c30]">
+                  <td key={f.key} className="py-3 px-4 font-medium text-[#0b1c30]">
                     {f.options?.find((o) => o.value === row[f.key])?.label ||
                       String(row[f.key] ?? "—")}
                   </td>
                 ))}
-                <td className="py-2.5 px-3 text-right space-x-2">
+                <td className="py-3 px-4 text-right space-x-2">
                   <button
                     onClick={() => setSelected(row)}
                     className="inline-flex items-center gap-1 text-[#004ac6] hover:text-[#2563eb] font-bold cursor-pointer"
@@ -179,12 +179,30 @@ export function RecordManager({
     </section>
   );
 }
-export function PlansManager(){return <RecordManager entity="plans" title="Planes de servicio" defaults={{description:"",billingType:"pospago"}} fields={[
- {key:"name",label:"Nombre"},{key:"defaultPrice",label:"Tarifa mensual",type:"number"},
- {key:"downloadMbps",label:"Descarga Mbps",type:"number"},{key:"uploadMbps",label:"Subida Mbps",type:"number"},
- {key:"billingType",label:"Modalidad",type:"select",options:[{value:"prepago",label:"Prepago"},{value:"pospago",label:"Pospago"}]},
- {key:"description",label:"Descripción",required:false}
-]}/>;}
+
+export function PlansManager() {
+  return (
+    <RecordManager
+      entity="plans"
+      title="Catálogo Institucional de Planes de Servicio"
+      defaults={{ description: "", billingType: "pospago" }}
+      fields={[
+        { key: "name", label: "Nombre del Plan" },
+        { key: "defaultPrice", label: "Tarifa Mensual ($ USD)", type: "number" },
+        {
+          key: "billingType",
+          label: "Modalidad de Facturación",
+          type: "select",
+          options: [
+            { value: "pospago", label: "Pospago" },
+            { value: "prepago", label: "Prepago" },
+          ],
+        },
+        { key: "description", label: "Descripción Comercial", required: false },
+      ]}
+    />
+  );
+}
 export function PoolsEditor(){
  const {nodes}=useApp();
  return <RecordManager entity="ipPools" title="Administrar pools IP" defaults={{assignedIpsCount:0}} fields={[

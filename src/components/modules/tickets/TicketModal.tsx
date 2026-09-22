@@ -11,56 +11,75 @@ interface TicketModalProps {
   onClose: () => void;
 }
 
+const ISP_FAULT_TOPICS = [
+  "Corte de fibra óptica / Enlace caído",
+  "Atenuación alta de potencia óptica (dBm fuera de rango)",
+  "Pérdida de sincronismo ONT / Falla de aprovisionamiento",
+  "Lentitud en horario pico / Saturación de enlace",
+  "Problemas de enrutamiento BGP / IP pública no responde",
+  "Cambio de contraseña WiFi / Configuración LAN router",
+  "Reubicación física de acometida / Cambio de splitter",
+  "Falla de alimentación eléctrica en OLT / Respaldo UPS",
+  "Otro motivo técnico (personalizado)",
+];
+
 export function TicketModal({ isOpen, onClose }: TicketModalProps) {
-  const { addTicket, clients } = useApp();
+  const { addTicket, clients, systemUsers } = useApp();
   const { showError, showSuccess } = useToast();
 
   const [clientId, setClientId] = useState(clients[0]?.id || "");
-  const [title, setTitle] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState(ISP_FAULT_TOPICS[0]);
+  const [customTitle, setCustomTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TicketPriority>("media");
-  const [assignedToName, setAssignedToName] = useState("Tec. Santiago Morales");
+  const [assignedToName, setAssignedToName] = useState(
+    systemUsers.find((u) => u.role === "tecnico" || u.role === "soporte" || u.role === "admin")?.displayName ||
+    systemUsers[0]?.displayName ||
+    "Ing. Santiago Morales"
+  );
 
   if (!isOpen) return null;
 
+  const effectiveTitle = selectedTopic === "Otro motivo técnico (personalizado)" ? customTitle : selectedTopic;
+
   const handleSubmit = async (e: React.FormEvent) => {
     try {
+      e.preventDefault();
 
-    e.preventDefault();
+      if (!clientId) {
+        showError("Cliente No Seleccionado", "Debes vincular el ticket a un abonado registrado.");
+        return;
+      }
 
-    if (!clientId) {
-      showError("Cliente No Seleccionado", "Debes vincular el ticket a un abonado registrado.");
-      return;
+      if (!effectiveTitle || effectiveTitle.trim().length < 5) {
+        showError("Asunto Incompleto", "Describe brevemente la falla (mínimo 5 caracteres).");
+        return;
+      }
+
+      if (!description || description.trim().length < 10) {
+        showError("Detalle Insuficiente", "Ingresa un reporte técnico más detallado para la cuadrilla (mínimo 10 caracteres).");
+        return;
+      }
+
+      const client = clients.find((c) => c.id === clientId);
+
+      await addTicket({
+        clientId,
+        clientName: client?.businessName || "Cliente",
+        title: effectiveTitle,
+        description,
+        priority,
+        status: "abierto",
+        assignedToName,
+        category: "corte_fibra",
+      });
+
+      showSuccess("Ticket Creado", `Incidencia generada y notificada a ${assignedToName}.`);
+      onClose();
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." }));
     }
-
-    if (!title || title.trim().length < 5) {
-      showError("Asunto Incompleto", "Describe brevemente la falla (mínimo 5 caracteres).");
-      return;
-    }
-
-    if (!description || description.trim().length < 10) {
-      showError("Detalle Insuficiente", "Ingresa un reporte técnico más detallado para la cuadrilla (mínimo 10 caracteres).");
-      return;
-    }
-
-    const client = clients.find((c) => c.id === clientId);
-
-    await addTicket({
-      clientId,
-      clientName: client?.businessName || "Cliente",
-      title,
-      description,
-      priority,
-      status: "abierto",
-      assignedToName,
-      category: "corte_fibra",
-    });
-
-    showSuccess("Ticket Creado", `Incidencia generada y notificada a ${assignedToName}.`);
-    onClose();
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
@@ -86,18 +105,34 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
               ))}
             </select>
           </div>
+
           <div>
-            <label className="font-bold text-[#434655] block mb-1">Motivo / Asunto *</label>
-            <input
-              type="text"
-              required
-              placeholder="Atenuación alta en puerto GPON / Enlace caído"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+            <label className="font-bold text-[#434655] block mb-1">Motivo / Asunto Predefinido *</label>
+            <select
+              value={selectedTopic}
+              onChange={(e) => setSelectedTopic(e.target.value)}
               className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
-            />
+            >
+              {ISP_FAULT_TOPICS.map((topic) => (
+                <option key={topic} value={topic}>
+                  {topic}
+                </option>
+              ))}
+            </select>
+
+            {selectedTopic === "Otro motivo técnico (personalizado)" && (
+              <input
+                type="text"
+                required
+                placeholder="Escribe el motivo técnico específico..."
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                className="w-full mt-2 bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+              />
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="font-bold text-[#434655] block mb-1">Prioridad SLA</label>
               <select
@@ -112,13 +147,18 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
               </select>
             </div>
             <div>
-              <label className="font-bold text-[#434655] block mb-1">Técnico / Responsable</label>
-              <input
-                type="text"
+              <label className="font-bold text-[#434655] block mb-1">Técnico / Responsable Asignado *</label>
+              <select
                 value={assignedToName}
                 onChange={(e) => setAssignedToName(e.target.value)}
                 className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
-              />
+              >
+                {systemUsers.map((u) => (
+                  <option key={u.uid} value={u.displayName}>
+                    {u.displayName} ({u.role.toUpperCase()} {u.department ? `- ${u.department}` : ""})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div>

@@ -46,43 +46,140 @@ export function ExpensesManager() {
     setDescription("");
   
     } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
+
+  const [filterQuery, setFilterQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("todas");
+
+  const filteredExpenses = expenses.filter((e) => {
+    const matchesText =
+      e.supplierName.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      e.description.toLowerCase().includes(filterQuery.toLowerCase());
+    const matchesCat = categoryFilter === "todas" || e.category === categoryFilter;
+    return matchesText && matchesCat;
+  });
+
+  const totalOpex = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card p-6 space-y-4 select-none">
-      <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
+    <div className="w-full space-y-6 select-none">
+      {/* Header & KPI */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-[#712ae2]" />
-            Registro de Gastos Operativos (OPEX)
-          </h3>
+          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+            <Receipt className="w-6 h-6 text-[#712ae2]" />
+            Control de Gastos Operativos & OPEX
+          </h1>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
         >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Registrar Gasto</span>
+          <Plus className="w-4 h-4" />
+          <span>Registrar Gasto OPEX</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {expenses.map((exp) => (
-          <div key={exp.id} className="p-4 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0] text-xs flex flex-col justify-between">
-            <div>
-              <span className="px-2.5 py-0.5 rounded-md text-[9px] font-bold uppercase bg-white border border-[#cbd5e1] text-[#434655]">
-                {exp.category.replace("_", " ")}
-              </span>
-              <h4 className="font-bold text-[#0b1c30] text-sm mt-2">{exp.supplierName}</h4>
-              <p className="text-[11px] text-[#737686] mt-0.5">{exp.description}</p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-[#e2e8f0] flex items-center justify-between">
-              <span className="text-[10px] text-[#737686]">{exp.expenseDate}</span>
-              <span className="font-bold font-mono text-[#ef4444] text-sm">${exp.amount.toFixed(2)} USD</span>
-            </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Total Egresos OPEX</span>
+          <span className="text-2xl font-black text-[#ef4444] mt-1 block font-tnum">${totalOpex.toFixed(2)} USD</span>
+          <span className="text-[11px] text-[#737686]">{filteredExpenses.length} egresos contabilizados</span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Tránsito IP & Conectividad</span>
+          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
+            ${expenses.filter((e) => e.category === "enlace_transito").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
+          </span>
+          <span className="text-[11px] text-[#737686]">Enlaces dedicados BGP / Carriers</span>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Infraestructura & Nodos</span>
+          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
+            ${expenses.filter((e) => e.category === "alquiler_nodo" || e.category === "mantenimiento").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
+          </span>
+          <span className="text-[11px] text-[#737686]">Arriendos de torres y mantenimiento</span>
+        </div>
+      </div>
+
+      {/* Main Table Card */}
+      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+        {/* Search & Filters */}
+        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div className="relative flex-1 max-w-sm">
+            <input
+              type="text"
+              placeholder="Buscar por proveedor o detalle..."
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              className="w-full bg-white text-xs text-[#0b1c30] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#712ae2]"
+            />
           </div>
-        ))}
+
+          <div className="flex items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+            >
+              <option value="todas">Todas las Categorías</option>
+              <option value="enlace_transito">Tránsito IP</option>
+              <option value="alquiler_nodo">Alquiler Torre / Nodo</option>
+              <option value="fibra_equipos">Fibra & Equipos</option>
+              <option value="mantenimiento">Mantenimiento</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Expenses Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#f8f9ff] text-[#712ae2] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+              <tr>
+                <th className="py-3.5 px-5">Fecha</th>
+                <th className="py-3.5 px-5">Proveedor / Beneficiario</th>
+                <th className="py-3.5 px-5">Categoría</th>
+                <th className="py-3.5 px-5">Descripción / Concepto</th>
+                <th className="py-3.5 px-5 text-center">Método de Pago</th>
+                <th className="py-3.5 px-5 text-right font-tnum">Monto ($ USD)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
+              {filteredExpenses.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center text-[#737686] italic">
+                    No se encontraron gastos registrados con los filtros aplicados.
+                  </td>
+                </tr>
+              ) : (
+                filteredExpenses.map((exp) => (
+                  <tr key={exp.id} className="hover:bg-[#f8f9ff] transition-colors">
+                    <td className="py-3.5 px-5 font-mono text-[11px] text-[#737686]">{exp.expenseDate}</td>
+                    <td className="py-3.5 px-5 font-bold text-[#0b1c30]">{exp.supplierName}</td>
+                    <td className="py-3.5 px-5">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] border border-[#dce9ff] text-[#004ac6]">
+                        {exp.category.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-[#434655] max-w-sm">{exp.description}</td>
+                    <td className="py-3.5 px-5 text-center">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {exp.paymentMethod || "Transferencia"}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-right font-mono font-bold text-[#ef4444] text-sm">
+                      ${exp.amount.toFixed(2)} USD
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {isModalOpen && (

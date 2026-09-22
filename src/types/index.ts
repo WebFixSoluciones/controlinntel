@@ -204,6 +204,12 @@ export interface MonthlyCharge {
   status: "pendiente" | "pagado" | "anulado";
   paymentDate?: string;
   paymentMethod?: string;
+  paymentReference?: string;
+  maxPaymentDate?: string;
+  paidAmount?: number;
+  balanceRemaining?: number;
+  parentChargeId?: string;
+  isOccasional?: boolean;
   invoiceNumber: string;
 }
 

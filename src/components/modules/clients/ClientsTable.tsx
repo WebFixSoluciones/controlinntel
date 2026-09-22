@@ -35,6 +35,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
   const [statusFilter, setStatusFilter] = useState("todos");
   const [billingFilter, setBillingFilter] = useState("todas");
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filtered = clients.filter((c) => {
     const matchesQuery =
@@ -50,6 +51,12 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
 
     return matchesQuery && matchesStatus && matchesBilling;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedClients = filtered.slice((safeCurrentPage - 1) * itemsPerPage, safeCurrentPage * itemsPerPage);
+  const startIndex = filtered.length === 0 ? 0 : (safeCurrentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(safeCurrentPage * itemsPerPage, filtered.length);
 
   const handleDownloadContract = async (client: Client, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -181,14 +188,14 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
-              {filtered.length === 0 ? (
+              {paginatedClients.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-[#737686] italic">
                     No se encontraron clientes con el filtro aplicado.
                   </td>
                 </tr>
               ) : (
-                filtered.map((client, index) => {
+                paginatedClients.map((client, index) => {
                   const srv = clientServices.find((s) => s.clientId === client.id && s.status === "activo");
                   const category = getClientCategory(client, index);
                   const Icon = getClientIcon(client, index);
@@ -303,68 +310,43 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
           </table>
         </div>
 
-        {/* Pagination Footer matching Screenshot 3 */}
+        {/* Dynamic Pagination Footer */}
         <div className="p-4 border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686] bg-[#ffffff]">
           <span className="font-medium">
-            Mostrando <strong className="text-[#0b1c30]">1</strong> a{" "}
-            <strong className="text-[#0b1c30]">{filtered.length}</strong> de{" "}
-            <strong className="text-[#0b1c30]">1,248</strong> clientes
+            Mostrando <strong className="text-[#0b1c30]">{startIndex}</strong> a{" "}
+            <strong className="text-[#0b1c30]">{endIndex}</strong> de{" "}
+            <strong className="text-[#0b1c30]">{filtered.length}</strong> abonados
           </span>
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-md border border-[#cbd5e1] hover:bg-[#f8f9ff] disabled:opacity-40 cursor-pointer"
+              disabled={safeCurrentPage <= 1}
+              className="p-1.5 rounded-md border border-[#cbd5e1] hover:bg-[#f8f9ff] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Página anterior"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <button
-              onClick={() => setCurrentPage(1)}
-              className={`px-3 py-1 rounded-md font-bold text-xs ${
-                currentPage === 1
-                  ? "bg-[#004ac6] text-white"
-                  : "border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#0b1c30]"
-              }`}
-            >
-              1
-            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-1 rounded-md font-bold text-xs transition-colors ${
+                  safeCurrentPage === pageNum
+                    ? "bg-[#004ac6] text-white"
+                    : "border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#0b1c30]"
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
 
             <button
-              onClick={() => setCurrentPage(2)}
-              className={`px-3 py-1 rounded-md font-bold text-xs ${
-                currentPage === 2
-                  ? "bg-[#004ac6] text-white"
-                  : "border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#0b1c30]"
-              }`}
-            >
-              2
-            </button>
-
-            <button
-              onClick={() => setCurrentPage(3)}
-              className={`px-3 py-1 rounded-md font-bold text-xs ${
-                currentPage === 3
-                  ? "bg-[#004ac6] text-white"
-                  : "border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#0b1c30]"
-              }`}
-            >
-              3
-            </button>
-
-            <span className="px-1 text-[#737686]">...</span>
-
-            <button
-              onClick={() => setCurrentPage(125)}
-              className="px-3 py-1 rounded-md font-bold text-xs border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#0b1c30]"
-            >
-              125
-            </button>
-
-            <button
-              onClick={() => setCurrentPage((p) => p + 1)}
-              className="p-1.5 rounded-md border border-[#cbd5e1] hover:bg-[#f8f9ff] cursor-pointer"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              className="p-1.5 rounded-md border border-[#cbd5e1] hover:bg-[#f8f9ff] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Página siguiente"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

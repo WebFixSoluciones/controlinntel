@@ -126,7 +126,14 @@ interface AppContextType {
 
   addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
   generateMonthlyBillingBatch: (month: number, year: number) => Promise<void>;
-  markChargeAsPaid: (chargeId: string, method: string) => Promise<void>;
+  markChargeAsPaid: (
+    chargeId: string,
+    method: string,
+    reference?: string,
+    paidAmount?: number,
+    remainingBalance?: number
+  ) => Promise<void>;
+  addMonthlyCharge: (charge: Omit<MonthlyCharge, "id">) => Promise<void>;
 
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -1090,16 +1097,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("EXPORT_BILLING", "Emisión Cobros Día 1", `Lote para ${clients.length} clientes`);
   };
 
-  const markChargeAsPaid = async (chargeId: string, method: string) => {
-    const updated = {
-      status: "pagado" as const,
-      paymentDate: new Date().toISOString().split("T")[0],
-      paymentMethod: method,
+  const addMonthlyCharge = async (chargeData: Omit<MonthlyCharge, "id">) => {
+    const newCharge: MonthlyCharge = {
+      ...chargeData,
+      id: "chg-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
     };
-    await syncToFirestore("monthlyCharges", chargeId, updated);
-    setMonthlyCharges((prev) =>
-      prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
-    );
+    await syncToFirestore("monthlyCharges", newCharge.id, newCharge);
+    setMonthlyCharges((prev) => [newCharge, ...prev]);
+    addAuditLog("CREATE_EXPENSE", `Factura Manual: ${newCharge.invoiceNumber}`, `$${newCharge.total} USD - ${newCharge.clientName}`);
+  };
+
+  const markChargeAsPaid = async (
+    chargeId: string,
+    method: string,
+    reference?: string,
+    paidAmount?: number,
+    remainingBalance?: number
+  ) => {
+    const charge = monthlyCharges.find((c) => c.id === chargeId);
+    if (!charge) return;
+
+    if (remainingBalance && remainingBalance > 0 && paidAmount && paidAmount < charge.total) {
+      // Abono: mark current as paid for the partial amount
+      const updated = {
+        status: "pagado" as const,
+        paymentDate: new Date().toISOString().split("T")[0],
+        paymentMethod: method,
+        paymentReference: reference || "ABONO-REF",
+        paidAmount: paidAmount,
+        balanceRemaining: 0,
+      };
+      await syncToFirestore("monthlyCharges", chargeId, updated);
+
+      // Create new invoice for remaining balance
+      const remSubtotal = parseFloat((remainingBalance / 1.15).toFixed(2));
+      const remIva = parseFloat((remainingBalance - remSubtotal).toFixed(2));
+      const newBalanceCharge: MonthlyCharge = {
+        id: "chg-bal-" + Date.now(),
+        clientId: charge.clientId,
+        clientName: charge.clientName,
+        clientRuc: charge.clientRuc,
+        month: charge.month,
+        year: charge.year,
+        serviceDescription: `Saldo restante / Abono pendiente factura #${charge.invoiceNumber}`,
+        subtotal: remSubtotal,
+        ivaAmount: remIva,
+        total: remainingBalance,
+        status: "pendiente",
+        invoiceNumber: `${charge.invoiceNumber}-R`,
+        parentChargeId: charge.id,
+        maxPaymentDate: charge.maxPaymentDate,
+      };
+      await syncToFirestore("monthlyCharges", newBalanceCharge.id, newBalanceCharge);
+      setMonthlyCharges((prev) => [
+        newBalanceCharge,
+        ...prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c)),
+      ]);
+      addAuditLog("EXPORT_BILLING", `Abono a Factura: ${charge.invoiceNumber}`, `Abonado: $${paidAmount}, Saldo pendiente: $${remainingBalance}`);
+    } else {
+      const updated = {
+        status: "pagado" as const,
+        paymentDate: new Date().toISOString().split("T")[0],
+        paymentMethod: method,
+        paymentReference: reference || undefined,
+        paidAmount: charge.total,
+        balanceRemaining: 0,
+      };
+      await syncToFirestore("monthlyCharges", chargeId, updated);
+      setMonthlyCharges((prev) =>
+        prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
+      );
+      addAuditLog("EXPORT_BILLING", `Pago Registrado: ${charge.invoiceNumber}`, `$${charge.total} - ${method}`);
+    }
   };
 
   const resetDataToDefaults = async () => {
@@ -1185,6 +1254,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addExpense,
           generateMonthlyBillingBatch,
           markChargeAsPaid,
+          addMonthlyCharge,
           searchQuery,
           setSearchQuery,
           isSearchOpen,

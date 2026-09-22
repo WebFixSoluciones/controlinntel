@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Ticket, TicketStatus } from "@/types";
-import { Ticket as TicketIcon, Plus } from "lucide-react";
+import { Ticket as TicketIcon, Plus, Search, Eye } from "lucide-react";
 
 import { TicketDetail } from "./TicketDetail";
 
@@ -23,20 +23,21 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
   const handleStatusChange = async (t: Ticket, newStatus: TicketStatus) => {
     try {
-
-    await updateTicketStatus(t.id, newStatus);
-    if (newStatus === "resuelto") {
-      showSuccess("Ticket Resuelto", `Incidencia ${t.ticketNumber} marcada como resuelta.`);
-    } else {
-      showInfo("Estado Actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
+      await updateTicketStatus(t.id, newStatus);
+      if (newStatus === "resuelto") {
+        showSuccess("Ticket Resuelto", `Incidencia ${t.ticketNumber} marcada como resuelta.`);
+      } else {
+        showInfo("Estado Actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
+      }
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." }));
     }
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
 
   if (selected) return <TicketDetail key={selected} id={selected} onBack={() => setSelected(null)} />;
+
   return (
-    <div className="space-y-6 select-none">
+    <div className="w-full space-y-6 select-none">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
@@ -46,7 +47,17 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <input aria-label="Buscar tickets por cliente o número" placeholder="Cliente o número de ticket" value={query} onChange={e => setQuery(e.target.value)} className="rounded-lg border p-2 text-xs" />
+          <div className="relative min-w-[240px]">
+            <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
+            <input
+              aria-label="Buscar tickets por cliente o número"
+              placeholder="Buscar por cliente o ticket..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-lg border border-[#cbd5e1] pl-9 pr-3 py-2 text-xs bg-white text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
+            />
+          </div>
+
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -55,12 +66,13 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             <option value="todos">Todos los Estados</option>
             <option value="abierto">Abiertos</option>
             <option value="en_progreso">En Progreso</option>
-            <option value="resuelto">Resueltos</option><option value="cerrado">Cerrados</option>
+            <option value="resuelto">Resueltos</option>
+            <option value="cerrado">Cerrados</option>
           </select>
 
           <button
             onClick={onOpenNewModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Crear Ticket</span>
@@ -69,19 +81,19 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
-        <table className="min-w-[1250px] w-full text-left text-xs">
+        <table className="w-full text-left text-xs">
           <caption className="sr-only">Tickets de soporte registrados</caption>
-          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th scope="col" className="px-5 py-3 font-bold">Ticket</th>
-              <th scope="col" className="px-5 py-3 font-bold">Incidencia</th>
-              <th scope="col" className="px-5 py-3 font-bold">Cliente / Nodo</th>
-              <th scope="col" className="px-5 py-3 font-bold">Asignado a</th>
-              <th scope="col" className="px-5 py-3 font-bold">Prioridad</th>
-              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
-              <th scope="col" className="px-5 py-3 text-right font-bold">Fecha de solicitud</th>
-              <th scope="col" className="px-5 py-3">N.º soportes del cliente</th>
-              <th scope="col" className="px-5 py-3">Acciones</th>
+              <th scope="col" className="px-5 py-3.5">Ticket</th>
+              <th scope="col" className="px-5 py-3.5">Incidencia</th>
+              <th scope="col" className="px-5 py-3.5">Cliente / Nodo</th>
+              <th scope="col" className="px-5 py-3.5">Asignado a</th>
+              <th scope="col" className="px-5 py-3.5">Prioridad</th>
+              <th scope="col" className="px-5 py-3.5">Estado</th>
+              <th scope="col" className="px-5 py-3.5 text-right">Fecha de Solicitud</th>
+              <th scope="col" className="px-5 py-3.5 text-center">Historial</th>
+              <th scope="col" className="px-5 py-3.5 text-right">Acción</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -92,19 +104,23 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                 </td>
               </tr>
             ) : filtered.map((t) => (
-              <tr key={t.id} className="hover:bg-[#f8f9ff]">
-                <th scope="row" className="px-5 py-4 font-mono font-bold"><button onClick={() => setSelected(t.id)} className="text-blue-700 underline">{t.ticketNumber}</button></th>
-                <td className="max-w-sm px-5 py-4">
-                  <div className="font-bold">{t.title}</div>
-                  <div className="mt-0.5 line-clamp-2 text-[11px] text-[#737686]">{t.description}</div>
-                  {t.resolutionNotes && <div className="mt-1 line-clamp-1 text-[10px] font-semibold text-[#065f46]">✓ {t.resolutionNotes}</div>}
+              <tr key={t.id} className="hover:bg-[#f8f9ff] transition-colors">
+                <th scope="row" className="px-5 py-3.5 font-mono font-bold">
+                  <button onClick={() => setSelected(t.id)} className="text-[#004ac6] hover:underline cursor-pointer">
+                    {t.ticketNumber}
+                  </button>
+                </th>
+                <td className="max-w-sm px-5 py-3.5">
+                  <div className="font-bold text-[#0b1c30]">{t.title}</div>
+                  <div className="mt-0.5 line-clamp-1 text-[11px] text-[#737686]">{t.description}</div>
+                  {t.resolutionNotes && <div className="mt-0.5 line-clamp-1 text-[10px] font-semibold text-[#065f46]">✓ {t.resolutionNotes}</div>}
                 </td>
-                <td className="px-5 py-4">
-                  <div className="font-bold">{t.clientName}</div>
+                <td className="px-5 py-3.5">
+                  <div className="font-bold text-[#0b1c30]">{t.clientName}</div>
                   {t.nodeName && <div className="mt-0.5 text-[11px] text-[#737686]">Nodo: {t.nodeName}</div>}
                 </td>
-                <td className="px-5 py-4 font-semibold text-[#004ac6]">{t.assignedToName || "NOC Central"}</td>
-                <td className="px-5 py-4">
+                <td className="px-5 py-3.5 font-semibold text-[#004ac6]">{t.assignedToName || "NOC Central"}</td>
+                <td className="px-5 py-3.5">
                   <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                     t.priority === "critica"
                       ? "border-[#fecaca] bg-[#fef2f2] text-[#991b1b]"
@@ -115,12 +131,12 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                     {t.priority}
                   </span>
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-5 py-3.5">
                   <select
                     value={t.status}
                     onChange={(e) => void handleStatusChange(t, e.target.value as TicketStatus)}
                     aria-label={`Estado del ticket ${t.ticketNumber}`}
-                    className="rounded-lg border border-[#cbd5e1] bg-[#f8f9ff] px-2.5 py-1 text-xs font-bold text-[#0b1c30]"
+                    className="rounded-lg border border-[#cbd5e1] bg-white px-2.5 py-1 text-xs font-bold text-[#0b1c30] cursor-pointer"
                   >
                     <option value="abierto">Abierto</option>
                     <option value="en_progreso">En Progreso</option>
@@ -128,11 +144,23 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                     <option value="cerrado">Cerrado</option>
                   </select>
                 </td>
-                <td className="px-5 py-4 text-right font-mono text-[10px] text-[#737686]">
-                  {new Date(t.createdAt).toLocaleString("es-EC")}
+                <td className="px-5 py-3.5 text-right font-mono text-[11px] text-[#737686]">
+                  {new Date(t.createdAt).toLocaleDateString("es-EC")}
                 </td>
-                <td className="px-5 py-4 tabular-nums">{tickets.filter(other => other.clientId === t.clientId).length}</td>
-                <td className="px-5 py-4"><button onClick={() => setSelected(t.id)} className="text-blue-700 underline">Ver ticket</button></td>
+                <td className="px-5 py-3.5 text-center">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#f1f5f9] text-[#434655] font-bold text-[11px]">
+                    {tickets.filter(other => other.clientId === t.clientId).length}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-right">
+                  <button
+                    onClick={() => setSelected(t.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Ver</span>
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
