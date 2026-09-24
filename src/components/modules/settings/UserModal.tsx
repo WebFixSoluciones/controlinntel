@@ -28,7 +28,7 @@ interface UserModalProps {
 
 const ALL_PERMISSIONS: { id: SystemPermission; label: string; desc: string }[] = [
   { id: "all", label: "Control Total del Sistema (Super Admin)", desc: "Acceso irrestricto a todos los módulos y pestañas" },
-  { id: "manage_network", label: "Nodos & Infraestructura (Red IP)", desc: "Módulo Nodos multi-carrier y pestaña Red & IP en Ficha 360°" },
+  { id: "manage_network", label: "Nodos, Red & Proyectos (Obras)", desc: "Módulos Nodos, Proyectos (Trello) y pestaña Obras en Ficha 360°" },
   { id: "manage_policies", label: "ARCOTEL & Cumplimiento Regulatorio", desc: "Módulo ARCOTEL (SIETEL, FODETEL, BDH) y pestaña Contratos en Ficha 360°" },
   { id: "manage_finance", label: "Cobros & Finanzas", desc: "Módulo Finanzas (Facturas, Pagos, OPEX) y pestañas Cobros / Cotizaciones" },
   { id: "manage_clients", label: "Clientes & Ficha 360°", desc: "Creación y administración de clientes, pestaña Identificación e Informe 360°" },

@@ -17,6 +17,7 @@ export const routePermissions: Record<string, string> = {
   "/arcotel": "manage_policies",
   "/boveda": "manage_vault",
   "/red": "manage_network",
+  "/proyectos": "manage_network",
   "/tickets": "manage_tickets",
   "/finanzas": "manage_finance",
   "/plantillas": "export_reports",

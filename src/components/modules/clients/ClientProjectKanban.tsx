@@ -1,206 +1,300 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Client, ClientProjectTask, ProjectKanbanColumn } from "@/types";
+import {
+  Client,
+  ClientProjectTask,
+  ProjectBoardFlow,
+  ProjectKanbanColumn,
+} from "@/types";
+import {
+  ProjectTaskModal,
+  ISP_FLOW_COLUMNS,
+  GENERAL_FLOW_COLUMNS,
+} from "@/components/modules/projects/ProjectTaskModal";
 import {
   Kanban,
   Plus,
   Clock,
   User,
-  CheckCircle2,
-  AlertTriangle,
-  ChevronRight,
-  ChevronLeft,
+  CheckSquare,
+  MessageSquare,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
   Trash2,
-  X,
-  Calendar,
+  Edit2,
+  ChevronLeft,
+  ChevronRight,
   Layers,
-  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 
 interface ClientProjectKanbanProps {
   client: Client;
 }
 
-const KANBAN_COLUMNS: { id: ProjectKanbanColumn; label: string; color: string; dotColor: string }[] = [
-  { id: "factibilidad", label: "1. Factibilidad Técnica", color: "bg-slate-100 text-slate-700 border-slate-200", dotColor: "bg-slate-400" },
-  { id: "tendido_fibra", label: "2. Tendido de Fibra", color: "bg-sky-50 text-sky-700 border-sky-200", dotColor: "bg-sky-500" },
-  { id: "fusion_splitters", label: "3. Fusión & Splitters", color: "bg-indigo-50 text-indigo-700 border-indigo-200", dotColor: "bg-indigo-500" },
-  { id: "instalacion_ont", label: "4. Instalación de ONT", color: "bg-purple-50 text-purple-700 border-purple-200", dotColor: "bg-purple-500" },
-  { id: "pruebas_homologacion", label: "5. Pruebas & Homologación", color: "bg-amber-50 text-amber-700 border-amber-200", dotColor: "bg-amber-500" },
-  { id: "completado", label: "6. Entregado & Operativo", color: "bg-emerald-50 text-emerald-700 border-emerald-200", dotColor: "bg-emerald-500" },
-];
-
 export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
-  const { clientProjects, addClientProjectTask, updateClientProjectTask, moveProjectTaskColumn, deleteClientProjectTask } = useApp();
+  const {
+    clientProjects,
+    moveProjectTaskColumn,
+    deleteClientProjectTask,
+  } = useApp();
   const { showSuccess, showConfirm } = useToast();
 
+  const [activeFlow, setActiveFlow] = useState<ProjectBoardFlow>("isp_tecnico");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newColumn, setNewColumn] = useState<ProjectKanbanColumn>("factibilidad");
-  const [newPriority, setNewPriority] = useState<ClientProjectTask["priority"]>("media");
-  const [newAssigned, setNewAssigned] = useState("Cuadrilla NOC Central");
-  const [newDueDate, setNewDueDate] = useState(new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0]);
-  const [newChecklistText, setNewChecklistText] = useState("");
-  const [checklistItems, setChecklistItems] = useState<{ id: string; text: string; done: boolean }[]>([]);
+  const [taskToEdit, setTaskToEdit] = useState<ClientProjectTask | null>(null);
+  const [modalDefaultCol, setModalDefaultCol] = useState<ProjectKanbanColumn | undefined>(undefined);
 
   // Drag and drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<ProjectKanbanColumn | null>(null);
 
-  const clientTasks = clientProjects.filter((t) => t.clientId === client.id);
+  // Filter tasks belonging to this client
+  const clientTasks = useMemo(() => {
+    return clientProjects.filter((t) => t.clientId === client.id);
+  }, [clientProjects, client.id]);
 
-  const handleAddChecklist = () => {
-    if (!newChecklistText.trim()) return;
-    setChecklistItems([
-      ...checklistItems,
-      { id: "chk-" + Date.now(), text: newChecklistText.trim(), done: false },
-    ]);
-    setNewChecklistText("");
-  };
-
-  const handleRemoveChecklist = (id: string) => {
-    setChecklistItems(checklistItems.filter((i) => i.id !== id));
-  };
-
-  const handleCreateTask = async (e: React.FormEvent) => {
-    try {
-
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    await addClientProjectTask({
-      clientId: client.id,
-      clientName: client.businessName,
-      title: newTitle.trim(),
-      description: newDesc.trim(),
-      column: newColumn,
-      priority: newPriority,
-      assignedTo: newAssigned,
-      dueDate: newDueDate,
-      checklist: checklistItems,
+  // Tasks filtered by flow
+  const currentFlowTasks = useMemo(() => {
+    return clientTasks.filter((t) => {
+      const flow = t.boardFlow || "isp_tecnico";
+      return flow === activeFlow;
     });
+  }, [clientTasks, activeFlow]);
 
-    showSuccess("Tarea Registrada", `Fase agregada a la columna de ${newColumn}.`);
-    setIsModalOpen(false);
-    setNewTitle("");
-    setNewDesc("");
-    setChecklistItems([]);
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  // Active columns based on current flow
+  const currentColumns = activeFlow === "isp_tecnico" ? ISP_FLOW_COLUMNS : GENERAL_FLOW_COLUMNS;
 
-  const handleToggleChecklist = async (task: ClientProjectTask, chkId: string) => {
-    try {
+  // Financial calculations for this client
+  const clientTotalBudget = useMemo(() => {
+    return clientTasks.reduce((acc, t) => acc + (t.estimatedBudget || 0), 0);
+  }, [clientTasks]);
 
-    const updatedChecklist = task.checklist.map((c) =>
-      c.id === chkId ? { ...c, done: !c.done } : c
-    );
-    await updateClientProjectTask(task.id, { checklist: updatedChecklist });
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  const clientExecutedCost = useMemo(() => {
+    return clientTasks.reduce((acc, t) => acc + (t.executedCost || 0), 0);
+  }, [clientTasks]);
 
-  const handleDeleteTask = (task: ClientProjectTask) => {
-    showConfirm(
-      "¿Eliminar Tarea del Tablero?",
-      `¿Deseas remover la tarjeta "${task.title}" del seguimiento de obra?`,
-      async () => {
-    try {
+  const clientRemainingBalance = clientTotalBudget - clientExecutedCost;
+  const isOverBudget = clientRemainingBalance < 0;
 
-        await deleteClientProjectTask(task.id);
-        showSuccess("Tarea Eliminada", "La tarjeta ha sido removida del tablero.");
-      
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-},
-      "Eliminar"
-    );
-  };
+  const totalTasksCount = clientTasks.length;
+  const completedTasksCount = clientTasks.filter(
+    (t) => t.column === "completado" || t.column === "finalizado"
+  ).length;
 
   // Drag handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedTaskId(id);
     e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, colId: ProjectKanbanColumn) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverColumn !== colId) {
+      setDragOverColumn(colId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
   };
 
   const handleDrop = async (e: React.DragEvent, targetCol: ProjectKanbanColumn) => {
-    try {
-
     e.preventDefault();
+    setDragOverColumn(null);
     const id = e.dataTransfer.getData("text/plain") || draggedTaskId;
     if (id) {
-      await moveProjectTaskColumn(id, targetCol);
+      try {
+        await moveProjectTaskColumn(id, targetCol);
+        showSuccess("Fase Actualizada", "Proyecto reubicado exitosamente.");
+      } catch (err) {
+        // Error handling
+      }
       setDraggedTaskId(null);
     }
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
 
+  // Shift column handlers
   const handleShiftColumn = async (task: ClientProjectTask, direction: "prev" | "next") => {
-    try {
-
-    const currentIndex = KANBAN_COLUMNS.findIndex((c) => c.id === task.column);
-    if (direction === "next" && currentIndex < KANBAN_COLUMNS.length - 1) {
-      await moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex + 1].id);
+    const currentIndex = currentColumns.findIndex((c) => c.id === task.column);
+    if (direction === "next" && currentIndex < currentColumns.length - 1) {
+      await moveProjectTaskColumn(task.id, currentColumns[currentIndex + 1].id);
     } else if (direction === "prev" && currentIndex > 0) {
-      await moveProjectTaskColumn(task.id, KANBAN_COLUMNS[currentIndex - 1].id);
+      await moveProjectTaskColumn(task.id, currentColumns[currentIndex - 1].id);
     }
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
+
+  // Delete task handler
+  const handleDeleteTask = (task: ClientProjectTask) => {
+    showConfirm(
+      "¿Eliminar Tarea del Tablero?",
+      `¿Deseas remover la tarjeta "${task.title}" del seguimiento de obra del cliente?`,
+      async () => {
+        try {
+          await deleteClientProjectTask(task.id);
+          showSuccess("Tarea Eliminada", "La tarjeta ha sido removida del tablero.");
+        } catch (err) {
+          // Error handling
+        }
+      },
+      "Eliminar"
+    );
+  };
+
+  // Open modal handlers
+  const handleOpenCreate = (colId?: ProjectKanbanColumn) => {
+    setTaskToEdit(null);
+    setModalDefaultCol(colId || (activeFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar"));
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (task: ClientProjectTask) => {
+    setTaskToEdit(task);
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="space-y-4 select-none">
-      {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-        <div>
-          <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-            <Kanban className="w-4 h-4 text-sky-600" />
-            Tablero de Despliegue de Obra & Proyectos (Tipo Trello)
-          </h4>
+      {/* 1. Header & Summary KPIs */}
+      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+              <Kanban className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 text-xs">
+                Seguimiento de Obras & Despliegue de Enlace
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Tablero Kanban individual sincronizado con el Módulo General de Proyectos
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Flow Switcher */}
+            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setActiveFlow("isp_tecnico")}
+                className={`px-2.5 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
+                  activeFlow === "isp_tecnico"
+                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Flujo ISP
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveFlow("general")}
+                className={`px-2.5 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
+                  activeFlow === "general"
+                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Flujo General
+              </button>
+            </div>
+
+            <button
+              onClick={() => handleOpenCreate()}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nueva Fase / Tarea</span>
+            </button>
+          </div>
         </div>
 
-        <button
-          onClick={() => {
-            setChecklistItems([]);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Nueva Etapa / Tarea</span>
-        </button>
+        {/* Financial Mini-KPIs for this client */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-200/60">
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Presupuesto Obra</span>
+              <p className="text-xs font-extrabold text-slate-900">${clientTotalBudget.toFixed(2)}</p>
+            </div>
+            <DollarSign className="w-4 h-4 text-blue-500" />
+          </div>
+
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Costo Ejecutado</span>
+              <p className="text-xs font-extrabold text-slate-900">${clientExecutedCost.toFixed(2)}</p>
+            </div>
+            <TrendingUp className="w-4 h-4 text-sky-500" />
+          </div>
+
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Balance Restante</span>
+              <p className={`text-xs font-extrabold ${isOverBudget ? "text-rose-600" : "text-emerald-700"}`}>
+                ${clientRemainingBalance.toFixed(2)}
+              </p>
+            </div>
+            {isOverBudget ? (
+              <TrendingDown className="w-4 h-4 text-rose-500" />
+            ) : (
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
+            )}
+          </div>
+
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase text-slate-400">Fases Entregadas</span>
+              <p className="text-xs font-extrabold text-slate-900">{completedTasksCount} / {totalTasksCount}</p>
+            </div>
+            <CheckCircle2 className="w-4 h-4 text-purple-500" />
+          </div>
+        </div>
       </div>
 
-      {/* Kanban Board Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 overflow-x-auto pb-2 min-h-[420px]">
-        {KANBAN_COLUMNS.map((col) => {
-          const colTasks = clientTasks.filter((t) => t.column === col.id);
+      {/* 2. Kanban Board Columns Grid */}
+      <div className={`grid grid-cols-1 ${activeFlow === "isp_tecnico" ? "md:grid-cols-3 lg:grid-cols-6" : "md:grid-cols-2 lg:grid-cols-4"} gap-3 overflow-x-auto pb-2 min-h-[420px]`}>
+        {currentColumns.map((col) => {
+          const colTasks = currentFlowTasks.filter((t) => t.column === col.id);
+          const isDragTarget = dragOverColumn === col.id;
 
           return (
             <div
               key={col.id}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, col.id)}
+              onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, col.id)}
-              className="bg-slate-50/80 rounded-2xl border border-slate-200/90 flex flex-col p-2.5 transition-colors hover:border-sky-300"
+              className={`rounded-2xl border flex flex-col p-2.5 transition-all ${
+                isDragTarget
+                  ? "bg-blue-50/80 border-[#004ac6] ring-2 ring-[#004ac6]/30 shadow-md"
+                  : "bg-slate-50/80 border-slate-200/90 hover:border-slate-300"
+              }`}
             >
               {/* Column Header */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 mb-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className={`w-2 h-2 rounded-full ${col.dotColor}`} />
+                  <span className={`w-2 h-2 rounded-full ${col.dot}`} />
                   <span className="font-bold text-slate-800 text-[11px] truncate" title={col.label}>
-                    {col.label}
+                    {col.shortLabel}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold bg-white text-slate-600 px-1.5 py-0.2 rounded-full border border-slate-200">
-                  {colTasks.length}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold bg-white text-slate-600 px-1.5 py-0.2 rounded-full border border-slate-200">
+                    {colTasks.length}
+                  </span>
+                  <button
+                    onClick={() => handleOpenCreate(col.id)}
+                    className="p-0.5 text-slate-400 hover:text-[#004ac6] rounded transition-colors cursor-pointer"
+                    title={`Añadir tarea a ${col.shortLabel}`}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
               {/* Tasks List */}
@@ -211,8 +305,12 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                   </div>
                 ) : (
                   colTasks.map((task) => {
-                    const completedChecklist = task.checklist.filter((c) => c.done).length;
-                    const totalChecklist = task.checklist.length;
+                    const completedChecklist = task.checklist ? task.checklist.filter((c) => c.done).length : 0;
+                    const totalChecklist = task.checklist ? task.checklist.length : 0;
+                    const checklistPercent = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
+                    const isTaskOverdue = new Date(task.dueDate).getTime() < Date.now() && task.column !== "completado" && task.column !== "finalizado";
+                    const isTaskOverBudget = (task.executedCost || 0) > (task.estimatedBudget || 0) && (task.estimatedBudget || 0) > 0;
+                    const notesCount = task.notesThread ? task.notesThread.length : 0;
 
                     return (
                       <div
@@ -221,7 +319,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-2 group"
                       >
-                        {/* Priority & Delete */}
+                        {/* Priority & Actions */}
                         <div className="flex items-center justify-between">
                           <span
                             className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded ${
@@ -235,18 +333,32 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                             {task.priority}
                           </span>
 
-                          <button
-                            onClick={() => handleDeleteTask(task)}
-                            className="text-slate-300 hover:text-rose-600 p-0.5 rounded cursor-pointer"
-                            title="Eliminar tarea"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleOpenEdit(task)}
+                              className="text-slate-400 hover:text-[#004ac6] p-0.5 rounded cursor-pointer"
+                              title="Editar Ficha"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task)}
+                              className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
+                              title="Eliminar tarea"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Title & Desc */}
                         <div>
-                          <h5 className="font-bold text-xs text-slate-900 leading-snug">{task.title}</h5>
+                          <h5
+                            onClick={() => handleOpenEdit(task)}
+                            className="font-bold text-xs text-slate-900 leading-snug hover:text-[#004ac6] cursor-pointer transition-colors"
+                          >
+                            {task.title}
+                          </h5>
                           {task.description && (
                             <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
                               {task.description}
@@ -258,63 +370,78 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                         {totalChecklist > 0 && (
                           <div className="space-y-1 pt-1 border-t border-slate-100 text-[10px]">
                             <div className="flex items-center justify-between text-slate-500 font-bold">
-                              <span>Checklist Técnico</span>
+                              <span className="flex items-center gap-1">
+                                <CheckSquare className="w-3 h-3 text-slate-400" />
+                                Subtareas
+                              </span>
                               <span>
-                                {completedChecklist}/{totalChecklist}
+                                {completedChecklist}/{totalChecklist} ({checklistPercent}%)
                               </span>
                             </div>
-                            <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                               <div
-                                className="bg-emerald-500 h-1 transition-all"
-                                style={{ width: `${(completedChecklist / totalChecklist) * 100}%` }}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                  checklistPercent === 100 ? "bg-emerald-500" : "bg-[#004ac6]"
+                                }`}
+                                style={{ width: `${checklistPercent}%` }}
                               />
-                            </div>
-                            <div className="space-y-0.5 mt-1 max-h-20 overflow-y-auto">
-                              {task.checklist.map((c) => (
-                                <label
-                                  key={c.id}
-                                  className="flex items-center gap-1.5 text-slate-600 cursor-pointer"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={c.done}
-                                    onChange={() => handleToggleChecklist(task, c.id)}
-                                    className="rounded border-slate-300 text-sky-600"
-                                  />
-                                  <span className={`truncate ${c.done ? "line-through text-slate-400" : ""}`}>
-                                    {c.text}
-                                  </span>
-                                </label>
-                              ))}
                             </div>
                           </div>
                         )}
 
-                        {/* Assignee & Due Date */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                          <span className="flex items-center gap-1 truncate max-w-[90px]" title={task.assignedTo}>
-                            <User className="w-3 h-3" /> {task.assignedTo.split(" ")[0]}
+                        {/* Financial Pill */}
+                        {(task.estimatedBudget !== undefined || task.executedCost !== undefined) && (
+                          <div className="flex items-center justify-between p-1 rounded-md bg-slate-50 border border-slate-200/70 text-[10px]">
+                            <span className="text-slate-500 font-semibold flex items-center gap-0.5">
+                              <DollarSign className="w-3 h-3 text-slate-400" />
+                              Costo / Presup.
+                            </span>
+                            <span className={`font-bold ${isTaskOverBudget ? "text-rose-600" : "text-slate-800"}`}>
+                              ${task.executedCost || 0} / ${task.estimatedBudget || 0}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Metadata Footer */}
+                        <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1 truncate max-w-[55%]">
+                            <User className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="truncate">{task.assignedTo || "Cuadrilla NOC"}</span>
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {task.dueDate}
-                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {notesCount > 0 && (
+                              <span className="flex items-center gap-0.5 text-slate-500 font-bold" title={`${notesCount} notas`}>
+                                <MessageSquare className="w-3 h-3 text-slate-400" />
+                                {notesCount}
+                              </span>
+                            )}
+                            <span className={`flex items-center gap-0.5 ${isTaskOverdue ? "text-rose-600 font-bold" : "text-slate-500"}`}>
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span>{task.dueDate.split("-").slice(1).join("/")}</span>
+                            </span>
+                          </div>
                         </div>
 
                         {/* Shift Controls */}
-                        <div className="pt-1 flex items-center justify-between">
+                        <div className="pt-1 flex items-center justify-between border-t border-slate-100/60 opacity-60 hover:opacity-100 transition-opacity">
                           <button
+                            type="button"
                             onClick={() => handleShiftColumn(task, "prev")}
-                            disabled={col.id === "factibilidad"}
-                            className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-30 cursor-pointer"
+                            disabled={currentColumns.findIndex((c) => c.id === task.column) === 0}
+                            className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
                             title="Mover a etapa anterior"
                           >
                             <ChevronLeft className="w-3 h-3" />
                           </button>
 
+                          <span className="text-[9px] text-slate-400">Mover</span>
+
                           <button
+                            type="button"
                             onClick={() => handleShiftColumn(task, "next")}
-                            disabled={col.id === "completado"}
-                            className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-30 cursor-pointer"
+                            disabled={currentColumns.findIndex((c) => c.id === task.column) === currentColumns.length - 1}
+                            className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
                             title="Avanzar a siguiente etapa"
                           >
                             <ChevronRight className="w-3 h-3" />
@@ -330,157 +457,16 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
         })}
       </div>
 
-      {/* New Task Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Kanban className="w-4 h-4 text-sky-600" />
-                Nueva Tarea / Fase de Obra
-              </h4>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTask} className="p-5 overflow-y-auto space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Título de la Fase *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Fusión de Splitter 1:8 en Caja NAP 04"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Descripción / Instrucciones Técnicas</label>
-                <textarea
-                  rows={2}
-                  placeholder="Detalles sobre atenuación esperada, bobina de fibra a utilizar y herrajes..."
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Fase / Columna</label>
-                  <select
-                    value={newColumn}
-                    onChange={(e) => setNewColumn(e.target.value as ProjectKanbanColumn)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 font-bold"
-                  >
-                    {KANBAN_COLUMNS.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Prioridad</label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value as ClientProjectTask["priority"])}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 font-bold"
-                  >
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="urgente">Urgente</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Fecha Límite</label>
-                  <input
-                    type="date"
-                    value={newDueDate}
-                    onChange={(e) => setNewDueDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Cuadrilla / Responsable</label>
-                <input
-                  type="text"
-                  placeholder="Ing. Carlos Benítez / Cuadrilla 2"
-                  value={newAssigned}
-                  onChange={(e) => setNewAssigned(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
-                />
-              </div>
-
-              {/* Checklist Builder */}
-              <div className="pt-2 border-t border-slate-100 space-y-2">
-                <label className="font-bold text-slate-700 block">Checklist Técnico de Validación</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Añadir ítem (Ej: Medición de potencia -19 dBm)"
-                    value={newChecklistText}
-                    onChange={(e) => setNewChecklistText(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddChecklist}
-                    className="px-3 py-1.5 bg-slate-900 text-white font-bold rounded-xl cursor-pointer"
-                  >
-                    Añadir
-                  </button>
-                </div>
-
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {checklistItems.map((chk) => (
-                    <div
-                      key={chk.id}
-                      className="flex items-center justify-between p-2 bg-slate-50 rounded-xl text-slate-700"
-                    >
-                      <span className="truncate">{chk.text}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveChecklist(chk.id)}
-                        className="text-slate-400 hover:text-rose-600"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 font-bold text-slate-600 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold shadow-sm cursor-pointer"
-                >
-                  Guardar Tarjeta
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Project Task Modal for Create and Edit */}
+      <ProjectTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        taskToEdit={taskToEdit}
+        defaultFlow={activeFlow}
+        defaultColumn={modalDefaultCol}
+        defaultClientId={client.id}
+        defaultClientName={client.businessName}
+      />
     </div>
   );
 }

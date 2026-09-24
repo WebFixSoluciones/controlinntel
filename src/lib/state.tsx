@@ -19,6 +19,7 @@ import {
   UserRole,
   SystemUser,
   ClientProjectTask,
+  ProjectNoteItem,
   ClientQuoteOrder,
   ClientVaultItem,
   ClientContractInfo,
@@ -96,6 +97,7 @@ interface AppContextType {
   addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => Promise<void>;
   moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn) => Promise<void>;
+  addProjectTaskNote: (taskId: string, content: string) => Promise<void>;
   deleteClientProjectTask: (id: string) => Promise<void>;
 
   clientQuotes: ClientQuoteOrder[];
@@ -842,6 +844,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await updateClientProjectTask(id, { column: newColumn });
   };
 
+  const addProjectTaskNote = async (taskId: string, content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    const newNote: ProjectNoteItem = {
+      id: "nt-" + Date.now(),
+      authorName: currentUser.displayName || "Usuario",
+      authorRole: currentUser.role ? currentUser.role.toUpperCase() : "STAFF",
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+    const targetTask = clientProjects.find((t) => t.id === taskId);
+    const updatedThread = [newNote, ...(targetTask?.notesThread || [])];
+    await updateClientProjectTask(taskId, { notesThread: updatedThread });
+    addAuditLog("CREATE_CLIENT", `Nota en Proyecto: ${targetTask?.title || taskId}`, `Autor: ${currentUser.displayName}`);
+  };
+
   const deleteClientProjectTask = async (id: string) => {
     await deleteFromFirestore("clientProjects", id);
     setClientProjects((prev) => prev.filter((t) => t.id !== id));
@@ -1285,6 +1303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addClientProjectTask,
           updateClientProjectTask,
           moveProjectTaskColumn,
+          addProjectTaskNote,
           deleteClientProjectTask,
           clientQuotes,
           addClientQuote,

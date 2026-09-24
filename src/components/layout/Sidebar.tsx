@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   KeyRound,
   Radio,
+  Kanban,
   Ticket as TicketIcon,
   DollarSign,
   FileText,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/red", label: "Nodos", icon: Radio },
+  { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/finanzas", label: "Finanzas", icon: DollarSign },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
@@ -35,11 +37,12 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, clientContracts, tickets, logout } = useApp();
+  const { currentUser, clientContracts, tickets, clientProjects, logout } = useApp();
   const { showConfirm, showInfo } = useToast();
 
   const expiringPolicies = clientContracts.filter((p) => p.status === "por_renovar").length;
   const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
+  const activeProjects = clientProjects.filter((p) => p.column !== "completado" && p.column !== "finalizado").length;
 
   const handleLogout = () => {
     showConfirm(
@@ -101,6 +104,11 @@ export function Sidebar() {
                 {item.href === "/arcotel" && expiringPolicies > 0 && (
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fffbeb] text-[#92400e] border border-[#fde68a] animate-pulse">
                     {expiringPolicies}
+                  </span>
+                )}
+                {item.href === "/proyectos" && activeProjects > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#e0e7ff] text-[#3730a3] border border-[#c7d2fe]">
+                    {activeProjects}
                   </span>
                 )}
                 {item.href === "/tickets" && openTickets > 0 && (

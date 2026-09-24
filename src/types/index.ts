@@ -309,13 +309,21 @@ export interface AuditLog {
 // CLIENT-CENTRIC 360° EXTENSION TYPES
 // ==========================================
 
+export type ProjectBoardFlow = "isp_tecnico" | "general";
+
 export type ProjectKanbanColumn =
+  // Flujo Técnico ISP (Despliegue FTTH / Red)
   | "factibilidad"
   | "tendido_fibra"
   | "fusion_splitters"
   | "instalacion_ont"
   | "pruebas_homologacion"
-  | "completado";
+  | "completado"
+  // Flujo General de Proyectos
+  | "por_iniciar"
+  | "en_progreso"
+  | "en_pausa"
+  | "finalizado";
 
 export interface ProjectChecklistItem {
   id: string;
@@ -323,18 +331,42 @@ export interface ProjectChecklistItem {
   done: boolean;
 }
 
+export interface ProjectNoteItem {
+  id: string;
+  authorName: string;
+  authorRole?: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface ClientProjectTask {
   id: string;
-  clientId: string;
-  clientName: string;
+  // Vinculación
+  type?: "cliente" | "infraestructura_interna";
+  clientId?: string;
+  clientName?: string;
+  nodeId?: string;
+  nodeName?: string;
+
   title: string;
   description: string;
+  boardFlow?: ProjectBoardFlow; // 'isp_tecnico' (default) | 'general'
   column: ProjectKanbanColumn;
   priority: "baja" | "media" | "alta" | "urgente";
   assignedTo: string;
+  assignedToId?: string;
   dueDate: string;
+  startDate?: string;
+
+  // Control Financiero / Presupuestario
+  estimatedBudget?: number; // Presupuesto asignado ($ USD)
+  executedCost?: number;    // Costo real ejecutado ($ USD)
+
+  // Subtareas y Bitácora
   checklist: ProjectChecklistItem[];
+  notesThread?: ProjectNoteItem[];
   notes?: string;
+
   createdAt: string;
   updatedAt: string;
 }
