@@ -27,6 +27,13 @@ import {
   ArcotelConcessionInfo,
   ArcotelPeriodicFile,
   ClientDocumentFile,
+  InventoryProduct,
+  Warehouse,
+  ProductCategory,
+  ProductBrand,
+  KardexEntry,
+  WarehouseTransfer,
+  InventoryAdjustment,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -49,12 +56,26 @@ import {
   INITIAL_CONCESSION_INFO,
   INITIAL_ARCOTEL_FILES,
   INITIAL_CLIENT_DOCUMENTS,
+  INITIAL_CATEGORIES,
+  INITIAL_BRANDS,
+  INITIAL_WAREHOUSES,
+  INITIAL_PRODUCTS,
+  INITIAL_KARDEX,
+  INITIAL_TRANSFERS,
+  INITIAL_ADJUSTMENTS,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 import { usePathname } from "next/navigation";
-import { can, collectionPermissions, routePermissions, type Entity } from "./permissions";
+import { can, canAccessRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
+import {
+  calculateWeightedAverageCost,
+  calculatePriceWithTax,
+  validateStockAvailability,
+  generateInventoryDocNumber,
+  buildKardexEntry,
+} from "./inventory-service";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import {
   signUserProfile,
@@ -155,6 +176,46 @@ interface AppContextType {
   ) => Promise<void>;
   addMonthlyCharge: (charge: Omit<MonthlyCharge, "id">) => Promise<void>;
 
+  // Inventory Module
+  inventoryProducts: InventoryProduct[];
+  inventoryWarehouses: Warehouse[];
+  inventoryCategories: ProductCategory[];
+  inventoryBrands: ProductBrand[];
+  inventoryKardex: KardexEntry[];
+  inventoryTransfers: WarehouseTransfer[];
+  inventoryAdjustments: InventoryAdjustment[];
+
+  addInventoryProduct: (product: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  updateInventoryProduct: (id: string, updates: Partial<InventoryProduct>) => Promise<void>;
+  deleteInventoryProduct: (id: string) => Promise<void>;
+
+  addWarehouse: (warehouse: Omit<Warehouse, "id" | "createdAt">) => Promise<void>;
+  updateWarehouse: (id: string, updates: Partial<Warehouse>) => Promise<void>;
+  deleteWarehouse: (id: string) => Promise<void>;
+
+  addCategory: (category: Omit<ProductCategory, "id" | "createdAt">) => Promise<void>;
+  addBrand: (brand: Omit<ProductBrand, "id" | "createdAt">) => Promise<void>;
+
+  executeTransfer: (params: {
+    originWarehouseId: string;
+    destWarehouseId: string;
+    productId: string;
+    quantity: number;
+    reason: string;
+  }) => Promise<void>;
+
+  executeAdjustment: (params: {
+    warehouseId: string;
+    type: "manual_ingreso" | "manual_egreso" | "masivo" | "encerar";
+    concept: string;
+    items: {
+      productId: string;
+      type: "ingreso" | "egreso";
+      quantity: number;
+      unitCost: number;
+    }[];
+  }) => Promise<void>;
+
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
@@ -194,6 +255,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [arcotelConcession, setArcotelConcession] = useState<ArcotelConcessionInfo>(INITIAL_CONCESSION_INFO);
   const [arcotelFiles, setArcotelFiles] = useState<ArcotelPeriodicFile[]>(INITIAL_ARCOTEL_FILES);
   const [clientDocuments, setClientDocuments] = useState<ClientDocumentFile[]>(INITIAL_CLIENT_DOCUMENTS);
+
+  // Inventory Module State
+  const [inventoryProducts, setInventoryProducts] = useState<InventoryProduct[]>(INITIAL_PRODUCTS);
+  const [inventoryWarehouses, setInventoryWarehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES);
+  const [inventoryCategories, setInventoryCategories] = useState<ProductCategory[]>(INITIAL_CATEGORIES);
+  const [inventoryBrands, setInventoryBrands] = useState<ProductBrand[]>(INITIAL_BRANDS);
+  const [inventoryKardex, setInventoryKardex] = useState<KardexEntry[]>(INITIAL_KARDEX);
+  const [inventoryTransfers, setInventoryTransfers] = useState<WarehouseTransfer[]>(INITIAL_TRANSFERS);
+  const [inventoryAdjustments, setInventoryAdjustments] = useState<InventoryAdjustment[]>(INITIAL_ADJUSTMENTS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -309,6 +379,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (p.arcotelConcession) setArcotelConcession(p.arcotelConcession);
           if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
           if (Array.isArray(p.clientDocuments)) setClientDocuments(p.clientDocuments);
+          if (Array.isArray(p.inventoryProducts)) setInventoryProducts(p.inventoryProducts);
+          if (Array.isArray(p.inventoryWarehouses)) setInventoryWarehouses(p.inventoryWarehouses);
+          if (Array.isArray(p.inventoryCategories)) setInventoryCategories(p.inventoryCategories);
+          if (Array.isArray(p.inventoryBrands)) setInventoryBrands(p.inventoryBrands);
+          if (Array.isArray(p.inventoryKardex)) setInventoryKardex(p.inventoryKardex);
+          if (Array.isArray(p.inventoryTransfers)) setInventoryTransfers(p.inventoryTransfers);
+          if (Array.isArray(p.inventoryAdjustments)) setInventoryAdjustments(p.inventoryAdjustments);
         } catch (e) {}
       }
     } catch (e) {
@@ -414,6 +491,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           arcotelConcession,
           arcotelFiles,
           clientDocuments,
+          inventoryProducts,
+          inventoryWarehouses,
+          inventoryCategories,
+          inventoryBrands,
+          inventoryKardex,
+          inventoryTransfers,
+          inventoryAdjustments,
         })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
@@ -437,6 +521,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     arcotelConcession,
     arcotelFiles,
     clientDocuments,
+    inventoryProducts,
+    inventoryWarehouses,
+    inventoryCategories,
+    inventoryBrands,
+    inventoryKardex,
+    inventoryTransfers,
+    inventoryAdjustments,
     systemUsers,
     isAuthLoaded,
   ]);
@@ -603,6 +694,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "clientContracts", setter: setClientContracts, initialData: INITIAL_CONTRACTS },
       { name: "users", setter: setSystemUsers, initialData: INITIAL_SYSTEM_USERS },
       { name: "auditLogs", setter: setAuditLogs, initialData: INITIAL_AUDIT_LOGS },
+      { name: "inventoryProducts", setter: setInventoryProducts, initialData: INITIAL_PRODUCTS },
+      { name: "inventoryWarehouses", setter: setInventoryWarehouses, initialData: INITIAL_WAREHOUSES },
+      { name: "inventoryCategories", setter: setInventoryCategories, initialData: INITIAL_CATEGORIES },
+      { name: "inventoryBrands", setter: setInventoryBrands, initialData: INITIAL_BRANDS },
+      { name: "inventoryKardex", setter: setInventoryKardex, initialData: INITIAL_KARDEX },
+      { name: "inventoryTransfers", setter: setInventoryTransfers, initialData: INITIAL_TRANSFERS },
+      { name: "inventoryAdjustments", setter: setInventoryAdjustments, initialData: INITIAL_ADJUSTMENTS },
     ];
 
     await Promise.all(
@@ -740,6 +838,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as Client) : c)) : [...prev, recordWithId as Client];
         });
         break;
+      case "inventoryProducts":
+        setInventoryProducts((prev) => {
+          const exists = prev.some((p) => p.id === targetId);
+          return exists ? prev.map((p) => (p.id === targetId ? ({ ...p, ...recordWithId } as InventoryProduct) : p)) : [...prev, recordWithId as InventoryProduct];
+        });
+        break;
+      case "inventoryWarehouses":
+        setInventoryWarehouses((prev) => {
+          const exists = prev.some((w) => w.id === targetId);
+          return exists ? prev.map((w) => (w.id === targetId ? ({ ...w, ...recordWithId } as Warehouse) : w)) : [...prev, recordWithId as Warehouse];
+        });
+        break;
+      case "inventoryCategories":
+        setInventoryCategories((prev) => {
+          const exists = prev.some((c) => c.id === targetId);
+          return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as ProductCategory) : c)) : [...prev, recordWithId as ProductCategory];
+        });
+        break;
+      case "inventoryBrands":
+        setInventoryBrands((prev) => {
+          const exists = prev.some((b) => b.id === targetId);
+          return exists ? prev.map((b) => (b.id === targetId ? ({ ...b, ...recordWithId } as ProductBrand) : b)) : [...prev, recordWithId as ProductBrand];
+        });
+        break;
+      case "inventoryKardex":
+        setInventoryKardex((prev) => [recordWithId as KardexEntry, ...prev]);
+        break;
+      case "inventoryTransfers":
+        setInventoryTransfers((prev) => [recordWithId as WarehouseTransfer, ...prev]);
+        break;
+      case "inventoryAdjustments":
+        setInventoryAdjustments((prev) => [recordWithId as InventoryAdjustment, ...prev]);
+        break;
     }
 
     addAuditLog(id ? "UPDATE_CLIENT" : "CREATE_CLIENT", `Registro ${entity}: ${targetId}`, "Registro actualizado sin incluir datos sensibles en la auditoría.");
@@ -762,6 +893,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "clientQuotes": setClientQuotes((prev) => prev.filter((q) => q.id !== id)); break;
       case "clientContracts": setClientContracts((prev) => prev.filter((c) => c.id !== id)); break;
       case "clients": setClients((prev) => prev.filter((c) => c.id !== id)); break;
+      case "inventoryProducts": setInventoryProducts((prev) => prev.filter((p) => p.id !== id)); break;
+      case "inventoryWarehouses": setInventoryWarehouses((prev) => prev.filter((w) => w.id !== id)); break;
+      case "inventoryCategories": setInventoryCategories((prev) => prev.filter((c) => c.id !== id)); break;
+      case "inventoryBrands": setInventoryBrands((prev) => prev.filter((b) => b.id !== id)); break;
+      case "inventoryKardex": setInventoryKardex((prev) => prev.filter((k) => k.id !== id)); break;
+      case "inventoryTransfers": setInventoryTransfers((prev) => prev.filter((t) => t.id !== id)); break;
+      case "inventoryAdjustments": setInventoryAdjustments((prev) => prev.filter((a) => a.id !== id)); break;
     }
   };
 
@@ -1260,6 +1398,360 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ==========================================
+  // INVENTORY MODULE METHODS
+  // ==========================================
+
+  const addInventoryProduct = async (productData: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">) => {
+    const id = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const now = new Date().toISOString();
+    const salePriceConIva = calculatePriceWithTax(productData.salePrice, productData.ivaRate);
+    
+    const stockByWarehouse = productData.stockByWarehouse || {};
+    const totalStock = Object.values(stockByWarehouse).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+    const newProduct: InventoryProduct = {
+      ...productData,
+      id,
+      stock: productData.tracksStock ? totalStock : 0,
+      salePriceConIva,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await syncToFirestore("inventoryProducts", id, newProduct);
+    setInventoryProducts((prev) => [newProduct, ...prev]);
+
+    if (newProduct.tracksStock && totalStock > 0) {
+      const defaultWhId = newProduct.defaultWarehouseId || Object.keys(stockByWarehouse)[0] || inventoryWarehouses[0]?.id;
+      const wh = inventoryWarehouses.find((w) => w.id === defaultWhId) || inventoryWarehouses[0];
+      if (wh) {
+        const kardexDocNum = generateInventoryDocNumber("KDX", inventoryKardex.length);
+        const kardexEntry = buildKardexEntry({
+          product: newProduct,
+          warehouse: wh,
+          type: "POSITIVE_ADJUSTMENT",
+          referenceId: id,
+          referenceDocNumber: kardexDocNum,
+          concept: `Stock inicial al registrar producto: ${newProduct.name}`,
+          quantity: totalStock,
+          unitCost: newProduct.baseCost,
+          currentStock: 0,
+          currentAvgCost: newProduct.baseCost,
+          userName: currentUser.displayName,
+        });
+
+        await syncToFirestore("inventoryKardex", kardexEntry.id, kardexEntry);
+        setInventoryKardex((prev) => [kardexEntry, ...prev]);
+      }
+    }
+
+    addAuditLog("CREATE_EXPENSE", `Producto Creado: ${newProduct.name}`, `SKU: ${newProduct.sku} | Stock: ${newProduct.stock}`);
+  };
+
+  const updateInventoryProduct = async (id: string, updates: Partial<InventoryProduct>) => {
+    const product = inventoryProducts.find((p) => p.id === id);
+    if (!product) return;
+
+    const merged = { ...product, ...updates, updatedAt: new Date().toISOString() };
+    if (updates.salePrice !== undefined || updates.ivaRate !== undefined) {
+      merged.salePriceConIva = calculatePriceWithTax(merged.salePrice, merged.ivaRate);
+    }
+    if (updates.stockByWarehouse) {
+      merged.stock = Object.values(updates.stockByWarehouse).reduce((acc, val) => acc + (Number(val) || 0), 0);
+    }
+
+    await syncToFirestore("inventoryProducts", id, merged);
+    setInventoryProducts((prev) => prev.map((p) => (p.id === id ? merged : p)));
+    addAuditLog("CREATE_EXPENSE", `Producto Actualizado: ${product.name}`, `SKU: ${product.sku}`);
+  };
+
+  const deleteInventoryProduct = async (id: string) => {
+    const product = inventoryProducts.find((p) => p.id === id);
+    await deleteFromFirestore("inventoryProducts", id);
+    setInventoryProducts((prev) => prev.filter((p) => p.id !== id));
+    if (product) {
+      addAuditLog("CREATE_EXPENSE", `Producto Eliminado: ${product.name}`, `SKU: ${product.sku}`);
+    }
+  };
+
+  const addWarehouse = async (warehouseData: Omit<Warehouse, "id" | "createdAt">) => {
+    const id = `wh-${Date.now()}`;
+    const newWh: Warehouse = {
+      ...warehouseData,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    await syncToFirestore("inventoryWarehouses", id, newWh);
+    setInventoryWarehouses((prev) => [...prev, newWh]);
+    addAuditLog("CREATE_EXPENSE", `Bodega Creada: ${newWh.name}`, `Código: ${newWh.code}`);
+  };
+
+  const updateWarehouse = async (id: string, updates: Partial<Warehouse>) => {
+    const wh = inventoryWarehouses.find((w) => w.id === id);
+    if (!wh) return;
+    const merged = { ...wh, ...updates };
+    await syncToFirestore("inventoryWarehouses", id, merged);
+    setInventoryWarehouses((prev) => prev.map((w) => (w.id === id ? merged : w)));
+    addAuditLog("CREATE_EXPENSE", `Bodega Actualizada: ${wh.name}`, `Código: ${wh.code}`);
+  };
+
+  const deleteWarehouse = async (id: string) => {
+    const wh = inventoryWarehouses.find((w) => w.id === id);
+    await deleteFromFirestore("inventoryWarehouses", id);
+    setInventoryWarehouses((prev) => prev.filter((w) => w.id !== id));
+    if (wh) {
+      addAuditLog("CREATE_EXPENSE", `Bodega Eliminada: ${wh.name}`, `Código: ${wh.code}`);
+    }
+  };
+
+  const addCategory = async (categoryData: Omit<ProductCategory, "id" | "createdAt">) => {
+    const id = `cat-${Date.now()}`;
+    const newCat: ProductCategory = {
+      ...categoryData,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    await syncToFirestore("inventoryCategories", id, newCat);
+    setInventoryCategories((prev) => [...prev, newCat]);
+  };
+
+  const addBrand = async (brandData: Omit<ProductBrand, "id" | "createdAt">) => {
+    const id = `brd-${Date.now()}`;
+    const newBrand: ProductBrand = {
+      ...brandData,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    await syncToFirestore("inventoryBrands", id, newBrand);
+    setInventoryBrands((prev) => [...prev, newBrand]);
+  };
+
+  const executeTransfer = async ({
+    originWarehouseId,
+    destWarehouseId,
+    productId,
+    quantity,
+    reason,
+  }: {
+    originWarehouseId: string;
+    destWarehouseId: string;
+    productId: string;
+    quantity: number;
+    reason: string;
+  }) => {
+    if (originWarehouseId === destWarehouseId) {
+      throw new Error("La bodega de origen y destino no pueden ser iguales.");
+    }
+    const product = inventoryProducts.find((p) => p.id === productId);
+    if (!product) throw new Error("Producto no encontrado.");
+
+    const originWh = inventoryWarehouses.find((w) => w.id === originWarehouseId);
+    const destWh = inventoryWarehouses.find((w) => w.id === destWarehouseId);
+    if (!originWh || !destWh) throw new Error("Bodega no válida.");
+
+    const validation = validateStockAvailability(product, originWarehouseId, quantity);
+    if (!validation.valid) throw new Error(validation.error);
+
+    const transferDocNumber = generateInventoryDocNumber("TRF", inventoryTransfers.length);
+    const transferId = `trf-${Date.now()}`;
+    const now = new Date().toISOString();
+    const qty = Math.abs(quantity);
+    const cost = product.baseCost;
+
+    // 1. Kardex TRANSFER_OUT en origen
+    const currentOriginStock = Number(product.stockByWarehouse?.[originWarehouseId] || 0);
+    const originKardex = buildKardexEntry({
+      product,
+      warehouse: originWh,
+      type: "TRANSFER_OUT",
+      referenceId: transferId,
+      referenceDocNumber: transferDocNumber,
+      concept: `Traslado a ${destWh.name}: ${reason}`,
+      quantity: qty,
+      unitCost: cost,
+      currentStock: currentOriginStock,
+      currentAvgCost: cost,
+      userName: currentUser.displayName,
+    });
+
+    // 2. Kardex TRANSFER_IN en destino
+    const currentDestStock = Number(product.stockByWarehouse?.[destWarehouseId] || 0);
+    const destKardex = buildKardexEntry({
+      product,
+      warehouse: destWh,
+      type: "TRANSFER_IN",
+      referenceId: transferId,
+      referenceDocNumber: transferDocNumber,
+      concept: `Recepción de traslado desde ${originWh.name}: ${reason}`,
+      quantity: qty,
+      unitCost: cost,
+      currentStock: currentDestStock,
+      currentAvgCost: cost,
+      userName: currentUser.displayName,
+    });
+
+    // 3. Actualizar stock del producto por bodega
+    const updatedStockByWh = {
+      ...(product.stockByWarehouse || {}),
+      [originWarehouseId]: Math.max(0, currentOriginStock - qty),
+      [destWarehouseId]: currentDestStock + qty,
+    };
+    const updatedProduct: InventoryProduct = {
+      ...product,
+      stockByWarehouse: updatedStockByWh,
+      updatedAt: now,
+    };
+
+    // 4. Registro de Transferencia
+    const transferRecord: WarehouseTransfer = {
+      id: transferId,
+      transferNumber: transferDocNumber,
+      date: now,
+      originWarehouseId,
+      originWarehouseName: originWh.name,
+      destWarehouseId,
+      destWarehouseName: destWh.name,
+      productId: product.id,
+      productName: product.name,
+      quantity: qty,
+      unitCost: cost,
+      totalCost: Math.round(qty * cost * 100) / 100,
+      reason,
+      responsibleUser: currentUser.displayName,
+      status: "completada",
+      createdAt: now,
+    };
+
+    // Persistir
+    await Promise.all([
+      syncToFirestore("inventoryKardex", originKardex.id, originKardex),
+      syncToFirestore("inventoryKardex", destKardex.id, destKardex),
+      syncToFirestore("inventoryTransfers", transferRecord.id, transferRecord),
+      syncToFirestore("inventoryProducts", updatedProduct.id, updatedProduct),
+    ]);
+
+    setInventoryKardex((prev) => [originKardex, destKardex, ...prev]);
+    setInventoryTransfers((prev) => [transferRecord, ...prev]);
+    setInventoryProducts((prev) => prev.map((p) => (p.id === product.id ? updatedProduct : p)));
+
+    addAuditLog("CREATE_EXPENSE", `Transferencia: ${transferDocNumber}`, `${qty} ${product.unit}s de ${originWh.code} a ${destWh.code}`);
+  };
+
+  const executeAdjustment = async ({
+    warehouseId,
+    type,
+    concept,
+    items,
+  }: {
+    warehouseId: string;
+    type: "manual_ingreso" | "manual_egreso" | "masivo" | "encerar";
+    concept: string;
+    items: {
+      productId: string;
+      type: "ingreso" | "egreso";
+      quantity: number;
+      unitCost: number;
+    }[];
+  }) => {
+    const wh = inventoryWarehouses.find((w) => w.id === warehouseId);
+    if (!wh) throw new Error("Bodega no encontrada.");
+
+    const adjustmentDocNumber = generateInventoryDocNumber("ADJ", inventoryAdjustments.length);
+    const adjustmentId = `adj-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    const kardexEntries: KardexEntry[] = [];
+    const adjustmentItems = [];
+    const updatedProductsMap = new Map<string, InventoryProduct>();
+
+    for (const item of items) {
+      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+      if (!product) continue;
+
+      const qty = Math.abs(item.quantity);
+      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+
+      if (item.type === "egreso" && currentWhStock < qty) {
+        throw new Error(`Stock insuficiente de ${product.name} en ${wh.name}. Disponible: ${currentWhStock}, Solicitado: ${qty}.`);
+      }
+
+      const isIngreso = item.type === "ingreso";
+      const newWhStock = isIngreso ? currentWhStock + qty : Math.max(0, currentWhStock - qty);
+      const kdxType = isIngreso ? "POSITIVE_ADJUSTMENT" : "NEGATIVE_ADJUSTMENT";
+
+      const kdx = buildKardexEntry({
+        product,
+        warehouse: wh,
+        type: kdxType,
+        referenceId: adjustmentId,
+        referenceDocNumber: adjustmentDocNumber,
+        concept: `${concept} (${adjustmentDocNumber})`,
+        quantity: qty,
+        unitCost: item.unitCost || product.baseCost,
+        currentStock: currentWhStock,
+        currentAvgCost: product.baseCost,
+        userName: currentUser.displayName,
+      });
+
+      kardexEntries.push(kdx);
+
+      const updatedStockByWh = {
+        ...(product.stockByWarehouse || {}),
+        [warehouseId]: newWhStock,
+      };
+      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+      const updatedProd: InventoryProduct = {
+        ...product,
+        stockByWarehouse: updatedStockByWh,
+        stock: totalStock,
+        baseCost: isIngreso ? kdx.balanceAverageCost : product.baseCost,
+        updatedAt: now,
+      };
+
+      updatedProductsMap.set(product.id, updatedProd);
+
+      adjustmentItems.push({
+        productId: product.id,
+        productName: product.name,
+        type: item.type,
+        quantity: qty,
+        unitCost: item.unitCost || product.baseCost,
+        previousStock: currentWhStock,
+        newStock: newWhStock,
+      });
+    }
+
+    const adjustmentRecord: InventoryAdjustment = {
+      id: adjustmentId,
+      adjustmentNumber: adjustmentDocNumber,
+      date: now,
+      type,
+      warehouseId,
+      warehouseName: wh.name,
+      concept,
+      items: adjustmentItems,
+      responsibleUser: currentUser.displayName,
+      createdAt: now,
+    };
+
+    // Sincronizar en lote
+    await Promise.all([
+      syncToFirestore("inventoryAdjustments", adjustmentRecord.id, adjustmentRecord),
+      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+    ]);
+
+    setInventoryAdjustments((prev) => [adjustmentRecord, ...prev]);
+    setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+    setInventoryProducts((prev) =>
+      prev.map((p) => updatedProductsMap.get(p.id) || p)
+    );
+
+    addAuditLog("CREATE_EXPENSE", `Ajuste Inventario: ${adjustmentDocNumber}`, `${concept} en ${wh.name}`);
+  };
+
   const resetDataToDefaults = async () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USERS_KEY);
@@ -1277,10 +1769,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setClientQuotes([]);
     setClientVaultItems([]);
     setClientContracts([]);
+    setInventoryProducts(INITIAL_PRODUCTS);
+    setInventoryWarehouses(INITIAL_WAREHOUSES);
+    setInventoryCategories(INITIAL_CATEGORIES);
+    setInventoryBrands(INITIAL_BRANDS);
+    setInventoryKardex(INITIAL_KARDEX);
+    setInventoryTransfers(INITIAL_TRANSFERS);
+    setInventoryAdjustments(INITIAL_ADJUSTMENTS);
   };
 
-  const requiredPermission = routePermissions[pathname];
-  const hasAccess = !requiredPermission || can(currentUser, requiredPermission);
+  const hasAccess = canAccessRoute(currentUser, pathname);
 
   return (
     <ToastProvider>
@@ -1354,6 +1852,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           generateMonthlyBillingBatch,
           markChargeAsPaid,
           addMonthlyCharge,
+          // Inventory Module
+          inventoryProducts,
+          inventoryWarehouses,
+          inventoryCategories,
+          inventoryBrands,
+          inventoryKardex,
+          inventoryTransfers,
+          inventoryAdjustments,
+          addInventoryProduct,
+          updateInventoryProduct,
+          deleteInventoryProduct,
+          addWarehouse,
+          updateWarehouse,
+          deleteWarehouse,
+          addCategory,
+          addBrand,
+          executeTransfer,
+          executeAdjustment,
           searchQuery,
           setSearchQuery,
           isSearchOpen,
