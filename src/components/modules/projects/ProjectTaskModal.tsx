@@ -482,7 +482,7 @@ export function ProjectTaskModal({
                   >
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.businessName} ({c.identification})
+                        {c.businessName} ({c.identificationNumber})
                       </option>
                     ))}
                   </select>
@@ -490,7 +490,7 @@ export function ProjectTaskModal({
               ) : (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Nodo / POP de Infraestructura <span className="text-rose-500">*</span>
+                    Sede / Nodo de Red <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={nodeId}
@@ -503,7 +503,7 @@ export function ProjectTaskModal({
                   >
                     {nodes.map((n) => (
                       <option key={n.id} value={n.id}>
-                        {n.name} ({n.location}) · {n.routerModel || "Carrier Router"}
+                        {n.name} ({n.canton || n.address}) · {n.mikrotikIp || "Sede"}
                       </option>
                     ))}
                   </select>

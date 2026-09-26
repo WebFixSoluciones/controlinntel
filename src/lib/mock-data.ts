@@ -203,8 +203,14 @@ export const DEMO_CLIENT: Client = {
 
 export const DEMO_NODE: NodeLocation = {
   id: "nodo-quito-norte",
-  name: "POP 01 - Telepuerto Quito Norte (MikroTik CCR2004)",
-  address: "Av. 6 de Diciembre y Eloy Alfaro, Quito",
+  clientId: "cli-demo-corp-01",
+  clientName: "CORPORACIÓN INDUSTRIAL Y LOGÍSTICA ECUATORIANA C.A.",
+  name: "Sede Principal - Centro Corporativo Quito Norte",
+  province: "Pichincha",
+  canton: "Quito",
+  parish: "Iñaquito",
+  detailedAddress: "Av. 6 de Diciembre N34-120 y Eloy Alfaro, Edificio Platinum Plaza Piso 8",
+  address: "Av. 6 de Diciembre N34-120 y Eloy Alfaro, Iñaquito, Quito, Pichincha",
   coordinates: { lat: -0.180653, lng: -78.484215 },
   upstreamProvider: "Telconet / CenturyLink / Ufinet",
   totalCapacityMbps: 10000,
@@ -212,7 +218,7 @@ export const DEMO_NODE: NodeLocation = {
   mikrotikIp: "10.200.1.1",
   status: "online",
   activeClientsCount: 1,
-  notes: "Router de borde MikroTik CCR2004-1G-12S+2XS con RouterOS v7 y BGP peering multi-carrier activo.",
+  notes: "Router de borde MikroTik CCR2004 con RouterOS v7 y BGP peering multi-carrier entregado por el cliente.",
   providers: [
     {
       id: "prov-1",
@@ -245,7 +251,7 @@ export const DEMO_NODE: NodeLocation = {
       systemName: "MIKROTIK CCR2116-12G-4S+",
       linkOrIp: "181.198.112.112:5258",
       credentials: "admin / InntelRouter2026*",
-      notes: "Core BGP Router & CGNAT",
+      notes: "Core BGP Router & CGNAT Sede Norte",
     },
     {
       id: "srv-sys-2",
@@ -254,12 +260,52 @@ export const DEMO_NODE: NodeLocation = {
       credentials: "noc@inntelcorp.com / OltPlatform2026*",
       notes: "Plataforma de aprovisionamiento de ONUs",
     },
+  ],
+};
+
+export const DEMO_NODE_2: NodeLocation = {
+  id: "nodo-guayaquil-pto",
+  clientId: "cli-demo-corp-01",
+  clientName: "CORPORACIÓN INDUSTRIAL Y LOGÍSTICA ECUATORIANA C.A.",
+  name: "Sucursal Operativa - Puerto Marítimo Guayaquil",
+  province: "Guayas",
+  canton: "Guayaquil",
+  parish: "Tarqui",
+  detailedAddress: "Av. Carlos Julio Arosemena Km 3.5, Bodegas Centrales Muelle 4",
+  address: "Av. Carlos Julio Arosemena Km 3.5, Tarqui, Guayaquil, Guayas",
+  coordinates: { lat: -2.189412, lng: -79.889066 },
+  upstreamProvider: "Telconet / PuntoNet",
+  totalCapacityMbps: 2000,
+  usedCapacityMbps: 850,
+  mikrotikIp: "10.200.2.1",
+  status: "online",
+  activeClientsCount: 1,
+  notes: "Enlace punto a punto redundante para control logístico aduanero y cámaras de seguridad.",
+  providers: [
     {
-      id: "srv-sys-3",
-      systemName: "OLT ZTE C320",
-      linkOrIp: "192.168.10.2:8080",
-      credentials: "zteadmin / ZteGpon2026*",
-      notes: "Chasis GPON Sector Norte",
+      id: "prov-gye-1",
+      providerName: "Telconet Latam",
+      capacityMbps: 1000,
+      circuitId: "TCO-GYE-7731",
+      ipv4Subnet: "181.198.120.4/30",
+      ipv6Prefix: "2800:3f0:5000::/48",
+    },
+    {
+      id: "prov-gye-2",
+      providerName: "PuntoNet Fibra",
+      capacityMbps: 1000,
+      circuitId: "PNT-GYE-209",
+      ipv4Subnet: "190.152.95.8/30",
+      ipv6Prefix: "2800:3f0:5001::/48",
+    },
+  ],
+  services: [
+    {
+      id: "srv-sys-gye",
+      systemName: "MikroTik RB5009UG+S+IN",
+      linkOrIp: "181.198.120.4:8291",
+      credentials: "admin / GyeLogistica2026*",
+      notes: "Firewall & VPN Túnel IPsec con Matriz Quito",
     },
   ],
 };
@@ -922,7 +968,7 @@ export const INITIAL_CLIENT_DOCUMENTS: ClientDocumentFile[] = [
 ];
 
 // Exportaciones iniciales para el estado de la aplicación
-export const INITIAL_NODES: NodeLocation[] = [DEMO_NODE];
+export const INITIAL_NODES: NodeLocation[] = [DEMO_NODE, DEMO_NODE_2];
 export const INITIAL_IP_POOLS: IpPool[] = [DEMO_IP_POOL];
 export const INITIAL_CLIENTS: Client[] = [DEMO_CLIENT];
 export const INITIAL_CLIENT_SERVICES: ClientService[] = [DEMO_CLIENT_SERVICE];

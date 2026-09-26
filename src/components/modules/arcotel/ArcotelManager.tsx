@@ -1134,7 +1134,7 @@ export function ArcotelManager() {
       {activeTab === "polizas" && (
         <div className="space-y-4">
           <PoliciesList onOpenNewModal={() => setIsPolicyModalOpen(true)} />
-          {isPolicyModalOpen && <PolicyModal onClose={() => setIsPolicyModalOpen(false)} />}
+          {isPolicyModalOpen && <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />}
         </div>
       )}
 

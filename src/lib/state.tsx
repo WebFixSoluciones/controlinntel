@@ -1067,6 +1067,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNode: NodeLocation = { ...nodeData, id: "nodo-" + crypto.randomUUID() };
     await syncToFirestore("nodes", newNode.id, newNode);
     setNodes((prev) => [...prev, newNode]);
+    addAuditLog("CREATE_CLIENT", `Nodo Creado: ${newNode.name}`, `Cliente: ${newNode.clientName || newNode.clientId || "N/A"} | Ubicación: ${newNode.canton || ""}, ${newNode.province || ""}`);
   };
 
   const updateNode = async (id: string, updates: Partial<NodeLocation>) => {

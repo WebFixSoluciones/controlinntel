@@ -10,6 +10,7 @@ import { ClientQuotesManager } from "./ClientQuotesManager";
 import { ClientVaultTab } from "./ClientVaultTab";
 import { ClientContractTab } from "./ClientContractTab";
 import { ClientDossierTab } from "./ClientDossierTab";
+import { ClientNodesTab } from "./ClientNodesTab";
 import {
   X,
   User,
@@ -79,6 +80,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const quotes = clientQuotes.filter((q) => q.clientId === client.id);
   const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
   const contracts = clientContracts.filter((c) => c.clientId === client.id);
+  const clientNodesList = nodes.filter((n) => n.clientId === client.id);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -109,7 +111,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
   const allTabs: { id: ProfileTab; label: string; icon: any; count?: number; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
-    { id: "red", label: "Red & IP", icon: Radio, count: services.length, permission: "manage_network" },
+    { id: "red", label: "Sedes & Nodos", icon: Radio, count: clientNodesList.length, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length, permission: "manage_vault" },
     { id: "contratos", label: "Contratos", icon: ShieldCheck, count: contracts.length, permission: "manage_policies" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length, permission: "manage_finance" },
@@ -337,164 +339,36 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </div>
           )}
 
-          {/* TAB 2: RED & IP -> DESPLIEGUE DE NODOS E INFRAESTRUCTURA (PDF Página 2 & 6) */}
+          {/* TAB 2: SEDES & NODOS DEL CLIENTE */}
           {currentTabAllowed && activeTab === "red" && (
-            <div className="space-y-5">
-              {services.length === 0 ? (
-                <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 shadow-xs">
-                  <Radio className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="font-bold text-slate-600 text-xs">Sin servicios de red activos asignados</p>
+            <div className="space-y-6">
+              <ClientNodesTab client={client} />
+
+              {/* Servicios de Internet / Planes Contratados (si existen) */}
+              {services.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
+                  <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
+                    Planes de Internet & Enlaces del Abonado
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    {services.map((srv) => (
+                      <div key={srv.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <span className="font-bold text-slate-800 text-xs block">{srv.planName}</span>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          IPv4: <span className="font-bold text-sky-700">{srv.ipv4Address || "CGNAT"}</span>
+                        </div>
+                        {srv.pppoeUser && (
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            PPPoE: <span className="text-slate-700">{srv.pppoeUser}</span>
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-400">
+                          Instalado: {srv.installationDate}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ) : (
-                services.map((srv) => {
-                  const assignedNode = nodes.find((n) => n.id === srv.nodeId || n.name === srv.nodeName);
-                  const carriers = assignedNode?.providers || [];
-                  const systems = assignedNode?.services || [];
-
-                  return (
-                    <div key={srv.id} className="space-y-4">
-                      {/* Tarjeta del Nodo Asignado */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#004ac6] to-indigo-900 text-white flex items-center justify-center font-bold shadow-xs">
-                              <Radio className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-slate-900 text-sm">
-                                  {assignedNode ? assignedNode.name : srv.nodeName || "POP Asignado"}
-                                </h4>
-                                {assignedNode && (
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                      assignedNode.status === "online"
-                                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                        : "bg-amber-50 text-amber-700 border border-amber-200"
-                                    }`}
-                                  >
-                                    {assignedNode.status === "online" ? "En Línea" : assignedNode.status}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5">
-                                {assignedNode ? assignedNode.address : "Ubicación física del POP"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {assignedNode?.mikrotikIp && (
-                              <span className="font-mono text-xs font-bold text-[#004ac6] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                                MikroTik Core: {assignedNode.mikrotikIp}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Proveedores Multi-Carrier del Nodo */}
-                        {carriers.length > 0 && (
-                          <div className="space-y-2">
-                            <h5 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
-                              <Globe className="w-3.5 h-3.5" />
-                              Proveedores Upstream del Nodo (Multi-Carrier)
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                              {carriers.map((c, cIdx) => (
-                                <div
-                                  key={c.id || cIdx}
-                                  className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1"
-                                >
-                                  <div className="flex items-center justify-between font-bold text-slate-900">
-                                    <span>{c.providerName}</span>
-                                    <span className="font-mono text-[10px] bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[#004ac6]">
-                                      {c.capacityMbps} Mbps
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-500 space-y-0.5">
-                                    {c.circuitId && (
-                                      <div>
-                                        ID Circuito: <span className="font-mono font-bold text-slate-700">{c.circuitId}</span>
-                                      </div>
-                                    )}
-                                    {c.ipv4Subnet && (
-                                      <div>
-                                        IPv4: <span className="font-mono text-slate-700">{c.ipv4Subnet}</span>
-                                      </div>
-                                    )}
-                                    {c.ipv6Prefix && (
-                                      <div>
-                                        IPv6: <span className="font-mono text-slate-700">{c.ipv6Prefix}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Sistemas y Credenciales del Nodo */}
-                        {systems.length > 0 && (
-                          <div className="space-y-2">
-                            <h5 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
-                              <Key className="w-3.5 h-3.5" />
-                              Equipos y Sistemas en este POP
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                              {systems.map((s, sIdx) => (
-                                <div
-                                  key={s.id || sIdx}
-                                  className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs space-y-1"
-                                >
-                                  <div className="font-bold text-slate-900 truncate">{s.systemName}</div>
-                                  <div className="font-mono text-[11px] text-[#004ac6] truncate flex items-center justify-between">
-                                    <span>{s.linkOrIp}</span>
-                                    <button
-                                      onClick={() => handleCopy(s.linkOrIp, "IP/Link")}
-                                      className="p-0.5 text-slate-400 hover:text-[#004ac6]"
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                  {s.notes && <div className="text-[10px] text-slate-400 italic">{s.notes}</div>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Parámetros de Enlace del Cliente (Sin mostrar precios) */}
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                        <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
-                          Parámetros del Enlace del Abonado
-                        </h5>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <label className="text-[10px] text-slate-400 font-bold block">Plan Homologado</label>
-                            <span className="font-bold text-slate-800">{srv.planName}</span>
-                          </div>
-
-                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <label className="text-[10px] text-slate-400 font-bold block">Dirección IPv4</label>
-                            <span className="font-mono font-bold text-sky-700">{srv.ipv4Address || "CGNAT"}</span>
-                          </div>
-
-                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <label className="text-[10px] text-slate-400 font-bold block">Usuario PPPoE</label>
-                            <span className="font-mono font-medium text-slate-800">{srv.pppoeUser || "No asignado"}</span>
-                          </div>
-
-                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <label className="text-[10px] text-slate-400 font-bold block">Fecha Instalación</label>
-                            <span className="font-medium text-slate-800">{srv.installationDate}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
           )}
