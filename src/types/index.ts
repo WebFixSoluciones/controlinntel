@@ -458,3 +458,5 @@ export interface ClientContractInfo {
   notes?: string;
 }
 
+
+export * from './inventory';
