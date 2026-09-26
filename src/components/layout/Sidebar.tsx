@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/state";
-import { can, routePermissions } from "@/lib/permissions";
+import { can, canAccessRoute, routePermissions } from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   KeyRound,
   Kanban,
+  Boxes,
   Ticket as TicketIcon,
   DollarSign,
   FileText,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
+  { href: "/inventarios", label: "Inventarios", icon: Boxes },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/finanzas", label: "Finanzas", icon: DollarSign },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
@@ -35,12 +37,13 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, clientContracts, tickets, clientProjects, logout } = useApp();
+  const { currentUser, clientContracts, tickets, clientProjects, inventoryProducts, logout } = useApp();
   const { showConfirm, showInfo } = useToast();
 
   const expiringPolicies = clientContracts.filter((p) => p.status === "por_renovar").length;
   const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
   const activeProjects = clientProjects.filter((p) => p.column !== "completado" && p.column !== "finalizado").length;
+  const lowStockItems = inventoryProducts.filter((p) => p.tracksStock && p.status === "activo" && p.stock <= p.minStock).length;
 
   const handleLogout = () => {
     showConfirm(
@@ -75,7 +78,7 @@ export function Sidebar() {
         <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#737686]">
           Módulos
         </div>
-        {NAV_ITEMS.filter(item => !routePermissions[item.href] || can(currentUser, routePermissions[item.href])).map((item) => {
+        {NAV_ITEMS.filter(item => canAccessRoute(currentUser, item.href)).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
 
@@ -107,6 +110,11 @@ export function Sidebar() {
                 {item.href === "/proyectos" && activeProjects > 0 && (
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#e0e7ff] text-[#3730a3] border border-[#c7d2fe]">
                     {activeProjects}
+                  </span>
+                )}
+                {item.href === "/inventarios" && lowStockItems > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]" title={`${lowStockItems} productos con stock bajo`}>
+                    {lowStockItems}
                   </span>
                 )}
                 {item.href === "/tickets" && openTickets > 0 && (
