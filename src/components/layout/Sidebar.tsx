@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useApp } from "@/lib/state";
-import { can, canAccessRoute, routePermissions } from "@/lib/permissions";
+import { canAccessRoute } from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   Kanban,
   Boxes,
   Receipt,
+  ShoppingBag,
   Ticket as TicketIcon,
   DollarSign,
   FileText,
@@ -25,8 +26,9 @@ import {
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/clientes", label: "Personas", icon: Users },
   { href: "/facturacion", label: "Facturación SRI", icon: Receipt },
+  { href: "/compras", label: "Compras", icon: ShoppingBag },
   { href: "/inventarios", label: "Inventarios", icon: Boxes },
   { href: "/finanzas", label: "Finanzas", icon: DollarSign },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
@@ -46,6 +48,7 @@ export function Sidebar() {
     clientProjects,
     inventoryProducts,
     billingQuotes,
+    purchaseInvoices,
     logout,
   } = useApp();
   const { showConfirm, showInfo } = useToast();
@@ -55,6 +58,7 @@ export function Sidebar() {
   const activeProjects = clientProjects.filter((p) => p.column !== "completado" && p.column !== "finalizado").length;
   const lowStockItems = inventoryProducts.filter((p) => p.tracksStock && p.status === "activo" && p.stock <= p.minStock).length;
   const pendingQuotes = billingQuotes.filter((q) => q.status === "enviada" || q.status === "aprobada").length;
+  const pendingPurchases = purchaseInvoices.filter((i) => i.paymentStatus === "pendiente" || i.paymentStatus === "abono_parcial").length;
 
   const handleLogout = () => {
     showConfirm(
@@ -63,8 +67,7 @@ export function Sidebar() {
       () => {
         logout();
         showInfo("Sesión Cerrada", "Has salido del sistema de manera segura.");
-      },
-      "Cerrar Sesión"
+      }
     );
   };
 
@@ -89,7 +92,7 @@ export function Sidebar() {
         <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#737686]">
           Módulos
         </div>
-        {NAV_ITEMS.filter(item => canAccessRoute(currentUser, item.href)).map((item) => {
+        {NAV_ITEMS.filter((item) => canAccessRoute(currentUser, item.href)).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
 
@@ -113,8 +116,19 @@ export function Sidebar() {
               </div>
 
               <div className="flex items-center gap-1.5">
+                {item.href === "/compras" && pendingPurchases > 0 && (
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
+                    title={`${pendingPurchases} compras pendientes de pago en CxP`}
+                  >
+                    {pendingPurchases}
+                  </span>
+                )}
                 {item.href === "/facturacion" && pendingQuotes > 0 && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]" title={`${pendingQuotes} cotizaciones pendientes`}>
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]"
+                    title={`${pendingQuotes} cotizaciones pendientes`}
+                  >
                     {pendingQuotes}
                   </span>
                 )}
@@ -129,7 +143,10 @@ export function Sidebar() {
                   </span>
                 )}
                 {item.href === "/inventarios" && lowStockItems > 0 && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]" title={`${lowStockItems} productos con stock bajo`}>
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]"
+                    title={`${lowStockItems} productos con stock bajo`}
+                  >
                     {lowStockItems}
                   </span>
                 )}
@@ -145,23 +162,31 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Logout Footer */}
-      <div className="p-3 border-t border-[#e2e8f0] bg-[#f8f9ff]">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white hover:bg-rose-50 border border-[#cbd5e1] text-[#434655] hover:text-[#ef4444] hover:border-rose-200 text-xs font-bold transition-all shadow-2xs cursor-pointer group"
-        >
-          <LogOut className="w-4 h-4 text-[#737686] group-hover:text-[#ef4444] transition-colors" />
-          <span>Cerrar Sesión</span>
-        </button>
-        <a
-          href="https://www.inntelcorp.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-[10px] text-[#737686] hover:text-[#004ac6] mt-2 font-medium transition-colors"
-        >
-          www.inntelcorp.com
-        </a>
+      {/* User Info & Logout Button */}
+      <div className="p-3 border-t border-[#e2e8f0] bg-white">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-[#004ac6]/10 text-[#004ac6] font-bold flex items-center justify-center text-xs shrink-0">
+              {currentUser.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-[#0b1c30] truncate">
+                {currentUser.displayName}
+              </div>
+              <div className="text-[10px] text-[#737686] capitalize truncate">
+                {currentUser.role}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="p-1.5 text-[#737686] hover:text-[#dc2626] hover:bg-[#fef2f2] rounded-lg transition-colors cursor-pointer"
+            title="Cerrar Sesión"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </aside>
   );
