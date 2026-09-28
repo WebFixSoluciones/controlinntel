@@ -18,6 +18,7 @@ import {
   Ticket,
   Lock,
   FileText,
+  Contact2,
 } from "lucide-react";
 import { SystemUser, UserModulePermissions, UserRole } from "@/types";
 
@@ -164,7 +165,72 @@ export function UserPermissionsModal({
               Matriz Granular de Activación por Módulo y Submódulo
             </h3>
 
-            {/* 1. Módulo Compras */}
+            {/* 1. Módulo Abonados */}
+            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#004ac6]" />
+                  <div>
+                    <span className="text-xs font-bold text-[#0b1c30]">Módulo Abonados (/abonados)</span>
+                    <p className="text-[11px] text-[#737686]">Gestión de suscriptores, servicios contratados y ficha técnica 360°</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.abonados?.enabled}
+                    onChange={() => handleToggleModule("abonados")}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-[#e2e8f0] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#cbd5e1] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004ac6]"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* 2. Módulo Personas */}
+            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Contact2 className="w-4 h-4 text-[#004ac6]" />
+                  <div>
+                    <span className="text-xs font-bold text-[#0b1c30]">Módulo Personas (/personas)</span>
+                    <p className="text-[11px] text-[#737686]">Directorio institucional de terceros y control de usuarios</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.personas?.enabled}
+                    onChange={() => handleToggleModule("personas")}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-[#e2e8f0] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#cbd5e1] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004ac6]"></div>
+                </label>
+              </div>
+
+              {permissions.personas?.enabled && permissions.personas.submodules && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
+                  {Object.entries(permissions.personas.submodules).map(([subKey, val]) => (
+                    <label
+                      key={subKey}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={val}
+                        onChange={() => handleToggleSubmodule("personas", subKey)}
+                        className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
+                      />
+                      <span className="capitalize text-[#434655] font-medium text-[11px]">
+                        {subKey === "proveedores" ? "Proveedores" : subKey === "usuarios_equipo" ? "Usuarios / Equipo" : subKey.replace(/_/g, " ")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Módulo Compras */}
             <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -204,7 +270,7 @@ export function UserPermissionsModal({
               )}
             </div>
 
-            {/* 2. Módulo Finanzas */}
+            {/* 4. Módulo Finanzas */}
             <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -233,46 +299,6 @@ export function UserPermissionsModal({
                         type="checkbox"
                         checked={val}
                         onChange={() => handleToggleSubmodule("finanzas", subKey)}
-                        className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
-                      />
-                      <span className="capitalize text-[#434655] font-medium text-[11px]">
-                        {subKey.replace(/_/g, " ")}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 3. Módulo Personas */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#004ac6]" />
-                  <span className="text-xs font-bold text-[#0b1c30]">Módulo Personas (/clientes)</span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!permissions.personas?.enabled}
-                    onChange={() => handleToggleModule("personas")}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-[#e2e8f0] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#cbd5e1] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004ac6]"></div>
-                </label>
-              </div>
-
-              {permissions.personas?.enabled && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
-                  {Object.entries(permissions.personas.submodules).map(([subKey, val]) => (
-                    <label
-                      key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={val}
-                        onChange={() => handleToggleSubmodule("personas", subKey)}
                         className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
                       />
                       <span className="capitalize text-[#434655] font-medium text-[11px]">

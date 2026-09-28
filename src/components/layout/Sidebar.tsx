@@ -22,11 +22,13 @@ import {
   ChevronRight,
   LogOut,
   Settings,
+  Contact2,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Personas", icon: Users },
+  { href: "/abonados", label: "Abonados", icon: Users },
+  { href: "/personas", label: "Personas", icon: Contact2 },
   { href: "/facturacion", label: "Facturación SRI", icon: Receipt },
   { href: "/compras", label: "Compras", icon: ShoppingBag },
   { href: "/inventarios", label: "Inventarios", icon: Boxes },
@@ -94,7 +96,7 @@ export function Sidebar() {
         </div>
         {NAV_ITEMS.filter((item) => canAccessRoute(currentUser, item.href)).map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href === "/abonados" && pathname === "/clientes");
 
           return (
             <Link

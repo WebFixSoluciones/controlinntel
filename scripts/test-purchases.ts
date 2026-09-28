@@ -160,10 +160,12 @@ const testUserRestricted: UserProfile = {
     personas: {
       enabled: true,
       submodules: {
-        clientes: true,
         proveedores: true,
         usuarios_equipo: false,
       },
+    },
+    abonados: {
+      enabled: true,
     },
   },
 };
@@ -171,10 +173,12 @@ const testUserRestricted: UserProfile = {
 assert.strictEqual(canAccessModule(testUserAdmin, "compras"), true, "Admin should access compras");
 assert.strictEqual(canAccessModule(testUserRestricted, "compras"), true, "Restricted user has compras enabled");
 assert.strictEqual(canAccessModule(testUserRestricted, "finanzas"), false, "Restricted user has finanzas disabled");
+assert.strictEqual(canAccessModule(testUserRestricted, "abonados"), true, "Restricted user has abonados enabled");
 
 assert.strictEqual(canAccessSubmodule(testUserRestricted, "compras", "historial_compras"), true);
 assert.strictEqual(canAccessSubmodule(testUserRestricted, "compras", "retenciones"), false);
 assert.strictEqual(canAccessSubmodule(testUserRestricted, "personas", "usuarios_equipo"), false);
+assert.strictEqual(canAccessSubmodule(testUserRestricted, "personas", "proveedores"), true);
 console.log("✅ 4. Granular Module & Submodule Permissions passed.");
 
 console.log("🎉 All Purchases & Finance tests passed successfully!");

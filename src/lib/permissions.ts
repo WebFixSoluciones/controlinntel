@@ -38,9 +38,10 @@ export function can(user: UserProfile, permission: string) {
  */
 export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePermissions> = {
   superadmin: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: true } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
     finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: true } },
     facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
     inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: true } },
     red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
@@ -52,9 +53,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: true },
   },
   admin: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: true } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
     finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: true } },
     facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
     inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: true } },
     red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
@@ -66,9 +68,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: true },
   },
   finanzas: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
     finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
     facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
     inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: false, ajustes: true } },
     red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
@@ -80,9 +83,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: false },
   },
   tecnico: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: false, notas_debito: false, retenciones: false } },
     finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
     facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: true, configuracion_sri: false } },
     inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: false } },
     red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
@@ -94,9 +98,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: false },
   },
   soporte: {
+    abonados: { enabled: true },
+    personas: { enabled: false, submodules: { proveedores: false, usuarios_equipo: false } },
     compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
     finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: false, usuarios_equipo: false } },
     facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
     inventarios: { enabled: false, submodules: { productos: false, bodegas: false, kardex: false, transferencias: false, ajustes: false } },
     red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
@@ -108,9 +113,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: false },
   },
   legal: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
     finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
     facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
     inventarios: { enabled: false, submodules: { productos: false, bodegas: false, kardex: false, transferencias: false, ajustes: false } },
     red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
@@ -122,9 +128,10 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     configuracion: { enabled: false },
   },
   consulta: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
     finanzas: { enabled: true, submodules: { movimientos: true, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
     facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
     inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: false, ajustes: false } },
     red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
@@ -188,7 +195,9 @@ export function canAccessSubmodule(
 }
 
 export const routePermissions: Record<string, keyof UserModulePermissions> = {
-  "/clientes": "personas",
+  "/abonados": "abonados",
+  "/personas": "personas",
+  "/clientes": "abonados",
   "/compras": "compras",
   "/finanzas": "finanzas",
   "/facturacion": "facturacion",

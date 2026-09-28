@@ -174,6 +174,14 @@ export interface SupplierPaymentRecord {
 }
 
 export interface UserModulePermissions {
+  abonados?: { enabled: boolean };
+  personas?: {
+    enabled: boolean;
+    submodules: {
+      proveedores: boolean;
+      usuarios_equipo: boolean;
+    };
+  };
   compras?: {
     enabled: boolean;
     submodules: {
@@ -194,14 +202,7 @@ export interface UserModulePermissions {
       reportes: boolean;
     };
   };
-  personas?: {
-    enabled: boolean;
-    submodules: {
-      clientes: boolean;
-      proveedores: boolean;
-      usuarios_equipo: boolean;
-    };
-  };
+
   facturacion?: {
     enabled: boolean;
     submodules: {
