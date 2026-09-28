@@ -217,9 +217,11 @@ export interface UserModulePermissions {
     enabled: boolean;
     submodules: {
       productos: boolean;
-      bodegas: boolean;
+      servicios: boolean;
+      categorias: boolean;
       kardex: boolean;
       transferencias: boolean;
+      bodegas: boolean;
       ajustes: boolean;
     };
   };

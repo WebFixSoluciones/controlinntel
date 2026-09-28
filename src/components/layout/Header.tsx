@@ -59,16 +59,22 @@ function getPageTitle(pathname: string, subParam: string | null): string {
 
   if (pathname === "/inventarios") {
     switch (subParam) {
-      case "bodegas":
-        return "Bodegas & Almacenes";
+      case "servicios":
+        return "Servicios";
+      case "categorias":
+      case "clasificacion":
+        return "Categorías";
       case "kardex":
-        return "Kardex Valorado";
+        return "Kardex";
       case "transferencias":
-        return "Transferencias Internas";
+        return "Transferencias";
+      case "bodegas":
+      case "bodega":
+        return "Bodega";
       case "ajustes":
-        return "Ajustes de Inventario";
+        return "Ajustes";
       default:
-        return "Productos & Materiales";
+        return "Productos";
     }
   }
 

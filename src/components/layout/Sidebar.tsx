@@ -78,11 +78,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: Boxes,
     moduleKey: "inventarios",
     submodules: [
-      { key: "productos", label: "Productos & Materiales", href: "/inventarios?sub=productos", submoduleKey: "productos" },
-      { key: "bodegas", label: "Bodegas & Almacenes", href: "/inventarios?sub=bodegas", submoduleKey: "bodegas" },
-      { key: "kardex", label: "Kardex & Movimientos", href: "/inventarios?sub=kardex", submoduleKey: "kardex" },
-      { key: "transferencias", label: "Transferencias Internas", href: "/inventarios?sub=transferencias", submoduleKey: "transferencias" },
-      { key: "ajustes", label: "Ajustes de Inventario", href: "/inventarios?sub=ajustes", submoduleKey: "ajustes" },
+      { key: "productos", label: "Productos", href: "/inventarios?sub=productos", submoduleKey: "productos" },
+      { key: "servicios", label: "Servicios", href: "/inventarios?sub=servicios", submoduleKey: "servicios" },
+      { key: "categorias", label: "Categorías", href: "/inventarios?sub=categorias", submoduleKey: "categorias" },
+      { key: "kardex", label: "Kardex", href: "/inventarios?sub=kardex", submoduleKey: "kardex" },
+      { key: "transferencias", label: "Transferencias", href: "/inventarios?sub=transferencias", submoduleKey: "transferencias" },
+      { key: "bodegas", label: "Bodega", href: "/inventarios?sub=bodegas", submoduleKey: "bodegas" },
+      { key: "ajustes", label: "Ajustes", href: "/inventarios?sub=ajustes", submoduleKey: "ajustes" },
     ],
   },
   {

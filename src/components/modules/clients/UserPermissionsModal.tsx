@@ -383,7 +383,21 @@ export function UserPermissionsModal({
                         className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
                       />
                       <span className="capitalize text-[#434655] font-medium text-[11px]">
-                        {subKey.replace(/_/g, " ")}
+                        {subKey === "productos"
+                          ? "Productos"
+                          : subKey === "servicios"
+                          ? "Servicios"
+                          : subKey === "categorias"
+                          ? "Categorías"
+                          : subKey === "kardex"
+                          ? "Kardex"
+                          : subKey === "transferencias"
+                          ? "Transferencias"
+                          : subKey === "bodegas"
+                          ? "Bodega"
+                          : subKey === "ajustes"
+                          ? "Ajustes"
+                          : subKey.replace(/_/g, " ")}
                       </span>
                     </label>
                   ))}

@@ -1,17 +1,15 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { canAccessSubmodule } from "@/lib/permissions";
 import {
   InventoryProduct,
   Warehouse,
   ProductCategory,
   ProductBrand,
-  KardexEntry,
-  WarehouseTransfer,
-  InventoryAdjustment,
 } from "@/types";
 import { ProductModal } from "./ProductModal";
 import { WarehouseModal } from "./WarehouseModal";
@@ -19,7 +17,6 @@ import { TransferModal } from "./TransferModal";
 import { AdjustmentModal } from "./AdjustmentModal";
 import { CategoryBrandModal } from "./CategoryBrandModal";
 import {
-  Boxes,
   Package,
   Wrench,
   Building2,
@@ -29,33 +26,26 @@ import {
   Tags,
   Plus,
   Search,
-  Filter,
   Download,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  DollarSign,
   Edit2,
   Trash2,
   Eye,
-  RefreshCw,
-  Layers,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight,
+  ShieldAlert,
+  Award,
 } from "lucide-react";
 
-type InventoryTab =
+export type InventoryTab =
   | "productos"
   | "servicios"
-  | "bodegas"
+  | "categorias"
   | "kardex"
   | "transferencias"
-  | "ajustes"
-  | "clasificacion";
+  | "bodegas"
+  | "ajustes";
 
 export function InventoryManager() {
   const {
+    currentUser,
     inventoryProducts,
     inventoryWarehouses,
     inventoryCategories,
@@ -68,26 +58,66 @@ export function InventoryManager() {
     deleteRecord,
   } = useApp();
   const { showConfirm, showSuccess, showError } = useToast();
+  const router = useRouter();
 
   const searchParams = useSearchParams();
-  const subParam = searchParams.get("sub") as InventoryTab | null;
+  const subParam = searchParams.get("sub");
 
-  const [activeTab, setActiveTab] = useState<InventoryTab>(() => {
-    if (subParam) return subParam;
+  const normalizeTab = (param: string | null): InventoryTab => {
+    if (!param) return "productos";
+    if (param === "bodega") return "bodegas";
+    if (param === "clasificacion") return "categorias";
+    if (
+      param === "productos" ||
+      param === "servicios" ||
+      param === "categorias" ||
+      param === "kardex" ||
+      param === "transferencias" ||
+      param === "bodegas" ||
+      param === "ajustes"
+    ) {
+      return param as InventoryTab;
+    }
     return "productos";
-  });
+  };
+
+  const [activeTab, setActiveTab] = useState<InventoryTab>(() => normalizeTab(subParam));
 
   useEffect(() => {
     if (subParam) {
-      setActiveTab(subParam);
+      setActiveTab(normalizeTab(subParam));
     }
   }, [subParam]);
 
+  // Global search input for current view
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState("all");
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
-  const [stockStatusFilter, setStockStatusFilter] = useState<"all" | "low" | "out" | "normal">("all");
+
+  // Productos Filters
+  const [productWarehouseFilter, setProductWarehouseFilter] = useState("all");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [productStockFilter, setProductStockFilter] = useState<"all" | "low" | "out" | "normal">("all");
+
+  // Servicios Filters
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState("all");
+  const [serviceStatusFilter, setServiceStatusFilter] = useState<"todos" | "activo" | "inactivo">("todos");
+
+  // Categorías & Marcas sub-view
+  const [categorySubView, setCategorySubView] = useState<"categorias" | "marcas">("categorias");
+  const [categoryTypeFilter, setCategoryTypeFilter] = useState<"all" | "producto" | "servicio" | "ambos">("all");
+
+  // Kardex Filters
   const [kardexProductFilter, setKardexProductFilter] = useState("all");
+  const [kardexWarehouseFilter, setKardexWarehouseFilter] = useState("all");
+
+  // Transferencias Filters
+  const [transferWarehouseFilter, setTransferWarehouseFilter] = useState("all");
+
+  // Bodegas Filters
+  const [warehouseStatusFilter, setWarehouseStatusFilter] = useState<"todos" | "activo" | "inactivo">("todos");
+
+  // Ajustes Filters
+  const [adjustmentWarehouseFilter, setAdjustmentWarehouseFilter] = useState("all");
+  const [adjustmentTypeFilter, setAdjustmentTypeFilter] = useState<"todos" | "ingreso" | "egreso">("todos");
 
   // Modals state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -108,31 +138,8 @@ export function InventoryManager() {
   const [isCatBrandOpen, setIsCatBrandOpen] = useState(false);
   const [catBrandMode, setCatBrandMode] = useState<"categoria" | "marca">("categoria");
 
-  // ==========================================
-  // KPIs Calculations
-  // ==========================================
-  const kpis = useMemo(() => {
-    const physicalProducts = inventoryProducts.filter((p) => p.tracksStock && p.status === "activo");
-    const services = inventoryProducts.filter((p) => p.type === "servicio" && p.status === "activo");
-
-    const totalInventoryValue = physicalProducts.reduce(
-      (sum, p) => sum + p.stock * p.baseCost,
-      0
-    );
-
-    const lowStockCount = physicalProducts.filter((p) => p.stock > 0 && p.stock <= p.minStock).length;
-    const outOfStockCount = physicalProducts.filter((p) => p.stock === 0).length;
-    const activeWarehouses = inventoryWarehouses.filter((w) => w.status === "activo").length;
-
-    return {
-      totalInventoryValue,
-      physicalProductsCount: physicalProducts.length,
-      servicesCount: services.length,
-      lowStockCount,
-      outOfStockCount,
-      activeWarehouses,
-    };
-  }, [inventoryProducts, inventoryWarehouses]);
+  // Check sub-module permission
+  const hasAccess = canAccessSubmodule(currentUser, "inventarios", activeTab);
 
   // ==========================================
   // Filtered Products
@@ -148,22 +155,22 @@ export function InventoryManager() {
         (p.model && p.model.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesCategory =
-        selectedCategoryFilter === "all" || p.categoryId === selectedCategoryFilter;
+        productCategoryFilter === "all" || p.categoryId === productCategoryFilter;
 
       let matchesStock = true;
-      if (stockStatusFilter === "low") matchesStock = p.stock > 0 && p.stock <= p.minStock;
-      else if (stockStatusFilter === "out") matchesStock = p.stock === 0;
-      else if (stockStatusFilter === "normal") matchesStock = p.stock > p.minStock;
+      if (productStockFilter === "low") matchesStock = p.stock > 0 && p.stock <= p.minStock;
+      else if (productStockFilter === "out") matchesStock = p.stock === 0;
+      else if (productStockFilter === "normal") matchesStock = p.stock > p.minStock;
 
       let matchesWarehouse = true;
-      if (selectedWarehouseFilter !== "all") {
-        const whStock = p.stockByWarehouse?.[selectedWarehouseFilter] ?? 0;
+      if (productWarehouseFilter !== "all") {
+        const whStock = p.stockByWarehouse?.[productWarehouseFilter] ?? 0;
         matchesWarehouse = whStock > 0;
       }
 
       return matchesSearch && matchesCategory && matchesStock && matchesWarehouse;
     });
-  }, [inventoryProducts, searchTerm, selectedCategoryFilter, stockStatusFilter, selectedWarehouseFilter]);
+  }, [inventoryProducts, searchTerm, productCategoryFilter, productStockFilter, productWarehouseFilter]);
 
   // ==========================================
   // Filtered Services
@@ -178,11 +185,39 @@ export function InventoryManager() {
         (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesCategory =
-        selectedCategoryFilter === "all" || p.categoryId === selectedCategoryFilter;
+        serviceCategoryFilter === "all" || p.categoryId === serviceCategoryFilter;
 
-      return matchesSearch && matchesCategory;
+      const matchesStatus =
+        serviceStatusFilter === "todos" || p.status === serviceStatusFilter;
+
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [inventoryProducts, searchTerm, selectedCategoryFilter]);
+  }, [inventoryProducts, searchTerm, serviceCategoryFilter, serviceStatusFilter]);
+
+  // ==========================================
+  // Filtered Categories & Brands
+  // ==========================================
+  const filteredCategories = useMemo(() => {
+    return inventoryCategories.filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesType =
+        categoryTypeFilter === "all" || c.itemType === categoryTypeFilter;
+
+      return matchesSearch && matchesType;
+    });
+  }, [inventoryCategories, searchTerm, categoryTypeFilter]);
+
+  const filteredBrands = useMemo(() => {
+    return inventoryBrands.filter((b) => {
+      return (
+        b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (b.originCountry && b.originCountry.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    });
+  }, [inventoryBrands, searchTerm]);
 
   // ==========================================
   // Filtered Kardex
@@ -198,15 +233,77 @@ export function InventoryManager() {
         kardexProductFilter === "all" || k.productId === kardexProductFilter;
 
       const matchesWarehouse =
-        selectedWarehouseFilter === "all" || k.warehouseId === selectedWarehouseFilter;
+        kardexWarehouseFilter === "all" || k.warehouseId === kardexWarehouseFilter;
 
       return matchesSearch && matchesProduct && matchesWarehouse;
     });
-  }, [inventoryKardex, searchTerm, kardexProductFilter, selectedWarehouseFilter]);
+  }, [inventoryKardex, searchTerm, kardexProductFilter, kardexWarehouseFilter]);
+
+  // ==========================================
+  // Filtered Transfers
+  // ==========================================
+  const filteredTransfers = useMemo(() => {
+    return inventoryTransfers.filter((t) => {
+      const matchesSearch =
+        t.transferNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.responsibleUser.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesWarehouse =
+        transferWarehouseFilter === "all" ||
+        t.originWarehouseId === transferWarehouseFilter ||
+        t.destWarehouseId === transferWarehouseFilter;
+
+      return matchesSearch && matchesWarehouse;
+    });
+  }, [inventoryTransfers, searchTerm, transferWarehouseFilter]);
+
+  // ==========================================
+  // Filtered Warehouses
+  // ==========================================
+  const filteredWarehouses = useMemo(() => {
+    return inventoryWarehouses.filter((w) => {
+      const matchesSearch =
+        w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (w.responsibleName && w.responsibleName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (w.city && w.city.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesStatus =
+        warehouseStatusFilter === "todos" || w.status === warehouseStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [inventoryWarehouses, searchTerm, warehouseStatusFilter]);
+
+  // ==========================================
+  // Filtered Adjustments
+  // ==========================================
+  const filteredAdjustments = useMemo(() => {
+    return inventoryAdjustments.filter((a) => {
+      const matchesSearch =
+        a.adjustmentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.responsibleUser.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        a.items.some((it) => it.productName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesWarehouse =
+        adjustmentWarehouseFilter === "all" || a.warehouseId === adjustmentWarehouseFilter;
+
+      const matchesType =
+        adjustmentTypeFilter === "todos" ||
+        (adjustmentTypeFilter === "ingreso" && a.type.includes("ingreso")) ||
+        (adjustmentTypeFilter === "egreso" && !a.type.includes("ingreso"));
+
+      return matchesSearch && matchesWarehouse && matchesType;
+    });
+  }, [inventoryAdjustments, searchTerm, adjustmentWarehouseFilter, adjustmentTypeFilter]);
 
   // Quick Action Handlers
   const handleOpenKardexForProduct = (prodId: string) => {
     setKardexProductFilter(prodId);
+    router.push("/inventarios?sub=kardex");
     setActiveTab("kardex");
   };
 
@@ -256,11 +353,53 @@ export function InventoryManager() {
     );
   };
 
-  // Export to CSV helper
-  const handleExportCsv = () => {
+  const handleDeleteCategory = (cat: ProductCategory) => {
+    const productsCount = inventoryProducts.filter((p) => p.categoryId === cat.id).length;
+    if (productsCount > 0) {
+      showError("Acción Denegada", `No es posible eliminar "${cat.name}" porque tiene ${productsCount} artículos asociados.`);
+      return;
+    }
+    showConfirm(
+      "¿Eliminar Categoría?",
+      `¿Deseas eliminar la categoría "${cat.name}"?`,
+      async () => {
+        try {
+          await deleteRecord("inventoryCategories", cat.id);
+          showSuccess("Categoría Eliminada", `La categoría "${cat.name}" ha sido retirada.`);
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message);
+        }
+      },
+      "Eliminar Categoría"
+    );
+  };
+
+  const handleDeleteBrand = (brand: ProductBrand) => {
+    const productsCount = inventoryProducts.filter((p) => p.brandId === brand.id).length;
+    if (productsCount > 0) {
+      showError("Acción Denegada", `No es posible eliminar "${brand.name}" porque tiene ${productsCount} artículos asociados.`);
+      return;
+    }
+    showConfirm(
+      "¿Eliminar Marca?",
+      `¿Deseas eliminar la marca "${brand.name}"?`,
+      async () => {
+        try {
+          await deleteRecord("inventoryBrands", brand.id);
+          showSuccess("Marca Eliminada", `La marca "${brand.name}" ha sido retirada.`);
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message);
+        }
+      },
+      "Eliminar Marca"
+    );
+  };
+
+  // Export to CSV helper for Products
+  const handleExportProductsCsv = () => {
     try {
       const headers = ["SKU", "Nombre", "Tipo", "Categoría", "Stock", "Unidad", "Costo Base", "Precio Sin IVA", "Precio Con IVA"];
-      const rows = inventoryProducts.map((p) => [
+      const rows = filteredProducts.map((p) => [
         `"${p.sku}"`,
         `"${p.name.replace(/"/g, '""')}"`,
         `"${p.type}"`,
@@ -286,1022 +425,1217 @@ export function InventoryManager() {
     }
   };
 
+  // Export to CSV helper for Kardex
+  const handleExportKardexCsv = () => {
+    try {
+      const headers = [
+        "Fecha",
+        "Producto",
+        "Bodega",
+        "Tipo",
+        "Concepto",
+        "Documento",
+        "Entrada Cant",
+        "Entrada Costo",
+        "Entrada Total",
+        "Salida Cant",
+        "Salida Costo",
+        "Salida Total",
+        "Saldo Cant",
+        "Costo Promedio",
+        "Saldo Total",
+      ];
+      const rows = filteredKardex.map((k) => [
+        `"${k.date}"`,
+        `"${k.productName.replace(/"/g, '""')}"`,
+        `"${k.warehouseName.replace(/"/g, '""')}"`,
+        `"${k.type}"`,
+        `"${k.concept.replace(/"/g, '""')}"`,
+        `"${k.referenceDocNumber || k.referenceId || ""}"`,
+        k.entryQuantity || 0,
+        (k.entryUnitCost || 0).toFixed(2),
+        (k.entryTotalCost || 0).toFixed(2),
+        k.exitQuantity || 0,
+        (k.exitUnitCost || 0).toFixed(2),
+        (k.exitTotalCost || 0).toFixed(2),
+        k.balanceQuantity || 0,
+        (k.balanceAverageCost || 0).toFixed(2),
+        (k.balanceTotalCost || 0).toFixed(2),
+      ]);
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `kardex_inntel_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showSuccess("Kardex Exportado", "Se descargó el libro mayor de kardex en CSV.");
+    } catch (e: any) {
+      showError("Error de Exportación", e?.message);
+    }
+  };
+
+  if (!hasAccess) {
+    return (
+      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-12 text-center shadow-2xs">
+        <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <h3 className="text-base font-bold text-[#0b1c30]">Acceso Restringido</h3>
+        <p className="text-xs text-[#737686] mt-1 max-w-md mx-auto">
+          No tienes permisos para visualizar este submódulo de Inventarios. Contacta con el administrador si necesitas acceso.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Action Toolbar without redundant description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#434655]">Total Registros:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-            {activeTab === "productos" && inventoryProducts.filter((p) => p.tracksStock).length}
-            {activeTab === "servicios" && inventoryProducts.filter((p) => p.type === "servicio").length}
-            {activeTab === "bodegas" && inventoryWarehouses.length}
-            {activeTab === "kardex" && inventoryKardex.length}
-            {activeTab === "transferencias" && inventoryTransfers.length}
-            {activeTab === "ajustes" && inventoryAdjustments.length}
-            {activeTab === "clasificacion" && (inventoryCategories.length + inventoryBrands.length)}
-          </span>
-        </div>
+    <div className="space-y-6 select-none animate-in fade-in duration-200">
+      {/* ========================================================= */}
+      {/* 1. PRODUCTOS                                              */}
+      {/* ========================================================= */}
+      {activeTab === "productos" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por SKU, nombre, modelo o código..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
+            </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={handleExportCsv}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Exportar CSV</span>
-          </button>
-
-          {activeTab !== "bodegas" && activeTab !== "clasificacion" && (
-            <button
-              onClick={() => {
-                setTransferDefaultProduct(undefined);
-                setIsTransferModalOpen(true);
-              }}
-              className="px-3.5 py-2 rounded-xl border border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-[#004ac6] text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              <span>Trasladar Stock</span>
-            </button>
-          )}
-
-          {activeTab === "bodegas" ? (
-            <button
-              onClick={() => {
-                setWarehouseToEdit(null);
-                setIsWarehouseModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Bodega</span>
-            </button>
-          ) : activeTab === "servicios" ? (
-            <button
-              onClick={() => {
-                setProductToEdit(null);
-                setProductModalDefaultType("servicio");
-                setIsProductModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Servicio</span>
-            </button>
-          ) : activeTab === "transferencias" ? (
-            <button
-              onClick={() => {
-                setTransferDefaultProduct(undefined);
-                setIsTransferModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Transferencia</span>
-            </button>
-          ) : activeTab === "ajustes" ? (
-            <button
-              onClick={() => {
-                setAdjustmentDefaultProduct(undefined);
-                setIsAdjustmentModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Ajuste</span>
-            </button>
-          ) : activeTab === "clasificacion" ? (
-            <button
-              onClick={() => {
-                setCatBrandMode("categoria");
-                setIsCatBrandOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nueva Categoría / Marca</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setProductToEdit(null);
-                setProductModalDefaultType("producto");
-                setIsProductModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Producto</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Valor Inventario</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-lg font-black text-slate-900">
-            ${kpis.totalInventoryValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-            <span className="text-emerald-600 font-bold">Costo Ponderado</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Productos Físicos</span>
-            <Package className="w-4 h-4 text-[#004ac6]" />
-          </div>
-          <div className="text-lg font-black text-slate-900">{kpis.physicalProductsCount}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Equipos & Materiales</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Servicios Catálogo</span>
-            <Wrench className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-lg font-black text-slate-900">{kpis.servicesCount}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Mano de obra & Enlaces</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Stock Crítico</span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-lg font-black text-amber-600">{kpis.lowStockCount}</div>
-          <div className="text-[10px] text-amber-700/80 mt-1 font-semibold">Requiere reabastecer</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Agotados</span>
-            <AlertTriangle className="w-4 h-4 text-rose-500" />
-          </div>
-          <div className="text-lg font-black text-rose-600">{kpis.outOfStockCount}</div>
-          <div className="text-[10px] text-rose-700/80 mt-1 font-semibold">Sin existencias</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Bodegas</span>
-            <Building2 className="w-4 h-4 text-sky-600" />
-          </div>
-          <div className="text-lg font-black text-slate-900">{kpis.activeWarehouses}</div>
-          <div className="text-[10px] text-slate-500 mt-1">Almacenes activos</div>
-        </div>
-      </div>
-
-      {/* Search & Filters Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por SKU, nombre, código barras o modelo..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-          />
-        </div>
-
-        <div className="flex items-center gap-2.5 w-full md:w-auto overflow-x-auto">
-          {/* Bodega Filter */}
-          {(activeTab === "productos" || activeTab === "kardex") && (
-            <select
-              value={selectedWarehouseFilter}
-              onChange={(e) => setSelectedWarehouseFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20"
-            >
-              <option value="all">Todas las Bodegas</option>
-              {inventoryWarehouses.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.code} - {w.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Categoría Filter */}
-          {(activeTab === "productos" || activeTab === "servicios") && (
-            <select
-              value={selectedCategoryFilter}
-              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20"
-            >
-              <option value="all">Todas las Categorías</option>
-              {inventoryCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Stock Filter */}
-          {activeTab === "productos" && (
-            <select
-              value={stockStatusFilter}
-              onChange={(e) => setStockStatusFilter(e.target.value as any)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20"
-            >
-              <option value="all">Todos los Estados</option>
-              <option value="normal">Stock Normal</option>
-              <option value="low">Stock Bajo (Crítico)</option>
-              <option value="out">Sin Existencias (Agotado)</option>
-            </select>
-          )}
-
-          {/* Kardex Product Filter */}
-          {activeTab === "kardex" && (
-            <select
-              value={kardexProductFilter}
-              onChange={(e) => setKardexProductFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 max-w-xs truncate"
-            >
-              <option value="all">Todos los Productos</option>
-              {inventoryProducts
-                .filter((p) => p.tracksStock)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    [{p.sku}] {p.name}
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={productWarehouseFilter}
+                onChange={(e) => setProductWarehouseFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Bodegas</option>
+                {inventoryWarehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.code} - {w.name}
                   </option>
                 ))}
-            </select>
-          )}
-        </div>
-      </div>
+              </select>
 
-      {/* ========================================== */}
-      {/* TAB 1: PRODUCTOS FÍSICOS                    */}
-      {/* ========================================== */}
-      {activeTab === "productos" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">SKU / Código</th>
-                  <th className="py-3 px-4">Descripción del Equipo</th>
-                  <th className="py-3 px-4">Categoría / Marca</th>
-                  <th className="py-3 px-4 text-center">Stock Global</th>
-                  <th className="py-3 px-4 text-right">Costo Promedio</th>
-                  <th className="py-3 px-4 text-right">P. Venta (Sin IVA)</th>
-                  <th className="py-3 px-4 text-right">P. Venta (Con IVA)</th>
-                  <th className="py-3 px-4 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredProducts.length === 0 ? (
+              <select
+                value={productCategoryFilter}
+                onChange={(e) => setProductCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Categorías</option>
+                {inventoryCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={productStockFilter}
+                onChange={(e) => setProductStockFilter(e.target.value as any)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todos los Estados</option>
+                <option value="normal">Stock Normal</option>
+                <option value="low">Stock Bajo (Crítico)</option>
+                <option value="out">Sin Existencias (Agotado)</option>
+              </select>
+
+              <button
+                onClick={handleExportProductsCsv}
+                className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#434655] text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Descargar catálogo en CSV"
+              >
+                <Download className="w-3.5 h-3.5 text-[#737686]" />
+                <span>Exportar CSV</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setProductToEdit(null);
+                  setProductModalDefaultType("producto");
+                  setIsProductModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Producto</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
-                      <Package className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-600">No se encontraron productos físicos</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Ajusta los filtros o haz clic en "Nuevo Producto" para registrar ítems.
-                      </p>
-                    </td>
+                    <th className="py-3 px-4 font-bold">SKU / Código</th>
+                    <th className="py-3 px-4 font-bold">Producto / Equipo</th>
+                    <th className="py-3 px-4 font-bold">Categoría / Marca</th>
+                    <th className="py-3 px-4 font-bold text-center">Stock Global</th>
+                    <th className="py-3 px-4 font-bold text-right">Costo Promedio</th>
+                    <th className="py-3 px-4 font-bold text-right">P. Venta (Sin IVA)</th>
+                    <th className="py-3 px-4 font-bold text-right">P. Venta (Con IVA)</th>
+                    <th className="py-3 px-4 font-bold text-center">Estado</th>
+                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
                   </tr>
-                ) : (
-                  filteredProducts.map((p) => {
-                    const isLowStock = p.stock > 0 && p.stock <= p.minStock;
-                    const isOutStock = p.stock === 0;
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
+                        <Package className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No se encontraron productos físicos</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Ajusta los filtros de búsqueda o registra un nuevo producto en el catálogo.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map((p) => {
+                      const isLowStock = p.stock > 0 && p.stock <= p.minStock;
+                      const isOutStock = p.stock === 0;
 
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
-                        <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">
-                          {p.sku}
-                          {p.barcode && (
-                            <span className="block text-[10px] text-slate-400 font-normal">
-                              EAN: {p.barcode}
+                      return (
+                        <tr key={p.id} className="hover:bg-[#f8f9ff] transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">
+                            {p.sku}
+                            {p.barcode && (
+                              <span className="block text-[10px] text-[#737686] font-normal">
+                                EAN: {p.barcode}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-[#0b1c30] line-clamp-1">{p.name}</div>
+                            <div className="text-[11px] text-[#737686] line-clamp-1">
+                              {p.model ? `Modelo: ${p.model} | ` : ""}
+                              {p.fiberLengthMeters ? `Metraje: ${p.fiberLengthMeters}m | ` : ""}
+                              {p.description || "Sin especificaciones adicionales"}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold mb-0.5">
+                              {p.categoryName || "General"}
                             </span>
-                          )}
+                            {p.brandName && (
+                              <span className="block text-[10px] text-[#737686] font-medium">
+                                {p.brandName}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <div
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${
+                                isOutStock
+                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
+                                  : isLowStock
+                                  ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                  : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              }`}
+                            >
+                              <span>{p.stock}</span>
+                              <span className="text-[10px] font-normal">{p.unit}s</span>
+                            </div>
+                            {isLowStock && (
+                              <span className="block text-[10px] text-amber-600 font-bold mt-0.5">
+                                Mín: {p.minStock}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right font-medium text-[#434655]">
+                            ${p.baseCost.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">
+                            ${p.salePrice.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-emerald-700">
+                            ${p.salePriceConIva.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                p.status === "activo"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {p.status === "activo" ? "Activo" : "Inactivo"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleOpenKardexForProduct(p.id)}
+                                title="Consultar Kardex"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                              >
+                                <BookOpen className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenTransferForProduct(p.id)}
+                                title="Transferir Stock"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition-colors cursor-pointer"
+                              >
+                                <ArrowRightLeft className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenAdjustmentForProduct(p.id)}
+                                title="Ajuste de Stock"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
+                              >
+                                <SlidersHorizontal className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setProductToEdit(p);
+                                  setProductModalDefaultType("producto");
+                                  setIsProductModalOpen(true);
+                                }}
+                                title="Editar Producto"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(p)}
+                                title="Eliminar Producto"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 2. SERVICIOS                                              */}
+      {/* ========================================================= */}
+      {activeTab === "servicios" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar servicio por código o nombre..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={serviceCategoryFilter}
+                onChange={(e) => setServiceCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Categorías</option>
+                {inventoryCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={serviceStatusFilter}
+                onChange={(e) => setServiceStatusFilter(e.target.value as any)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="todos">Todos los Estados</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+              </select>
+
+              <button
+                onClick={() => {
+                  setProductToEdit(null);
+                  setProductModalDefaultType("servicio");
+                  setIsProductModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Servicio</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Código / SKU</th>
+                    <th className="py-3 px-4 font-bold">Servicio Técnico / Mano de Obra</th>
+                    <th className="py-3 px-4 font-bold">Categoría</th>
+                    <th className="py-3 px-4 font-bold text-center">Unidad</th>
+                    <th className="py-3 px-4 font-bold text-right">Costo Base ($)</th>
+                    <th className="py-3 px-4 font-bold text-right">P. Venta Sin IVA ($)</th>
+                    <th className="py-3 px-4 font-bold text-right">P. Venta Con IVA ($)</th>
+                    <th className="py-3 px-4 font-bold text-center">Estado</th>
+                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredServices.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
+                        <Wrench className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No se encontraron servicios técnicos</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Haz clic en "Nuevo Servicio" para dar de alta conceptos de mano de obra o suscripciones.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredServices.map((s) => (
+                      <tr key={s.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{s.sku}</td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-[#0b1c30]">{s.name}</div>
+                          <div className="text-[11px] text-[#737686]">{s.description || "Sin descripción"}</div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="font-bold text-slate-800 line-clamp-1">{p.name}</div>
-                          <div className="text-[11px] text-slate-400 line-clamp-1">
-                            {p.model ? `Modelo: ${p.model} | ` : ""}
-                            {p.fiberLengthMeters ? `Metraje: ${p.fiberLengthMeters}m | ` : ""}
-                            {p.description || "Sin descripción adicional"}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold mb-0.5">
-                            {p.categoryName || "General"}
+                          <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
+                            {s.categoryName || "Servicios"}
                           </span>
-                          {p.brandName && (
-                            <span className="block text-[10px] text-slate-500 font-medium">
-                              {p.brandName}
-                            </span>
-                          )}
                         </td>
-                        <td className="py-3 px-4 text-center">
-                          <div
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${
-                              isOutStock
-                                ? "bg-rose-100 text-rose-800 border border-rose-200"
-                                : isLowStock
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                            }`}
-                          >
-                            <span>{p.stock}</span>
-                            <span className="text-[10px] font-normal">{p.unit}s</span>
-                          </div>
-                          {isLowStock && (
-                            <span className="block text-[10px] text-amber-600 font-bold mt-0.5">
-                              Mín: {p.minStock}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right font-medium text-slate-600">
-                          ${p.baseCost.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-slate-800">
-                          ${p.salePrice.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-700">
-                          ${p.salePriceConIva.toFixed(2)}
-                        </td>
+                        <td className="py-3 px-4 text-center capitalize font-medium text-[#434655]">{s.unit}</td>
+                        <td className="py-3 px-4 text-right font-medium text-[#434655]">${s.baseCost.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">${s.salePrice.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-emerald-700">${s.salePriceConIva.toFixed(2)}</td>
                         <td className="py-3 px-4 text-center">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              p.status === "activo"
+                              s.status === "activo"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : "bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {p.status === "activo" ? "Activo" : "Inactivo"}
+                            {s.status === "activo" ? "Activo" : "Inactivo"}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => handleOpenKardexForProduct(p.id)}
-                              title="Consultar Kardex Valorado"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 transition-colors"
-                            >
-                              <BookOpen className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenTransferForProduct(p.id)}
-                              title="Transferir a Otra Bodega"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-slate-100 transition-colors"
-                            >
-                              <ArrowRightLeft className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenAdjustmentForProduct(p.id)}
-                              title="Ajuste Rápido de Stock"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-slate-100 transition-colors"
-                            >
-                              <SlidersHorizontal className="w-3.5 h-3.5" />
-                            </button>
-                            <button
                               onClick={() => {
-                                setProductToEdit(p);
+                                setProductToEdit(s);
+                                setProductModalDefaultType("servicio");
                                 setIsProductModalOpen(true);
                               }}
-                              title="Editar Producto"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              title="Editar Servicio"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
-                              onClick={() => handleDeleteProduct(p)}
-                              title="Eliminar Producto"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              onClick={() => handleDeleteProduct(s)}
+                              title="Eliminar Servicio"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* TAB 2: SERVICIOS TÉCNICOS                  */}
-      {/* ========================================== */}
-      {activeTab === "servicios" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div>
-              <h3 className="font-bold text-slate-800 text-xs">Catálogo de Servicios Técnicos & Mano de Obra</h3>
-              <p className="text-[11px] text-slate-500">
-                Ítems intangibles para facturación y cotizaciones sin afectación de inventario físico
-              </p>
+      {/* ========================================================= */}
+      {/* 3. CATEGORÍAS & MARCAS                                    */}
+      {/* ========================================================= */}
+      {activeTab === "categorias" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            {/* View Sub-tabs */}
+            <div className="flex items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] w-full sm:w-auto">
+              <button
+                onClick={() => setCategorySubView("categorias")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  categorySubView === "categorias"
+                    ? "bg-[#004ac6] text-white shadow-xs"
+                    : "text-[#434655] hover:text-[#0b1c30]"
+                }`}
+              >
+                <Tags className="w-3.5 h-3.5" />
+                <span>Categorías ({inventoryCategories.length})</span>
+              </button>
+              <button
+                onClick={() => setCategorySubView("marcas")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  categorySubView === "marcas"
+                    ? "bg-[#004ac6] text-white shadow-xs"
+                    : "text-[#434655] hover:text-[#0b1c30]"
+                }`}
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>Marcas & Fabricantes ({inventoryBrands.length})</span>
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setProductToEdit(null);
-                setProductModalDefaultType("servicio");
-                setIsProductModalOpen(true);
-              }}
-              className="px-3.5 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Nuevo Servicio
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder={
+                    categorySubView === "categorias"
+                      ? "Buscar por categoría o descripción..."
+                      : "Buscar marca o fabricante..."
+                  }
+                  className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                />
+              </div>
+
+              {categorySubView === "categorias" && (
+                <select
+                  value={categoryTypeFilter}
+                  onChange={(e) => setCategoryTypeFilter(e.target.value as any)}
+                  className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                >
+                  <option value="all">Todos los Tipos</option>
+                  <option value="ambos">Productos y Servicios</option>
+                  <option value="producto">Solo Productos Físicos</option>
+                  <option value="servicio">Solo Servicios Técnicos</option>
+                </select>
+              )}
+
+              {categorySubView === "categorias" ? (
+                <button
+                  onClick={() => {
+                    setCatBrandMode("categoria");
+                    setIsCatBrandOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nueva Categoría</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setCatBrandMode("marca");
+                    setIsCatBrandOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nueva Marca</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Código / SKU</th>
-                  <th className="py-3 px-4">Servicio Técnico</th>
-                  <th className="py-3 px-4">Categoría</th>
-                  <th className="py-3 px-4">Unidad</th>
-                  <th className="py-3 px-4 text-right">Costo Base ($)</th>
-                  <th className="py-3 px-4 text-right">P. Venta Sin IVA ($)</th>
-                  <th className="py-3 px-4 text-right">P. Venta Con IVA ($)</th>
-                  <th className="py-3 px-4 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredServices.length === 0 ? (
+          {/* Sub-view: Categorías Table */}
+          {categorySubView === "categorias" ? (
+            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                    <tr>
+                      <th className="py-3 px-4 font-bold">Nombre de la Categoría</th>
+                      <th className="py-3 px-4 font-bold">Descripción / Alcance</th>
+                      <th className="py-3 px-4 font-bold text-center">Aplica a</th>
+                      <th className="py-3 px-4 font-bold text-center">Artículos Asociados</th>
+                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e2e8f0]">
+                    {filteredCategories.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-xs text-[#737686]">
+                          <Tags className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                          <p className="font-semibold text-[#434655]">No se encontraron categorías</p>
+                          <p className="text-[11px] text-[#737686] mt-0.5">
+                            Crea una nueva categoría para organizar equipos y servicios.
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCategories.map((c) => {
+                        const count = inventoryProducts.filter((p) => p.categoryId === c.id).length;
+                        return (
+                          <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
+                            <td className="py-3 px-4 font-bold text-[#0b1c30]">{c.name}</td>
+                            <td className="py-3 px-4 text-[#737686] max-w-md truncate">
+                              {c.description || "Sin descripción registrada"}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                                {c.itemType || "ambos"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center font-bold text-[#434655]">
+                              {count} artículo{count !== 1 ? "s" : ""}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => handleDeleteCategory(c)}
+                                title="Eliminar Categoría"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* Sub-view: Marcas Table */
+            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                    <tr>
+                      <th className="py-3 px-4 font-bold">Marca / Fabricante</th>
+                      <th className="py-3 px-4 font-bold">País de Origen</th>
+                      <th className="py-3 px-4 font-bold text-center">Artículos Homologados</th>
+                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e2e8f0]">
+                    {filteredBrands.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-12 text-center text-xs text-[#737686]">
+                          <Award className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                          <p className="font-semibold text-[#434655]">No se encontraron marcas registradas</p>
+                          <p className="text-[11px] text-[#737686] mt-0.5">
+                            Registra fabricantes homologados como MikroTik, Ubiquiti, Huawei, etc.
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredBrands.map((b) => {
+                        const count = inventoryProducts.filter((p) => p.brandId === b.id).length;
+                        return (
+                          <tr key={b.id} className="hover:bg-[#f8f9ff] transition-colors">
+                            <td className="py-3 px-4 font-bold text-[#0b1c30]">{b.name}</td>
+                            <td className="py-3 px-4 text-[#737686]">{b.originCountry || "Internacional"}</td>
+                            <td className="py-3 px-4 text-center font-bold text-[#434655]">
+                              {count} artículo{count !== 1 ? "s" : ""}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                onClick={() => handleDeleteBrand(b)}
+                                title="Eliminar Marca"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 4. KARDEX                                                 */}
+      {/* ========================================================= */}
+      {activeTab === "kardex" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por concepto, producto o documento..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={kardexWarehouseFilter}
+                onChange={(e) => setKardexWarehouseFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Bodegas</option>
+                {inventoryWarehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.code} - {w.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={kardexProductFilter}
+                onChange={(e) => setKardexProductFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] max-w-xs truncate"
+              >
+                <option value="all">Todos los Productos</option>
+                {inventoryProducts
+                  .filter((p) => p.tracksStock)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      [{p.sku}] {p.name}
+                    </option>
+                  ))}
+              </select>
+
+              {kardexProductFilter !== "all" && (
+                <button
+                  onClick={() => setKardexProductFilter("all")}
+                  className="text-xs font-semibold text-[#004ac6] hover:underline px-1 cursor-pointer"
+                >
+                  Limpiar Producto
+                </button>
+              )}
+
+              <button
+                onClick={handleExportKardexCsv}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Download className="w-4 h-4" />
+                <span>Exportar CSV</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
-                      <Wrench className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-600">No se encontraron servicios</p>
-                    </td>
+                    <th className="py-2.5 px-3 font-bold">Fecha & Hora</th>
+                    <th className="py-2.5 px-3 font-bold">Producto / Equipo</th>
+                    <th className="py-2.5 px-3 font-bold">Bodega</th>
+                    <th className="py-2.5 px-3 font-bold">Tipo / Concepto</th>
+                    <th className="py-2.5 px-3 font-bold">Documento Ref.</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Entrada (Cant)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Costo Unit ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Total Entrada ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Salida (Cant)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Costo Unit ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Total Salida ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Saldo (Cant)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Costo Prom ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Saldo Total ($)</th>
                   </tr>
-                ) : (
-                  filteredServices.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{s.sku}</td>
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-800">{s.name}</div>
-                        <div className="text-[11px] text-slate-400">{s.description}</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                          {s.categoryName || "Servicios"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 capitalize font-medium text-slate-600">{s.unit}</td>
-                      <td className="py-3 px-4 text-right font-medium text-slate-600">${s.baseCost.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-800">${s.salePrice.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-700">${s.salePriceConIva.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {s.status === "activo" ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => {
-                              setProductToEdit(s);
-                              setIsProductModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(s)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredKardex.length === 0 ? (
+                    <tr>
+                      <td colSpan={14} className="py-12 text-center text-xs text-[#737686]">
+                        <BookOpen className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No hay movimientos registrados en el Kardex</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Las compras, ventas, transferencias y ajustes reflejarán sus asientos contables aquí.
+                        </p>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredKardex.map((k) => (
+                      <tr key={k.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-2.5 px-3 text-[#737686] whitespace-nowrap">
+                          {new Date(k.date).toLocaleDateString("es-EC", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-[#0b1c30] max-w-xs truncate" title={k.productName}>
+                          {k.productName}
+                        </td>
+                        <td className="py-2.5 px-3 text-[#434655] font-medium whitespace-nowrap">{k.warehouseName}</td>
+                        <td className="py-2.5 px-3">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              k.type.includes("PURCHASE") || k.type.includes("POSITIVE") || k.type === "TRANSFER_IN"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-rose-100 text-rose-800"
+                            }`}
+                          >
+                            {k.type}
+                          </span>
+                          <div className="text-[10px] text-[#737686] line-clamp-1">{k.concept}</div>
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-[#434655]">
+                          {k.referenceDocNumber || k.referenceId}
+                        </td>
+
+                        {/* Entradas */}
+                        <td className="py-2.5 px-3 text-right font-bold text-emerald-700 bg-emerald-50/20">
+                          {k.entryQuantity ? `+${k.entryQuantity}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-700 bg-emerald-50/20">
+                          {k.entryUnitCost ? `$${k.entryUnitCost.toFixed(2)}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-bold text-emerald-800 bg-emerald-50/20">
+                          {k.entryTotalCost ? `$${k.entryTotalCost.toFixed(2)}` : "-"}
+                        </td>
+
+                        {/* Salidas */}
+                        <td className="py-2.5 px-3 text-right font-bold text-rose-700 bg-rose-50/20">
+                          {k.exitQuantity ? `-${k.exitQuantity}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-rose-700 bg-rose-50/20">
+                          {k.exitUnitCost ? `$${k.exitUnitCost.toFixed(2)}` : "-"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-bold text-rose-800 bg-rose-50/20">
+                          {k.exitTotalCost ? `$${k.exitTotalCost.toFixed(2)}` : "-"}
+                        </td>
+
+                        {/* Saldos */}
+                        <td className="py-2.5 px-3 text-right font-black text-[#0b1c30] bg-sky-50/20">
+                          {k.balanceQuantity}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-bold text-[#434655] bg-sky-50/20">
+                          ${k.balanceAverageCost.toFixed(2)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-black text-[#004ac6] bg-sky-50/20">
+                          ${k.balanceTotalCost.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* TAB 3: BODEGAS & ALMACENES                 */}
-      {/* ========================================== */}
+      {/* ========================================================= */}
+      {/* 5. TRANSFERENCIAS                                         */}
+      {/* ========================================================= */}
+      {activeTab === "transferencias" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por número, producto o motivo..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={transferWarehouseFilter}
+                onChange={(e) => setTransferWarehouseFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Bodegas</option>
+                {inventoryWarehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.code} - {w.name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => {
+                  setTransferDefaultProduct(undefined);
+                  setIsTransferModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Trasladar Stock</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Número</th>
+                    <th className="py-3 px-4 font-bold">Fecha</th>
+                    <th className="py-3 px-4 font-bold">Bodega Origen</th>
+                    <th className="py-3 px-4 font-bold">Bodega Destino</th>
+                    <th className="py-3 px-4 font-bold">Producto Trasladado</th>
+                    <th className="py-3 px-4 font-bold text-center">Cantidad</th>
+                    <th className="py-3 px-4 font-bold text-right">Valor Ponderado</th>
+                    <th className="py-3 px-4 font-bold">Motivo / Justificación</th>
+                    <th className="py-3 px-4 font-bold">Responsable</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredTransfers.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
+                        <ArrowRightLeft className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No hay transferencias registradas</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Haz clic en "Trasladar Stock" para movilizar insumos entre almacenes.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTransfers.map((t) => (
+                      <tr key={t.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{t.transferNumber}</td>
+                        <td className="py-3 px-4 text-[#737686] whitespace-nowrap">
+                          {new Date(t.date).toLocaleDateString("es-EC")}
+                        </td>
+                        <td className="py-3 px-4 font-medium text-rose-700">{t.originWarehouseName}</td>
+                        <td className="py-3 px-4 font-medium text-emerald-700">{t.destWarehouseName}</td>
+                        <td className="py-3 px-4 font-bold text-[#0b1c30]">{t.productName}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="px-2.5 py-0.5 rounded-full font-black bg-[#eff4ff] text-[#004ac6] text-xs">
+                            {t.quantity}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right font-bold text-[#434655]">${t.totalCost.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-[#737686] max-w-xs truncate" title={t.reason}>
+                          {t.reason}
+                        </td>
+                        <td className="py-3 px-4 text-[#737686]">{t.responsibleUser}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 6. BODEGA                                                 */}
+      {/* ========================================================= */}
       {activeTab === "bodegas" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-slate-800 text-sm">Almacenes, Bodegas & Unidades Móviles</h3>
-              <p className="text-xs text-slate-500">
-                Puntos de acopio físico para distribución a técnicos y clientes finales
-              </p>
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar bodega por código, nombre o custodio..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
             </div>
-            <button
-              onClick={() => {
-                setWarehouseToEdit(null);
-                setIsWarehouseModalOpen(true);
-              }}
-              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Nueva Bodega
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {inventoryWarehouses.map((w) => {
-              // Calcular total de items y valor en esta bodega
-              let totalUnitsInWh = 0;
-              let totalValueInWh = 0;
-
-              inventoryProducts.forEach((p) => {
-                if (p.tracksStock) {
-                  const qty = Number(p.stockByWarehouse?.[w.id] || 0);
-                  totalUnitsInWh += qty;
-                  totalValueInWh += qty * p.baseCost;
-                }
-              });
-
-              return (
-                <div
-                  key={w.id}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-4 relative overflow-hidden"
-                >
-                  {w.isDefault && (
-                    <div className="absolute top-0 right-0 bg-[#004ac6] text-white text-[10px] font-bold px-3 py-0.5 rounded-bl-xl shadow-2xs">
-                      Predeterminada
-                    </div>
-                  )}
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-3 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-mono font-bold text-slate-400 uppercase">{w.code}</div>
-                      <h4 className="font-bold text-slate-800 text-sm">{w.name}</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">{w.city || "Ecuador"}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-semibold block uppercase">Existencias</span>
-                      <span className="text-sm font-black text-slate-800">{totalUnitsInWh.toLocaleString()} u</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] text-slate-400 font-semibold block uppercase">Valor Stock</span>
-                      <span className="text-sm font-black text-emerald-700">
-                        ${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-600">
-                    {w.responsibleName && (
-                      <div className="text-[11px]">
-                        <span className="text-slate-400">Custodio:</span> <strong>{w.responsibleName}</strong>
-                      </div>
-                    )}
-                    {w.address && (
-                      <div className="text-[11px] text-slate-500 truncate" title={w.address}>
-                        {w.address}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        w.status === "activo"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {w.status === "activo" ? "Operativa" : "Bloqueada"}
-                    </span>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setSelectedWarehouseFilter(w.id);
-                          setActiveTab("productos");
-                        }}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-[#004ac6] hover:bg-slate-100 text-xs font-semibold flex items-center gap-1 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Ver Stock
-                      </button>
-                      <button
-                        onClick={() => {
-                          setWarehouseToEdit(w);
-                          setIsWarehouseModalOpen(true);
-                        }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      {!w.isDefault && (
-                        <button
-                          onClick={() => handleDeleteWarehouse(w)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 4: KARDEX VALORADO                     */}
-      {/* ========================================== */}
-      {activeTab === "kardex" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
-            <div>
-              <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-[#004ac6]" />
-                Libro Mayor de Kardex Valorado (Costo Promedio Ponderado)
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Auditoría legal y matemática de cada movimiento de entrada, salida y saldo valorado
-              </p>
-            </div>
-            {kardexProductFilter !== "all" && (
-              <button
-                onClick={() => setKardexProductFilter("all")}
-                className="text-xs font-semibold text-[#004ac6] hover:underline"
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={warehouseStatusFilter}
+                onChange={(e) => setWarehouseStatusFilter(e.target.value as any)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
-                Limpiar filtro de producto
+                <option value="todos">Todos los Estados</option>
+                <option value="activo">Operativas</option>
+                <option value="inactivo">Bloqueadas / Inactivas</option>
+              </select>
+
+              <button
+                onClick={() => {
+                  setWarehouseToEdit(null);
+                  setIsWarehouseModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nueva Bodega</span>
               </button>
-            )}
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                <tr>
-                  <th className="py-2.5 px-3">Fecha & Hora</th>
-                  <th className="py-2.5 px-3">Producto / Equipo</th>
-                  <th className="py-2.5 px-3">Bodega</th>
-                  <th className="py-2.5 px-3">Tipo / Movimiento</th>
-                  <th className="py-2.5 px-3">Documento Ref.</th>
-                  <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Entrada (Cant)</th>
-                  <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Costo Unit ($)</th>
-                  <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Total Entrada ($)</th>
-                  <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Salida (Cant)</th>
-                  <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Costo Unit ($)</th>
-                  <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Total Salida ($)</th>
-                  <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Saldo (Cant)</th>
-                  <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Costo Prom ($)</th>
-                  <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Saldo Total ($)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredKardex.length === 0 ? (
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <td colSpan={14} className="py-12 text-center text-slate-400">
-                      <BookOpen className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-600">No hay movimientos registrados</p>
-                    </td>
+                    <th className="py-3 px-4 font-bold">Código</th>
+                    <th className="py-3 px-4 font-bold">Nombre de Bodega</th>
+                    <th className="py-3 px-4 font-bold">Ubicación / Ciudad</th>
+                    <th className="py-3 px-4 font-bold">Custodio / Responsable</th>
+                    <th className="py-3 px-4 font-bold text-center">Existencias</th>
+                    <th className="py-3 px-4 font-bold text-right">Valorización ($)</th>
+                    <th className="py-3 px-4 font-bold text-center">Estado</th>
+                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
                   </tr>
-                ) : (
-                  filteredKardex.map((k) => (
-                    <tr key={k.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">
-                        {new Date(k.date).toLocaleDateString("es-EC", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-800 max-w-xs truncate" title={k.productName}>
-                        {k.productName}
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600 font-medium whitespace-nowrap">{k.warehouseName}</td>
-                      <td className="py-2.5 px-3">
-                        <span
-                          className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            k.type.includes("PURCHASE") || k.type.includes("POSITIVE") || k.type === "TRANSFER_IN"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-rose-100 text-rose-800"
-                          }`}
-                        >
-                          {k.type}
-                        </span>
-                        <div className="text-[10px] text-slate-400 line-clamp-1">{k.concept}</div>
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
-                        {k.referenceDocNumber || k.referenceId}
-                      </td>
-
-                      {/* Entradas */}
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-700 bg-emerald-50/20">
-                        {k.entryQuantity ? `+${k.entryQuantity}` : "-"}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-700 bg-emerald-50/20">
-                        {k.entryUnitCost ? `$${k.entryUnitCost.toFixed(2)}` : "-"}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-800 bg-emerald-50/20">
-                        {k.entryTotalCost ? `$${k.entryTotalCost.toFixed(2)}` : "-"}
-                      </td>
-
-                      {/* Salidas */}
-                      <td className="py-2.5 px-3 text-right font-bold text-rose-700 bg-rose-50/20">
-                        {k.exitQuantity ? `-${k.exitQuantity}` : "-"}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-rose-700 bg-rose-50/20">
-                        {k.exitUnitCost ? `$${k.exitUnitCost.toFixed(2)}` : "-"}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-rose-800 bg-rose-50/20">
-                        {k.exitTotalCost ? `$${k.exitTotalCost.toFixed(2)}` : "-"}
-                      </td>
-
-                      {/* Saldos */}
-                      <td className="py-2.5 px-3 text-right font-black text-slate-800 bg-sky-50/20">
-                        {k.balanceQuantity}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-slate-700 bg-sky-50/20">
-                        ${k.balanceAverageCost.toFixed(2)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-black text-[#004ac6] bg-sky-50/20">
-                        ${k.balanceTotalCost.toFixed(2)}
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredWarehouses.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-xs text-[#737686]">
+                        <Building2 className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No se encontraron bodegas registradas</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Haz clic en "Nueva Bodega" para registrar un centro de distribución o móvil técnico.
+                        </p>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                  ) : (
+                    filteredWarehouses.map((w) => {
+                      let totalUnitsInWh = 0;
+                      let totalValueInWh = 0;
 
-      {/* ========================================== */}
-      {/* TAB 5: TRANSFERENCIAS                      */}
-      {/* ========================================== */}
-      {activeTab === "transferencias" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div>
-              <h3 className="font-bold text-slate-800 text-xs">Historial de Transferencias Inter-Bodegas</h3>
-              <p className="text-[11px] text-slate-500">
-                Registro de traslados físicos de insumos y equipos entre centros de distribución
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setTransferDefaultProduct(undefined);
-                setIsTransferModalOpen(true);
-              }}
-              className="px-3.5 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5" />
-              Nueva Transferencia
-            </button>
-          </div>
+                      inventoryProducts.forEach((p) => {
+                        if (p.tracksStock) {
+                          const qty = Number(p.stockByWarehouse?.[w.id] || 0);
+                          totalUnitsInWh += qty;
+                          totalValueInWh += qty * p.baseCost;
+                        }
+                      });
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Número</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Bodega Origen</th>
-                  <th className="py-3 px-4">Bodega Destino</th>
-                  <th className="py-3 px-4">Producto Trasladado</th>
-                  <th className="py-3 px-4 text-center">Cantidad</th>
-                  <th className="py-3 px-4 text-right">Valor Ponderado</th>
-                  <th className="py-3 px-4">Motivo / Justificación</th>
-                  <th className="py-3 px-4">Responsable</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {inventoryTransfers.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
-                      <ArrowRightLeft className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-600">No hay transferencias registradas</p>
-                    </td>
-                  </tr>
-                ) : (
-                  inventoryTransfers.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{t.transferNumber}</td>
-                      <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                        {new Date(t.date).toLocaleDateString("es-EC")}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-rose-700">{t.originWarehouseName}</td>
-                      <td className="py-3 px-4 font-medium text-emerald-700">{t.destWarehouseName}</td>
-                      <td className="py-3 px-4 font-bold text-slate-800">{t.productName}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="px-2.5 py-0.5 rounded-full font-black bg-sky-100 text-sky-800 text-xs">
-                          {t.quantity}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-bold text-slate-700">${t.totalCost.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate" title={t.reason}>
-                        {t.reason}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500">{t.responsibleUser}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 6: AJUSTES DE STOCK                    */}
-      {/* ========================================== */}
-      {activeTab === "ajustes" && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div>
-              <h3 className="font-bold text-slate-800 text-xs">Historial de Ajustes de Inventario</h3>
-              <p className="text-[11px] text-slate-500">
-                Auditoría de correcciones físicas, sobrantes y pérdidas técnicas
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setAdjustmentDefaultProduct(undefined);
-                setIsAdjustmentModalOpen(true);
-              }}
-              className="px-3.5 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Nuevo Ajuste
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Número</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Bodega</th>
-                  <th className="py-3 px-4">Sentido</th>
-                  <th className="py-3 px-4">Concepto / Motivo</th>
-                  <th className="py-3 px-4">Ítems Afectados</th>
-                  <th className="py-3 px-4">Responsable</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {inventoryAdjustments.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
-                      <SlidersHorizontal className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-600">No hay ajustes registrados</p>
-                    </td>
-                  </tr>
-                ) : (
-                  inventoryAdjustments.map((a) => (
-                    <tr key={a.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{a.adjustmentNumber}</td>
-                      <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                        {new Date(a.date).toLocaleDateString("es-EC")}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-700">{a.warehouseName}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            a.type.includes("ingreso")
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-rose-100 text-rose-800"
-                          }`}
-                        >
-                          {a.type.includes("ingreso") ? "Ingreso (+)" : "Egreso (-)"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-700 font-medium">{a.concept}</td>
-                      <td className="py-3 px-4">
-                        <div className="space-y-1">
-                          {a.items.map((it, idx) => (
-                            <div key={idx} className="text-[11px] text-slate-600">
-                              <strong>{it.productName}:</strong>{" "}
-                              <span className={it.type === "ingreso" ? "text-emerald-700 font-bold" : "text-rose-700 font-bold"}>
-                                {it.type === "ingreso" ? "+" : "-"}
-                                {it.quantity}
-                              </span>{" "}
-                              (Saldo: {it.previousStock} &rarr; {it.newStock})
+                      return (
+                        <tr key={w.id} className="hover:bg-[#f8f9ff] transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{w.code}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-[#0b1c30]">{w.name}</span>
+                              {w.isDefault && (
+                                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                                  Predeterminada
+                                </span>
+                              )}
                             </div>
-                          ))}
-                        </div>
+                            {w.address && (
+                              <div className="text-[11px] text-[#737686] line-clamp-1">{w.address}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-[#434655] font-medium">{w.city || "Ecuador"}</td>
+                          <td className="py-3 px-4 text-[#434655]">{w.responsibleName || "Sin asignar"}</td>
+                          <td className="py-3 px-4 text-center font-bold text-[#0b1c30]">
+                            {totalUnitsInWh.toLocaleString()} u
+                          </td>
+                          <td className="py-3 px-4 text-right font-bold text-emerald-700">
+                            ${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                w.status === "activo"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {w.status === "activo" ? "Operativa" : "Bloqueada"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => {
+                                  setProductWarehouseFilter(w.id);
+                                  router.push("/inventarios?sub=productos");
+                                  setActiveTab("productos");
+                                }}
+                                title="Ver Stock de esta Bodega"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setWarehouseToEdit(w);
+                                  setIsWarehouseModalOpen(true);
+                                }}
+                                title="Editar Bodega"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              {!w.isDefault && (
+                                <button
+                                  onClick={() => handleDeleteWarehouse(w)}
+                                  title="Eliminar Bodega"
+                                  className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 7. AJUSTES                                                */}
+      {/* ========================================================= */}
+      {activeTab === "ajustes" && (
+        <div className="space-y-4">
+          {/* Top Filter and Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por número, concepto o producto..."
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <select
+                value={adjustmentWarehouseFilter}
+                onChange={(e) => setAdjustmentWarehouseFilter(e.target.value)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="all">Todas las Bodegas</option>
+                {inventoryWarehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.code} - {w.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={adjustmentTypeFilter}
+                onChange={(e) => setAdjustmentTypeFilter(e.target.value as any)}
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+              >
+                <option value="todos">Todos los Sentidos</option>
+                <option value="ingreso">Ingreso (+)</option>
+                <option value="egreso">Egreso (-)</option>
+              </select>
+
+              <button
+                onClick={() => {
+                  setAdjustmentDefaultProduct(undefined);
+                  setIsAdjustmentModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Ajuste</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                  <tr>
+                    <th className="py-3 px-4 font-bold">Número</th>
+                    <th className="py-3 px-4 font-bold">Fecha</th>
+                    <th className="py-3 px-4 font-bold">Bodega</th>
+                    <th className="py-3 px-4 font-bold text-center">Sentido</th>
+                    <th className="py-3 px-4 font-bold">Concepto / Motivo</th>
+                    <th className="py-3 px-4 font-bold">Ítems Afectados</th>
+                    <th className="py-3 px-4 font-bold">Responsable</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2e8f0]">
+                  {filteredAdjustments.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-xs text-[#737686]">
+                        <SlidersHorizontal className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
+                        <p className="font-semibold text-[#434655]">No hay ajustes registrados</p>
+                        <p className="text-[11px] text-[#737686] mt-0.5">
+                          Haz clic en "Nuevo Ajuste" para corregir saldos físicos o registrar mermas.
+                        </p>
                       </td>
-                      <td className="py-3 px-4 text-slate-500">{a.responsibleUser}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================== */}
-      {/* TAB 7: CATEGORÍAS & MARCAS                 */}
-      {/* ========================================== */}
-      {activeTab === "clasificacion" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Categorías */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <Tags className="w-4 h-4 text-[#004ac6]" />
-                  Categorías de Catálogo ({inventoryCategories.length})
-                </h3>
-                <p className="text-[11px] text-slate-500">Agrupación por líneas de producto o servicios</p>
-              </div>
-              <button
-                onClick={() => {
-                  setCatBrandMode("categoria");
-                  setIsCatBrandOpen(true);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" /> Nueva
-              </button>
-            </div>
-
-            <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-              {inventoryCategories.map((c) => (
-                <div key={c.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors">
-                  <div>
-                    <h5 className="font-bold text-slate-800 text-xs">{c.name}</h5>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">{c.description || "Sin descripción"}</p>
-                    <span className="inline-block mt-1 px-1.5 py-0.2 rounded text-[9px] font-semibold uppercase bg-slate-100 text-slate-600">
-                      {c.itemType || "ambos"}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {inventoryProducts.filter((p) => p.categoryId === c.id).length} artículos
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Marcas */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <Tags className="w-4 h-4 text-indigo-600" />
-                  Marcas & Fabricantes ({inventoryBrands.length})
-                </h3>
-                <p className="text-[11px] text-slate-500">Marcas homologadas en planta externa y NOC</p>
-              </div>
-              <button
-                onClick={() => {
-                  setCatBrandMode("marca");
-                  setIsCatBrandOpen(true);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1"
-              >
-                <Plus className="w-3.5 h-3.5" /> Nueva
-              </button>
-            </div>
-
-            <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
-              {inventoryBrands.map((b) => (
-                <div key={b.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50/80 transition-colors">
-                  <div>
-                    <h5 className="font-bold text-slate-800 text-xs">{b.name}</h5>
-                    <span className="text-[11px] text-slate-400">Origen: {b.originCountry || "Internacional"}</span>
-                  </div>
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {inventoryProducts.filter((p) => p.brandId === b.id).length} artículos
-                  </span>
-                </div>
-              ))}
+                  ) : (
+                    filteredAdjustments.map((a) => (
+                      <tr key={a.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{a.adjustmentNumber}</td>
+                        <td className="py-3 px-4 text-[#737686] whitespace-nowrap">
+                          {new Date(a.date).toLocaleDateString("es-EC")}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-[#0b1c30]">{a.warehouseName}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              a.type.includes("ingreso")
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-rose-100 text-rose-800"
+                            }`}
+                          >
+                            {a.type.includes("ingreso") ? "Ingreso (+)" : "Egreso (-)"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-[#434655] font-medium">{a.concept}</td>
+                        <td className="py-3 px-4">
+                          <div className="space-y-1">
+                            {a.items.map((it, idx) => (
+                              <div key={idx} className="text-[11px] text-[#434655]">
+                                <strong className="text-[#0b1c30]">{it.productName}:</strong>{" "}
+                                <span className={it.type === "ingreso" ? "text-emerald-700 font-bold" : "text-rose-700 font-bold"}>
+                                  {it.type === "ingreso" ? "+" : "-"}
+                                  {it.quantity}
+                                </span>{" "}
+                                <span className="text-[#737686]">(Saldo: {it.previousStock} &rarr; {it.newStock})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-[#737686]">{a.responsibleUser}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* MODALES OPERATIVOS                         */}
-      {/* ========================================== */}
+      {/* ========================================================= */}
+      {/* MODALES OPERATIVOS                                        */}
+      {/* ========================================================= */}
       <ProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
