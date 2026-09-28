@@ -171,28 +171,7 @@ export function SuppliersManager() {
 
   return (
     <div className="space-y-6 select-none">
-      {/* Header and Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-        <div>
-          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#004ac6]" />
-            Directorio Oficial de Proveedores
-          </h2>
-          <p className="text-xs text-[#737686]">
-            Carriers de telecomunicaciones, importadores de fibra óptica, distribuidores de equipos y servicios
-          </p>
-        </div>
-
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Añadir Proveedor</span>
-        </button>
-      </div>
-
-      {/* Filter and Search */}
+      {/* Unified Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -201,23 +180,33 @@ export function SuppliersManager() {
             placeholder="Buscar por RUC, razón social o ciudad..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6]"
+            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
           />
         </div>
 
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655]"
-        >
-          <option value="todas">Todas las Categorías</option>
-          <option value="fibra_optica">Fibra Óptica & Pasivos</option>
-          <option value="equipos_networking">Equipos Networking & ONTs</option>
-          <option value="transito_ip">Tránsito IP & Upstream</option>
-          <option value="ferreteria_infraestructura">Ferretería & Postería</option>
-          <option value="servicios_profesionales">Servicios Profesionales</option>
-          <option value="general">General / Varios</option>
-        </select>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+          >
+            <option value="todas">Todas las Categorías</option>
+            <option value="fibra_optica">Fibra Óptica & Pasivos</option>
+            <option value="equipos_networking">Equipos Networking & ONTs</option>
+            <option value="transito_ip">Tránsito IP & Upstream</option>
+            <option value="ferreteria_infraestructura">Ferretería & Postería</option>
+            <option value="servicios_profesionales">Servicios Profesionales</option>
+            <option value="general">General / Varios</option>
+          </select>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Añadir Proveedor</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid of Suppliers */}

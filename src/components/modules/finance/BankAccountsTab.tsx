@@ -134,22 +134,29 @@ export function BankAccountsTab() {
 
   return (
     <div className="space-y-6 select-none">
-      {/* Header & Action buttons */}
+      {/* Liquidity Summary & Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-        <div>
-          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#004ac6]" />
-            Cuentas Bancarias & Cajas de INNTEL CORP
-          </h2>
-          <p className="text-xs text-[#737686]">
-            Control de liquidez, cuentas corrientes, ahorros y caja chica operativa en USD.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-[#eff4ff] text-[#004ac6] rounded-xl">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#737686] font-semibold">Disponibilidad Total:</span>
+              <span className="text-base font-bold font-mono text-[#004ac6]">
+                ${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+              </span>
+            </div>
+            <p className="text-[11px] text-[#737686]">
+              {bankAccounts.length} cuentas bancarias y cajas activas
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setIsTransferModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] rounded-xl text-xs font-bold transition-all cursor-pointer"
           >
             <ArrowRightLeft className="w-4 h-4" />
             <span>Transferir entre Cuentas</span>
@@ -157,7 +164,7 @@ export function BankAccountsTab() {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nueva Cuenta</span>
