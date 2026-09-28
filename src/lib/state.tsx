@@ -34,6 +34,13 @@ import {
   KardexEntry,
   WarehouseTransfer,
   InventoryAdjustment,
+  SriCompanyConfig,
+  SriInvoice,
+  ClientQuote,
+  CreditNote,
+  WithholdingReceipt,
+  RemissionGuide,
+  InvoiceItem,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -63,6 +70,12 @@ import {
   INITIAL_KARDEX,
   INITIAL_TRANSFERS,
   INITIAL_ADJUSTMENTS,
+  INITIAL_SRI_CONFIG,
+  INITIAL_INVOICES,
+  INITIAL_BILLING_QUOTES,
+  INITIAL_CREDIT_NOTES,
+  INITIAL_WITHHOLDINGS,
+  INITIAL_REMISSION_GUIDES,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -76,6 +89,11 @@ import {
   generateInventoryDocNumber,
   buildKardexEntry,
 } from "./inventory-service";
+import {
+  generarClaveAccesoSRI,
+  formatearSecuencialSRI,
+  DEFAULT_INNTEL_SRI_CONFIG,
+} from "./sri-service";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import {
   signUserProfile,
@@ -216,6 +234,47 @@ interface AppContextType {
     }[];
   }) => Promise<void>;
 
+  // Billing & SRI Module
+  billingInvoices: SriInvoice[];
+  billingQuotes: ClientQuote[];
+  billingCreditNotes: CreditNote[];
+  billingWithholdings: WithholdingReceipt[];
+  billingRemissionGuides: RemissionGuide[];
+  sriCompanyConfig: SriCompanyConfig;
+
+  createInvoice: (
+    data: Omit<SriInvoice, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexRegistered"> & {
+      customSecuencial?: number;
+    }
+  ) => Promise<SriInvoice>;
+  updateInvoiceStatus: (
+    id: string,
+    status: SriInvoice["status"],
+    authorizationDate?: string
+  ) => Promise<void>;
+  createBillingQuote: (
+    quote: Omit<ClientQuote, "id" | "quoteNumber" | "createdAt">
+  ) => Promise<ClientQuote>;
+  updateBillingQuote: (
+    id: string,
+    updates: Partial<ClientQuote>
+  ) => Promise<void>;
+  convertQuoteToInvoice: (
+    quoteId: string,
+    warehouseId: string,
+    paymentMethod?: SriInvoice["paymentMethod"]
+  ) => Promise<SriInvoice>;
+  createCreditNote: (
+    data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
+  ) => Promise<CreditNote>;
+  createWithholding: (
+    data: Omit<WithholdingReceipt, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ) => Promise<WithholdingReceipt>;
+  createRemissionGuide: (
+    data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ) => Promise<RemissionGuide>;
+  updateSriConfig: (updates: Partial<SriCompanyConfig>) => Promise<void>;
+
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
@@ -264,6 +323,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [inventoryKardex, setInventoryKardex] = useState<KardexEntry[]>(INITIAL_KARDEX);
   const [inventoryTransfers, setInventoryTransfers] = useState<WarehouseTransfer[]>(INITIAL_TRANSFERS);
   const [inventoryAdjustments, setInventoryAdjustments] = useState<InventoryAdjustment[]>(INITIAL_ADJUSTMENTS);
+
+  // Billing & SRI Module State
+  const [billingInvoices, setBillingInvoices] = useState<SriInvoice[]>(INITIAL_INVOICES);
+  const [billingQuotes, setBillingQuotes] = useState<ClientQuote[]>(INITIAL_BILLING_QUOTES);
+  const [billingCreditNotes, setBillingCreditNotes] = useState<CreditNote[]>(INITIAL_CREDIT_NOTES);
+  const [billingWithholdings, setBillingWithholdings] = useState<WithholdingReceipt[]>(INITIAL_WITHHOLDINGS);
+  const [billingRemissionGuides, setBillingRemissionGuides] = useState<RemissionGuide[]>(INITIAL_REMISSION_GUIDES);
+  const [sriCompanyConfig, setSriCompanyConfig] = useState<SriCompanyConfig>(INITIAL_SRI_CONFIG);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -386,6 +453,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.inventoryKardex)) setInventoryKardex(p.inventoryKardex);
           if (Array.isArray(p.inventoryTransfers)) setInventoryTransfers(p.inventoryTransfers);
           if (Array.isArray(p.inventoryAdjustments)) setInventoryAdjustments(p.inventoryAdjustments);
+          if (Array.isArray(p.billingInvoices)) setBillingInvoices(p.billingInvoices);
+          if (Array.isArray(p.billingQuotes)) setBillingQuotes(p.billingQuotes);
+          if (Array.isArray(p.billingCreditNotes)) setBillingCreditNotes(p.billingCreditNotes);
+          if (Array.isArray(p.billingWithholdings)) setBillingWithholdings(p.billingWithholdings);
+          if (Array.isArray(p.billingRemissionGuides)) setBillingRemissionGuides(p.billingRemissionGuides);
+          if (p.sriCompanyConfig && p.sriCompanyConfig.ruc) setSriCompanyConfig(p.sriCompanyConfig);
         } catch (e) {}
       }
     } catch (e) {
@@ -498,6 +571,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           inventoryKardex,
           inventoryTransfers,
           inventoryAdjustments,
+          billingInvoices,
+          billingQuotes,
+          billingCreditNotes,
+          billingWithholdings,
+          billingRemissionGuides,
+          sriCompanyConfig,
         })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
@@ -528,6 +607,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     inventoryKardex,
     inventoryTransfers,
     inventoryAdjustments,
+    billingInvoices,
+    billingQuotes,
+    billingCreditNotes,
+    billingWithholdings,
+    billingRemissionGuides,
+    sriCompanyConfig,
     systemUsers,
     isAuthLoaded,
   ]);
@@ -701,6 +786,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "inventoryKardex", setter: setInventoryKardex, initialData: INITIAL_KARDEX },
       { name: "inventoryTransfers", setter: setInventoryTransfers, initialData: INITIAL_TRANSFERS },
       { name: "inventoryAdjustments", setter: setInventoryAdjustments, initialData: INITIAL_ADJUSTMENTS },
+      { name: "billingInvoices", setter: setBillingInvoices, initialData: INITIAL_INVOICES },
+      { name: "billingQuotes", setter: setBillingQuotes, initialData: INITIAL_BILLING_QUOTES },
+      { name: "billingCreditNotes", setter: setBillingCreditNotes, initialData: INITIAL_CREDIT_NOTES },
+      { name: "billingWithholdings", setter: setBillingWithholdings, initialData: INITIAL_WITHHOLDINGS },
+      { name: "billingRemissionGuides", setter: setBillingRemissionGuides, initialData: INITIAL_REMISSION_GUIDES },
     ];
 
     await Promise.all(
@@ -871,6 +961,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "inventoryAdjustments":
         setInventoryAdjustments((prev) => [recordWithId as InventoryAdjustment, ...prev]);
         break;
+      case "billingInvoices":
+        setBillingInvoices((prev) => {
+          const exists = prev.some((i) => i.id === targetId);
+          return exists ? prev.map((i) => (i.id === targetId ? ({ ...i, ...recordWithId } as SriInvoice) : i)) : [recordWithId as SriInvoice, ...prev];
+        });
+        break;
+      case "billingQuotes":
+        setBillingQuotes((prev) => {
+          const exists = prev.some((q) => q.id === targetId);
+          return exists ? prev.map((q) => (q.id === targetId ? ({ ...q, ...recordWithId } as ClientQuote) : q)) : [recordWithId as ClientQuote, ...prev];
+        });
+        break;
+      case "billingCreditNotes":
+        setBillingCreditNotes((prev) => {
+          const exists = prev.some((c) => c.id === targetId);
+          return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as CreditNote) : c)) : [recordWithId as CreditNote, ...prev];
+        });
+        break;
+      case "billingWithholdings":
+        setBillingWithholdings((prev) => {
+          const exists = prev.some((w) => w.id === targetId);
+          return exists ? prev.map((w) => (w.id === targetId ? ({ ...w, ...recordWithId } as WithholdingReceipt) : w)) : [recordWithId as WithholdingReceipt, ...prev];
+        });
+        break;
+      case "billingRemissionGuides":
+        setBillingRemissionGuides((prev) => {
+          const exists = prev.some((g) => g.id === targetId);
+          return exists ? prev.map((g) => (g.id === targetId ? ({ ...g, ...recordWithId } as RemissionGuide) : g)) : [recordWithId as RemissionGuide, ...prev];
+        });
+        break;
+      case "sriCompanyConfig":
+        setSriCompanyConfig(recordWithId as unknown as SriCompanyConfig);
+        break;
     }
 
     addAuditLog(id ? "UPDATE_CLIENT" : "CREATE_CLIENT", `Registro ${entity}: ${targetId}`, "Registro actualizado sin incluir datos sensibles en la auditoría.");
@@ -900,6 +1023,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "inventoryKardex": setInventoryKardex((prev) => prev.filter((k) => k.id !== id)); break;
       case "inventoryTransfers": setInventoryTransfers((prev) => prev.filter((t) => t.id !== id)); break;
       case "inventoryAdjustments": setInventoryAdjustments((prev) => prev.filter((a) => a.id !== id)); break;
+      case "billingInvoices": setBillingInvoices((prev) => prev.filter((i) => i.id !== id)); break;
+      case "billingQuotes": setBillingQuotes((prev) => prev.filter((q) => q.id !== id)); break;
+      case "billingCreditNotes": setBillingCreditNotes((prev) => prev.filter((c) => c.id !== id)); break;
+      case "billingWithholdings": setBillingWithholdings((prev) => prev.filter((w) => w.id !== id)); break;
+      case "billingRemissionGuides": setBillingRemissionGuides((prev) => prev.filter((g) => g.id !== id)); break;
     }
   };
 
@@ -1752,6 +1880,433 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("CREATE_EXPENSE", `Ajuste Inventario: ${adjustmentDocNumber}`, `${concept} en ${wh.name}`);
   };
 
+  // ==========================================
+  // BILLING & SRI METHODS
+  // ==========================================
+
+  const createInvoice = async (
+    data: Omit<SriInvoice, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexRegistered"> & {
+      customSecuencial?: number;
+    }
+  ): Promise<SriInvoice> => {
+    const now = new Date().toISOString();
+    const invoiceId = `inv-${Date.now()}`;
+    const dateStr = data.date || now.slice(0, 10);
+
+    const maxSec = billingInvoices.reduce((max, inv) => {
+      const parts = (inv.documentNumber || "").split("-");
+      const num = parseInt(parts[2] || "0", 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const secuencial = data.customSecuencial || (maxSec + 1);
+    const documentNumber = formatearSecuencialSRI(
+      secuencial,
+      sriCompanyConfig.establecimiento,
+      sriCompanyConfig.puntoEmision
+    );
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "01",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: sriCompanyConfig.establecimiento,
+      puntoEmision: sriCompanyConfig.puntoEmision,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const wh = inventoryWarehouses.find((w) => w.id === data.warehouseId) || inventoryWarehouses[0];
+    const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
+    const warehouseName = wh ? wh.name : (data.warehouseName || "Bodega Central");
+
+    const kardexEntries: KardexEntry[] = [];
+    const updatedProductsMap = new Map<string, InventoryProduct>();
+
+    for (const item of data.items) {
+      if (!item.productId) continue;
+      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+      if (!product || !product.tracksStock) continue;
+
+      const qty = Math.abs(item.quantity);
+      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+      const newWhStock = Math.max(0, currentWhStock - qty);
+
+      const kdx = buildKardexEntry({
+        product,
+        warehouse: wh || { id: warehouseId, name: warehouseName },
+        type: "SALE",
+        referenceId: invoiceId,
+        referenceDocNumber: documentNumber,
+        concept: `Venta Factura ${documentNumber} - Cliente: ${data.clientName}`,
+        quantity: qty,
+        unitCost: product.baseCost,
+        currentStock: currentWhStock,
+        currentAvgCost: product.baseCost,
+        userName: currentUser.displayName,
+      });
+
+      kardexEntries.push(kdx);
+
+      const updatedStockByWh = {
+        ...(product.stockByWarehouse || {}),
+        [warehouseId]: newWhStock,
+      };
+      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+      const updatedProd: InventoryProduct = {
+        ...product,
+        stockByWarehouse: updatedStockByWh,
+        stock: totalStock,
+        updatedAt: now,
+      };
+
+      updatedProductsMap.set(product.id, updatedProd);
+    }
+
+    const newInvoice: SriInvoice = {
+      ...data,
+      id: invoiceId,
+      documentNumber,
+      claveAcceso,
+      warehouseId,
+      warehouseName,
+      kardexRegistered: kardexEntries.length > 0,
+      createdAt: now,
+    };
+
+    await Promise.all([
+      syncToFirestore("billingInvoices", newInvoice.id, newInvoice),
+      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+    ]);
+
+    setBillingInvoices((prev) => [newInvoice, ...prev]);
+    if (kardexEntries.length > 0) {
+      setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+      setInventoryProducts((prev) =>
+        prev.map((p) => updatedProductsMap.get(p.id) || p)
+      );
+    }
+
+    addAuditLog("CREATE_CLIENT", `Factura Emitida: ${documentNumber}`, `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`);
+
+    return newInvoice;
+  };
+
+  const updateInvoiceStatus = async (
+    id: string,
+    status: SriInvoice["status"],
+    authorizationDate?: string
+  ) => {
+    const inv = billingInvoices.find((i) => i.id === id);
+    if (!inv) return;
+
+    const updated: SriInvoice = {
+      ...inv,
+      status,
+      authorizationDate: authorizationDate || (status === "autorizada" ? new Date().toISOString() : inv.authorizationDate),
+    };
+
+    await syncToFirestore("billingInvoices", id, updated);
+    setBillingInvoices((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    addAuditLog("UPDATE_CLIENT", `Estado Factura ${inv.documentNumber}`, `Nuevo estado: ${status}`);
+  };
+
+  const createBillingQuote = async (
+    quote: Omit<ClientQuote, "id" | "quoteNumber" | "createdAt">
+  ): Promise<ClientQuote> => {
+    const now = new Date().toISOString();
+    const quoteId = `cot-${Date.now()}`;
+    const year = new Date().getFullYear();
+    const count = billingQuotes.length + 1;
+    const quoteNumber = `COT-${year}-${String(count).padStart(4, "0")}`;
+
+    const newQuote: ClientQuote = {
+      ...quote,
+      id: quoteId,
+      quoteNumber,
+      createdAt: now,
+    };
+
+    await syncToFirestore("billingQuotes", newQuote.id, newQuote);
+    setBillingQuotes((prev) => [newQuote, ...prev]);
+    addAuditLog("CREATE_CLIENT", `Cotización Creada: ${quoteNumber}`, `Cliente: ${newQuote.clientName} - Total: $${newQuote.total.toFixed(2)}`);
+
+    return newQuote;
+  };
+
+  const updateBillingQuote = async (id: string, updates: Partial<ClientQuote>) => {
+    const existing = billingQuotes.find((q) => q.id === id);
+    if (!existing) return;
+
+    const updated: ClientQuote = { ...existing, ...updates };
+    await syncToFirestore("billingQuotes", id, updated);
+    setBillingQuotes((prev) => prev.map((q) => (q.id === id ? updated : q)));
+    addAuditLog("UPDATE_CLIENT", `Cotización Actualizada: ${existing.quoteNumber}`, `Estado: ${updated.status}`);
+  };
+
+  const convertQuoteToInvoice = async (
+    quoteId: string,
+    warehouseId: string,
+    paymentMethod: SriInvoice["paymentMethod"] = "transferencia"
+  ): Promise<SriInvoice> => {
+    const quote = billingQuotes.find((q) => q.id === quoteId);
+    if (!quote) throw new Error("Cotización no encontrada.");
+
+    const wh = inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
+
+    const invoice = await createInvoice({
+      date: new Date().toISOString().slice(0, 10),
+      time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      clientRuc: quote.clientRuc,
+      clientEmail: quote.clientEmail,
+      clientPhone: quote.clientPhone,
+      clientAddress: quote.clientAddress || "Ecuador",
+      tipoIdentificacion: quote.clientRuc.length === 13 ? "04" : quote.clientRuc === "9999999999999" ? "07" : "05",
+      items: quote.items.map((it) => ({
+        ...it,
+        warehouseId: warehouseId || it.warehouseId,
+      })),
+      subtotal15: quote.subtotal15,
+      subtotal0: quote.subtotal0,
+      subtotalNoObjeto: 0,
+      subtotalExento: 0,
+      discountTotal: quote.discountTotal,
+      ivaTotal: quote.ivaTotal,
+      total: quote.total,
+      paymentMethod,
+      sriPaymentCode: paymentMethod === "efectivo" ? "01" : paymentMethod === "tarjeta" ? "19" : "20",
+      status: "emitida",
+      warehouseId: wh ? wh.id : warehouseId,
+      warehouseName: wh ? wh.name : "Bodega Central",
+      notes: `Facturado desde Cotización ${quote.quoteNumber}. ${quote.notes || ""}`,
+    });
+
+    const updatedQuote: ClientQuote = {
+      ...quote,
+      status: "facturada",
+      invoicedAt: new Date().toISOString(),
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.documentNumber,
+    };
+
+    await syncToFirestore("billingQuotes", updatedQuote.id, updatedQuote);
+    setBillingQuotes((prev) => prev.map((q) => (q.id === quoteId ? updatedQuote : q)));
+
+    return invoice;
+  };
+
+  const createCreditNote = async (
+    data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
+  ): Promise<CreditNote> => {
+    const now = new Date().toISOString();
+    const ncId = `nc-${Date.now()}`;
+    const dateStr = data.date || now.slice(0, 10);
+
+    const maxSec = billingCreditNotes.reduce((max, nc) => {
+      const parts = (nc.documentNumber || "").split("-");
+      const num = parseInt(parts[2] || "0", 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const secuencial = maxSec + 1;
+    const documentNumber = formatearSecuencialSRI(
+      secuencial,
+      sriCompanyConfig.establecimiento,
+      sriCompanyConfig.puntoEmision
+    );
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "04",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: sriCompanyConfig.establecimiento,
+      puntoEmision: sriCompanyConfig.puntoEmision,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const wh = inventoryWarehouses.find((w) => w.id === data.warehouseId) || inventoryWarehouses[0];
+    const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
+    const warehouseName = wh ? wh.name : (data.warehouseName || "Bodega Central");
+
+    const kardexEntries: KardexEntry[] = [];
+    const updatedProductsMap = new Map<string, InventoryProduct>();
+
+    for (const item of data.items) {
+      if (!item.productId) continue;
+      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+      if (!product || !product.tracksStock) continue;
+
+      const qty = Math.abs(item.quantity);
+      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+      const newWhStock = currentWhStock + qty;
+
+      const kdx = buildKardexEntry({
+        product,
+        warehouse: wh || { id: warehouseId, name: warehouseName },
+        type: "CUSTOMER_RETURN",
+        referenceId: ncId,
+        referenceDocNumber: documentNumber,
+        concept: `Devolución NC ${documentNumber} - Factura ${data.invoiceNumber}: ${data.reason}`,
+        quantity: qty,
+        unitCost: product.baseCost,
+        currentStock: currentWhStock,
+        currentAvgCost: product.baseCost,
+        userName: currentUser.displayName,
+      });
+
+      kardexEntries.push(kdx);
+
+      const updatedStockByWh = {
+        ...(product.stockByWarehouse || {}),
+        [warehouseId]: newWhStock,
+      };
+      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+      const updatedProd: InventoryProduct = {
+        ...product,
+        stockByWarehouse: updatedStockByWh,
+        stock: totalStock,
+        updatedAt: now,
+      };
+
+      updatedProductsMap.set(product.id, updatedProd);
+    }
+
+    const newCreditNote: CreditNote = {
+      ...data,
+      id: ncId,
+      documentNumber,
+      claveAcceso,
+      warehouseId,
+      warehouseName,
+      kardexReentered: kardexEntries.length > 0,
+      createdAt: now,
+    };
+
+    await Promise.all([
+      syncToFirestore("billingCreditNotes", newCreditNote.id, newCreditNote),
+      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+    ]);
+
+    setBillingCreditNotes((prev) => [newCreditNote, ...prev]);
+    if (kardexEntries.length > 0) {
+      setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+      setInventoryProducts((prev) =>
+        prev.map((p) => updatedProductsMap.get(p.id) || p)
+      );
+    }
+
+    addAuditLog("CREATE_EXPENSE", `Nota de Crédito: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
+
+    return newCreditNote;
+  };
+
+  const createWithholding = async (
+    data: Omit<WithholdingReceipt, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ): Promise<WithholdingReceipt> => {
+    const now = new Date().toISOString();
+    const retId = `ret-${Date.now()}`;
+    const dateStr = data.date || now.slice(0, 10);
+
+    const maxSec = billingWithholdings.reduce((max, w) => {
+      const parts = (w.documentNumber || "").split("-");
+      const num = parseInt(parts[2] || "0", 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const secuencial = maxSec + 1;
+    const documentNumber = formatearSecuencialSRI(
+      secuencial,
+      sriCompanyConfig.establecimiento,
+      sriCompanyConfig.puntoEmision
+    );
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "07",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: sriCompanyConfig.establecimiento,
+      puntoEmision: sriCompanyConfig.puntoEmision,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const newWithholding: WithholdingReceipt = {
+      ...data,
+      id: retId,
+      documentNumber,
+      claveAcceso,
+      createdAt: now,
+    };
+
+    await syncToFirestore("billingWithholdings", newWithholding.id, newWithholding);
+    setBillingWithholdings((prev) => [newWithholding, ...prev]);
+    addAuditLog("CREATE_EXPENSE", `Comprobante Retención: ${documentNumber}`, `Cliente: ${newWithholding.clientName} - Retenido: $${newWithholding.totalRetained.toFixed(2)}`);
+
+    return newWithholding;
+  };
+
+  const createRemissionGuide = async (
+    data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ): Promise<RemissionGuide> => {
+    const now = new Date().toISOString();
+    const guideId = `gr-${Date.now()}`;
+    const dateStr = data.date || now.slice(0, 10);
+
+    const maxSec = billingRemissionGuides.reduce((max, g) => {
+      const parts = (g.documentNumber || "").split("-");
+      const num = parseInt(parts[2] || "0", 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const secuencial = maxSec + 1;
+    const documentNumber = formatearSecuencialSRI(
+      secuencial,
+      sriCompanyConfig.establecimiento,
+      sriCompanyConfig.puntoEmision
+    );
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "06",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: sriCompanyConfig.establecimiento,
+      puntoEmision: sriCompanyConfig.puntoEmision,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const newGuide: RemissionGuide = {
+      ...data,
+      id: guideId,
+      documentNumber,
+      claveAcceso,
+      createdAt: now,
+    };
+
+    await syncToFirestore("billingRemissionGuides", newGuide.id, newGuide);
+    setBillingRemissionGuides((prev) => [newGuide, ...prev]);
+    addAuditLog("CREATE_EXPENSE", `Guía de Remisión: ${documentNumber}`, `Destino: ${newGuide.destAddress} - Transportista: ${newGuide.carrierName}`);
+
+    return newGuide;
+  };
+
+  const updateSriConfig = async (updates: Partial<SriCompanyConfig>) => {
+    const updated: SriCompanyConfig = {
+      ...sriCompanyConfig,
+      ...updates,
+    };
+    await syncToFirestore("sriCompanyConfig", updated.id || "sri-config-inntel", updated);
+    setSriCompanyConfig(updated);
+    addAuditLog("UPDATE_CLIENT", "Configuración Emisor SRI Actualizada", `RUC: ${updated.ruc} - Ambiente: ${updated.ambiente === "1" ? "Pruebas" : "Producción"}`);
+  };
+
   const resetDataToDefaults = async () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USERS_KEY);
@@ -1776,6 +2331,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInventoryKardex(INITIAL_KARDEX);
     setInventoryTransfers(INITIAL_TRANSFERS);
     setInventoryAdjustments(INITIAL_ADJUSTMENTS);
+    setBillingInvoices(INITIAL_INVOICES);
+    setBillingQuotes(INITIAL_BILLING_QUOTES);
+    setBillingCreditNotes(INITIAL_CREDIT_NOTES);
+    setBillingWithholdings(INITIAL_WITHHOLDINGS);
+    setBillingRemissionGuides(INITIAL_REMISSION_GUIDES);
+    setSriCompanyConfig(INITIAL_SRI_CONFIG);
   };
 
   const hasAccess = canAccessRoute(currentUser, pathname);
@@ -1870,6 +2431,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addBrand,
           executeTransfer,
           executeAdjustment,
+          // Billing & SRI Module
+          billingInvoices,
+          billingQuotes,
+          billingCreditNotes,
+          billingWithholdings,
+          billingRemissionGuides,
+          sriCompanyConfig,
+          createInvoice,
+          updateInvoiceStatus,
+          createBillingQuote,
+          updateBillingQuote,
+          convertQuoteToInvoice,
+          createCreditNote,
+          createWithholding,
+          createRemissionGuide,
+          updateSriConfig,
           searchQuery,
           setSearchQuery,
           isSearchOpen,

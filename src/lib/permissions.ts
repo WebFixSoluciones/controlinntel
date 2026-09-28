@@ -11,6 +11,9 @@ export const collectionPermissions = {
   inventoryCategories: "manage_network", inventoryBrands: "manage_network",
   inventoryKardex: "manage_finance", inventoryTransfers: "manage_network",
   inventoryAdjustments: "manage_finance",
+  billingInvoices: "manage_finance", billingQuotes: "manage_finance",
+  billingCreditNotes: "manage_finance", billingWithholdings: "manage_finance",
+  billingRemissionGuides: "manage_network", sriCompanyConfig: "manage_finance",
 } as const;
 export type Entity = keyof typeof collectionPermissions;
 export function can(user: UserProfile, permission: string) {
@@ -24,6 +27,7 @@ export const routePermissions: Record<string, string> = {
   "/proyectos": "manage_network",
   "/tickets": "manage_tickets",
   "/finanzas": "manage_finance",
+  "/facturacion": "manage_finance",
   "/inventarios": "manage_network",
   "/plantillas": "export_reports",
   "/configuracion": "manage_users",
@@ -32,6 +36,9 @@ export const routePermissions: Record<string, string> = {
 export function canAccessRoute(user: UserProfile, route: string): boolean {
   if (route === "/inventarios") {
     return can(user, "manage_network") || can(user, "manage_finance");
+  }
+  if (route === "/facturacion") {
+    return can(user, "manage_finance") || can(user, "manage_clients");
   }
   const req = routePermissions[route];
   return !req || can(user, req);
