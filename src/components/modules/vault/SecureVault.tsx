@@ -22,7 +22,7 @@ import {
 
 export function SecureVault({ clientId }: { clientId?: string }) {
   const app = useApp();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showConfirm } = useToast();
   const [visible, setVisible] = useState<Record<string, string>>({});
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [busy, setBusy] = useState(false);
@@ -113,15 +113,20 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (confirm(`¿Confirmas la eliminación definitiva del acceso de ${name}?`)) {
-      try {
-        if (clientId) await app.deleteClientVaultItem(id);
-        else await app.deleteRecord("vault", id);
-        showSuccess("Credencial Eliminada", "El registro ha sido removido de la bóveda.");
-      } catch (e) {
-        showError("Error", "No se pudo eliminar la credencial.");
-      }
-    }
+    showConfirm(
+      "Eliminar Credencial",
+      `¿Confirmas la eliminación definitiva del acceso de ${name}?`,
+      async () => {
+        try {
+          if (clientId) await app.deleteClientVaultItem(id);
+          else await app.deleteRecord("vault", id);
+          showSuccess("Credencial Eliminada", "El registro ha sido removido de la bóveda.");
+        } catch (e) {
+          showError("Error", "No se pudo eliminar la credencial.");
+        }
+      },
+      "Eliminar"
+    );
   }
 
   return (

@@ -59,6 +59,8 @@ export function ArcotelManager() {
   // Concession Form State
   const [concessionForm, setConcessionForm] = useState(arcotelConcession);
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [isAddingCustomField, setIsAddingCustomField] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
 
   // File Upload Modal State
   const [isFileModalOpen, setIsFileModalOpen] = useState(false);
@@ -105,16 +107,27 @@ export function ArcotelManager() {
   };
 
   const handleAddCustomField = () => {
-    const label = prompt("Ingresa el nombre del nuevo atributo regulatorio (ej. Número de Trámite Quipux):");
-    if (!label) return;
+    setNewFieldLabel("");
+    setIsAddingCustomField(true);
+  };
+
+  const handleConfirmAddCustomField = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFieldLabel.trim()) {
+      showError("Campo Obligatorio", "Ingresa el nombre del nuevo atributo regulatorio.");
+      return;
+    }
     const currentFields = concessionForm.additionalFields || [];
     setConcessionForm({
       ...concessionForm,
       additionalFields: [
         ...currentFields,
-        { id: "field-" + Date.now(), label, value: "" },
+        { id: "field-" + Date.now(), label: newFieldLabel.trim(), value: "" },
       ],
     });
+    setNewFieldLabel("");
+    setIsAddingCustomField(false);
+    showSuccess("Atributo Creado", `Campo "${newFieldLabel.trim()}" agregado a la ficha técnica.`);
   };
 
   const handleRemoveCustomField = (id: string) => {
@@ -1230,6 +1243,58 @@ export function ArcotelManager() {
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>{busy ? "Cargando..." : "Subir Archivo"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Agregar Atributo Regulatorio */}
+      {isAddingCustomField && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+          <div className="bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+              <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
+                <Plus className="w-4 h-4 text-[#004ac6]" />
+                Nuevo Atributo Regulatorio
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddingCustomField(false)}
+                className="p-1 text-[#737686] hover:text-[#0b1c30] rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleConfirmAddCustomField} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="font-bold text-[#434655] block mb-1.5">
+                  Nombre del Atributo o Campo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. N° de Trámite Quipux, Acta de Homologación..."
+                  value={newFieldLabel}
+                  onChange={(e) => setNewFieldLabel(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                  autoFocus
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCustomField(false)}
+                  className="px-3.5 py-2 text-[#737686] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                >
+                  Agregar Atributo
                 </button>
               </div>
             </form>

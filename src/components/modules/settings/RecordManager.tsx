@@ -27,7 +27,7 @@ export function RecordManager({
   filter?: (row: Record<string, unknown>) => boolean;
 }) {
   const app = useApp(),
-    { showSuccess, showError } = useToast();
+    { showSuccess, showError, showConfirm } = useToast();
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
   const source = app[entity as keyof typeof app];
@@ -57,14 +57,19 @@ export function RecordManager({
   }
 
   async function handleDelete(id: string) {
-    if (confirm("¿Confirmas la eliminación de este registro?")) {
-      try {
-        await app.deleteRecord(entity, id);
-        showSuccess("Eliminado", "Registro removido del sistema.");
-      } catch (e) {
-        showError("Error", "No se pudo eliminar el registro.");
-      }
-    }
+    showConfirm(
+      "Eliminar Registro",
+      "¿Confirmas la eliminación definitiva de este registro del sistema?",
+      async () => {
+        try {
+          await app.deleteRecord(entity, id);
+          showSuccess("Eliminado", "Registro removido del sistema.");
+        } catch (e) {
+          showError("Error", "No se pudo eliminar el registro.");
+        }
+      },
+      "Eliminar"
+    );
   }
 
   return (

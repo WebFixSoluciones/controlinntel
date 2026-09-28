@@ -8,7 +8,7 @@ import { Search, Bell, HelpCircle, Shield, RotateCcw, LogOut } from "lucide-reac
 
 export function Header() {
   const { currentUser, setUserRole, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout } = useApp();
-  const { showConfirm, showInfo } = useToast();
+  const { showConfirm, showInfo, showSuccess } = useToast();
 
   const urgentCount = policies.filter((p) => p.status === "por_vencer").length;
   const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
@@ -61,7 +61,12 @@ export function Header() {
 
         {/* Help Icon */}
         <button
-          onClick={() => alert("Centro de Ayuda INNTEL CORP — Soporte técnico ISP & ARCOTEL")}
+          onClick={() =>
+            showInfo(
+              "Centro de Ayuda INNTEL CORP",
+              "Plataforma Integral de Gestión Operativa, ISP y Facturación Electrónica SRI. Para soporte o incidencias contacta a soporte@inntelcorp.com."
+            )
+          }
           className="p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all cursor-pointer"
           title="Ayuda y Documentación"
         >
@@ -71,9 +76,15 @@ export function Header() {
         {/* Reset Data */}
         <button
           onClick={() => {
-            if (confirm("¿Deseas reiniciar los datos de la plataforma al estado inicial?")) {
-              resetDataToDefaults();
-            }
+            showConfirm(
+              "Reiniciar Base de Datos",
+              "¿Deseas restaurar todos los registros de prueba a los valores predeterminados del sistema?",
+              () => {
+                resetDataToDefaults();
+                showSuccess("Sistema Restaurado", "Los datos operativos fueron restaurados correctamente.");
+              },
+              "Restaurar Datos"
+            );
           }}
           className="p-2 rounded-lg text-[#737686] hover:text-[#ef4444] hover:bg-red-50 transition-all cursor-pointer"
           title="Reiniciar datos del sistema"
