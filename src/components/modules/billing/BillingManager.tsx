@@ -22,7 +22,6 @@ import {
   RotateCcw,
   ShieldCheck,
   Truck,
-  Settings,
   Plus,
   Search,
   Filter,
@@ -229,34 +228,6 @@ export function BillingManager() {
 
   return (
     <div className="space-y-6">
-      {/* Submodule Action Bar without redundant description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
-        <div className="flex items-center gap-2.5">
-          <span
-            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-              sriCompanyConfig.ambiente === "2"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                : "bg-amber-50 text-amber-700 border-amber-300"
-            }`}
-          >
-            {sriCompanyConfig.ambiente === "2" ? "SRI PRODUCCIÓN" : "SRI PRUEBAS"}
-          </span>
-          <span className="text-xs font-medium text-slate-500 hidden sm:inline">
-            {sriCompanyConfig.razonSocial} (RUC: {sriCompanyConfig.ruc})
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.push("/configuracion?sub=sri")}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
-          >
-            <Settings className="w-3.5 h-3.5 text-slate-500" />
-            <span>Config. SRI</span>
-          </button>
-        </div>
-      </div>
-
       {/* Barra de Filtros (para tablas) */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div className="relative flex-1 min-w-[240px]">

@@ -327,16 +327,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                sriCompanyConfig.ambiente === "2"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                  : "bg-amber-50 text-amber-700 border-amber-300"
-              }`}
-            >
-              {sriCompanyConfig.ambiente === "2" ? "SRI PRODUCCIÓN" : "SRI PRUEBAS"}
-            </span>
+          <div className="flex items-center gap-2.5">
             <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
               IVA Vigente: 15%
             </span>
