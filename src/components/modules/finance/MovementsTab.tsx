@@ -4,17 +4,11 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
   Plus,
   Search,
-  Filter,
   ArrowUpRight,
   ArrowDownLeft,
   X,
-  CreditCard,
-  Building2,
 } from "lucide-react";
 import { FinancialMovement } from "@/types";
 
@@ -92,74 +86,8 @@ export function MovementsTab() {
 
     return matchSearch && matchType && matchBank;
   });
-
-  const totalIngresos = financialMovements
-    .filter((m) => m.type === "ingreso")
-    .reduce((sum, m) => sum + m.amount, 0);
-
-  const totalEgresos = financialMovements
-    .filter((m) => m.type === "egreso")
-    .reduce((sum, m) => sum + m.amount, 0);
-
-  const flujoNeto = totalIngresos - totalEgresos;
-  const totalBancos = bankAccounts.reduce((sum, b) => sum + b.currentBalance, 0);
-
   return (
     <div className="space-y-6 select-none">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Total Ingresos Recaudados</span>
-            <div className="p-2 bg-[#ecfdf5] text-[#059669] rounded-xl">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#059669]">
-            ${totalIngresos.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#737686]">Cobranzas y entradas a cuentas</p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Total Egresos & OPEX</span>
-            <div className="p-2 bg-[#fef2f2] text-[#dc2626] rounded-xl">
-              <TrendingDown className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#dc2626]">
-            ${totalEgresos.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#737686]">Pagos a proveedores y gastos operativos</p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Flujo Neto Operativo</span>
-            <div className={`p-2 rounded-xl ${flujoNeto >= 0 ? "bg-[#ecfdf5] text-[#059669]" : "bg-[#fef2f2] text-[#dc2626]"}`}>
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div className={`mt-2 text-2xl font-bold font-mono ${flujoNeto >= 0 ? "text-[#059669]" : "text-[#dc2626]"}`}>
-            {flujoNeto < 0 ? "-" : ""}${Math.abs(flujoNeto).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#737686]">Superávit / Déficit neto</p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Saldo Consolidado en Bancos</span>
-            <div className="p-2 bg-[#eff4ff] text-[#004ac6] rounded-xl">
-              <Building2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#004ac6]">
-            ${totalBancos.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#737686]">En {bankAccounts.length} cuentas y cajas activas</p>
-        </div>
-      </div>
 
       {/* Filter and Action Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
