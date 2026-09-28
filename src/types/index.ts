@@ -1,3 +1,5 @@
+import type { UserModulePermissions } from "./purchases";
+
 export type UserRole = "superadmin" | "admin" | "finanzas" | "tecnico" | "soporte" | "legal" | "consulta";
 
 export type SystemPermission =
@@ -21,6 +23,7 @@ export interface UserProfile {
   avatarUrl?: string;
   status?: "activo" | "inactivo";
   permissions?: SystemPermission[];
+  modulePermissions?: UserModulePermissions;
 }
 
 export interface SystemUser extends UserProfile {
@@ -461,3 +464,4 @@ export interface ClientContractInfo {
 
 export * from './inventory';
 export * from './billing';
+export * from './purchases';
