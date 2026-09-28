@@ -1,4 +1,5 @@
-import type { UserProfile } from "@/types";
+import type { UserProfile, UserModulePermissions, UserRole } from "@/types";
+
 export const collectionPermissions = {
   clients: "manage_clients", clientServices: "manage_clients", plans: "manage_clients",
   clientProjects: "manage_clients", clientContracts: "manage_clients",
@@ -14,34 +15,203 @@ export const collectionPermissions = {
   billingInvoices: "manage_finance", billingQuotes: "manage_finance",
   billingCreditNotes: "manage_finance", billingWithholdings: "manage_finance",
   billingRemissionGuides: "manage_network", sriCompanyConfig: "manage_finance",
+  // Compras & Proveedores
+  suppliers: "manage_finance",
+  purchaseInvoices: "manage_finance",
+  supplierCreditNotes: "manage_finance",
+  supplierDebitNotes: "manage_finance",
+  purchaseWithholdings: "manage_finance",
+  bankAccounts: "manage_finance",
+  supplierPayments: "manage_finance",
 } as const;
+
 export type Entity = keyof typeof collectionPermissions;
+
 export function can(user: UserProfile, permission: string) {
-  return user.status === "activo" && !!user.permissions?.some(p => p === "all" || p === permission);
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+  return !!user.permissions?.some(p => p === "all" || p === permission);
 }
-export const routePermissions: Record<string, string> = {
-  "/clientes": "manage_clients",
-  "/arcotel": "manage_policies",
-  "/boveda": "manage_vault",
-  "/red": "manage_network",
-  "/proyectos": "manage_network",
-  "/tickets": "manage_tickets",
-  "/finanzas": "manage_finance",
-  "/facturacion": "manage_finance",
-  "/inventarios": "manage_network",
-  "/plantillas": "export_reports",
-  "/configuracion": "manage_users",
+
+/**
+ * Plantilla predeterminada de permisos granulares según el Rol del usuario.
+ */
+export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePermissions> = {
+  superadmin: {
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: true } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
+    inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: true } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    proyectos: { enabled: true },
+    tickets: { enabled: true },
+    arcotel: { enabled: true },
+    boveda: { enabled: true },
+    plantillas: { enabled: true },
+    configuracion: { enabled: true },
+  },
+  admin: {
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: true } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
+    inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: true } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    proyectos: { enabled: true },
+    tickets: { enabled: true },
+    arcotel: { enabled: true },
+    boveda: { enabled: false }, // restringido por defecto a superadmin
+    plantillas: { enabled: true },
+    configuracion: { enabled: true },
+  },
+  finanzas: {
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true, configuracion_sri: true } },
+    inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: false, ajustes: true } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    proyectos: { enabled: true },
+    tickets: { enabled: false },
+    arcotel: { enabled: false },
+    boveda: { enabled: false },
+    plantillas: { enabled: true },
+    configuracion: { enabled: false },
+  },
+  tecnico: {
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: false, notas_debito: false, retenciones: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: true, configuracion_sri: false } },
+    inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: true, ajustes: false } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    proyectos: { enabled: true },
+    tickets: { enabled: true },
+    arcotel: { enabled: false },
+    boveda: { enabled: true },
+    plantillas: { enabled: false },
+    configuracion: { enabled: false },
+  },
+  soporte: {
+    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: false, usuarios_equipo: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
+    inventarios: { enabled: false, submodules: { productos: false, bodegas: false, kardex: false, transferencias: false, ajustes: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    proyectos: { enabled: false },
+    tickets: { enabled: true },
+    arcotel: { enabled: false },
+    boveda: { enabled: true },
+    plantillas: { enabled: false },
+    configuracion: { enabled: false },
+  },
+  legal: {
+    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
+    inventarios: { enabled: false, submodules: { productos: false, bodegas: false, kardex: false, transferencias: false, ajustes: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    proyectos: { enabled: false },
+    tickets: { enabled: false },
+    arcotel: { enabled: true },
+    boveda: { enabled: false },
+    plantillas: { enabled: true },
+    configuracion: { enabled: false },
+  },
+  consulta: {
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
+    personas: { enabled: true, submodules: { clientes: true, proveedores: true, usuarios_equipo: false } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: false, configuracion_sri: false } },
+    inventarios: { enabled: true, submodules: { productos: true, bodegas: true, kardex: true, transferencias: false, ajustes: false } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    proyectos: { enabled: true },
+    tickets: { enabled: true },
+    arcotel: { enabled: true },
+    boveda: { enabled: false },
+    plantillas: { enabled: true },
+    configuracion: { enabled: false },
+  },
+};
+
+/**
+ * Verifica si un usuario tiene acceso a un módulo principal.
+ */
+export function canAccessModule(user: UserProfile | undefined | null, moduleKey: keyof UserModulePermissions): boolean {
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+
+  // Si tiene permisos granulares configurados explícitamente
+  if (user.modulePermissions && user.modulePermissions[moduleKey] !== undefined) {
+    return !!user.modulePermissions[moduleKey]?.enabled;
+  }
+
+  // De lo contrario, inferir desde el rol predeterminado
+  const defaultByRole = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role];
+  if (defaultByRole && defaultByRole[moduleKey] !== undefined) {
+    return !!defaultByRole[moduleKey]?.enabled;
+  }
+
+  return true;
+}
+
+/**
+ * Verifica si un usuario tiene acceso a un submódulo específico dentro de un módulo.
+ */
+export function canAccessSubmodule(
+  user: UserProfile | undefined | null,
+  moduleKey: keyof UserModulePermissions,
+  submoduleKey: string
+): boolean {
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+
+  // Si el módulo general está deshabilitado, el submódulo tampoco es accesible
+  if (!canAccessModule(user, moduleKey)) return false;
+
+  // Verificar en la matriz del usuario
+  const modPerms = user.modulePermissions?.[moduleKey] as any;
+  if (modPerms && modPerms.submodules && typeof modPerms.submodules[submoduleKey] === "boolean") {
+    return modPerms.submodules[submoduleKey];
+  }
+
+  // Fallback a los predeterminados del rol
+  const defaultByRole = (DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role] as any)?.[moduleKey];
+  if (defaultByRole && defaultByRole.submodules && typeof defaultByRole.submodules[submoduleKey] === "boolean") {
+    return defaultByRole.submodules[submoduleKey];
+  }
+
+  return true;
+}
+
+export const routePermissions: Record<string, keyof UserModulePermissions> = {
+  "/clientes": "personas",
+  "/compras": "compras",
+  "/finanzas": "finanzas",
+  "/facturacion": "facturacion",
+  "/inventarios": "inventarios",
+  "/red": "red",
+  "/proyectos": "proyectos",
+  "/tickets": "tickets",
+  "/arcotel": "arcotel",
+  "/boveda": "boveda",
+  "/plantillas": "plantillas",
+  "/configuracion": "configuracion",
 };
 
 export function canAccessRoute(user: UserProfile, route: string): boolean {
-  if (route === "/inventarios") {
-    return can(user, "manage_network") || can(user, "manage_finance");
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+
+  const targetModule = routePermissions[route];
+  if (targetModule) {
+    return canAccessModule(user, targetModule);
   }
-  if (route === "/facturacion") {
-    return can(user, "manage_finance") || can(user, "manage_clients");
-  }
-  const req = routePermissions[route];
-  return !req || can(user, req);
+
+  return true;
 }
 
 export const tabPermissions: Record<string, string> = {
