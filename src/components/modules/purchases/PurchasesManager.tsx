@@ -20,7 +20,6 @@ import { PurchaseInvoice } from "@/types";
 
 export type PurchasesSubmoduleTab =
   | "historial_compras"
-  | "registrar_compra"
   | "notas_credito"
   | "notas_debito"
   | "retenciones";
@@ -87,15 +86,8 @@ export function PurchasesManager() {
 
           {canRegistrar && (
             <button
-              onClick={() => {
-                setActiveTab("registrar_compra");
-                setIsRegisterModalOpen(true);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === "registrar_compra"
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-              }`}
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer bg-[#eff4ff] text-[#004ac6] hover:bg-[#dce9ff]"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Registrar Compra</span>
@@ -162,24 +154,6 @@ export function PurchasesManager() {
           />
         )}
 
-        {activeTab === "registrar_compra" && (
-          <div className="p-8 bg-white rounded-2xl border border-[#e2e8f0] text-center space-y-4">
-            <PlusCircle className="w-12 h-12 text-[#004ac6] mx-auto animate-bounce" />
-            <h3 className="text-base font-bold text-[#0b1c30]">
-              Asistente de Registro de Compras Activo
-            </h3>
-            <p className="text-xs text-[#737686] max-w-md mx-auto">
-              Presiona el botón para abrir el modal de carga de XML del SRI o formulario manual.
-            </p>
-            <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="px-6 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
-            >
-              Abrir Formulario de Compra
-            </button>
-          </div>
-        )}
-
         {activeTab === "notas_credito" && (
           <SupplierCreditNotesTab
             initialInvoice={contextInvoice}
@@ -200,10 +174,7 @@ export function PurchasesManager() {
       {/* Modal Nueva Compra */}
       <RegisterPurchaseModal
         isOpen={isRegisterModalOpen}
-        onClose={() => {
-          setIsRegisterModalOpen(false);
-          if (activeTab === "registrar_compra") setActiveTab("historial_compras");
-        }}
+        onClose={() => setIsRegisterModalOpen(false)}
         onSuccess={() => {
           setIsRegisterModalOpen(false);
           setActiveTab("historial_compras");

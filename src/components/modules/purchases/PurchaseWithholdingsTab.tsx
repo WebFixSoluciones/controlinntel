@@ -139,29 +139,8 @@ export function PurchaseWithholdingsTab({
 
   return (
     <div className="space-y-6 select-none">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-        <div>
-          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
-            <Percent className="w-5 h-5 text-[#059669]" />
-            Retenciones Electrónicas de Compras (SRI)
-          </h2>
-          <p className="text-xs text-[#737686]">
-            Emisión de comprobantes de retención en la fuente e IVA emitidos por INNTEL CORP hacia los proveedores.
-          </p>
-        </div>
-
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Emitir Retención</span>
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      {/* Unified Toolbar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -169,9 +148,17 @@ export function PurchaseWithholdingsTab({
             placeholder="Buscar por proveedor, RUC o secuencial de retención..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6]"
+            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
           />
         </div>
+
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto justify-center"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Emitir Retención</span>
+        </button>
       </div>
 
       {/* Table */}
