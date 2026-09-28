@@ -242,16 +242,16 @@ function SidebarContent() {
                       router.push(accessibleSubmodules[0].href);
                     }
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group border-l-4 ${
                     isCurrentRoute
-                      ? "bg-[#bbf7d0] text-[#064e3b] font-bold border-r-4 border-[#059669] shadow-2xs"
-                      : "text-[#334155] hover:bg-[#f8f9ff] hover:text-[#0b1c30]"
+                      ? "bg-[#eff4ff] text-[#004ac6] font-bold border-[#004ac6] shadow-2xs"
+                      : "border-transparent text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6]"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon
                       className={`w-4 h-4 transition-colors ${
-                        isCurrentRoute ? "text-[#064e3b]" : "text-[#64748b] group-hover:text-[#0b1c30]"
+                        isCurrentRoute ? "text-[#004ac6]" : "text-[#737686] group-hover:text-[#004ac6]"
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
@@ -269,9 +269,17 @@ function SidebarContent() {
                       </span>
                     )}
                     {isOpen ? (
-                      <ChevronUp className="w-3.5 h-3.5 text-current opacity-70" />
+                      <ChevronUp
+                        className={`w-3.5 h-3.5 transition-colors ${
+                          isCurrentRoute ? "text-[#004ac6]" : "text-[#737686] group-hover:text-[#004ac6]"
+                        }`}
+                      />
                     ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-[#64748b] opacity-70" />
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-colors ${
+                          isCurrentRoute ? "text-[#004ac6]" : "text-[#737686] group-hover:text-[#004ac6]"
+                        }`}
+                      />
                     )}
                   </div>
                 </button>
@@ -279,16 +287,16 @@ function SidebarContent() {
                 // Single Module Link (No Submodules)
                 <Link
                   href={item.href}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group border-l-4 ${
                     isCurrentRoute
-                      ? "bg-[#bbf7d0] text-[#064e3b] font-bold border-r-4 border-[#059669] shadow-2xs"
-                      : "text-[#334155] hover:bg-[#f8f9ff] hover:text-[#0b1c30]"
+                      ? "bg-[#eff4ff] text-[#004ac6] font-bold border-[#004ac6] shadow-2xs"
+                      : "border-transparent text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6]"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon
                       className={`w-4 h-4 transition-colors ${
-                        isCurrentRoute ? "text-[#064e3b]" : "text-[#64748b] group-hover:text-[#0b1c30]"
+                        isCurrentRoute ? "text-[#004ac6]" : "text-[#737686] group-hover:text-[#004ac6]"
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
@@ -326,10 +334,10 @@ function SidebarContent() {
                       <Link
                         key={sub.key}
                         href={sub.href}
-                        className={`block px-3 py-1.5 rounded-xl text-xs transition-all ${
+                        className={`block px-3 py-1.5 rounded-lg text-xs transition-all ${
                           isSubActive
-                            ? "bg-[#bbf7d0] text-[#064e3b] font-bold shadow-2xs"
-                            : "text-[#334155] hover:text-[#0b1c30] hover:bg-[#f1f5f9]"
+                            ? "bg-[#eff4ff] text-[#004ac6] font-bold shadow-2xs border-l-2 border-[#004ac6]"
+                            : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
                         }`}
                       >
                         {sub.label}
