@@ -14,6 +14,7 @@ import {
   KeyRound,
   Kanban,
   Boxes,
+  Receipt,
   Ticket as TicketIcon,
   DollarSign,
   FileText,
@@ -25,25 +26,35 @@ import {
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/facturacion", label: "Facturación SRI", icon: Receipt },
+  { href: "/inventarios", label: "Inventarios", icon: Boxes },
+  { href: "/finanzas", label: "Finanzas", icon: DollarSign },
+  { href: "/proyectos", label: "Proyectos", icon: Kanban },
+  { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
-  { href: "/proyectos", label: "Proyectos", icon: Kanban },
-  { href: "/inventarios", label: "Inventarios", icon: Boxes },
-  { href: "/tickets", label: "Soporte", icon: TicketIcon },
-  { href: "/finanzas", label: "Finanzas", icon: DollarSign },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, clientContracts, tickets, clientProjects, inventoryProducts, logout } = useApp();
+  const {
+    currentUser,
+    clientContracts,
+    tickets,
+    clientProjects,
+    inventoryProducts,
+    billingQuotes,
+    logout,
+  } = useApp();
   const { showConfirm, showInfo } = useToast();
 
   const expiringPolicies = clientContracts.filter((p) => p.status === "por_renovar").length;
   const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
   const activeProjects = clientProjects.filter((p) => p.column !== "completado" && p.column !== "finalizado").length;
   const lowStockItems = inventoryProducts.filter((p) => p.tracksStock && p.status === "activo" && p.stock <= p.minStock).length;
+  const pendingQuotes = billingQuotes.filter((q) => q.status === "enviada" || q.status === "aprobada").length;
 
   const handleLogout = () => {
     showConfirm(
@@ -102,6 +113,11 @@ export function Sidebar() {
               </div>
 
               <div className="flex items-center gap-1.5">
+                {item.href === "/facturacion" && pendingQuotes > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]" title={`${pendingQuotes} cotizaciones pendientes`}>
+                    {pendingQuotes}
+                  </span>
+                )}
                 {item.href === "/arcotel" && expiringPolicies > 0 && (
                   <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fffbeb] text-[#92400e] border border-[#fde68a] animate-pulse">
                     {expiringPolicies}
