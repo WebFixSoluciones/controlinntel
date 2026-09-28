@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { InventoryManager } from "@/components/modules/inventory/InventoryManager";
 
 export default function InventariosPage() {
@@ -41,7 +40,6 @@ export default function InventariosPage() {
         </footer>
 
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

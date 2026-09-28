@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { ProjectsManager } from "@/components/modules/projects/ProjectsManager";
 
 export default function ProyectosPage() {
@@ -41,7 +40,6 @@ export default function ProyectosPage() {
         </footer>
 
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

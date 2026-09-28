@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { UserManager } from "@/components/modules/settings/UserManager";
 import { PlansManager } from "@/components/modules/settings/RecordManager";
 
@@ -28,7 +27,6 @@ export default function ConfiguracionPage() {
           </div>
         </footer>
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

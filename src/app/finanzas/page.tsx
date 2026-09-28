@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule } from "@/lib/permissions";
 import {
@@ -196,7 +195,6 @@ export default function FinanzasPage() {
       </div>
 
       <QuickSearchModal />
-      <GeminiAssistantWidget />
     </div>
   );
 }

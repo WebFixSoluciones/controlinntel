@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { PurchasesManager } from "@/components/modules/purchases/PurchasesManager";
 
 export default function ComprasPage() {
@@ -42,7 +41,6 @@ export default function ComprasPage() {
       </div>
 
       <QuickSearchModal />
-      <GeminiAssistantWidget />
     </div>
   );
 }

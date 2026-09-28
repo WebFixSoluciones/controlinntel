@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { VaultManager } from "@/components/modules/vault/VaultManager";
 
 export default function BovedaPage() {
@@ -28,7 +27,6 @@ export default function BovedaPage() {
         </footer>
 
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { TicketsBoard } from "@/components/modules/tickets/TicketsBoard";
 import { TicketModal } from "@/components/modules/tickets/TicketModal";
 
@@ -32,7 +31,6 @@ export default function TicketsPage() {
 
         <TicketModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { BillingManager } from "@/components/modules/billing/BillingManager";
 
 export default function FacturacionPage() {
@@ -41,7 +40,6 @@ export default function FacturacionPage() {
         </footer>
 
         <QuickSearchModal />
-        <GeminiAssistantWidget />
       </div>
     </div>
   );

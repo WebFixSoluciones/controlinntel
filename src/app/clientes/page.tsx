@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { ClientsTable } from "@/components/modules/clients/ClientsTable";
 import { ClientProfile360 } from "@/components/modules/clients/ClientProfile360";
 import { ClientModal } from "@/components/modules/clients/ClientModal";
@@ -192,7 +191,6 @@ export default function ClientsPage() {
       </div>
 
       <QuickSearchModal />
-      <GeminiAssistantWidget />
     </div>
   );
 }

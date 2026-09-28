@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
-import { GeminiAssistantWidget } from "@/components/modules/ai/GeminiAssistantWidget";
 import { MetricsCards } from "@/components/modules/dashboard/MetricsCards";
 import { FinancialChart } from "@/components/modules/dashboard/FinancialChart";
 import { ExpirationsTimeline } from "@/components/modules/dashboard/ExpirationsTimeline";
@@ -91,7 +90,6 @@ export default function DashboardPage() {
           />
 
           <QuickSearchModal />
-          <GeminiAssistantWidget />
         </div>
       </div>
   );
