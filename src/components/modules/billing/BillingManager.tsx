@@ -116,28 +116,6 @@ export function BillingManager() {
   const [isConverting, setIsConverting] = useState(false);
 
   // ==========================================
-  // KPIs
-  // ==========================================
-  const kpis = useMemo(() => {
-    const totalFacturado = billingInvoices.reduce((sum, inv) => sum + inv.total, 0);
-    const facturasAutorizadas = billingInvoices.filter((i) => i.status === "autorizada").length;
-    const totalIvaRecaudado = billingInvoices.reduce((sum, inv) => sum + inv.ivaTotal, 0);
-    const cotizacionesPendientes = billingQuotes.filter(
-      (q) => q.status === "enviada" || q.status === "aprobada"
-    ).length;
-    const notasCreditoTotal = billingCreditNotes.reduce((sum, nc) => sum + nc.total, 0);
-
-    return {
-      totalFacturado,
-      facturasAutorizadas,
-      totalFacturas: billingInvoices.length,
-      totalIvaRecaudado,
-      cotizacionesPendientes,
-      notasCreditoTotal,
-    };
-  }, [billingInvoices, billingQuotes, billingCreditNotes]);
-
-  // ==========================================
   // Filtered Lists
   // ==========================================
   const filteredInvoices = useMemo(() => {
@@ -265,88 +243,6 @@ export function BillingManager() {
             <Settings className="w-3.5 h-3.5 text-slate-500" />
             <span>Config. SRI</span>
           </button>
-        </div>
-      </div>
-
-      {/* Tarjetas KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Total Facturado
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-slate-900 font-mono">
-              ${kpis.totalFacturado.toFixed(2)}
-            </span>
-            <span className="p-1.5 bg-blue-50 text-[#004ac6] rounded-lg">
-              <DollarSign className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">
-            {kpis.totalFacturas} comprobantes emitidos
-          </span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Autorizadas SRI
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-emerald-600 font-mono">
-              {kpis.facturasAutorizadas}
-            </span>
-            <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-              <ShieldCheck className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">Claves 49 dígitos válidas</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            IVA 15% Recaudado
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-sky-600 font-mono">
-              ${kpis.totalIvaRecaudado.toFixed(2)}
-            </span>
-            <span className="p-1.5 bg-sky-50 text-sky-600 rounded-lg">
-              <Percent className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">Retención fiscal estimada</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Cotizaciones Activas
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-amber-600 font-mono">
-              {kpis.cotizacionesPendientes}
-            </span>
-            <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-              <FileText className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">Convertibles a factura</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Notas de Crédito
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xl font-black text-rose-600 font-mono">
-              ${kpis.notasCreditoTotal.toFixed(2)}
-            </span>
-            <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg">
-              <RotateCcw className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500 font-medium">
-            {billingCreditNotes.length} comprobantes
-          </span>
         </div>
       </div>
 
