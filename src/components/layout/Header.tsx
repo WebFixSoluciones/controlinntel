@@ -28,7 +28,7 @@ function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/facturacion") {
     switch (subParam) {
       case "nueva_venta":
-        return "Registrar Factura";
+        return "Registrar Venta";
       case "cotizaciones":
         return "Cotizaciones";
       case "notas_credito":

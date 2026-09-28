@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -12,7 +12,7 @@ import {
   RemissionGuide,
 } from "@/types";
 import { RidePreviewModal } from "./RidePreviewModal";
-import { NewSaleModal } from "./NewSaleModal";
+import { NewSaleView } from "./NewSaleView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
@@ -48,6 +48,7 @@ import { generarFacturaXml } from "@/lib/sri-service";
 
 type BillingTab =
   | "facturas"
+  | "nueva_venta"
   | "cotizaciones"
   | "notas_credito"
   | "retenciones"
@@ -55,6 +56,7 @@ type BillingTab =
   | "configuracion_sri";
 
 export function BillingManager() {
+  const router = useRouter();
   const {
     billingInvoices,
     billingQuotes,
@@ -68,22 +70,19 @@ export function BillingManager() {
   const { showConfirm, showSuccess, showError } = useToast();
 
   const searchParams = useSearchParams();
-  const subParam = searchParams.get("sub") as BillingTab | "nueva_venta" | null;
+  const subParam = searchParams.get("sub") as BillingTab | null;
 
   const [activeTab, setActiveTab] = useState<BillingTab>(() => {
-    if (subParam && subParam !== "nueva_venta") return subParam as BillingTab;
+    if (subParam) return subParam;
     return "facturas";
   });
 
   useEffect(() => {
-    if (subParam === "nueva_venta") {
-      setIsNewSaleOpen(true);
-      setActiveTab("facturas");
-    } else if (subParam === "configuracion_sri") {
+    if (subParam === "configuracion_sri") {
       setIsSriConfigOpen(true);
       setActiveTab("facturas");
     } else if (subParam) {
-      setActiveTab(subParam as BillingTab);
+      setActiveTab(subParam);
     }
   }, [subParam]);
 
@@ -91,7 +90,6 @@ export function BillingManager() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Modals state
-  const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [quoteToEdit, setQuoteToEdit] = useState<ClientQuote | null>(null);
 
@@ -216,6 +214,24 @@ export function BillingManager() {
     }
   };
 
+  if (activeTab === "nueva_venta") {
+    return (
+      <NewSaleView
+        onBack={() => {
+          setActiveTab("facturas");
+          router.push("/facturacion?sub=facturas");
+        }}
+        onSuccess={(inv) => {
+          setActiveTab("facturas");
+          setRideInvoice(inv);
+          setRideCreditNote(null);
+          setIsRideOpen(true);
+          router.push("/facturacion?sub=facturas");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Submodule Action Bar without redundant description */}
@@ -295,8 +311,11 @@ export function BillingManager() {
 
             {activeTab === "facturas" && (
               <button
-                onClick={() => setIsNewSaleOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-xl text-xs font-bold shadow-sm transition"
+                onClick={() => {
+                  setActiveTab("nueva_venta");
+                  router.push("/facturacion?sub=nueva_venta");
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Emitir Factura</span>
@@ -921,17 +940,6 @@ export function BillingManager() {
       )}
 
       {/* Modales Secundarios */}
-      <NewSaleModal
-        isOpen={isNewSaleOpen}
-        onClose={() => setIsNewSaleOpen(false)}
-        onSuccess={(inv) => {
-          showSuccess("Factura Emitida", `Factura ${inv.documentNumber} emitida con éxito.`);
-          setRideInvoice(inv);
-          setRideCreditNote(null);
-          setIsRideOpen(true);
-        }}
-      />
-
       <BillingQuoteModal
         isOpen={isQuoteModalOpen}
         onClose={() => {
