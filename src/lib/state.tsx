@@ -41,6 +41,18 @@ import {
   WithholdingReceipt,
   RemissionGuide,
   InvoiceItem,
+  Supplier,
+  PurchaseInvoice,
+  PurchaseItem,
+  PurchasePaymentCondition,
+  PurchasePaymentStatus,
+  SupplierCreditNote,
+  SupplierDebitNote,
+  PurchaseWithholding,
+  BankAccount,
+  FinancialMovement,
+  SupplierPaymentRecord,
+  UserModulePermissions,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -76,6 +88,14 @@ import {
   INITIAL_CREDIT_NOTES,
   INITIAL_WITHHOLDINGS,
   INITIAL_REMISSION_GUIDES,
+  INITIAL_SUPPLIERS,
+  INITIAL_BANK_ACCOUNTS,
+  INITIAL_PURCHASE_INVOICES,
+  INITIAL_SUPPLIER_PAYMENTS,
+  INITIAL_PURCHASE_WITHHOLDINGS,
+  INITIAL_SUPPLIER_CREDIT_NOTES,
+  INITIAL_SUPPLIER_DEBIT_NOTES,
+  INITIAL_FINANCIAL_MOVEMENTS,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -275,6 +295,45 @@ interface AppContextType {
   ) => Promise<RemissionGuide>;
   updateSriConfig: (updates: Partial<SriCompanyConfig>) => Promise<void>;
 
+  // Compras & Proveedores & Finanzas Bancarias
+  suppliers: Supplier[];
+  purchaseInvoices: PurchaseInvoice[];
+  supplierCreditNotes: SupplierCreditNote[];
+  supplierDebitNotes: SupplierDebitNote[];
+  purchaseWithholdings: PurchaseWithholding[];
+  bankAccounts: BankAccount[];
+  financialMovements: FinancialMovement[];
+  supplierPayments: SupplierPaymentRecord[];
+
+  addSupplier: (supplier: Omit<Supplier, "id" | "createdAt" | "updatedAt">) => Promise<Supplier>;
+  updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
+  deleteSupplier: (id: string) => Promise<void>;
+
+  addPurchaseInvoice: (
+    data: Omit<PurchaseInvoice, "id" | "createdAt" | "paidAmount" | "balanceRemaining"> & {
+      paidAmount?: number;
+    }
+  ) => Promise<PurchaseInvoice>;
+  updatePurchaseInvoice: (id: string, updates: Partial<PurchaseInvoice>) => Promise<void>;
+
+  addSupplierCreditNote: (
+    note: Omit<SupplierCreditNote, "id" | "createdAt">
+  ) => Promise<SupplierCreditNote>;
+  addSupplierDebitNote: (
+    note: Omit<SupplierDebitNote, "id" | "createdAt">
+  ) => Promise<SupplierDebitNote>;
+  addPurchaseWithholding: (
+    ret: Omit<PurchaseWithholding, "id" | "createdAt">
+  ) => Promise<PurchaseWithholding>;
+
+  addBankAccount: (account: Omit<BankAccount, "id">) => Promise<BankAccount>;
+  updateBankAccount: (id: string, updates: Partial<BankAccount>) => Promise<void>;
+
+  addSupplierPayment: (payment: Omit<SupplierPaymentRecord, "id" | "createdAt">) => Promise<SupplierPaymentRecord>;
+  addFinancialMovement: (movement: Omit<FinancialMovement, "id" | "createdAt">) => Promise<FinancialMovement>;
+
+  updateUserModulePermissions: (uid: string, permissions: UserModulePermissions) => Promise<void>;
+
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
@@ -331,6 +390,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [billingWithholdings, setBillingWithholdings] = useState<WithholdingReceipt[]>(INITIAL_WITHHOLDINGS);
   const [billingRemissionGuides, setBillingRemissionGuides] = useState<RemissionGuide[]>(INITIAL_REMISSION_GUIDES);
   const [sriCompanyConfig, setSriCompanyConfig] = useState<SriCompanyConfig>(INITIAL_SRI_CONFIG);
+
+  // Compras, Proveedores & Finanzas Bancarias State
+  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>(INITIAL_PURCHASE_INVOICES);
+  const [supplierCreditNotes, setSupplierCreditNotes] = useState<SupplierCreditNote[]>(INITIAL_SUPPLIER_CREDIT_NOTES);
+  const [supplierDebitNotes, setSupplierDebitNotes] = useState<SupplierDebitNote[]>(INITIAL_SUPPLIER_DEBIT_NOTES);
+  const [purchaseWithholdings, setPurchaseWithholdings] = useState<PurchaseWithholding[]>(INITIAL_PURCHASE_WITHHOLDINGS);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(INITIAL_BANK_ACCOUNTS);
+  const [financialMovements, setFinancialMovements] = useState<FinancialMovement[]>(INITIAL_FINANCIAL_MOVEMENTS);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPaymentRecord[]>(INITIAL_SUPPLIER_PAYMENTS);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -459,6 +528,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.billingWithholdings)) setBillingWithholdings(p.billingWithholdings);
           if (Array.isArray(p.billingRemissionGuides)) setBillingRemissionGuides(p.billingRemissionGuides);
           if (p.sriCompanyConfig && p.sriCompanyConfig.ruc) setSriCompanyConfig(p.sriCompanyConfig);
+          if (Array.isArray(p.suppliers)) setSuppliers(p.suppliers);
+          if (Array.isArray(p.purchaseInvoices)) setPurchaseInvoices(p.purchaseInvoices);
+          if (Array.isArray(p.supplierCreditNotes)) setSupplierCreditNotes(p.supplierCreditNotes);
+          if (Array.isArray(p.supplierDebitNotes)) setSupplierDebitNotes(p.supplierDebitNotes);
+          if (Array.isArray(p.purchaseWithholdings)) setPurchaseWithholdings(p.purchaseWithholdings);
+          if (Array.isArray(p.bankAccounts)) setBankAccounts(p.bankAccounts);
+          if (Array.isArray(p.financialMovements)) setFinancialMovements(p.financialMovements);
+          if (Array.isArray(p.supplierPayments)) setSupplierPayments(p.supplierPayments);
         } catch (e) {}
       }
     } catch (e) {
@@ -577,6 +654,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           billingWithholdings,
           billingRemissionGuides,
           sriCompanyConfig,
+          suppliers,
+          purchaseInvoices,
+          supplierCreditNotes,
+          supplierDebitNotes,
+          purchaseWithholdings,
+          bankAccounts,
+          financialMovements,
+          supplierPayments,
         })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
@@ -2307,6 +2392,426 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("UPDATE_CLIENT", "Configuración Emisor SRI Actualizada", `RUC: ${updated.ruc} - Ambiente: ${updated.ambiente === "1" ? "Pruebas" : "Producción"}`);
   };
 
+  // ==========================================
+  // COMPRAS, PROVEEDORES & FINANZAS MUTATIONS
+  // ==========================================
+
+  const addSupplier = async (
+    supplier: Omit<Supplier, "id" | "createdAt" | "updatedAt">
+  ): Promise<Supplier> => {
+    const id = `prov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+    const newSupplier: Supplier = {
+      ...supplier,
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setSuppliers((prev) => [newSupplier, ...prev]);
+    await syncToFirestore("suppliers", id, newSupplier);
+    addAuditLog("CREATE_USER", "Proveedores", `Proveedor ${newSupplier.razonSocial} (RUC: ${newSupplier.ruc}) registrado`);
+    return newSupplier;
+  };
+
+  const updateSupplier = async (id: string, updates: Partial<Supplier>): Promise<void> => {
+    setSuppliers((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s))
+    );
+    await syncToFirestore("suppliers", id, updates);
+  };
+
+  const deleteSupplier = async (id: string): Promise<void> => {
+    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    await deleteFromFirestore("suppliers", id);
+  };
+
+  const addPurchaseInvoice = async (
+    data: Omit<PurchaseInvoice, "id" | "createdAt" | "paidAmount" | "balanceRemaining"> & {
+      paidAmount?: number;
+    }
+  ): Promise<PurchaseInvoice> => {
+    const id = `pur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const total = Number(data.total) || 0;
+    const isContado = data.paymentCondition === "contado";
+    const paidAmount = isContado ? total : Math.max(0, Number(data.paidAmount) || 0);
+    const balanceRemaining = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
+    const paymentStatus: PurchasePaymentStatus =
+      balanceRemaining === 0 ? "pagado" : paidAmount > 0 ? "abono_parcial" : "pendiente";
+
+    const newInvoice: PurchaseInvoice = {
+      ...data,
+      id,
+      paidAmount,
+      balanceRemaining,
+      paymentStatus,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 1. Impacto en Kardex si tiene ítems físicos
+    if (data.items && data.items.length > 0) {
+      let updatedProducts = [...inventoryProducts];
+      const newKardexEntries: KardexEntry[] = [];
+
+      for (const item of data.items) {
+        if (!item.quantity || item.quantity <= 0) continue;
+        const targetWarehouse = inventoryWarehouses.find((w) => w.id === item.warehouseId) || inventoryWarehouses[0];
+        if (!targetWarehouse) continue;
+
+        const prodIndex = updatedProducts.findIndex(
+          (p) => p.id === item.productId || (item.sku && p.sku === item.sku) || p.name.toLowerCase() === item.name.toLowerCase()
+        );
+
+        if (prodIndex >= 0) {
+          const product = updatedProducts[prodIndex];
+          if (product.tracksStock) {
+            const currentStock = Number(product.stock) || 0;
+            const currentAvgCost = Number(product.baseCost) || 0;
+            const qty = Number(item.quantity) || 0;
+            const unitCost = Number(item.unitCost) || 0;
+
+            const kardex = buildKardexEntry({
+              product,
+              warehouse: targetWarehouse,
+              type: "PURCHASE_RECEIPT",
+              referenceId: id,
+              referenceDocNumber: data.documentNumber,
+              concept: `Entrada por compra Factura ${data.documentNumber} (${data.supplierName})`,
+              quantity: qty,
+              unitCost,
+              currentStock,
+              currentAvgCost,
+              userName: currentUser.displayName,
+            });
+
+            newKardexEntries.push(kardex);
+
+            const newStock = currentStock + qty;
+            const newAvg = calculateWeightedAverageCost(currentStock, currentAvgCost, qty, unitCost);
+            const whStock = (product.stockByWarehouse?.[targetWarehouse.id] || 0) + qty;
+
+            updatedProducts[prodIndex] = {
+              ...product,
+              stock: newStock,
+              baseCost: newAvg,
+              stockByWarehouse: {
+                ...(product.stockByWarehouse || {}),
+                [targetWarehouse.id]: whStock,
+              },
+            };
+          }
+        }
+      }
+
+      if (newKardexEntries.length > 0) {
+        setInventoryKardex((prev) => [...newKardexEntries, ...prev]);
+        setInventoryProducts(updatedProducts);
+        for (const k of newKardexEntries) {
+          await syncToFirestore("inventoryKardex", k.id, k);
+        }
+        for (const p of updatedProducts) {
+          await syncToFirestore("inventoryProducts", p.id, p);
+        }
+      }
+    }
+
+    // 2. Si fue pagada de contado, registrar egreso en movimientos financieros y descontar de banco
+    if (isContado && paidAmount > 0) {
+      const targetBank = bankAccounts.find((b) => b.id === data.bankAccountId) || bankAccounts[0];
+      if (targetBank) {
+        const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+        const movement: FinancialMovement = {
+          id: movId,
+          type: "egreso",
+          date: data.date,
+          amount: paidAmount,
+          category: "compra_proveedor",
+          description: `Pago contado Factura ${data.documentNumber} - ${data.supplierName}`,
+          bankAccountId: targetBank.id,
+          bankAccountName: targetBank.bankName,
+          paymentMethod: (data.paymentMethod as any) || "transferencia",
+          relatedEntityId: id,
+          createdAt: new Date().toISOString(),
+        };
+
+        setFinancialMovements((prev) => [movement, ...prev]);
+        await syncToFirestore("financialMovements", movId, movement);
+
+        const newBal = Math.round((targetBank.currentBalance - paidAmount) * 100) / 100;
+        setBankAccounts((prev) =>
+          prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBal } : b))
+        );
+        await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBal });
+      }
+    }
+
+    setPurchaseInvoices((prev) => [newInvoice, ...prev]);
+    await syncToFirestore("purchaseInvoices", id, newInvoice);
+    addAuditLog("CREATE_EXPENSE", "Compras", `Factura compra ${data.documentNumber} registrada ($ ${total} USD)`);
+    return newInvoice;
+  };
+
+  const updatePurchaseInvoice = async (id: string, updates: Partial<PurchaseInvoice>): Promise<void> => {
+    setPurchaseInvoices((prev) =>
+      prev.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv))
+    );
+    await syncToFirestore("purchaseInvoices", id, updates);
+  };
+
+  const addSupplierCreditNote = async (
+    note: Omit<SupplierCreditNote, "id" | "createdAt">
+  ): Promise<SupplierCreditNote> => {
+    const id = `sup-nc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newNote: SupplierCreditNote = {
+      ...note,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (note.purchaseInvoiceId) {
+      setPurchaseInvoices((prev) =>
+        prev.map((inv) => {
+          if (inv.id === note.purchaseInvoiceId) {
+            const newRem = Math.max(0, Math.round(((inv.balanceRemaining || 0) - note.total) * 100) / 100);
+            const updated = {
+              ...inv,
+              balanceRemaining: newRem,
+              paymentStatus: (newRem === 0 ? "pagado" : inv.paymentStatus) as PurchasePaymentStatus,
+            };
+            syncToFirestore("purchaseInvoices", inv.id, updated);
+            return updated;
+          }
+          return inv;
+        })
+      );
+    }
+
+    if (note.reason === "devolucion_mercaderia" && note.items && note.items.length > 0) {
+      let updatedProducts = [...inventoryProducts];
+      const newKardex: KardexEntry[] = [];
+
+      for (const item of note.items) {
+        const prodIndex = updatedProducts.findIndex((p) => p.id === item.productId);
+        const warehouse = inventoryWarehouses.find((w) => w.id === item.warehouseId) || inventoryWarehouses[0];
+        if (prodIndex >= 0 && warehouse) {
+          const product = updatedProducts[prodIndex];
+          if (product.tracksStock) {
+            const currentStock = Number(product.stock) || 0;
+            const qty = Number(item.quantity) || 0;
+            const kdx = buildKardexEntry({
+              product,
+              warehouse,
+              type: "SUPPLIER_RETURN",
+              referenceId: id,
+              referenceDocNumber: note.documentNumber,
+              concept: `Salida por devolución a proveedor (Nota Crédito ${note.documentNumber})`,
+              quantity: qty,
+              unitCost: item.unitCost || product.baseCost,
+              currentStock,
+              currentAvgCost: product.baseCost,
+              userName: currentUser.displayName,
+            });
+            newKardex.push(kdx);
+
+            const newStock = Math.max(0, currentStock - qty);
+            const whStock = Math.max(0, (product.stockByWarehouse?.[warehouse.id] || 0) - qty);
+            updatedProducts[prodIndex] = {
+              ...product,
+              stock: newStock,
+              stockByWarehouse: {
+                ...(product.stockByWarehouse || {}),
+                [warehouse.id]: whStock,
+              },
+            };
+          }
+        }
+      }
+
+      if (newKardex.length > 0) {
+        setInventoryKardex((prev) => [...newKardex, ...prev]);
+        setInventoryProducts(updatedProducts);
+        for (const k of newKardex) await syncToFirestore("inventoryKardex", k.id, k);
+        for (const p of updatedProducts) await syncToFirestore("inventoryProducts", p.id, p);
+      }
+    }
+
+    setSupplierCreditNotes((prev) => [newNote, ...prev]);
+    await syncToFirestore("supplierCreditNotes", id, newNote);
+    return newNote;
+  };
+
+  const addSupplierDebitNote = async (
+    note: Omit<SupplierDebitNote, "id" | "createdAt">
+  ): Promise<SupplierDebitNote> => {
+    const id = `sup-nd-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newNote: SupplierDebitNote = {
+      ...note,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (note.purchaseInvoiceId) {
+      setPurchaseInvoices((prev) =>
+        prev.map((inv) => {
+          if (inv.id === note.purchaseInvoiceId) {
+            const newRem = Math.round(((inv.balanceRemaining || 0) + note.total) * 100) / 100;
+            const updated = {
+              ...inv,
+              balanceRemaining: newRem,
+              paymentStatus: "pendiente" as PurchasePaymentStatus,
+            };
+            syncToFirestore("purchaseInvoices", inv.id, updated);
+            return updated;
+          }
+          return inv;
+        })
+      );
+    }
+
+    setSupplierDebitNotes((prev) => [newNote, ...prev]);
+    await syncToFirestore("supplierDebitNotes", id, newNote);
+    return newNote;
+  };
+
+  const addPurchaseWithholding = async (
+    ret: Omit<PurchaseWithholding, "id" | "createdAt">
+  ): Promise<PurchaseWithholding> => {
+    const id = `ret-pur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newRet: PurchaseWithholding = {
+      ...ret,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+    setPurchaseWithholdings((prev) => [newRet, ...prev]);
+    await syncToFirestore("purchaseWithholdings", id, newRet);
+    return newRet;
+  };
+
+  const addBankAccount = async (account: Omit<BankAccount, "id">): Promise<BankAccount> => {
+    const id = `bank-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+    const newAccount: BankAccount = { ...account, id };
+    setBankAccounts((prev) => [...prev, newAccount]);
+    await syncToFirestore("bankAccounts", id, newAccount);
+    return newAccount;
+  };
+
+  const updateBankAccount = async (id: string, updates: Partial<BankAccount>): Promise<void> => {
+    setBankAccounts((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
+    await syncToFirestore("bankAccounts", id, updates);
+  };
+
+  const addSupplierPayment = async (
+    payment: Omit<SupplierPaymentRecord, "id" | "createdAt">
+  ): Promise<SupplierPaymentRecord> => {
+    const id = `pay-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newPayment: SupplierPaymentRecord = {
+      ...payment,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    setPurchaseInvoices((prev) =>
+      prev.map((inv) => {
+        if (inv.id === payment.purchaseInvoiceId) {
+          const newPaid = Math.round(((inv.paidAmount || 0) + payment.amount) * 100) / 100;
+          const newRem = Math.max(0, Math.round((inv.total - newPaid) * 100) / 100);
+          const newStatus: PurchasePaymentStatus = newRem === 0 ? "pagado" : "abono_parcial";
+          const updated = {
+            ...inv,
+            paidAmount: newPaid,
+            balanceRemaining: newRem,
+            paymentStatus: newStatus,
+          };
+          syncToFirestore("purchaseInvoices", inv.id, updated);
+          return updated;
+        }
+        return inv;
+      })
+    );
+
+    const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+    const movement: FinancialMovement = {
+      id: movId,
+      type: "egreso",
+      date: payment.date,
+      amount: payment.amount,
+      category: "abono_cxp",
+      description: `Abono a Proveedor ${payment.supplierName} (Ref: ${payment.referenceNumber})`,
+      bankAccountId: payment.bankAccountId,
+      bankAccountName: payment.bankAccountName,
+      paymentMethod: payment.paymentMethod,
+      referenceNumber: payment.referenceNumber,
+      relatedEntityId: payment.purchaseInvoiceId,
+      createdAt: new Date().toISOString(),
+    };
+    setFinancialMovements((prev) => [movement, ...prev]);
+    await syncToFirestore("financialMovements", movId, movement);
+
+    setBankAccounts((prev) =>
+      prev.map((b) => {
+        if (b.id === payment.bankAccountId) {
+          const newBal = Math.round((b.currentBalance - payment.amount) * 100) / 100;
+          syncToFirestore("bankAccounts", b.id, { currentBalance: newBal });
+          return { ...b, currentBalance: newBal };
+        }
+        return b;
+      })
+    );
+
+    setSupplierPayments((prev) => [newPayment, ...prev]);
+    await syncToFirestore("supplierPayments", id, newPayment);
+    addAuditLog("CREATE_EXPENSE", "Cuentas por Pagar", `Abono ${payment.amount} a ${payment.supplierName}`);
+    return newPayment;
+  };
+
+  const addFinancialMovement = async (
+    movement: Omit<FinancialMovement, "id" | "createdAt">
+  ): Promise<FinancialMovement> => {
+    const id = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newMov: FinancialMovement = {
+      ...movement,
+      id,
+      createdAt: new Date().toISOString(),
+    };
+
+    setFinancialMovements((prev) => [newMov, ...prev]);
+    await syncToFirestore("financialMovements", id, newMov);
+
+    if (movement.bankAccountId) {
+      setBankAccounts((prev) =>
+        prev.map((b) => {
+          if (b.id === movement.bankAccountId) {
+            const delta = movement.type === "ingreso" ? movement.amount : -movement.amount;
+            const newBal = Math.round((b.currentBalance + delta) * 100) / 100;
+            syncToFirestore("bankAccounts", b.id, { currentBalance: newBal });
+            return { ...b, currentBalance: newBal };
+          }
+          return b;
+        })
+      );
+    }
+
+    return newMov;
+  };
+
+  const updateUserModulePermissions = async (
+    uid: string,
+    permissions: UserModulePermissions
+  ): Promise<void> => {
+    setSystemUsers((prev) =>
+      prev.map((u) => {
+        if (u.uid === uid) {
+          const updated = { ...u, modulePermissions: permissions };
+          syncToFirestore("systemUsers", u.uid, updated);
+          return updated;
+        }
+        return u;
+      })
+    );
+    if (currentUser.uid === uid) {
+      setCurrentUser((prev) => ({ ...prev, modulePermissions: permissions }));
+    }
+    addAuditLog("UPDATE_USER", "Usuarios", `Permisos de módulos actualizados para usuario ${uid}`);
+  };
+
   const resetDataToDefaults = async () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(USERS_KEY);
@@ -2337,6 +2842,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBillingWithholdings(INITIAL_WITHHOLDINGS);
     setBillingRemissionGuides(INITIAL_REMISSION_GUIDES);
     setSriCompanyConfig(INITIAL_SRI_CONFIG);
+    setSuppliers(INITIAL_SUPPLIERS);
+    setPurchaseInvoices(INITIAL_PURCHASE_INVOICES);
+    setSupplierCreditNotes(INITIAL_SUPPLIER_CREDIT_NOTES);
+    setSupplierDebitNotes(INITIAL_SUPPLIER_DEBIT_NOTES);
+    setPurchaseWithholdings(INITIAL_PURCHASE_WITHHOLDINGS);
+    setBankAccounts(INITIAL_BANK_ACCOUNTS);
+    setFinancialMovements(INITIAL_FINANCIAL_MOVEMENTS);
+    setSupplierPayments(INITIAL_SUPPLIER_PAYMENTS);
   };
 
   const hasAccess = canAccessRoute(currentUser, pathname);
@@ -2447,6 +2960,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createWithholding,
           createRemissionGuide,
           updateSriConfig,
+          // Compras & Proveedores & Finanzas Bancarias
+          suppliers,
+          purchaseInvoices,
+          supplierCreditNotes,
+          supplierDebitNotes,
+          purchaseWithholdings,
+          bankAccounts,
+          financialMovements,
+          supplierPayments,
+          addSupplier,
+          updateSupplier,
+          deleteSupplier,
+          addPurchaseInvoice,
+          updatePurchaseInvoice,
+          addSupplierCreditNote,
+          addSupplierDebitNote,
+          addPurchaseWithholding,
+          addBankAccount,
+          updateBankAccount,
+          addSupplierPayment,
+          addFinancialMovement,
+          updateUserModulePermissions,
           searchQuery,
           setSearchQuery,
           isSearchOpen,
