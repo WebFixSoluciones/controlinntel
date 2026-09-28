@@ -26,8 +26,6 @@ import {
   CheckSquare,
   MessageSquare,
   DollarSign,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
@@ -108,23 +106,6 @@ export function ProjectsManager() {
       return true;
     });
   }, [clientProjects, activeFlow, searchQuery, typeFilter, priorityFilter, assigneeFilter]);
-
-  // Executive KPIs calculations
-  const totalPlannedBudget = useMemo(() => {
-    return clientProjects.reduce((acc, t) => acc + (t.estimatedBudget || 0), 0);
-  }, [clientProjects]);
-
-  const totalExecutedCost = useMemo(() => {
-    return clientProjects.reduce((acc, t) => acc + (t.executedCost || 0), 0);
-  }, [clientProjects]);
-
-  const remainingBalance = totalPlannedBudget - totalExecutedCost;
-  const isBudgetDeficit = remainingBalance < 0;
-
-  const totalTasksCount = clientProjects.length;
-  const completedTasksCount = clientProjects.filter(
-    (t) => t.column === "completado" || t.column === "finalizado"
-  ).length;
 
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -211,108 +192,17 @@ export function ProjectsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Action Toolbar without redundant description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#434655]">Total Obras & Tareas:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-            {filteredTasks.length}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => handleOpenCreateModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Proyecto / Tarea</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Executive KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Presupuesto Total */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-lumina-card flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Presupuesto Planificado
-            </span>
-            <div className="text-xl font-extrabold text-slate-900 tracking-tight">
-              ${totalPlannedBudget.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <span className="text-[10px] text-slate-400">Total asignado en obras activas</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
-            <DollarSign className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* KPI 2: Costo Ejecutado */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-lumina-card flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Costo Real Ejecutado
-            </span>
-            <div className="text-xl font-extrabold text-slate-900 tracking-tight">
-              ${totalExecutedCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <span className="text-[10px] text-slate-400">Gastos devengados en cuadrillas</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </div>
-
-        {/* KPI 3: Margen Restante */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-lumina-card flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Balance / Margen Restante
-            </span>
-            <div className={`text-xl font-extrabold tracking-tight ${isBudgetDeficit ? "text-rose-600" : "text-emerald-700"}`}>
-              ${remainingBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <span className={`text-[10px] font-bold ${isBudgetDeficit ? "text-rose-500" : "text-emerald-600"}`}>
-              {isBudgetDeficit ? "Sobrecosto en ejecución" : "Superávit financiero"}
-            </span>
-          </div>
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isBudgetDeficit ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"}`}>
-            {isBudgetDeficit ? <TrendingDown className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" />}
-          </div>
-        </div>
-
-        {/* KPI 4: Obras Completadas */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-lumina-card flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Obras Totales / Entregadas
-            </span>
-            <div className="text-xl font-extrabold text-slate-900 tracking-tight">
-              {completedTasksCount} / {totalTasksCount}
-            </div>
-            <span className="text-[10px] text-slate-400">
-              {totalTasksCount > 0 ? `${Math.round((completedTasksCount / totalTasksCount) * 100)}% de entrega global` : "Sin obras registradas"}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Filter & Flow Selector Toolbar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-lumina-card space-y-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Filter, Flow Selector and Action Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5 select-none">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Flow Segmented Control */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/60">
+          <div className="flex items-center p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0]">
             <button
               onClick={() => setActiveFlow("isp_tecnico")}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeFlow === "isp_tecnico"
-                  ? "bg-white text-[#004ac6] shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#004ac6] shadow-xs"
+                  : "text-[#434655] hover:text-[#0b1c30]"
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -323,8 +213,8 @@ export function ProjectsManager() {
               onClick={() => setActiveFlow("general")}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeFlow === "general"
-                  ? "bg-white text-[#004ac6] shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-white text-[#004ac6] shadow-xs"
+                  : "text-[#434655] hover:text-[#0b1c30]"
               }`}
             >
               <Kanban className="w-3.5 h-3.5" />
@@ -332,23 +222,31 @@ export function ProjectsManager() {
             </button>
           </div>
 
-          {/* Quick Counter */}
-          <span className="text-xs font-bold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-            Mostrando {filteredTasks.length} proyectos en este flujo
-          </span>
-        </div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-medium text-[#737686] hidden md:inline">
+              Mostrando {filteredTasks.length} proyectos en este flujo
+            </span>
 
+            <button
+              onClick={() => handleOpenCreateModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Proyecto / Tarea</span>
+            </button>
+          </div>
+        </div>
         {/* Filter Inputs Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
           {/* Search Box */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+            <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar por título, cliente, nodo..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs pl-8 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
             />
           </div>
 
@@ -356,7 +254,7 @@ export function ProjectsManager() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value as any)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Tipos</option>
             <option value="cliente">Solo Clientes / Abonados</option>
@@ -367,7 +265,7 @@ export function ProjectsManager() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todas">Todas las Prioridades</option>
             <option value="urgente">Urgente</option>
@@ -380,7 +278,7 @@ export function ProjectsManager() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Responsables</option>
             {distinctAssignees.map((a) => (
