@@ -84,24 +84,19 @@ export function PurchasesManager() {
 
   return (
     <div className="space-y-6 select-none">
-      {/* Submodule Clean Header matching Reference */}
+      {/* Submodule Action Bar without redundant description */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-            {currentInfo.title}
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-              {currentInfo.count}
-            </span>
-          </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            {currentInfo.description}
-          </p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Total Registros:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {currentInfo.count}
+          </span>
         </div>
 
         {canRegistrar && (
           <button
             onClick={() => setIsRegisterModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#0b1c30] hover:bg-[#1e293b] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Registrar Compra</span>

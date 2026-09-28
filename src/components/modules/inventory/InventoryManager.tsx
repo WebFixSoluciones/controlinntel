@@ -288,54 +288,112 @@ export function InventoryManager() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <span>ERP INNTEL</span>
-            <span>/</span>
-            <span className="font-semibold text-slate-800">Control de Inventarios</span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-6 h-6 text-[#004ac6]" />
-            Inventarios, Bodegas & Kardex Valorado
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Gestión de equipos de fibra óptica, terminales ONT, insumos de red y costeo promedio ponderado
-          </p>
+      {/* Action Toolbar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Total Registros:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {activeTab === "productos" && inventoryProducts.filter((p) => p.tracksStock).length}
+            {activeTab === "servicios" && inventoryProducts.filter((p) => p.type === "servicio").length}
+            {activeTab === "bodegas" && inventoryWarehouses.length}
+            {activeTab === "kardex" && inventoryKardex.length}
+            {activeTab === "transferencias" && inventoryTransfers.length}
+            {activeTab === "ajustes" && inventoryAdjustments.length}
+            {activeTab === "clasificacion" && (inventoryCategories.length + inventoryBrands.length)}
+          </span>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleExportCsv}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            Exportar CSV
+            <span>Exportar CSV</span>
           </button>
 
-          <button
-            onClick={() => {
-              setTransferDefaultProduct(undefined);
-              setIsTransferModalOpen(true);
-            }}
-            className="px-3.5 py-2 rounded-xl border border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-[#004ac6] text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all"
-          >
-            <ArrowRightLeft className="w-3.5 h-3.5" />
-            Trasladar Stock
-          </button>
+          {activeTab !== "bodegas" && activeTab !== "clasificacion" && (
+            <button
+              onClick={() => {
+                setTransferDefaultProduct(undefined);
+                setIsTransferModalOpen(true);
+              }}
+              className="px-3.5 py-2 rounded-xl border border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-[#004ac6] text-xs font-bold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+              <span>Trasladar Stock</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => {
-              setProductToEdit(null);
-              setProductModalDefaultType("producto");
-              setIsProductModalOpen(true);
-            }}
-            className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Nuevo Producto
-          </button>
+          {activeTab === "bodegas" ? (
+            <button
+              onClick={() => {
+                setWarehouseToEdit(null);
+                setIsWarehouseModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Bodega</span>
+            </button>
+          ) : activeTab === "servicios" ? (
+            <button
+              onClick={() => {
+                setProductToEdit(null);
+                setProductModalDefaultType("servicio");
+                setIsProductModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Servicio</span>
+            </button>
+          ) : activeTab === "transferencias" ? (
+            <button
+              onClick={() => {
+                setTransferDefaultProduct(undefined);
+                setIsTransferModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Transferencia</span>
+            </button>
+          ) : activeTab === "ajustes" ? (
+            <button
+              onClick={() => {
+                setAdjustmentDefaultProduct(undefined);
+                setIsAdjustmentModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Ajuste</span>
+            </button>
+          ) : activeTab === "clasificacion" ? (
+            <button
+              onClick={() => {
+                setCatBrandMode("categoria");
+                setIsCatBrandOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Categoría / Marca</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setProductToEdit(null);
+                setProductModalDefaultType("producto");
+                setIsProductModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Producto</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -398,27 +456,6 @@ export function InventoryManager() {
           <div className="text-lg font-black text-slate-900">{kpis.activeWarehouses}</div>
           <div className="text-[10px] text-slate-500 mt-1">Almacenes activos</div>
         </div>
-      </div>
-
-      {/* Submodule View Title (No Tabs on Screen) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-        <h2 className="text-xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-          {activeTab === "productos" && "Catálogo de Productos Físicos"}
-          {activeTab === "servicios" && "Servicios Técnicos"}
-          {activeTab === "bodegas" && "Bodegas & Almacenes"}
-          {activeTab === "kardex" && "Kardex Valorado"}
-          {activeTab === "transferencias" && "Transferencias Internas"}
-          {activeTab === "ajustes" && "Ajustes de Stock"}
-          {activeTab === "clasificacion" && "Categorías & Marcas"}
-          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-            {activeTab === "productos" && inventoryProducts.filter((p) => p.tracksStock).length}
-            {activeTab === "servicios" && inventoryProducts.filter((p) => p.type === "servicio").length}
-            {activeTab === "bodegas" && inventoryWarehouses.length}
-            {activeTab === "kardex" && inventoryKardex.length}
-            {activeTab === "transferencias" && inventoryTransfers.length}
-            {activeTab === "ajustes" && inventoryAdjustments.length}
-          </span>
-        </h2>
       </div>
 
       {/* Search & Filters Bar */}

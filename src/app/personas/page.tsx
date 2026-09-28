@@ -49,22 +49,7 @@ function PersonasContent() {
 
   return (
     <div className="space-y-6">
-      {/* Clean Header: Title & Count Badge (No Tabs on Screen) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-            {activeTab === "proveedores" ? "Directorio de Proveedores" : "Usuarios del Sistema & Permisos"}
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-              {activeTab === "proveedores" ? suppliers.length : systemUsers.length}
-            </span>
-          </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            {activeTab === "proveedores"
-              ? "Registro de carriers, proveedores de fibra, hardware e infraestructura de telecomunicaciones"
-              : "Administración del equipo de colaboradores, asignación de roles y control de acceso RBAC"}
-          </p>
-        </div>
-      </div>
+
 
       {/* Submodule View Content */}
       <div className="w-full">

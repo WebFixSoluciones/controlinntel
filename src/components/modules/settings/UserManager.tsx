@@ -152,18 +152,18 @@ export function UserManager() {
 
   return (
     <div className="w-full space-y-6 select-none">
-      {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <Crown className="w-6 h-6 text-amber-500" />
-            Configuración del Sistema: Control de Usuarios & Permisos RBAC
-          </h2>
+      {/* Action Toolbar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Total Operadores:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {totalUsers}
+          </span>
         </div>
 
         <button
           onClick={handleOpenNew}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Nuevo Usuario / Operador</span>

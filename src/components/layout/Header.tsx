@@ -1,50 +1,130 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { UserRole } from "@/types";
-import { Search, Bell, HelpCircle, Shield, RotateCcw, LogOut } from "lucide-react";
+import { Search, Bell, HelpCircle, RotateCcw } from "lucide-react";
 
-export function Header() {
-  const { currentUser, setUserRole, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout } = useApp();
+function getPageTitle(pathname: string, subParam: string | null): string {
+  if (pathname === "/") return "Dashboard";
+  if (pathname === "/abonados" || pathname === "/clientes") return "Abonados";
+
+  if (pathname === "/compras") {
+    switch (subParam) {
+      case "registrar_compra":
+        return "Registrar Compra";
+      case "notas_credito":
+        return "Notas de Crédito Recibidas";
+      case "notas_debito":
+        return "Notas de Débito Recibidas";
+      case "retenciones":
+        return "Retenciones de Compras";
+      default:
+        return "Historial de Compras";
+    }
+  }
+
+  if (pathname === "/facturacion") {
+    switch (subParam) {
+      case "nueva_venta":
+        return "Registrar Factura";
+      case "cotizaciones":
+        return "Cotizaciones";
+      case "notas_credito":
+        return "Notas de Crédito";
+      case "retenciones":
+        return "Retenciones de Venta";
+      case "guias_remision":
+        return "Guías de Remisión";
+      case "configuracion_sri":
+        return "Configuración SRI";
+      default:
+        return "Facturas Emitidas";
+    }
+  }
+
+  if (pathname === "/finanzas") {
+    switch (subParam) {
+      case "bancos":
+        return "Bancos & Cajas";
+      case "cuentas_por_cobrar":
+        return "Cuentas por Cobrar";
+      case "cuentas_por_pagar":
+        return "Cuentas por Pagar";
+      case "reportes":
+        return "Reportes Financieros";
+      default:
+        return "Movimientos de Tesorería";
+    }
+  }
+
+  if (pathname === "/inventarios") {
+    switch (subParam) {
+      case "bodegas":
+        return "Bodegas & Almacenes";
+      case "kardex":
+        return "Kardex Valorado";
+      case "transferencias":
+        return "Transferencias Internas";
+      case "ajustes":
+        return "Ajustes de Inventario";
+      default:
+        return "Productos & Materiales";
+    }
+  }
+
+  if (pathname === "/personas") {
+    switch (subParam) {
+      case "usuarios_equipo":
+        return "Usuarios / Equipo";
+      default:
+        return "Proveedores";
+    }
+  }
+
+  if (pathname === "/proyectos") return "Proyectos";
+  if (pathname === "/tickets") return "Soporte";
+  if (pathname === "/arcotel") return "ARCOTEL";
+  if (pathname === "/boveda") return "Credenciales";
+  if (pathname === "/plantillas") return "Plantillas";
+  if (pathname === "/configuracion") return "Configuración";
+
+  return "INNTEL CORP";
+}
+
+function HeaderContent() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get("sub");
+  const pageTitle = getPageTitle(pathname, subParam);
+
+  const { currentUser, policies, tickets, setIsSearchOpen, resetDataToDefaults } = useApp();
   const { showConfirm, showInfo, showSuccess } = useToast();
 
   const urgentCount = policies.filter((p) => p.status === "por_vencer").length;
   const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
 
-  const handleLogout = () => {
-    showConfirm(
-      "¿Cerrar Sesión?",
-      `¿Deseas cerrar la sesión activa de ${currentUser.displayName}?`,
-      () => {
-        logout();
-        showInfo("Sesión Cerrada", "Has salido del sistema.");
-      },
-      "Cerrar Sesión"
-    );
-  };
-
   return (
     <header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between sticky top-0 z-30 select-none">
-      {/* Search Bar Trigger matching Mockups */}
-      <div className="flex items-center gap-4 flex-1 max-w-xl">
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="w-full flex items-center justify-between px-3.5 py-2 rounded-lg bg-white hover:bg-[#f8f9ff] border border-[#cbd5e1] text-[#737686] text-xs transition-all group cursor-pointer shadow-2xs"
-        >
-          <div className="flex items-center gap-2.5">
-            <Search className="w-4 h-4 text-[#737686] group-hover:text-[#004ac6] transition-colors" />
-            <span className="text-[#737686]">Buscar clientes, tickets, facturas...</span>
-          </div>
-          <kbd className="px-2 py-0.5 text-[10px] font-mono font-semibold bg-[#f1f5f9] rounded border border-[#e2e8f0] text-[#737686]">
-            Ctrl + K
-          </kbd>
-        </button>
+      {/* Minimalist Top Module / Submodule Title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <h1 className="text-base font-bold text-[#0b1c30] tracking-tight truncate">
+          {pageTitle}
+        </h1>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {/* Search Icon Button (directly to the left of Notifications) */}
+        <button
+          onClick={() => setIsSearchOpen(true)}
+          className="p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all cursor-pointer"
+          title="Buscar en todo el sistema (Ctrl + K)"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
         {/* Notifications Bell */}
         <div className="relative">
           <button
@@ -99,10 +179,18 @@ export function Header() {
           </div>
           <div className="hidden sm:block text-left">
             <p className="text-xs font-bold text-[#0b1c30] leading-tight truncate">{currentUser.displayName}</p>
-            <p className="text-[10px] text-[#737686] leading-none">{currentUser.role === "admin" ? "Admin" : currentUser.role}</p>
+            <p className="text-[10px] text-[#737686] leading-none capitalize">{currentUser.role}</p>
           </div>
         </div>
       </div>
     </header>
+  );
+}
+
+export function Header() {
+  return (
+    <Suspense fallback={<header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between" />}>
+      <HeaderContent />
+    </Suspense>
   );
 }

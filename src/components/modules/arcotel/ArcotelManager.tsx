@@ -313,23 +313,19 @@ export function ArcotelManager() {
 
   return (
     <div className="w-full space-y-6 select-none">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#004ac6] to-slate-800 flex items-center justify-center text-white shadow-xs">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
-              Regulación & Cumplimiento ARCOTEL
-            </h1>
-          </div>
+      {/* Action Toolbar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Archivos Regulatorios:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {arcotelFiles.length}
+          </span>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => handleOpenUploadModal("sietel_lopam")}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Upload className="w-4 h-4" />
             <span>Subir Archivo Regulatorio</span>

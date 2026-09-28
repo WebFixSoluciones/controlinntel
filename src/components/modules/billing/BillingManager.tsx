@@ -240,59 +240,30 @@ export function BillingManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header Ejecutivo */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-lumina-card">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#004ac6] to-sky-600 flex items-center justify-center text-white shadow-md">
-            <Receipt className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
-                Facturación & Emisión Electrónica SRI
-              </h1>
-              <span
-                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                  sriCompanyConfig.ambiente === "2"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                    : "bg-amber-50 text-amber-700 border-amber-300"
-                }`}
-              >
-                {sriCompanyConfig.ambiente === "2" ? "SRI PRODUCCIÓN" : "SRI PRUEBAS"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Emisor: {sriCompanyConfig.razonSocial} | RUC: {sriCompanyConfig.ruc} | IVA Vigente: 15%
-            </p>
-          </div>
+      {/* Submodule Action Bar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+              sriCompanyConfig.ambiente === "2"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                : "bg-amber-50 text-amber-700 border-amber-300"
+            }`}
+          >
+            {sriCompanyConfig.ambiente === "2" ? "SRI PRODUCCIÓN" : "SRI PRUEBAS"}
+          </span>
+          <span className="text-xs font-medium text-slate-500 hidden sm:inline">
+            {sriCompanyConfig.razonSocial} (RUC: {sriCompanyConfig.ruc})
+          </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setIsSriConfigOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
           >
-            <Settings className="w-4 h-4 text-slate-500" />
+            <Settings className="w-3.5 h-3.5 text-slate-500" />
             <span>Config. SRI</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setQuoteToEdit(null);
-              setIsQuoteModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold border border-amber-200 transition"
-          >
-            <FileText className="w-4 h-4 text-amber-600" />
-            <span>Nueva Cotización</span>
-          </button>
-
-          <button
-            onClick={() => setIsNewSaleOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-md transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nueva Venta / Factura</span>
           </button>
         </div>
       </div>
@@ -377,25 +348,6 @@ export function BillingManager() {
             {billingCreditNotes.length} comprobantes
           </span>
         </div>
-      </div>
-
-      {/* Submodule View Title (No Tabs on Screen) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-        <h2 className="text-xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-          {activeTab === "facturas" && "Facturas Emitidas"}
-          {activeTab === "cotizaciones" && "Cotizaciones / Proformas"}
-          {activeTab === "notas_credito" && "Notas de Crédito"}
-          {activeTab === "retenciones" && "Comprobantes de Retención"}
-          {activeTab === "guias_remision" && "Guías de Remisión"}
-          {activeTab === "configuracion_sri" && "Configuración del Emisor SRI"}
-          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-            {activeTab === "facturas" && billingInvoices.length}
-            {activeTab === "cotizaciones" && billingQuotes.length}
-            {activeTab === "notas_credito" && billingCreditNotes.length}
-            {activeTab === "retenciones" && billingWithholdings.length}
-            {activeTab === "guias_remision" && billingRemissionGuides.length}
-          </span>
-        </h2>
       </div>
 
       {/* Barra de Filtros (para tablas) */}

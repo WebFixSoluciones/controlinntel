@@ -38,12 +38,13 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
   return (
     <div className="w-full space-y-6 select-none">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <TicketIcon className="w-6 h-6 text-[#004ac6]" />
-            Mesa de Ayuda Técnica NOC & Soporte
-          </h1>
+      {/* Action Toolbar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Total Incidencias:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {filtered.length}
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -54,14 +55,14 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
               placeholder="Buscar por cliente o ticket..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-lg border border-[#cbd5e1] pl-9 pr-3 py-2 text-xs bg-white text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
+              className="w-full rounded-xl border border-[#cbd5e1] pl-9 pr-3 py-2 text-xs bg-white text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
             />
           </div>
 
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-white text-xs font-semibold text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+            className="bg-white text-xs font-semibold text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
           >
             <option value="todos">Todos los Estados</option>
             <option value="abierto">Abiertos</option>
@@ -72,7 +73,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
           <button
             onClick={onOpenNewModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Crear Ticket</span>

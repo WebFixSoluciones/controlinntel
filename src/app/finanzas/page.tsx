@@ -103,22 +103,15 @@ function FinanzasContent() {
 
   return (
     <div className="space-y-6">
-      {/* Submodule Header matching Reference (No Tabs on Screen) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-            {currentMeta.title}
-            {currentMeta.badge !== null && (
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
-                {currentMeta.badge} pendientes
-              </span>
-            )}
-          </h1>
-          <p className="text-xs text-[#737686] mt-0.5">
-            {currentMeta.description}
-          </p>
+      {/* Status Bar without redundant description */}
+      {currentMeta.badge !== null && currentMeta.badge > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Comprobantes Pendientes:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
+            {currentMeta.badge}
+          </span>
         </div>
-      </div>
+      )}
 
       {/* Submodule View Content */}
       <div className="w-full">

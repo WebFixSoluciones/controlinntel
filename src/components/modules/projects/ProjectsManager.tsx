@@ -211,26 +211,19 @@ export function ProjectsManager() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Executive Header */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-lumina-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center shrink-0 shadow-2xs">
-            <Kanban className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-              Gestión de Proyectos & Control de Obras
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Tablero Trello para despliegue de última milla FTTH, obras de ingeniería y ampliación de red troncal.
-            </p>
-          </div>
+      {/* Action Toolbar without redundant description */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 select-none">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-[#434655]">Total Obras & Tareas:</span>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+            {filteredTasks.length}
+          </span>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => handleOpenCreateModal()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Proyecto / Tarea</span>

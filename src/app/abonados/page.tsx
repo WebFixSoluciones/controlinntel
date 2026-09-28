@@ -50,36 +50,27 @@ export default function AbonadosPage() {
             </div>
           ) : (
             <>
-              {/* Header Bar */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-                    <Users className="w-7 h-7 text-[#004ac6]" />
-                    Módulo de Abonados
-                  </h1>
-                  <p className="text-xs text-[#737686] mt-0.5">
-                    Gestión integral de suscriptores, servicios de conectividad FTTH/Radio y ficha técnica 360°
-                  </p>
+              {/* Action Toolbar without redundant title or description */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#434655]">Total Abonados:</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                    {clients.length}
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="px-3.5 py-1.5 bg-white rounded-xl border border-[#e2e8f0] text-xs font-semibold text-[#434655] shadow-2xs">
-                    Total: <strong className="text-[#004ac6]">{clients.length}</strong> abonados
-                  </div>
-
-                  {!selectedClient && (
-                    <button
-                      onClick={() => {
-                        setClientToEdit(null);
-                        setIsNewModalOpen(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Nuevo Abonado</span>
-                    </button>
-                  )}
-                </div>
+                {!selectedClient && (
+                  <button
+                    onClick={() => {
+                      setClientToEdit(null);
+                      setIsNewModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Nuevo Abonado</span>
+                  </button>
+                )}
               </div>
 
               {/* Main Content */}
