@@ -252,7 +252,32 @@ export interface IpPool {
 }
 
 export type TicketPriority = "baja" | "media" | "alta" | "critica";
-export type TicketStatus = "abierto" | "en_progreso" | "resuelto" | "cerrado";
+export type TicketStatus =
+  | "abierto"
+  | "en_progreso"
+  | "respondido"
+  | "en_espera"
+  | "respuesta_cliente"
+  | "resuelto"
+  | "cerrado";
+
+export type TicketDepartment =
+  | "soporte_tecnico"
+  | "facturacion"
+  | "noc_redes"
+  | "ventas";
+
+export interface TicketMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole?: "cliente" | "staff" | "admin" | "tecnico";
+  body: string;
+  createdAt: string;
+  isInternal?: boolean; // WHMCS: Nota interna privada vs respuesta al cliente
+  attachmentName?: string;
+  attachmentUrl?: string;
+}
 
 export interface Ticket {
   id: string;
@@ -260,6 +285,12 @@ export interface Ticket {
   messages?: TicketMessage[];
   clientId: string;
   clientName: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  clientAddress?: string;
+  serviceId?: string;
+  serviceName?: string;
+  department?: TicketDepartment;
   title: string;
   description: string;
   category: "corte_fibra" | "atenuacion_alta" | "configuracion_ip" | "facturacion" | "otro";
@@ -268,17 +299,12 @@ export interface Ticket {
   assignedToId?: string;
   assignedToName?: string;
   createdAt: string;
+  updatedAt?: string;
+  lastReplyAt?: string;
+  lastReplier?: string;
   resolvedAt?: string;
   resolutionNotes?: string;
   nodeName?: string;
-}
-
-export interface TicketMessage {
-  id: string;
-  authorId: string;
-  authorName: string;
-  body: string;
-  createdAt: string;
 }
 
 export interface Expense {

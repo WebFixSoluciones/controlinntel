@@ -12,6 +12,8 @@ import {
   ArcotelPolicy,
   VaultCredential,
   Ticket,
+  TicketStatus,
+  TicketMessage,
   Expense,
   MonthlyCharge,
   AuditLog,
@@ -201,7 +203,8 @@ interface AppContextType {
 
   addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => Promise<void>;
   updateTicketStatus: (id: string, status: Ticket["status"], notes?: string) => Promise<void>;
-  replyToTicket: (id: string, body: string) => Promise<void>;
+  updateTicketDetails: (id: string, updates: Partial<Ticket>) => Promise<void>;
+  replyToTicket: (id: string, body: string, isInternal?: boolean, newStatus?: TicketStatus) => Promise<void>;
 
   addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
   generateMonthlyBillingBatch: (month: number, year: number) => Promise<void>;
@@ -1477,22 +1480,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTickets((prev) => [newTicket, ...prev]);
   };
 
-  const replyToTicket = async (id: string, body: string) => {
-    if (!auth.currentUser || !can(currentUser, "manage_tickets")) throw new Error("No tienes permiso para responder tickets.");
+  const replyToTicket = async (
+    id: string,
+    body: string,
+    isInternal: boolean = false,
+    newStatus?: TicketStatus
+  ) => {
+    if (!auth.currentUser || !can(currentUser, "manage_tickets")) {
+      throw new Error("No tienes permiso para responder tickets.");
+    }
     const text = body.trim();
-    if (!text || text.length > 5000) throw new Error("La respuesta debe tener entre 1 y 5000 caracteres.");
-    if (!tickets.some(t => t.id === id)) throw new Error("Ticket no encontrado.");
-    const message = { id: crypto.randomUUID(), body: text, authorId: auth.currentUser.uid, authorName: currentUser.displayName, createdAt: new Date().toISOString() };
-    await updateDoc(doc(db, "tickets", id), { messages: arrayUnion(message) });
-    setTickets(prev => prev.map(t => t.id === id
-      ? { ...t, messages: [...(t.messages || []).filter(m => m.id !== message.id), message] } : t));
+    if (!text || text.length > 5000) {
+      throw new Error("La respuesta debe tener entre 1 y 5000 caracteres.");
+    }
+    if (!tickets.some((t) => t.id === id)) {
+      throw new Error("Ticket no encontrado.");
+    }
+
+    const message: TicketMessage = {
+      id: crypto.randomUUID(),
+      body: text,
+      authorId: auth.currentUser.uid,
+      authorName: currentUser.displayName,
+      authorRole:
+        currentUser.role === "admin" || currentUser.role === "superadmin"
+          ? "admin"
+          : currentUser.role === "tecnico"
+          ? "tecnico"
+          : "staff",
+      createdAt: new Date().toISOString(),
+      isInternal: !!isInternal,
+    };
+
+    const targetTicket = tickets.find((t) => t.id === id);
+    const updatedStatus =
+      newStatus || (isInternal ? targetTicket?.status || "en_progreso" : "respondido");
+
+    const updates: Partial<Ticket> = {
+      status: updatedStatus,
+      updatedAt: new Date().toISOString(),
+      lastReplyAt: new Date().toISOString(),
+      lastReplier: currentUser.displayName,
+    };
+
+    if (updatedStatus === "resuelto" || updatedStatus === "cerrado") {
+      updates.resolvedAt = new Date().toISOString();
+    }
+
+    try {
+      await updateDoc(doc(db, "tickets", id), {
+        messages: arrayUnion(message),
+        ...updates,
+      });
+    } catch (e) {
+      console.warn("Firestore replyToTicket sync note:", e);
+    }
+
+    setTickets((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...updates,
+              messages: [...(t.messages || []).filter((m) => m.id !== message.id), message],
+            }
+          : t
+      )
+    );
+  };
+
+  const updateTicketDetails = async (id: string, updates: Partial<Ticket>) => {
+    const cleanUpdates: Partial<Ticket> = {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    if (updates.status === "resuelto" || updates.status === "cerrado") {
+      cleanUpdates.resolvedAt = new Date().toISOString();
+    }
+    await syncToFirestore("tickets", id, cleanUpdates);
+    setTickets((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...cleanUpdates } : t))
+    );
   };
 
   const updateTicketStatus = async (id: string, status: Ticket["status"], notes?: string) => {
     const updated = {
       status,
-      resolvedAt: status === "resuelto" ? new Date().toISOString() : undefined,
+      resolvedAt: status === "resuelto" || status === "cerrado" ? new Date().toISOString() : undefined,
       resolutionNotes: notes,
+      updatedAt: new Date().toISOString(),
     };
     await syncToFirestore("tickets", id, updated);
     setTickets((prev) =>
@@ -2921,6 +2997,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deleteClientDocument,
           addTicket,
           updateTicketStatus,
+          updateTicketDetails,
           replyToTicket,
           addExpense,
           generateMonthlyBillingBatch,
