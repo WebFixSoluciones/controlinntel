@@ -6,7 +6,6 @@ import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
 import {
   Search,
-  Plus,
   SlidersHorizontal,
   CheckCircle2,
   XCircle,
@@ -102,24 +101,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
-      {/* Page Header matching Screenshot 3 */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
-            Gestión de Abonados & Ficha 360°
-          </h1>
-        </div>
-
-        <button
-          onClick={onOpenNewModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nuevo Cliente</span>
-        </button>
-      </div>
-
+    <div className="w-full select-none">
       {/* Main Container Card */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         {/* Search & Filter Toolbar */}

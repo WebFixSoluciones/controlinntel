@@ -28,7 +28,6 @@ import {
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/abonados", label: "Abonados", icon: Users },
-  { href: "/personas", label: "Personas", icon: Contact2 },
   { href: "/facturacion", label: "Facturación SRI", icon: Receipt },
   { href: "/compras", label: "Compras", icon: ShoppingBag },
   { href: "/inventarios", label: "Inventarios", icon: Boxes },
@@ -38,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
+  { href: "/personas", label: "Personas", icon: Contact2 },
   { href: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
