@@ -5,11 +5,8 @@ import { useApp } from "@/lib/state";
 import {
   Search,
   Filter,
-  FileText,
   Plus,
   Eye,
-  CheckCircle,
-  Clock,
   AlertTriangle,
   Building2,
   Calendar,
@@ -31,7 +28,7 @@ export function PurchaseHistoryTab({
   onOpenWithholdingForInvoice,
   onOpenCreditNoteForInvoice,
 }: PurchaseHistoryTabProps) {
-  const { purchaseInvoices, suppliers, inventoryWarehouses } = useApp();
+  const { purchaseInvoices, suppliers } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("todos");
@@ -56,79 +53,9 @@ export function PurchaseHistoryTab({
     return matchSearch && matchSupplier && matchStatus;
   });
 
-  // KPI Calculations
-  const totalPurchases = purchaseInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-  const totalPaid = purchaseInvoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
-  const totalPending = purchaseInvoices.reduce((sum, inv) => sum + (inv.balanceRemaining || 0), 0);
-  const totalCount = purchaseInvoices.length;
-
   return (
     <div className="space-y-6 select-none">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Total Compras Acumulado</span>
-            <div className="p-2 bg-[#eff4ff] text-[#004ac6] rounded-xl">
-              <FileText className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#0b1c30]">
-            ${totalPurchases.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#737686]">
-            {totalCount} comprobantes mercantiles
-          </p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Compras Liquidadas</span>
-            <div className="p-2 bg-[#ecfdf5] text-[#059669] rounded-xl">
-              <CheckCircle className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#059669]">
-            ${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#059669] font-medium">
-            Pagos de contado y abonos conciliados
-          </p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Saldo Pendiente (CxP)</span>
-            <div className="p-2 bg-[#fffbeb] text-[#b45309] rounded-xl">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-bold font-mono text-[#b45309]">
-            ${totalPending.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <p className="mt-1 text-[11px] text-[#b45309] font-medium">
-            Obligaciones comerciales por pagar
-          </p>
-        </div>
-
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between text-[#737686] text-xs font-semibold">
-            <span>Acción Rápida</span>
-            <div className="p-2 bg-[#eff4ff] text-[#004ac6] rounded-xl">
-              <Plus className="w-4 h-4" />
-            </div>
-          </div>
-          <button
-            onClick={onOpenNewPurchase}
-            className="w-full mt-3 py-2 px-3 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Registrar Nueva Compra</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar with Action Button */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -141,7 +68,7 @@ export function PurchaseHistoryTab({
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Supplier Filter */}
           <select
             value={filterSupplier}
@@ -167,6 +94,14 @@ export function PurchaseHistoryTab({
             <option value="abono_parcial">Abono Parcial</option>
             <option value="pendiente">Pendiente</option>
           </select>
+
+          <button
+            onClick={onOpenNewPurchase}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Registrar Compra</span>
+          </button>
         </div>
       </div>
 

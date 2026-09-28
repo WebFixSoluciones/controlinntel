@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule } from "@/lib/permissions";
-import { Plus } from "lucide-react";
 import { PurchaseHistoryTab } from "./PurchaseHistoryTab";
 import { RegisterPurchaseModal } from "./RegisterPurchaseModal";
 import { SupplierCreditNotesTab } from "./SupplierCreditNotesTab";
@@ -23,13 +22,7 @@ export function PurchasesManager() {
   const searchParams = useSearchParams();
   const subParam = (searchParams.get("sub") as PurchasesSubmoduleTab) || "historial_compras";
 
-  const {
-    currentUser,
-    purchaseInvoices,
-    supplierCreditNotes,
-    supplierDebitNotes,
-    purchaseWithholdings,
-  } = useApp();
+  const { currentUser } = useApp();
 
   const [activeTab, setActiveTab] = useState<PurchasesSubmoduleTab>(subParam);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
@@ -46,64 +39,12 @@ export function PurchasesManager() {
 
   // Submodule permission guards
   const canHistorial = canAccessSubmodule(currentUser, "compras", "historial_compras");
-  const canRegistrar = canAccessSubmodule(currentUser, "compras", "registrar_compra");
   const canNC = canAccessSubmodule(currentUser, "compras", "notas_credito");
   const canND = canAccessSubmodule(currentUser, "compras", "notas_debito");
   const canRet = canAccessSubmodule(currentUser, "compras", "retenciones");
 
-  const getSubmoduleTitle = () => {
-    switch (activeTab) {
-      case "notas_credito":
-        return {
-          title: "Notas de Crédito Recibidas",
-          count: supplierCreditNotes.length,
-          description: "Descuentos, devoluciones y correcciones fiscales emitidas por proveedores",
-        };
-      case "notas_debito":
-        return {
-          title: "Notas de Débito Recibidas",
-          count: supplierDebitNotes.length,
-          description: "Recargos por mora o ajustes de valor recibidos de proveedores",
-        };
-      case "retenciones":
-        return {
-          title: "Retenciones de Compras",
-          count: purchaseWithholdings.length,
-          description: "Comprobantes de retención en la fuente de IVA e Impuesto a la Renta SRI",
-        };
-      default:
-        return {
-          title: "Historial de Compras",
-          count: purchaseInvoices.length,
-          description: "Registro de facturas comerciales de proveedores e ingreso físico a bodegas",
-        };
-    }
-  };
-
-  const currentInfo = getSubmoduleTitle();
-
   return (
     <div className="space-y-6 select-none">
-      {/* Submodule Action Bar without redundant description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#434655]">Total Registros:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-            {currentInfo.count}
-          </span>
-        </div>
-
-        {canRegistrar && (
-          <button
-            onClick={() => setIsRegisterModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Registrar Compra</span>
-          </button>
-        )}
-      </div>
-
       {/* Submodule View Content */}
       <div className="w-full">
         {activeTab === "historial_compras" && canHistorial && (
