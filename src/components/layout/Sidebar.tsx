@@ -136,22 +136,9 @@ function SidebarContent() {
 
   const {
     currentUser,
-    clientContracts,
-    tickets,
-    clientProjects,
-    inventoryProducts,
-    billingQuotes,
-    purchaseInvoices,
     logout,
   } = useApp();
   const { showConfirm, showInfo } = useToast();
-
-  const expiringPolicies = clientContracts.filter((p) => p.status === "por_renovar").length;
-  const openTickets = tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length;
-  const activeProjects = clientProjects.filter((p) => p.column !== "completado" && p.column !== "finalizado").length;
-  const lowStockItems = inventoryProducts.filter((p) => p.tracksStock && p.status === "activo" && p.stock <= p.minStock).length;
-  const pendingQuotes = billingQuotes.filter((q) => q.status === "enviada" || q.status === "aprobada").length;
-  const pendingPurchases = purchaseInvoices.filter((i) => i.paymentStatus === "pendiente" || i.paymentStatus === "abono_parcial").length;
 
   // Manage open accordions
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>(() => {
@@ -257,17 +244,7 @@ function SidebarContent() {
                     <span className="truncate">{item.label}</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {item.href === "/compras" && pendingPurchases > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
-                        {pendingPurchases}
-                      </span>
-                    )}
-                    {item.href === "/facturacion" && pendingQuotes > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fef3c7] text-[#b45309] border border-[#fde68a]">
-                        {pendingQuotes}
-                      </span>
-                    )}
+                  <div className="flex items-center">
                     {isOpen ? (
                       <ChevronUp
                         className={`w-3.5 h-3.5 transition-colors ${
@@ -300,24 +277,6 @@ function SidebarContent() {
                       }`}
                     />
                     <span className="truncate">{item.label}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {item.href === "/arcotel" && expiringPolicies > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#fffbeb] text-[#92400e] border border-[#fde68a] animate-pulse">
-                        {expiringPolicies}
-                      </span>
-                    )}
-                    {item.href === "/proyectos" && activeProjects > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#e0e7ff] text-[#3730a3] border border-[#c7d2fe]">
-                        {activeProjects}
-                      </span>
-                    )}
-                    {item.href === "/tickets" && openTickets > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-                        {openTickets}
-                      </span>
-                    )}
                   </div>
                 </Link>
               )}
