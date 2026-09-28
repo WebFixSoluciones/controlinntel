@@ -460,3 +460,4 @@ export interface ClientContractInfo {
 
 
 export * from './inventory';
+export * from './billing';
