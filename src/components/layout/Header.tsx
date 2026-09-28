@@ -37,8 +37,6 @@ function getPageTitle(pathname: string, subParam: string | null): string {
         return "Retenciones de Venta";
       case "guias_remision":
         return "Guías de Remisión";
-      case "configuracion_sri":
-        return "Configuración SRI";
       default:
         return "Facturas Emitidas";
     }
@@ -83,12 +81,22 @@ function getPageTitle(pathname: string, subParam: string | null): string {
     }
   }
 
+  if (pathname === "/configuracion") {
+    switch (subParam) {
+      case "sri":
+        return "Configuración SRI";
+      case "planes":
+        return "Planes de Servicio";
+      default:
+        return "Configuración General";
+    }
+  }
+
   if (pathname === "/proyectos") return "Proyectos";
   if (pathname === "/tickets") return "Soporte";
   if (pathname === "/arcotel") return "ARCOTEL";
   if (pathname === "/boveda") return "Credenciales";
   if (pathname === "/plantillas") return "Plantillas";
-  if (pathname === "/configuracion") return "Configuración";
 
   return "INNTEL CORP";
 }

@@ -57,7 +57,6 @@ const NAV_ITEMS: NavItem[] = [
       { key: "notas_credito", label: "Notas de Crédito", href: "/facturacion?sub=notas_credito", submoduleKey: "notas_credito" },
       { key: "retenciones", label: "Retenciones de Venta", href: "/facturacion?sub=retenciones", submoduleKey: "retenciones" },
       { key: "guias_remision", label: "Guías de Remisión", href: "/facturacion?sub=guias_remision", submoduleKey: "guias_remision" },
-      { key: "configuracion_sri", label: "Configuración SRI", href: "/facturacion?sub=configuracion_sri", submoduleKey: "configuracion_sri" },
     ],
   },
   {
@@ -114,7 +113,17 @@ const NAV_ITEMS: NavItem[] = [
       { key: "usuarios_equipo", label: "Usuarios / Equipo", href: "/personas?sub=usuarios_equipo", submoduleKey: "usuarios_equipo" },
     ],
   },
-  { href: "/configuracion", label: "Configuración", icon: Settings },
+  {
+    href: "/configuracion",
+    label: "Configuración",
+    icon: Settings,
+    moduleKey: "configuracion",
+    submodules: [
+      { key: "general", label: "General", href: "/configuracion?sub=general", submoduleKey: "general" },
+      { key: "sri", label: "Configuración SRI", href: "/configuracion?sub=sri", submoduleKey: "sri" },
+      { key: "planes", label: "Planes de Servicio", href: "/configuracion?sub=planes", submoduleKey: "planes" },
+    ],
+  },
 ];
 
 function SidebarContent() {

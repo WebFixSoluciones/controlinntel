@@ -19,6 +19,7 @@ import {
   Lock,
   FileText,
   Contact2,
+  Settings,
 } from "lucide-react";
 import { SystemUser, UserModulePermissions, UserRole } from "@/types";
 
@@ -70,7 +71,7 @@ export function UserPermissionsModal({
 
   // Toggle Submodule
   const handleToggleSubmodule = (
-    moduleKey: "compras" | "finanzas" | "personas" | "facturacion" | "inventarios" | "red",
+    moduleKey: "compras" | "finanzas" | "personas" | "facturacion" | "inventarios" | "red" | "configuracion",
     submoduleKey: string
   ) => {
     setPermissions((prev) => {
@@ -383,6 +384,46 @@ export function UserPermissionsModal({
                       />
                       <span className="capitalize text-[#434655] font-medium text-[11px]">
                         {subKey.replace(/_/g, " ")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 6. Módulo Configuración */}
+            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-[#004ac6]" />
+                  <span className="text-xs font-bold text-[#0b1c30]">Configuración (/configuracion)</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.configuracion?.enabled}
+                    onChange={() => handleToggleModule("configuracion")}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-[#e2e8f0] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#cbd5e1] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004ac6]"></div>
+                </label>
+              </div>
+
+              {permissions.configuracion?.enabled && permissions.configuracion.submodules && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
+                  {Object.entries(permissions.configuracion.submodules).map(([subKey, val]) => (
+                    <label
+                      key={subKey}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={val}
+                        onChange={() => handleToggleSubmodule("configuracion", subKey)}
+                        className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
+                      />
+                      <span className="capitalize text-[#434655] font-medium text-[11px]">
+                        {subKey === "sri" ? "Configuración SRI" : subKey === "planes" ? "Planes de Servicio" : "General"}
                       </span>
                     </label>
                   ))}

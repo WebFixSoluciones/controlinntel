@@ -211,7 +211,6 @@ export interface UserModulePermissions {
       notas_credito: boolean;
       retenciones: boolean;
       guias_remision: boolean;
-      configuracion_sri: boolean;
     };
   };
   inventarios?: {
@@ -236,5 +235,12 @@ export interface UserModulePermissions {
   arcotel?: { enabled: boolean };
   boveda?: { enabled: boolean };
   plantillas?: { enabled: boolean };
-  configuracion?: { enabled: boolean };
+  configuracion?: {
+    enabled: boolean;
+    submodules?: {
+      general: boolean;
+      sri: boolean;
+      planes: boolean;
+    };
+  };
 }

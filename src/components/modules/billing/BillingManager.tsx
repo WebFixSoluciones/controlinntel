@@ -16,7 +16,6 @@ import { NewSaleView } from "./NewSaleView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
-import { SriConfigModal } from "./SriConfigModal";
 import {
   Receipt,
   FileText,
@@ -52,8 +51,7 @@ type BillingTab =
   | "cotizaciones"
   | "notas_credito"
   | "retenciones"
-  | "guias_remision"
-  | "configuracion_sri";
+  | "guias_remision";
 
 export function BillingManager() {
   const router = useRouter();
@@ -73,18 +71,17 @@ export function BillingManager() {
   const subParam = searchParams.get("sub") as BillingTab | null;
 
   const [activeTab, setActiveTab] = useState<BillingTab>(() => {
-    if (subParam) return subParam;
+    if (subParam && subParam !== ("configuracion_sri" as any)) return subParam;
     return "facturas";
   });
 
   useEffect(() => {
-    if (subParam === "configuracion_sri") {
-      setIsSriConfigOpen(true);
-      setActiveTab("facturas");
+    if ((subParam as any) === "configuracion_sri") {
+      router.replace("/configuracion?sub=sri");
     } else if (subParam) {
       setActiveTab(subParam);
     }
-  }, [subParam]);
+  }, [subParam, router]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -98,8 +95,6 @@ export function BillingManager() {
 
   const [isRemissionModalOpen, setIsRemissionModalOpen] = useState(false);
   const [remissionInitialInvoice, setRemissionInitialInvoice] = useState<SriInvoice | null>(null);
-
-  const [isSriConfigOpen, setIsSriConfigOpen] = useState(false);
 
   // RIDE Viewer
   const [isRideOpen, setIsRideOpen] = useState(false);
@@ -253,7 +248,7 @@ export function BillingManager() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsSriConfigOpen(true)}
+            onClick={() => router.push("/configuracion?sub=sri")}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition cursor-pointer"
           >
             <Settings className="w-3.5 h-3.5 text-slate-500" />
@@ -263,8 +258,7 @@ export function BillingManager() {
       </div>
 
       {/* Barra de Filtros (para tablas) */}
-      {activeTab !== "configuracion_sri" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
           <div className="relative flex-1 min-w-[240px]">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -362,7 +356,6 @@ export function BillingManager() {
             )}
           </div>
         </div>
-      )}
 
       {/* Contenido de Cada Pestaña */}
 
@@ -776,96 +769,7 @@ export function BillingManager() {
         </div>
       )}
 
-      {/* 6. Configuración SRI */}
-      {activeTab === "configuracion_sri" && (
-        <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-lumina-card space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900">
-                  Perfil Tributario del Emisor SRI
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Parámetros de facturación autorizados ante el Servicio de Rentas Internas
-                </p>
-              </div>
-            </div>
 
-            <button
-              onClick={() => setIsSriConfigOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-xl text-xs font-bold shadow-md transition"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Editar Parámetros SRI</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] block">
-                Identificación de la Empresa
-              </span>
-              <p>
-                <span className="font-semibold text-slate-600">RUC:</span>{" "}
-                <span className="font-mono font-bold text-slate-900">{sriCompanyConfig.ruc}</span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Razón Social:</span>{" "}
-                <span className="font-bold text-slate-900">{sriCompanyConfig.razonSocial}</span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Nombre Comercial:</span>{" "}
-                <span className="text-slate-800">{sriCompanyConfig.nombreComercial}</span>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] block">
-                Punto de Emisión & Serie
-              </span>
-              <p>
-                <span className="font-semibold text-slate-600">Establecimiento:</span>{" "}
-                <span className="font-mono font-bold text-slate-900">{sriCompanyConfig.establecimiento}</span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Punto de Emisión:</span>{" "}
-                <span className="font-mono font-bold text-slate-900">{sriCompanyConfig.puntoEmision}</span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Ambiente SRI:</span>{" "}
-                <span className="font-bold text-emerald-700 uppercase">
-                  {sriCompanyConfig.ambiente === "2" ? "2 - Producción" : "1 - Pruebas / Homologación"}
-                </span>
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-              <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] block">
-                Régimen & Contabilidad
-              </span>
-              <p>
-                <span className="font-semibold text-slate-600">Obligado Contabilidad:</span>{" "}
-                <span className="font-bold text-slate-900">
-                  {sriCompanyConfig.obligadoContabilidad ? "SI" : "NO"}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Tipo Contribuyente:</span>{" "}
-                <span className="font-bold uppercase text-slate-900">
-                  {sriCompanyConfig.tipoContribuyente.replace("_", " ")}
-                </span>
-              </p>
-              <p>
-                <span className="font-semibold text-slate-600">Email Notificaciones:</span>{" "}
-                <span className="text-slate-800">{sriCompanyConfig.emailNotificaciones}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal Dialog: Convertir Cotización a Factura con Selección de Bodega */}
       {quoteToConvert && (
@@ -977,11 +881,6 @@ export function BillingManager() {
         onSuccess={(g) => {
           showSuccess("Guía Emitida", `Guía de Remisión ${g.documentNumber} emitida con éxito.`);
         }}
-      />
-
-      <SriConfigModal
-        isOpen={isSriConfigOpen}
-        onClose={() => setIsSriConfigOpen(false)}
       />
 
       <RidePreviewModal
