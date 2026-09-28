@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule } from "@/lib/permissions";
 import { PurchaseHistoryTab } from "./PurchaseHistoryTab";
-import { RegisterPurchaseModal } from "./RegisterPurchaseModal";
+import { NewPurchaseView } from "./NewPurchaseView";
 import { SupplierCreditNotesTab } from "./SupplierCreditNotesTab";
 import { SupplierDebitNotesTab } from "./SupplierDebitNotesTab";
 import { PurchaseWithholdingsTab } from "./PurchaseWithholdingsTab";
@@ -19,20 +19,17 @@ export type PurchasesSubmoduleTab =
   | "retenciones";
 
 export function PurchasesManager() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const subParam = (searchParams.get("sub") as PurchasesSubmoduleTab) || "historial_compras";
 
   const { currentUser } = useApp();
 
   const [activeTab, setActiveTab] = useState<PurchasesSubmoduleTab>(subParam);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [contextInvoice, setContextInvoice] = useState<PurchaseInvoice | null>(null);
 
   useEffect(() => {
-    if (subParam === "registrar_compra") {
-      setIsRegisterModalOpen(true);
-      setActiveTab("historial_compras");
-    } else if (subParam) {
+    if (subParam) {
       setActiveTab(subParam);
     }
   }, [subParam]);
@@ -43,13 +40,31 @@ export function PurchasesManager() {
   const canND = canAccessSubmodule(currentUser, "compras", "notas_debito");
   const canRet = canAccessSubmodule(currentUser, "compras", "retenciones");
 
+  if (activeTab === "registrar_compra") {
+    return (
+      <NewPurchaseView
+        onBack={() => {
+          setActiveTab("historial_compras");
+          router.push("/compras?sub=historial_compras");
+        }}
+        onSuccess={() => {
+          setActiveTab("historial_compras");
+          router.push("/compras?sub=historial_compras");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 select-none">
       {/* Submodule View Content */}
       <div className="w-full">
         {activeTab === "historial_compras" && canHistorial && (
           <PurchaseHistoryTab
-            onOpenNewPurchase={() => setIsRegisterModalOpen(true)}
+            onOpenNewPurchase={() => {
+              setActiveTab("registrar_compra");
+              router.push("/compras?sub=registrar_compra");
+            }}
             onOpenWithholdingForInvoice={(inv) => {
               setContextInvoice(inv);
               setActiveTab("retenciones");
@@ -77,16 +92,6 @@ export function PurchasesManager() {
           />
         )}
       </div>
-
-      {/* Modal Nueva Compra */}
-      <RegisterPurchaseModal
-        isOpen={isRegisterModalOpen}
-        onClose={() => setIsRegisterModalOpen(false)}
-        onSuccess={() => {
-          setIsRegisterModalOpen(false);
-          setActiveTab("historial_compras");
-        }}
-      />
     </div>
   );
 }
