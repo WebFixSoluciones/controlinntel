@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -68,7 +69,20 @@ export function InventoryManager() {
   } = useApp();
   const { showConfirm, showSuccess, showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<InventoryTab>("productos");
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get("sub") as InventoryTab | null;
+
+  const [activeTab, setActiveTab] = useState<InventoryTab>(() => {
+    if (subParam) return subParam;
+    return "productos";
+  });
+
+  useEffect(() => {
+    if (subParam) {
+      setActiveTab(subParam);
+    }
+  }, [subParam]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState("all");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
@@ -386,109 +400,25 @@ export function InventoryManager() {
         </div>
       </div>
 
-      {/* Tabs Navigation Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-1.5 shadow-2xs flex items-center gap-1 overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("productos")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "productos"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          Productos Físicos
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryProducts.filter((p) => p.tracksStock).length}
+      {/* Submodule View Title (No Tabs on Screen) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+        <h2 className="text-xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+          {activeTab === "productos" && "Catálogo de Productos Físicos"}
+          {activeTab === "servicios" && "Servicios Técnicos"}
+          {activeTab === "bodegas" && "Bodegas & Almacenes"}
+          {activeTab === "kardex" && "Kardex Valorado"}
+          {activeTab === "transferencias" && "Transferencias Internas"}
+          {activeTab === "ajustes" && "Ajustes de Stock"}
+          {activeTab === "clasificacion" && "Categorías & Marcas"}
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+            {activeTab === "productos" && inventoryProducts.filter((p) => p.tracksStock).length}
+            {activeTab === "servicios" && inventoryProducts.filter((p) => p.type === "servicio").length}
+            {activeTab === "bodegas" && inventoryWarehouses.length}
+            {activeTab === "kardex" && inventoryKardex.length}
+            {activeTab === "transferencias" && inventoryTransfers.length}
+            {activeTab === "ajustes" && inventoryAdjustments.length}
           </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("servicios")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "servicios"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Wrench className="w-4 h-4" />
-          Servicios Técnicos
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryProducts.filter((p) => p.type === "servicio").length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("bodegas")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "bodegas"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          Bodegas & Nodos
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryWarehouses.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("kardex")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "kardex"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <BookOpen className="w-4 h-4" />
-          Kardex Valorado
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryKardex.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("transferencias")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "transferencias"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <ArrowRightLeft className="w-4 h-4" />
-          Transferencias
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryTransfers.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("ajustes")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "ajustes"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          Ajustes de Stock
-          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white border border-slate-200 font-extrabold text-slate-700">
-            {inventoryAdjustments.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("clasificacion")}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-            activeTab === "clasificacion"
-              ? "bg-[#eff4ff] text-[#004ac6] shadow-2xs"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-          }`}
-        >
-          <Tags className="w-4 h-4" />
-          Categorías & Marcas
-        </button>
+        </h2>
       </div>
 
       {/* Search & Filters Bar */}

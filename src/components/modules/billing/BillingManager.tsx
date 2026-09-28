@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -66,7 +67,26 @@ export function BillingManager() {
   } = useApp();
   const { showConfirm, showSuccess, showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<BillingTab>("facturas");
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get("sub") as BillingTab | "nueva_venta" | null;
+
+  const [activeTab, setActiveTab] = useState<BillingTab>(() => {
+    if (subParam && subParam !== "nueva_venta") return subParam as BillingTab;
+    return "facturas";
+  });
+
+  useEffect(() => {
+    if (subParam === "nueva_venta") {
+      setIsNewSaleOpen(true);
+      setActiveTab("facturas");
+    } else if (subParam === "configuracion_sri") {
+      setIsSriConfigOpen(true);
+      setActiveTab("facturas");
+    } else if (subParam) {
+      setActiveTab(subParam as BillingTab);
+    }
+  }, [subParam]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -359,109 +379,23 @@ export function BillingManager() {
         </div>
       </div>
 
-      {/* Sub-navegación por Pestañas */}
-      <div className="flex border-b border-slate-200 gap-1 bg-white px-4 pt-2 rounded-t-2xl overflow-x-auto">
-        <button
-          onClick={() => {
-            setActiveTab("facturas");
-            setStatusFilter("all");
-          }}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "facturas"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <Receipt className="w-4 h-4" />
-          <span>Facturas Emitidas</span>
-          <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {billingInvoices.length}
+      {/* Submodule View Title (No Tabs on Screen) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+        <h2 className="text-xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+          {activeTab === "facturas" && "Facturas Emitidas"}
+          {activeTab === "cotizaciones" && "Cotizaciones / Proformas"}
+          {activeTab === "notas_credito" && "Notas de Crédito"}
+          {activeTab === "retenciones" && "Comprobantes de Retención"}
+          {activeTab === "guias_remision" && "Guías de Remisión"}
+          {activeTab === "configuracion_sri" && "Configuración del Emisor SRI"}
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+            {activeTab === "facturas" && billingInvoices.length}
+            {activeTab === "cotizaciones" && billingQuotes.length}
+            {activeTab === "notas_credito" && billingCreditNotes.length}
+            {activeTab === "retenciones" && billingWithholdings.length}
+            {activeTab === "guias_remision" && billingRemissionGuides.length}
           </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("cotizaciones");
-            setStatusFilter("all");
-          }}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "cotizaciones"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Cotizaciones / Proformas</span>
-          <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {billingQuotes.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("notas_credito");
-            setStatusFilter("all");
-          }}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "notas_credito"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <RotateCcw className="w-4 h-4" />
-          <span>Notas de Crédito</span>
-          <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {billingCreditNotes.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("retenciones");
-            setStatusFilter("all");
-          }}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "retenciones"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Comprobantes de Retención</span>
-          <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {billingWithholdings.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab("guias_remision");
-            setStatusFilter("all");
-          }}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "guias_remision"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <Truck className="w-4 h-4" />
-          <span>Guías de Remisión</span>
-          <span className="px-2 py-0.5 text-[10px] rounded-full bg-slate-100 text-slate-700">
-            {billingRemissionGuides.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("configuracion_sri")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition whitespace-nowrap ${
-            activeTab === "configuracion_sri"
-              ? "border-[#004ac6] text-[#004ac6]"
-              : "border-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Datos del Emisor</span>
-        </button>
+        </h2>
       </div>
 
       {/* Barra de Filtros (para tablas) */}

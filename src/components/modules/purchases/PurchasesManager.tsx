@@ -1,16 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule } from "@/lib/permissions";
-import {
-  FileText,
-  PlusCircle,
-  Layers,
-  ArrowUpRight,
-  Percent,
-  ShoppingBag,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { PurchaseHistoryTab } from "./PurchaseHistoryTab";
 import { RegisterPurchaseModal } from "./RegisterPurchaseModal";
 import { SupplierCreditNotesTab } from "./SupplierCreditNotesTab";
@@ -20,16 +14,35 @@ import { PurchaseInvoice } from "@/types";
 
 export type PurchasesSubmoduleTab =
   | "historial_compras"
+  | "registrar_compra"
   | "notas_credito"
   | "notas_debito"
   | "retenciones";
 
 export function PurchasesManager() {
-  const { currentUser, purchaseInvoices } = useApp();
+  const searchParams = useSearchParams();
+  const subParam = (searchParams.get("sub") as PurchasesSubmoduleTab) || "historial_compras";
 
-  const [activeTab, setActiveTab] = useState<PurchasesSubmoduleTab>("historial_compras");
+  const {
+    currentUser,
+    purchaseInvoices,
+    supplierCreditNotes,
+    supplierDebitNotes,
+    purchaseWithholdings,
+  } = useApp();
+
+  const [activeTab, setActiveTab] = useState<PurchasesSubmoduleTab>(subParam);
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
   const [contextInvoice, setContextInvoice] = useState<PurchaseInvoice | null>(null);
+
+  useEffect(() => {
+    if (subParam === "registrar_compra") {
+      setIsRegisterModalOpen(true);
+      setActiveTab("historial_compras");
+    } else if (subParam) {
+      setActiveTab(subParam);
+    }
+  }, [subParam]);
 
   // Submodule permission guards
   const canHistorial = canAccessSubmodule(currentUser, "compras", "historial_compras");
@@ -38,109 +51,67 @@ export function PurchasesManager() {
   const canND = canAccessSubmodule(currentUser, "compras", "notas_debito");
   const canRet = canAccessSubmodule(currentUser, "compras", "retenciones");
 
-  const pendingCxPCount = purchaseInvoices.filter(
-    (inv) => inv.paymentStatus === "pendiente" || inv.paymentStatus === "abono_parcial"
-  ).length;
+  const getSubmoduleTitle = () => {
+    switch (activeTab) {
+      case "notas_credito":
+        return {
+          title: "Notas de Crédito Recibidas",
+          count: supplierCreditNotes.length,
+          description: "Descuentos, devoluciones y correcciones fiscales emitidas por proveedores",
+        };
+      case "notas_debito":
+        return {
+          title: "Notas de Débito Recibidas",
+          count: supplierDebitNotes.length,
+          description: "Recargos por mora o ajustes de valor recibidos de proveedores",
+        };
+      case "retenciones":
+        return {
+          title: "Retenciones de Compras",
+          count: purchaseWithholdings.length,
+          description: "Comprobantes de retención en la fuente de IVA e Impuesto a la Renta SRI",
+        };
+      default:
+        return {
+          title: "Historial de Compras",
+          count: purchaseInvoices.length,
+          description: "Registro de facturas comerciales de proveedores e ingreso físico a bodegas",
+        };
+    }
+  };
+
+  const currentInfo = getSubmoduleTitle();
 
   return (
-    <div className="space-y-6">
-      {/* Header and Submodule Navigation Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 select-none">
+      {/* Submodule Clean Header matching Reference */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-            <ShoppingBag className="w-7 h-7 text-[#004ac6]" />
-            Módulo de Compras & Proveedores
+            {currentInfo.title}
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+              {currentInfo.count}
+            </span>
           </h1>
           <p className="text-xs text-[#737686] mt-0.5">
-            Gestión documental, tributaria SRI e ingreso físico de mercancía a bodegas
+            {currentInfo.description}
           </p>
         </div>
 
-        {/* Submodules Navigation Bar (Matching Screenshot Structure) */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-x-auto select-none">
-          {canHistorial && (
-            <button
-              onClick={() => setActiveTab("historial_compras")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === "historial_compras"
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-              }`}
-            >
-              <FileText className="w-4 h-4" />
-              <span>Historial de Compras</span>
-              {pendingCxPCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                    activeTab === "historial_compras"
-                      ? "bg-white/20 text-white"
-                      : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                  }`}
-                  title={`${pendingCxPCount} compras pendientes de pago`}
-                >
-                  {pendingCxPCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {canRegistrar && (
-            <button
-              onClick={() => setIsRegisterModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer bg-[#eff4ff] text-[#004ac6] hover:bg-[#dce9ff]"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Registrar Compra</span>
-            </button>
-          )}
-
-          {canNC && (
-            <button
-              onClick={() => setActiveTab("notas_credito")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === "notas_credito"
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Notas de Crédito Recibidas</span>
-            </button>
-          )}
-
-          {canND && (
-            <button
-              onClick={() => setActiveTab("notas_debito")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === "notas_debito"
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-              }`}
-            >
-              <ArrowUpRight className="w-4 h-4" />
-              <span>Notas de Débito Recibidas</span>
-            </button>
-          )}
-
-          {canRet && (
-            <button
-              onClick={() => setActiveTab("retenciones")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                activeTab === "retenciones"
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-              }`}
-            >
-              <Percent className="w-4 h-4" />
-              <span>Retenciones de Compras</span>
-            </button>
-          )}
-        </div>
+        {canRegistrar && (
+          <button
+            onClick={() => setIsRegisterModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0b1c30] hover:bg-[#1e293b] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Registrar Compra</span>
+          </button>
+        )}
       </div>
 
       {/* Submodule View Content */}
       <div className="w-full">
-        {activeTab === "historial_compras" && (
+        {activeTab === "historial_compras" && canHistorial && (
           <PurchaseHistoryTab
             onOpenNewPurchase={() => setIsRegisterModalOpen(true)}
             onOpenWithholdingForInvoice={(inv) => {
@@ -154,16 +125,16 @@ export function PurchasesManager() {
           />
         )}
 
-        {activeTab === "notas_credito" && (
+        {activeTab === "notas_credito" && canNC && (
           <SupplierCreditNotesTab
             initialInvoice={contextInvoice}
             onClearInitialInvoice={() => setContextInvoice(null)}
           />
         )}
 
-        {activeTab === "notas_debito" && <SupplierDebitNotesTab />}
+        {activeTab === "notas_debito" && canND && <SupplierDebitNotesTab />}
 
-        {activeTab === "retenciones" && (
+        {activeTab === "retenciones" && canRet && (
           <PurchaseWithholdingsTab
             initialInvoice={contextInvoice}
             onClearInitialInvoice={() => setContextInvoice(null)}

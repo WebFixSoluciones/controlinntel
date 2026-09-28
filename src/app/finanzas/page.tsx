@@ -1,19 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { useApp } from "@/lib/state";
-import { canAccessSubmodule } from "@/lib/permissions";
-import {
-  TrendingUp,
-  Building2,
-  Users,
-  CreditCard,
-  BarChart3,
-  DollarSign,
-} from "lucide-react";
+import { canAccessModule, canAccessSubmodule } from "@/lib/permissions";
+import { ShieldAlert } from "lucide-react";
 import { MovementsTab } from "@/components/modules/finance/MovementsTab";
 import { BankAccountsTab } from "@/components/modules/finance/BankAccountsTab";
 import { AccountsReceivableTab } from "@/components/modules/finance/AccountsReceivableTab";
@@ -27,16 +21,26 @@ export type FinanceSubmoduleTab =
   | "cuentas_por_pagar"
   | "reportes";
 
-export default function FinanzasPage() {
+function FinanzasContent() {
   const { currentUser, purchaseInvoices, monthlyCharges } = useApp();
-  const [activeTab, setActiveTab] = useState<FinanceSubmoduleTab>("movimientos");
+  const searchParams = useSearchParams();
 
-  // Granular Submodule Permissions
+  const canAccessFinanzas = canAccessModule(currentUser, "finanzas");
   const canMovimientos = canAccessSubmodule(currentUser, "finanzas", "movimientos");
   const canBancos = canAccessSubmodule(currentUser, "finanzas", "bancos");
   const canCxC = canAccessSubmodule(currentUser, "finanzas", "cuentas_por_cobrar");
   const canCxP = canAccessSubmodule(currentUser, "finanzas", "cuentas_por_pagar");
   const canReportes = canAccessSubmodule(currentUser, "finanzas", "reportes");
+
+  const subParam = (searchParams.get("sub") as FinanceSubmoduleTab) || "movimientos";
+  let activeTab: FinanceSubmoduleTab = subParam;
+
+  if (activeTab === "movimientos" && !canMovimientos) {
+    if (canBancos) activeTab = "bancos";
+    else if (canCxC) activeTab = "cuentas_por_cobrar";
+    else if (canCxP) activeTab = "cuentas_por_pagar";
+    else if (canReportes) activeTab = "reportes";
+  }
 
   const pendingCxPCount = purchaseInvoices.filter(
     (inv) => inv.paymentStatus === "pendiente" || inv.paymentStatus === "abono_parcial"
@@ -46,128 +50,98 @@ export default function FinanzasPage() {
     (c) => c.status === "pendiente"
   ).length;
 
+  if (!canAccessFinanzas) {
+    return (
+      <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center max-w-lg mx-auto my-12 space-y-3">
+        <div className="w-12 h-12 bg-[#fee2e2] text-[#dc2626] rounded-full flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h2 className="text-base font-bold text-[#0b1c30]">Acceso Restringido</h2>
+        <p className="text-xs text-[#737686]">
+          Tu rol actual no tiene autorización para acceder al Módulo de Finanzas.
+        </p>
+      </div>
+    );
+  }
+
+  const getSubmoduleMeta = () => {
+    switch (activeTab) {
+      case "bancos":
+        return {
+          title: "Bancos & Cuentas de Tesorería",
+          description: "Administración de cuentas bancarias institucionales, saldos y fondos fijos",
+          badge: null,
+        };
+      case "cuentas_por_cobrar":
+        return {
+          title: "Cuentas por Cobrar (CxC)",
+          description: "Seguimiento de facturas y cobros emitidos a abonados con valores pendientes",
+          badge: pendingCxCCount,
+        };
+      case "cuentas_por_pagar":
+        return {
+          title: "Cuentas por Pagar (CxP)",
+          description: "Obligaciones mercantiles y liquidación de facturas con proveedores",
+          badge: pendingCxPCount,
+        };
+      case "reportes":
+        return {
+          title: "Reportes Financieros",
+          description: "Balances, estados de cuenta analíticos y reportes de recaudación",
+          badge: null,
+        };
+      default:
+        return {
+          title: "Movimientos de Tesorería",
+          description: "Flujo de caja, ingresos, egresos y conciliación bancaria operativa",
+          badge: null,
+        };
+    }
+  };
+
+  const currentMeta = getSubmoduleMeta();
+
+  return (
+    <div className="space-y-6">
+      {/* Submodule Header matching Reference (No Tabs on Screen) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
+            {currentMeta.title}
+            {currentMeta.badge !== null && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#475569] border border-[#e2e8f0]">
+                {currentMeta.badge} pendientes
+              </span>
+            )}
+          </h1>
+          <p className="text-xs text-[#737686] mt-0.5">
+            {currentMeta.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Submodule View Content */}
+      <div className="w-full">
+        {activeTab === "movimientos" && canMovimientos && <MovementsTab />}
+        {activeTab === "bancos" && canBancos && <BankAccountsTab />}
+        {activeTab === "cuentas_por_cobrar" && canCxC && <AccountsReceivableTab />}
+        {activeTab === "cuentas_por_pagar" && canCxP && <AccountsPayableTab />}
+        {activeTab === "reportes" && canReportes && <FinancialReportsTab />}
+      </div>
+    </div>
+  );
+}
+
+export default function FinanzasPage() {
   return (
     <div className="flex min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
-          {/* Header & Submodule Tabs Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2.5">
-                <DollarSign className="w-7 h-7 text-[#004ac6]" />
-                Módulo Financiero & Tesorería
-              </h1>
-              <p className="text-xs text-[#737686] mt-0.5">
-                Gestión de liquidez, cuentas bancarias, recaudación y compromisos comerciales
-              </p>
-            </div>
-
-            {/* 5 Submodules Tab Selector */}
-            <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-x-auto select-none">
-              {canMovimientos && (
-                <button
-                  onClick={() => setActiveTab("movimientos")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === "movimientos"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                  }`}
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Movimientos</span>
-                </button>
-              )}
-
-              {canBancos && (
-                <button
-                  onClick={() => setActiveTab("bancos")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === "bancos"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Bancos</span>
-                </button>
-              )}
-
-              {canCxC && (
-                <button
-                  onClick={() => setActiveTab("cuentas_por_cobrar")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === "cuentas_por_cobrar"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Cuentas por Cobrar</span>
-                  {pendingCxCCount > 0 && (
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        activeTab === "cuentas_por_cobrar"
-                          ? "bg-white/20 text-white"
-                          : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                      }`}
-                    >
-                      {pendingCxCCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {canCxP && (
-                <button
-                  onClick={() => setActiveTab("cuentas_por_pagar")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === "cuentas_por_pagar"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Cuentas por Pagar</span>
-                  {pendingCxPCount > 0 && (
-                    <span
-                      className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        activeTab === "cuentas_por_pagar"
-                          ? "bg-white/20 text-white"
-                          : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                      }`}
-                    >
-                      {pendingCxPCount}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {canReportes && (
-                <button
-                  onClick={() => setActiveTab("reportes")}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === "reportes"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  <span>Reportes</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Submodule View Content */}
-          <div className="w-full">
-            {activeTab === "movimientos" && <MovementsTab />}
-            {activeTab === "bancos" && <BankAccountsTab />}
-            {activeTab === "cuentas_por_cobrar" && <AccountsReceivableTab />}
-            {activeTab === "cuentas_por_pagar" && <AccountsPayableTab />}
-            {activeTab === "reportes" && <FinancialReportsTab />}
-          </div>
+          <Suspense fallback={<div className="p-8 text-center text-xs text-[#737686]">Cargando finanzas...</div>}>
+            <FinanzasContent />
+          </Suspense>
         </main>
 
         {/* Institutional Footer */}
@@ -178,7 +152,7 @@ export default function FinanzasPage() {
             rel="noopener noreferrer"
             className="hover:text-[#004ac6] font-medium transition-colors"
           >
-            &copy; 2026 INNTEL CORP S.A. • Finanzas & Tesorería • www.inntelcorp.com
+            &copy; 2026 INNTEL CORP S.A. • Módulo Financiero & Tesorería • www.inntelcorp.com
           </a>
           <div className="flex items-center gap-4">
             <a href="#" className="hover:text-[#004ac6] transition-colors">
