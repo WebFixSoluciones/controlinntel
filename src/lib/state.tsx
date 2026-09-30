@@ -55,6 +55,8 @@ import {
   FinancialMovement,
   SupplierPaymentRecord,
   UserModulePermissions,
+  HostingDomainRecord,
+  RegulatoryTramite,
 } from "@/types";
 import {
   INITIAL_USER,
@@ -98,6 +100,8 @@ import {
   INITIAL_SUPPLIER_CREDIT_NOTES,
   INITIAL_SUPPLIER_DEBIT_NOTES,
   INITIAL_FINANCIAL_MOVEMENTS,
+  INITIAL_HOSTING_DOMAINS,
+  INITIAL_REGULATORY_TRAMITES,
 } from "./mock-data";
 import { app, db, auth } from "./firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
@@ -337,6 +341,18 @@ interface AppContextType {
 
   updateUserModulePermissions: (uid: string, permissions: UserModulePermissions) => Promise<void>;
 
+  // Hosting & Dominios
+  hostingDomains: HostingDomainRecord[];
+  addHostingDomain: (item: Omit<HostingDomainRecord, "id">) => Promise<void>;
+  updateHostingDomain: (id: string, updates: Partial<HostingDomainRecord>) => Promise<void>;
+  deleteHostingDomain: (id: string) => Promise<void>;
+
+  // Trámites Regulatorios
+  regulatoryTramites: RegulatoryTramite[];
+  addRegulatoryTramite: (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  updateRegulatoryTramite: (id: string, updates: Partial<RegulatoryTramite>) => Promise<void>;
+  deleteRegulatoryTramite: (id: string) => Promise<void>;
+
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
@@ -403,6 +419,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(INITIAL_BANK_ACCOUNTS);
   const [financialMovements, setFinancialMovements] = useState<FinancialMovement[]>(INITIAL_FINANCIAL_MOVEMENTS);
   const [supplierPayments, setSupplierPayments] = useState<SupplierPaymentRecord[]>(INITIAL_SUPPLIER_PAYMENTS);
+  const [hostingDomains, setHostingDomains] = useState<HostingDomainRecord[]>(INITIAL_HOSTING_DOMAINS);
+  const [regulatoryTramites, setRegulatoryTramites] = useState<RegulatoryTramite[]>(INITIAL_REGULATORY_TRAMITES);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -1284,6 +1302,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setClientContracts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
+  };
+
+  // Hosting & Dominios
+  const addHostingDomain = async (item: Omit<HostingDomainRecord, "id">) => {
+    const newRecord: HostingDomainRecord = {
+      ...item,
+      id: "host-" + Date.now(),
+    };
+    await syncToFirestore("hostingDomains", newRecord.id, newRecord);
+    setHostingDomains((prev) => [newRecord, ...prev]);
+    addAuditLog("CREATE_CLIENT", `Servicio Web Registrado: ${newRecord.domainOrService}`, `Cliente: ${newRecord.clientName}`);
+  };
+
+  const updateHostingDomain = async (id: string, updates: Partial<HostingDomainRecord>) => {
+    await syncToFirestore("hostingDomains", id, updates);
+    setHostingDomains((prev) =>
+      prev.map((h) => (h.id === id ? { ...h, ...updates } : h))
+    );
+  };
+
+  const deleteHostingDomain = async (id: string) => {
+    await deleteFromFirestore("hostingDomains", id);
+    setHostingDomains((prev) => prev.filter((h) => h.id !== id));
+  };
+
+  // Trámites Regulatorios
+  const addRegulatoryTramite = async (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newTramite: RegulatoryTramite = {
+      ...item,
+      id: "trm-" + Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      history: item.history || [
+        { date: now.split("T")[0], status: item.dynamicStatus, note: "Trámite registrado en la plataforma", author: currentUser.displayName }
+      ],
+    };
+    await syncToFirestore("regulatoryTramites", newTramite.id, newTramite);
+    setRegulatoryTramites((prev) => [newTramite, ...prev]);
+    addAuditLog("GENERATE_DOC", `Trámite Institucional: ${newTramite.documentNumber}`, `Motivo: ${newTramite.reason}`);
+  };
+
+  const updateRegulatoryTramite = async (id: string, updates: Partial<RegulatoryTramite>) => {
+    const now = new Date().toISOString();
+    await syncToFirestore("regulatoryTramites", id, { ...updates, updatedAt: now });
+    setRegulatoryTramites((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: now } : t))
+    );
+  };
+
+  const deleteRegulatoryTramite = async (id: string) => {
+    await deleteFromFirestore("regulatoryTramites", id);
+    setRegulatoryTramites((prev) => prev.filter((t) => t.id !== id));
   };
 
   // Client Core Operations
@@ -2965,6 +3036,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           clientContracts,
           addClientContract,
           updateClientContract,
+          hostingDomains,
+          addHostingDomain,
+          updateHostingDomain,
+          deleteHostingDomain,
+          regulatoryTramites,
+          addRegulatoryTramite,
+          updateRegulatoryTramite,
+          deleteRegulatoryTramite,
           clients,
           clientServices,
           plans,

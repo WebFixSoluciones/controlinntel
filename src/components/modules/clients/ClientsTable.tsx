@@ -245,15 +245,25 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
                             <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
                             ACTIVO
                           </span>
+                        ) : client.status === "inactivo" ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#64748b]"></span>
+                            INACTIVO
+                          </span>
                         ) : client.status === "suspendido" ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fffbeb] text-[#92400e] border border-[#fde68a]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
                             SUSPENDIDO
                           </span>
+                        ) : client.status === "retirado" ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fff7ed] text-[#9a3412] border border-[#fed7aa]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]"></span>
+                            RETIRADO
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></span>
-                            RETIRADO
+                            CANCELADO
                           </span>
                         )}
                       </td>

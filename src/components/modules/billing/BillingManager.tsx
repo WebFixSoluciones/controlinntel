@@ -12,6 +12,7 @@ import {
   RemissionGuide,
 } from "@/types";
 import { RidePreviewModal } from "./RidePreviewModal";
+import { QuotePreviewModal } from "./QuotePreviewModal";
 import { NewSaleView } from "./NewSaleView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
@@ -88,6 +89,7 @@ export function BillingManager() {
   // Modals state
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [quoteToEdit, setQuoteToEdit] = useState<ClientQuote | null>(null);
+  const [quoteToPreview, setQuoteToPreview] = useState<ClientQuote | null>(null);
 
   const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
   const [creditNoteInitialInvoice, setCreditNoteInitialInvoice] = useState<SriInvoice | null>(null);
@@ -521,6 +523,14 @@ export function BillingManager() {
                           )}
 
                           <button
+                            onClick={() => setQuoteToPreview(q)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition"
+                            title="Ver / Imprimir Cotización Formal PDF"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
                             onClick={() => {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
@@ -864,6 +874,11 @@ export function BillingManager() {
         invoice={rideInvoice}
         creditNote={rideCreditNote}
         companyConfig={sriCompanyConfig}
+      />
+
+      <QuotePreviewModal
+        quote={quoteToPreview}
+        onClose={() => setQuoteToPreview(null)}
       />
     </div>
   );

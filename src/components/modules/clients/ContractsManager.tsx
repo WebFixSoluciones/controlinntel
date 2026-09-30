@@ -622,6 +622,14 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           </div>
         </div>
       )}
+
+      {/* Modal para Registrar Póliza */}
+      {isPolicyModalOpen && (
+        <PolicyModal
+          isOpen={isPolicyModalOpen}
+          onClose={() => setIsPolicyModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

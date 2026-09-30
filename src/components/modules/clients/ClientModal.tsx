@@ -36,7 +36,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   const [email, setEmail] = useState(clientToEdit?.email || "");
   const [phone, setPhone] = useState(clientToEdit?.phone || "");
   const [address, setAddress] = useState(clientToEdit?.address || "");
-  const [sector, setSector] = useState(clientToEdit?.sector || "El Empalme");
+  const [sector, setSector] = useState(clientToEdit?.sector || "");
+  const [status, setStatus] = useState<Client["status"]>(clientToEdit?.status || "activo");
   const [requiresSriBilling, setRequiresSriBilling] = useState(
     clientToEdit?.requiresSriBilling ?? true
   );
@@ -109,6 +110,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           phone: phone.trim(),
           address: address.trim(),
           sector: sector.trim(),
+          status,
           requiresSriBilling,
           contactName: contactName.trim(),
           contactRole: contactRole.trim(),
@@ -128,7 +130,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             address: address.trim(),
             sector: sector.trim(),
             requiresSriBilling,
-            status: "activo",
+            status,
             totalActiveServices: 1,
             currentBalance: 0,
             contactName: contactName.trim(),
@@ -268,12 +270,12 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2">
+              <div>
                 <label className="font-bold text-[#434655] block mb-1">Dirección *</label>
                 <input
                   type="text"
                   required
-                  placeholder="El Empalme"
+                  placeholder="Av. Amazonas y Gaspar de Villarroel"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
@@ -284,11 +286,26 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <label className="font-bold text-[#434655] block mb-1">Sector / Zona</label>
                 <input
                   type="text"
-                  placeholder="El Empalme"
+                  placeholder="Sector / Parroquia"
                   value={sector}
                   onChange={(e) => setSector(e.target.value)}
                   className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#434655] block mb-1">Estado de Vigencia *</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as Client["status"])}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                >
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                  <option value="suspendido">Suspendido</option>
+                  <option value="retirado">Retirado</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
               </div>
             </div>
           </div>

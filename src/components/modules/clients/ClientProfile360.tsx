@@ -113,7 +113,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
     { id: "red", label: "Sedes & Nodos", icon: Radio, count: clientNodesList.length, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length, permission: "manage_vault" },
-    { id: "contratos", label: "Contratos", icon: ShieldCheck, count: contracts.length, permission: "manage_policies" },
+    { id: "contratos", label: "Servicios", icon: ShieldCheck, count: contracts.length, permission: "manage_policies" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, count: charges.length, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, count: clientTickets.length, permission: "manage_tickets" },

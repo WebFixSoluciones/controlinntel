@@ -46,7 +46,7 @@ export function ClientNodeModal({
 
   // Identificación básica
   const [name, setName] = useState("");
-  const [status, setStatus] = useState<NodeLocation["status"]>("online");
+  const [status, setStatus] = useState<NodeLocation["status"]>("reportado");
   const [mikrotikIp, setMikrotikIp] = useState("10.200.1.1");
   const [totalCapacityMbps, setTotalCapacityMbps] = useState<number>(1000);
   const [notes, setNotes] = useState("");
@@ -76,7 +76,7 @@ export function ClientNodeModal({
 
     if (nodeToEdit) {
       setName(nodeToEdit.name || "");
-      setStatus(nodeToEdit.status || "online");
+      setStatus(nodeToEdit.status || "reportado");
       setMikrotikIp(nodeToEdit.mikrotikIp || "10.200.1.1");
       setTotalCapacityMbps(nodeToEdit.totalCapacityMbps || 1000);
       setNotes(nodeToEdit.notes || "");
@@ -90,7 +90,7 @@ export function ClientNodeModal({
       setServices(nodeToEdit.services ? [...nodeToEdit.services] : []);
     } else {
       setName("");
-      setStatus("online");
+      setStatus("reportado");
       setMikrotikIp("10.200.1.1");
       setTotalCapacityMbps(1000);
       setNotes("");
@@ -310,16 +310,15 @@ export function ClientNodeModal({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Estado Operativo
+                    Estado Operativo ARCOTEL *
                   </label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as NodeLocation["status"])}
                     className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                   >
-                    <option value="online">Online (Operativo)</option>
-                    <option value="warning">Advertencia (Alerta NOC)</option>
-                    <option value="offline">Offline (Sin Señal)</option>
+                    <option value="reportado">Reportado (ARCOTEL / SIETEL)</option>
+                    <option value="no_reportado">No Reportado</option>
                   </select>
                 </div>
               </div>

@@ -186,19 +186,21 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                         <div className="flex items-center gap-2 mt-0.5">
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${
-                              isOnline
+                              node.status === "reportado" || node.status === "online"
                                 ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                : isWarning
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : "bg-rose-100 text-rose-800 border border-rose-200"
+                                : "bg-amber-100 text-amber-800 border border-amber-200"
                             }`}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
-                                isOnline ? "bg-emerald-600 animate-pulse" : isWarning ? "bg-amber-600" : "bg-rose-600"
+                                node.status === "reportado" || node.status === "online" ? "bg-emerald-600" : "bg-amber-600"
                               }`}
                             />
-                            {node.status}
+                            {node.status === "reportado"
+                              ? "REPORTADO"
+                              : node.status === "no_reportado"
+                              ? "NO REPORTADO"
+                              : node.status.toUpperCase()}
                           </span>
                           {node.totalCapacityMbps && (
                             <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">

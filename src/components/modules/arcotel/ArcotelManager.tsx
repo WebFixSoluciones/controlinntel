@@ -49,7 +49,7 @@ export function ArcotelManager() {
   const { showSuccess, showError, showConfirm } = useToast();
 
   const [activeTab, setActiveTab] = useState<
-    "concesion" | "sietel" | "fodetel" | "contingencia" | "bdh" | "transformador" | "polizas"
+    "concesion" | "sietel" | "fodetel" | "contingencia" | "bdh" | "infraestructura" | "transformador" | "polizas"
   >("concesion");
 
   const [sietelSubTab, setSietelSubTab] = useState<
@@ -407,6 +407,25 @@ export function ArcotelManager() {
         >
           <Database className="w-3.5 h-3.5" />
           <span>Sistema BDH</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("infraestructura")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === "infraestructura"
+              ? "bg-[#004ac6] text-white shadow-xs"
+              : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Registro de Infraestructura</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+              activeTab === "infraestructura" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
+            }`}
+          >
+            {getSubsystemFiles("registro_infraestructura").length}
+          </span>
         </button>
 
         <button
@@ -1047,6 +1066,96 @@ export function ArcotelManager() {
         </div>
       )}
 
+      {/* PESTAÑA: REGISTRO DE INFRAESTRUCTURA (ARCOTEL) */}
+      {activeTab === "infraestructura" && (
+        <div className="space-y-4">
+          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-xs text-[#0b1c30]">
+                Registro y Catastro de Infraestructura Física (ARCOTEL)
+              </h3>
+              <p className="text-[11px] text-[#737686]">
+                Carga y control documental de catastro de infraestructura pasiva y activa: tendido de fibra óptica, postes, canalizaciones subterráneas, torres y diagramas de red exigidos en auditorías regulatorias.
+              </p>
+            </div>
+            <button
+              onClick={() => handleOpenUploadModal("registro_infraestructura")}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Cargar Registro de Infraestructura</span>
+            </button>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[700px]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <tr>
+                    <th className="py-3 px-5">Periodo / Versión</th>
+                    <th className="py-3 px-5">Archivo de Infraestructura</th>
+                    <th className="py-3 px-5">Formato</th>
+                    <th className="py-3 px-5">Fecha Carga</th>
+                    <th className="py-3 px-5">Responsable</th>
+                    <th className="py-3 px-5 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+                  {getSubsystemFiles("registro_infraestructura").length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-xs text-slate-500 italic">
+                        No se han registrado archivos de infraestructura física aún.
+                      </td>
+                    </tr>
+                  ) : (
+                    getSubsystemFiles("registro_infraestructura").map((f) => (
+                      <tr key={f.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-3.5 px-5 font-bold text-[#0b1c30]">{f.period}</td>
+                        <td className="py-3.5 px-5">
+                          <div className="font-mono font-bold text-[#004ac6] flex items-center gap-1.5">
+                            {f.fileType === "pdf" ? (
+                              <FileCheck className="w-4 h-4 text-rose-600" />
+                            ) : f.fileType === "xlsx" || f.fileType === "csv" ? (
+                              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Building2 className="w-4 h-4 text-indigo-600" />
+                            )}
+                            <span>{f.fileName}</span>
+                            <span className="text-[10px] text-slate-400">({f.fileSize})</span>
+                          </div>
+                          {f.notes && <div className="text-[10px] text-slate-400 mt-0.5">{f.notes}</div>}
+                        </td>
+                        <td className="py-3.5 px-5 uppercase font-bold text-slate-600 text-[10px]">{f.fileType}</td>
+                        <td className="py-3.5 px-5 text-slate-600">{f.uploadedAt.split("T")[0]}</td>
+                        <td className="py-3.5 px-5 text-slate-700">{f.uploadedBy}</td>
+                        <td className="py-3.5 px-5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${f.fileName}...`)}
+                              className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
+                              title="Descargar archivo"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFile(f.id, f.fileName)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar archivo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PESTAÑA 6: REPORTERIA & TRANSFORMADOR ARCOTEL (PDF Página 4) */}
       {activeTab === "transformador" && (
         <div className="space-y-6">
@@ -1183,6 +1292,7 @@ export function ArcotelManager() {
                   <option value="fodetel">FODETEL (Trimestral)</option>
                   <option value="contingencia">Plan de Contingencia (Anual)</option>
                   <option value="bdh">Sistema BDH (Excel)</option>
+                  <option value="registro_infraestructura">Registro de Infraestructura Física (ARCOTEL)</option>
                 </select>
               </div>
 

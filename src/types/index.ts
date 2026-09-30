@@ -74,7 +74,7 @@ export interface Client {
   address: string;
   sector?: string;
   requiresSriBilling: boolean;
-  status: "activo" | "suspendido" | "retirado";
+  status: "activo" | "inactivo" | "suspendido" | "retirado" | "cancelado";
   totalActiveServices: number;
   currentBalance: number;
   createdAt: string;
@@ -186,7 +186,7 @@ export interface NodeLocation {
   totalCapacityMbps: number;
   usedCapacityMbps: number;
   mikrotikIp?: string;
-  status: "online" | "warning" | "offline";
+  status: "reportado" | "no_reportado" | "online" | "warning" | "offline";
   activeClientsCount?: number;
   notes?: string;
   providers?: NodeCarrierProvider[];
@@ -212,7 +212,8 @@ export type ArcotelSubsystem =
   | "sietel_capacidades"
   | "fodetel"
   | "contingencia"
-  | "bdh";
+  | "bdh"
+  | "registro_infraestructura";
 
 export interface ArcotelPeriodicFile {
   id: string;
@@ -487,6 +488,44 @@ export interface ClientContractInfo {
   notes?: string;
 }
 
+export interface HostingDomainRecord {
+  id: string;
+  clientId?: string;
+  clientName: string;
+  serviceType: "hosting" | "dominio" | "ssl" | "servidor";
+  domainOrService: string;
+  provider: string;
+  registrationDate: string;
+  expirationDate: string;
+  daysUntilExpiration: number;
+  annualCost: number;
+  status: "activo" | "por_vencer" | "vencido";
+  autoRenew: boolean;
+  alertDaysBefore: number;
+  contactEmail: string;
+  notes?: string;
+}
+
+export interface RegulatoryTramite {
+  id: string;
+  code: string;
+  documentNumber: string;
+  reason: string;
+  submissionDate: string;
+  entity: string;
+  dynamicStatus: "ingresado" | "en_revision" | "observado" | "subsanado" | "aprobado" | "finalizado" | "archivado";
+  assignedTo: string;
+  priority: "normal" | "alta" | "urgente";
+  notes?: string;
+  history?: {
+    date: string;
+    status: string;
+    note: string;
+    author: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export * from './inventory';
 export * from './billing';

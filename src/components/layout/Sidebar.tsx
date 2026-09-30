@@ -19,6 +19,7 @@ import {
   Ticket as TicketIcon,
   DollarSign,
   FileText,
+  ClipboardList,
   LogOut,
   Settings,
   Contact2,
@@ -103,6 +104,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
+  { href: "/tramites", label: "Trámites", icon: ClipboardList },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
   {
