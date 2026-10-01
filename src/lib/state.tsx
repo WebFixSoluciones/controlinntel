@@ -173,7 +173,7 @@ interface AppContextType {
 
   // Client 360 Extensions & Project Tasks
   clientProjects: ClientProjectTask[];
-  addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => Promise<ClientProjectTask>;
   updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => Promise<void>;
   moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn | string) => Promise<void>;
   addProjectTaskNote: (taskId: string, content: string) => Promise<void>;
@@ -363,7 +363,7 @@ interface AppContextType {
 
   // Trámites Regulatorios
   regulatoryTramites: RegulatoryTramite[];
-  addRegulatoryTramite: (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  addRegulatoryTramite: (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">) => Promise<RegulatoryTramite>;
   updateRegulatoryTramite: (id: string, updates: Partial<RegulatoryTramite>) => Promise<void>;
   deleteRegulatoryTramite: (id: string) => Promise<void>;
 
@@ -1185,6 +1185,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSystemUsers((prev) =>
       prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
     );
+    if (currentUser.uid === uid) {
+      setCurrentUser((prev) => ({ ...prev, ...updates }));
+    }
     addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(updates));
   };
 
@@ -1260,7 +1263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Client Project Tasks
-  const addClientProjectTask = async (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => {
+  const addClientProjectTask = async (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">): Promise<ClientProjectTask> => {
     const newTask: ClientProjectTask = {
       ...taskData,
       id: "prj-" + Date.now(),
@@ -1270,6 +1273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToFirestore("clientProjects", newTask.id, newTask);
     setClientProjects((prev) => [newTask, ...prev]);
     addAuditLog("CREATE_CLIENT", `Tarea de Proyecto: ${newTask.title}`, `Cliente: ${newTask.clientName || "General"}`);
+    return newTask;
   };
 
   const updateClientProjectTask = async (id: string, updates: Partial<ClientProjectTask>) => {
@@ -1396,7 +1400,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Trámites Regulatorios
-  const addRegulatoryTramite = async (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">) => {
+  const addRegulatoryTramite = async (item: Omit<RegulatoryTramite, "id" | "createdAt" | "updatedAt">): Promise<RegulatoryTramite> => {
     const now = new Date().toISOString();
     const newTramite: RegulatoryTramite = {
       ...item,
@@ -1410,6 +1414,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToFirestore("regulatoryTramites", newTramite.id, newTramite);
     setRegulatoryTramites((prev) => [newTramite, ...prev]);
     addAuditLog("GENERATE_DOC", `Trámite Institucional: ${newTramite.documentNumber}`, `Motivo: ${newTramite.reason}`);
+    return newTramite;
   };
 
   const updateRegulatoryTramite = async (id: string, updates: Partial<RegulatoryTramite>) => {

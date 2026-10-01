@@ -739,6 +739,7 @@ export const DEMO_PROJECT_TASKS: ClientProjectTask[] = [
         createdAt: "2026-09-26T11:00:00Z",
       },
     ],
+    tramiteIds: ["trm-001", "trm-002"],
     createdAt: "2026-09-25T10:00:00Z",
     updatedAt: "2026-09-27T16:00:00Z",
   },
@@ -2588,6 +2589,12 @@ export const INITIAL_HOSTING_DOMAINS: HostingDomainRecord[] = [
 export const INITIAL_REGULATORY_TRAMITES: RegulatoryTramite[] = [
   {
     id: "trm-001",
+    clientId: "cli-arteaga-01",
+    clientName: "ARTEAGA MUÑOZ DANNY HERNAN",
+    taskId: "tsk-dh-01",
+    taskTitle: "Estudio de Cobertura y Factibilidad FTTH",
+    projectId: "prj-2026-003",
+    projectName: "Adecuación Red GPON & Despliegue de Servicios",
     code: "TRM-2026-001",
     documentNumber: "OFICIO-ARCOTEL-CZO5-2026-0418-O",
     reason: "Registro e Incorporación de Enlace de Fibra Óptica Nivel Cantonal",
@@ -2606,6 +2613,12 @@ export const INITIAL_REGULATORY_TRAMITES: RegulatoryTramite[] = [
   },
   {
     id: "trm-002",
+    clientId: "cli-arteaga-01",
+    clientName: "ARTEAGA MUÑOZ DANNY HERNAN",
+    taskId: "tsk-dh-01",
+    taskTitle: "Estudio de Cobertura y Factibilidad FTTH",
+    projectId: "prj-2026-003",
+    projectName: "Adecuación Red GPON & Despliegue de Servicios",
     code: "TRM-2026-002",
     documentNumber: "QUIPUX-INT-2026-0891",
     reason: "Solicitud de Asignación y Certificación de Rango de Frecuencias de Emergencia",
@@ -2624,6 +2637,8 @@ export const INITIAL_REGULATORY_TRAMITES: RegulatoryTramite[] = [
   },
   {
     id: "trm-003",
+    clientId: "cli-demo-corp-01",
+    clientName: "CORPORACIÓN INDUSTRIAL Y LOGÍSTICA ECUATORIANA C.A.",
     code: "TRM-2026-003",
     documentNumber: "BOMBEROS-PERM-2026-112",
     reason: "Permiso de Funcionamiento y Visto Bueno de Prevención de Incendios POP Central",

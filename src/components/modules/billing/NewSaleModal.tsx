@@ -703,7 +703,7 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Emitir Factura Electrónica SRI</span>
+                  <span>Registrar Venta (SRI)</span>
                 </>
               )}
             </button>

@@ -41,6 +41,7 @@ import {
   Layers,
   ShieldAlert,
   Briefcase,
+  FileText,
 } from "lucide-react";
 
 interface ClientTasksTabProps {
@@ -51,6 +52,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
   const {
     projects,
     clientProjects,
+    regulatoryTramites,
     currentUser,
     systemUsers,
     addClientProjectTask,
@@ -649,6 +651,11 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               const completedChecklist = task.checklist ? task.checklist.filter((c) => c.done).length : 0;
               const checklistPercent = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
 
+              // Trámites vinculados a esta tarea
+              const taskTramites = regulatoryTramites.filter(
+                (t) => (task.tramiteIds || []).includes(t.id) || t.taskId === task.id
+              );
+
               // Priority pill style
               const priorityStyles: Record<string, { bg: string; text: string; border: string; dot: string }> = {
                 urgente: { bg: "bg-rose-50", text: "text-rose-800", border: "border-rose-200", dot: "bg-rose-500 animate-ping" },
@@ -705,6 +712,14 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                             <Briefcase className="w-3 h-3" />
                             <span>{task.projectName}</span>
+                          </span>
+                        )}
+
+                        {/* Trámites Vinculados Badge */}
+                        {taskTramites.length > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <FileText className="w-3 h-3" />
+                            <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
                           </span>
                         )}
                       </div>
@@ -795,6 +810,41 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                         </select>
                       </div>
                     </div>
+
+                    {/* Trámites Regulatorios / Institucionales Vinculados */}
+                    {taskTramites.length > 0 && (
+                      <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
+                          <span className="flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Trámites Regulatorios / Institucionales Vinculados ({taskTramites.length})</span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {taskTramites.map((trm) => (
+                            <div
+                              key={trm.id}
+                              className="bg-white p-2.5 rounded-lg border border-indigo-100 flex items-center justify-between gap-2 shadow-2xs text-[11px]"
+                            >
+                              <div className="min-w-0">
+                                <span className="font-mono font-bold text-[#004ac6] block truncate">
+                                  {trm.documentNumber}
+                                </span>
+                                <span className="text-[10px] text-slate-600 truncate block font-medium">
+                                  {trm.reason}
+                                </span>
+                                <span className="text-[9px] text-slate-400 block">
+                                  {trm.entity.split("(")[0].trim()} • {trm.submissionDate}
+                                </span>
+                              </div>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase shrink-0">
+                                {trm.dynamicStatus.replace("_", " ")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Subtareas Checklist (si existen) */}
                     {totalChecklist > 0 && (
@@ -1003,6 +1053,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                       const checklistPercent = totalChecklist > 0 ? Math.round((completedChecklist / totalChecklist) * 100) : 0;
                       const isTaskOverdue = new Date(task.dueDate).getTime() < Date.now() && task.column !== "completado" && task.column !== "finalizado";
                       const notesCount = task.notesThread ? task.notesThread.length : 0;
+                      const taskTramites = regulatoryTramites.filter(
+                        (t) => (task.tramiteIds || []).includes(t.id) || t.taskId === task.id
+                      );
 
                       return (
                         <div
@@ -1050,6 +1103,15 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                               <div className="text-[10px] font-bold text-[#004ac6] flex items-center gap-1 mb-1">
                                 <Briefcase className="w-3 h-3 text-[#004ac6]" />
                                 <span className="truncate">{task.projectName}</span>
+                              </div>
+                            )}
+
+                            {taskTramites.length > 0 && (
+                              <div className="flex items-center gap-1 mb-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  <FileText className="w-3 h-3" />
+                                  <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
+                                </span>
                               </div>
                             )}
                             <h5

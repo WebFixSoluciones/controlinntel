@@ -48,11 +48,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/clientes", label: "Clientes", icon: Users },
   {
     href: "/facturacion",
-    label: "Facturación SRI",
+    label: "Ventas",
     icon: Receipt,
     moduleKey: "facturacion",
     submodules: [
-      { key: "facturas", label: "Facturas Emitidas", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
+      { key: "facturas", label: "Historial de Ventas", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
       { key: "nueva_venta", label: "Registrar Venta", href: "/facturacion?sub=nueva_venta", submoduleKey: "facturas" },
       { key: "cotizaciones", label: "Cotizaciones", href: "/facturacion?sub=cotizaciones", submoduleKey: "cotizaciones" },
       { key: "notas_credito", label: "Notas de Crédito", href: "/facturacion?sub=notas_credito", submoduleKey: "notas_credito" },
@@ -103,8 +103,6 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
-  { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck },
-  { href: "/tramites", label: "Trámites", icon: ClipboardList },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
   {
@@ -163,17 +161,6 @@ function SidebarContent() {
 
   const toggleAccordion = (href: string) => {
     setOpenAccordions((prev) => ({ ...prev, [href]: !prev[href] }));
-  };
-
-  const handleLogout = () => {
-    showConfirm(
-      "¿Cerrar Sesión?",
-      `¿Estás seguro de que deseas salir del panel (${currentUser.displayName})?`,
-      () => {
-        logout();
-        showInfo("Sesión Cerrada", "Has salido del sistema de manera segura.");
-      }
-    );
   };
 
   return (
@@ -317,33 +304,6 @@ function SidebarContent() {
           );
         })}
       </nav>
-
-      {/* User Info & Logout Button */}
-      <div className="p-3 border-t border-[#e2e8f0] bg-white">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0]">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#004ac6]/10 text-[#004ac6] font-bold flex items-center justify-center text-xs shrink-0">
-              {currentUser.displayName.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-[#0b1c30] truncate">
-                {currentUser.displayName}
-              </div>
-              <div className="text-[10px] text-[#737686] capitalize truncate">
-                {currentUser.role}
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="p-1.5 text-[#737686] hover:text-[#dc2626] hover:bg-[#fef2f2] rounded-lg transition-colors cursor-pointer"
-            title="Cerrar Sesión"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }

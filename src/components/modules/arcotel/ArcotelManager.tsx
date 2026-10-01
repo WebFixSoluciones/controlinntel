@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem } from "@/types";
+import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem, Client } from "@/types";
 import { PoliciesList } from "./PoliciesList";
 import { PolicyModal } from "./PolicyModal";
 import {
@@ -32,7 +32,12 @@ import {
   Search,
 } from "lucide-react";
 
-export function ArcotelManager() {
+interface ArcotelManagerProps {
+  client?: Client;
+  isEmbedded?: boolean;
+}
+
+export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerProps = {}) {
   const {
     arcotelConcession,
     updateArcotelConcession,
@@ -312,7 +317,34 @@ export function ArcotelManager() {
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6 select-none animate-in fade-in duration-150">
+      {/* Banner de Cliente si está integrado en la Ficha del Cliente */}
+      {client && (
+        <div className="bg-gradient-to-r from-[#eff4ff] via-white to-sky-50 border border-[#c3d3ff] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#004ac6] text-white flex items-center justify-center font-bold shadow-xs">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-[#0b1c30]">Expediente Regulatorio ARCOTEL del Cliente</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Habilitado
+                </span>
+              </div>
+              <p className="text-[11px] text-[#737686]">
+                Razón Social: <strong>{client.businessName}</strong> • Identificación: <strong>{client.identificationNumber}</strong>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-mono text-[#004ac6] bg-white px-2.5 py-1 rounded-lg border border-[#cbd5e1] font-bold">
+              Código Concesionario: {arcotelConcession.concessionaireCode}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Action Toolbar without redundant description */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">

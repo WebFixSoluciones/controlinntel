@@ -480,6 +480,9 @@ export interface ClientProjectTask {
   notesThread?: ProjectNoteItem[];
   notes?: string;
 
+  // Trámites vinculados a la tarea
+  tramiteIds?: string[];
+
   createdAt: string;
   updatedAt: string;
 }
@@ -556,6 +559,12 @@ export interface HostingDomainRecord {
 
 export interface RegulatoryTramite {
   id: string;
+  clientId?: string;
+  clientName?: string;
+  taskId?: string;
+  taskTitle?: string;
+  projectId?: string;
+  projectName?: string;
   code: string;
   documentNumber: string;
   reason: string;

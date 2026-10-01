@@ -323,7 +323,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
             type="button"
             onClick={onBack}
             className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition cursor-pointer"
-            title="Volver a Facturas Emitidas"
+            title="Volver a Historial de Ventas"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -361,7 +361,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Emitir Factura Electrónica SRI</span>
+                <span>Registrar Venta (SRI)</span>
               </>
             )}
           </button>
@@ -787,7 +787,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Emitir Factura Electrónica SRI</span>
+                <span>Registrar Venta (SRI)</span>
               </>
             )}
           </button>

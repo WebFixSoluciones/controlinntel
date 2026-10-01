@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -9,7 +9,9 @@ import {
   ProjectKanbanColumn,
   ProjectChecklistItem,
   ProjectNoteItem,
+  RegulatoryTramite,
 } from "@/types";
+import { TramiteModal } from "@/components/modules/tramites/TramiteModal";
 import {
   X,
   Kanban,
@@ -30,6 +32,10 @@ import {
   Layers,
   Send,
   Briefcase,
+  FileText,
+  Tag,
+  ExternalLink,
+  Edit2,
 } from "lucide-react";
 
 export const ISP_FLOW_COLUMNS: { id: ProjectKanbanColumn; label: string; shortLabel: string; color: string; badge: string; dot: string }[] = [
@@ -79,13 +85,15 @@ export function ProjectTaskModal({
     projects,
     systemUsers,
     currentUser,
+    regulatoryTramites,
+    updateRegulatoryTramite,
     addClientProjectTask,
     updateClientProjectTask,
     addProjectTaskNote,
   } = useApp();
   const { showSuccess, showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"general" | "presupuesto" | "checklist" | "bitacora">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "presupuesto" | "checklist" | "tramites" | "bitacora">("general");
 
   // Project linking state
   const [projectId, setProjectId] = useState<string>("");
@@ -120,6 +128,29 @@ export function ProjectTaskModal({
   const [notesThread, setNotesThread] = useState<ProjectNoteItem[]>([]);
   const [newNoteContent, setNewNoteContent] = useState("");
 
+  // Trámites vinculados a esta tarea
+  const [tramiteIds, setTramiteIds] = useState<string[]>([]);
+  const [isTramiteModalOpen, setIsTramiteModalOpen] = useState(false);
+  const [tramiteToEditInTask, setTramiteToEditInTask] = useState<RegulatoryTramite | null>(null);
+  const [selectedTramiteToLink, setSelectedTramiteToLink] = useState("");
+
+  // Trámites vinculados calculados
+  const linkedTramites = useMemo(() => {
+    return regulatoryTramites.filter(
+      (t) => tramiteIds.includes(t.id) || (taskToEdit && t.taskId === taskToEdit.id)
+    );
+  }, [regulatoryTramites, tramiteIds, taskToEdit]);
+
+  // Trámites del cliente que aún no están vinculados a esta tarea
+  const unlinkedClientTramites = useMemo(() => {
+    return regulatoryTramites.filter(
+      (t) =>
+        (!clientId || t.clientId === clientId) &&
+        !tramiteIds.includes(t.id) &&
+        (!taskToEdit || t.taskId !== taskToEdit.id)
+    );
+  }, [regulatoryTramites, clientId, tramiteIds, taskToEdit]);
+
   // Synchronize on open or change
   useEffect(() => {
     if (!isOpen) return;
@@ -148,6 +179,7 @@ export function ProjectTaskModal({
       setExecutedCost(taskToEdit.executedCost || 0);
       setChecklist(taskToEdit.checklist ? [...taskToEdit.checklist] : []);
       setNotesThread(taskToEdit.notesThread ? [...taskToEdit.notesThread] : []);
+      setTramiteIds(taskToEdit.tramiteIds ? [...taskToEdit.tramiteIds] : []);
     } else {
       // New task default values
       setProjectId(defaultProjectId || "");
@@ -191,6 +223,7 @@ export function ProjectTaskModal({
       setExecutedCost(0);
       setChecklist([]);
       setNotesThread([]);
+      setTramiteIds([]);
     }
     setActiveTab("general");
     setNewChecklistText("");
@@ -312,13 +345,48 @@ export function ProjectTaskModal({
         executedCost: Number(executedCost) || 0,
         checklist,
         notesThread,
+        tramiteIds,
       };
 
       if (taskToEdit) {
         await updateClientProjectTask(taskToEdit.id, taskDataPayload);
+
+        // Sincronizar trámites vinculados
+        for (const tId of tramiteIds) {
+          await updateRegulatoryTramite(tId, {
+            taskId: taskToEdit.id,
+            taskTitle: title.trim(),
+            projectId: projectId || undefined,
+            projectName: projectName || undefined,
+            clientId: projectType === "cliente" ? clientId : undefined,
+            clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName) : undefined,
+          });
+        }
+
+        // Si se desvinculó algún trámite que antes estaba asociado
+        const removedTramiteIds = (taskToEdit.tramiteIds || []).filter((id) => !tramiteIds.includes(id));
+        for (const rId of removedTramiteIds) {
+          await updateRegulatoryTramite(rId, {
+            taskId: undefined,
+            taskTitle: undefined,
+          });
+        }
+
         showSuccess("Proyecto Actualizado", `Los cambios en "${title}" se han guardado.`);
       } else {
-        await addClientProjectTask(taskDataPayload);
+        const createdTask = await addClientProjectTask(taskDataPayload);
+        if (createdTask && tramiteIds.length > 0) {
+          for (const tId of tramiteIds) {
+            await updateRegulatoryTramite(tId, {
+              taskId: createdTask.id,
+              taskTitle: createdTask.title,
+              projectId: projectId || undefined,
+              projectName: projectName || undefined,
+              clientId: projectType === "cliente" ? clientId : undefined,
+              clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName) : undefined,
+            });
+          }
+        }
         showSuccess("Proyecto Creado", `"${title}" ha sido incorporado al tablero Kanban.`);
       }
       onClose();
@@ -410,6 +478,24 @@ export function ProjectTaskModal({
             {checklist.length > 0 && (
               <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full font-bold">
                 {completedChecklistCount}/{checklist.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("tramites")}
+            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              activeTab === "tramites"
+                ? "border-[#004ac6] text-[#004ac6]"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Trámites</span>
+            {linkedTramites.length > 0 && (
+              <span className="text-[10px] bg-blue-100 text-[#004ac6] px-1.5 py-0.5 rounded-full font-bold">
+                {linkedTramites.length}
               </span>
             )}
           </button>
@@ -917,6 +1003,164 @@ export function ProjectTaskModal({
             </div>
           )}
 
+          {/* TAB: TRÁMITES INSTITUCIONALES Y REGULATORIOS */}
+          {activeTab === "tramites" && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-blue-50/70 via-white to-sky-50/40 rounded-2xl border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#004ac6] text-white flex items-center justify-center shadow-xs">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs">
+                      Trámites Regulatorios e Institucionales de esta Tarea
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Asocia oficios, autorizaciones ARCOTEL, permisos municipales o solicitudes a esta actividad.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTramiteToEditInTask(null);
+                    setIsTramiteModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Registrar Nuevo Trámite</span>
+                </button>
+              </div>
+
+              {/* Selector para vincular trámite existente */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <label className="text-xs font-bold text-slate-800 block">
+                  Vincular Trámite Existente del Cliente
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select
+                    value={selectedTramiteToLink}
+                    onChange={(e) => setSelectedTramiteToLink(e.target.value)}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  >
+                    <option value="">-- Seleccionar trámite de la lista ({unlinkedClientTramites.length} disponibles) --</option>
+                    {unlinkedClientTramites.map((t: RegulatoryTramite) => (
+                      <option key={t.id} value={t.id}>
+                        {t.documentNumber} - {t.reason.substring(0, 45)}... ({t.entity.split("(")[0].trim()})
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    disabled={!selectedTramiteToLink}
+                    onClick={() => {
+                      if (selectedTramiteToLink && !tramiteIds.includes(selectedTramiteToLink)) {
+                        setTramiteIds([...tramiteIds, selectedTramiteToLink]);
+                        setSelectedTramiteToLink("");
+                        showSuccess("Trámite Vinculado", "El trámite fue asignado a esta tarea.");
+                      }
+                    }}
+                    className="px-4 py-2 bg-white border border-[#004ac6] text-[#004ac6] hover:bg-[#eff4ff] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Asignar a esta Tarea</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabla o Lista de Trámites Vinculados */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span>Trámites Asignados a esta Tarea ({linkedTramites.length})</span>
+                </div>
+
+                {linkedTramites.length === 0 ? (
+                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white text-xs text-slate-400 space-y-1">
+                    <FileText className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+                    <p className="font-bold text-slate-600">No hay trámites asignados a esta tarea</p>
+                    <p className="text-[11px] text-slate-400">
+                      Puedes vincular un trámite existente arriba o crear uno nuevo con el botón superior.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {linkedTramites.map((t: RegulatoryTramite) => (
+                      <div
+                        key={t.id}
+                        className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-blue-300 transition-all"
+                      >
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-[#004ac6]">
+                              {t.documentNumber}
+                            </span>
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                              {t.code}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                t.dynamicStatus === "aprobado" || t.dynamicStatus === "finalizado"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : t.dynamicStatus === "observado"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
+                              {t.dynamicStatus.replace("_", " ")}
+                            </span>
+                            {t.priority === "urgente" && (
+                              <span className="text-[9px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded uppercase">
+                                Urgente
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-semibold text-slate-800 truncate" title={t.reason}>
+                            {t.reason}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                            <span>Organismo: <strong>{t.entity.split("(")[0].trim()}</strong></span>
+                            <span>•</span>
+                            <span>Fecha: <strong>{t.submissionDate}</strong></span>
+                            <span>•</span>
+                            <span>Responsable: <strong>{t.assignedTo}</strong></span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTramiteToEditInTask(t);
+                              setIsTramiteModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                            title="Editar trámite"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTramiteIds(tramiteIds.filter((id) => id !== t.id));
+                              showSuccess("Desvinculado", `Trámite ${t.documentNumber} desvinculado de la tarea.`);
+                            }}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Desvincular trámite de esta tarea"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TAB 4: BITÁCORA DE NOTAS */}
           {activeTab === "bitacora" && (
             <div className="space-y-4">
@@ -1002,6 +1246,28 @@ export function ProjectTaskModal({
           </div>
         </form>
       </div>
+
+      {isTramiteModalOpen && (
+        <TramiteModal
+          isOpen={isTramiteModalOpen}
+          onClose={() => {
+            setIsTramiteModalOpen(false);
+            setTramiteToEditInTask(null);
+          }}
+          tramiteToEdit={tramiteToEditInTask}
+          defaultClientId={clientId}
+          defaultClientName={clientName}
+          defaultTaskId={taskToEdit?.id}
+          defaultTaskTitle={title || "Tarea"}
+          defaultProjectId={projectId}
+          defaultProjectName={projectName}
+          onSaved={(saved) => {
+            if (saved?.id && !tramiteIds.includes(saved.id)) {
+              setTramiteIds((prev) => [...prev, saved.id]);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

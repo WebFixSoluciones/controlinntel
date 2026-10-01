@@ -37,6 +37,7 @@ import {
   Settings2,
   Briefcase,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 
 export const COLUMN_COLORS: Record<
@@ -118,6 +119,7 @@ export function ProjectWorkspace({
 }: ProjectWorkspaceProps) {
   const {
     clientProjects,
+    regulatoryTramites,
     updateProject,
     updateProjectColumns,
     moveProjectTaskColumn,
@@ -648,6 +650,10 @@ export function ProjectWorkspace({
                           baja: { bg: "bg-slate-100 text-slate-700", text: "Baja" },
                         };
 
+                        const taskTramites = regulatoryTramites.filter(
+                          (t) => (task.tramiteIds || []).includes(t.id) || t.taskId === task.id
+                        );
+
                         return (
                           <div
                             key={task.id}
@@ -688,6 +694,15 @@ export function ProjectWorkspace({
                                 </button>
                               </div>
                             </div>
+
+                            {taskTramites.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  <FileText className="w-3 h-3 text-indigo-600" />
+                                  <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
+                                </span>
+                              </div>
+                            )}
 
                             <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#004ac6] transition-colors leading-snug line-clamp-2">
                               {task.title}
@@ -804,6 +819,7 @@ export function ProjectWorkspace({
                   <th className="py-3 px-4">Prioridad</th>
                   <th className="py-3 px-4">Asignado</th>
                   <th className="py-3 px-4">Fecha Límite</th>
+                  <th className="py-3 px-4">Trámites</th>
                   <th className="py-3 px-4">Checklist</th>
                   <th className="py-3 px-4">Presupuesto / Costo</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
@@ -812,7 +828,7 @@ export function ProjectWorkspace({
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-xs text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-xs text-slate-400">
                       No se encontraron tareas registradas en este proyecto.
                     </td>
                   </tr>
@@ -822,6 +838,9 @@ export function ProjectWorkspace({
                     const colStyle = getColStyle(currentCol?.color);
                     const completedSubtasks = task.checklist?.filter((c) => c.done).length || 0;
                     const totalSubtasks = task.checklist?.length || 0;
+                    const taskTramites = regulatoryTramites.filter(
+                      (t) => (task.tramiteIds || []).includes(t.id) || t.taskId === task.id
+                    );
 
                     return (
                       <tr key={task.id} className="hover:bg-slate-50/70 transition-colors">
@@ -881,6 +900,25 @@ export function ProjectWorkspace({
                             <Calendar className="w-3.5 h-3.5 text-slate-400" />
                             {task.dueDate}
                           </span>
+                        </td>
+
+                        <td className="py-3 px-4">
+                          {taskTramites.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-1 max-w-[140px]">
+                              {taskTramites.map((trm) => (
+                                <span
+                                  key={trm.id}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
+                                  title={`${trm.documentNumber}: ${trm.reason}`}
+                                >
+                                  <FileText className="w-3 h-3 text-indigo-600 shrink-0" />
+                                  <span className="font-mono truncate">{trm.documentNumber}</span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
+                          )}
                         </td>
 
                         <td className="py-3 px-4">

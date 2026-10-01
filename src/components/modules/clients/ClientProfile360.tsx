@@ -11,6 +11,8 @@ import { ClientVaultTab } from "./ClientVaultTab";
 import { ClientContractTab } from "./ClientContractTab";
 import { ClientDossierTab } from "./ClientDossierTab";
 import { ClientNodesTab } from "./ClientNodesTab";
+import { ClientTramitesTab } from "./ClientTramitesTab";
+import { ClientArcotelTab } from "./ClientArcotelTab";
 import {
   X,
   User,
@@ -22,6 +24,7 @@ import {
   Ticket as TicketIcon,
   Kanban,
   ListTodo,
+  FileText,
   Printer,
   Edit2,
   Download,
@@ -52,6 +55,8 @@ type ProfileTab =
   | "finanzas"
   | "tickets"
   | "proyectos"
+  | "tramites"
+  | "arcotel"
   | "dossier";
 
 export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Props) {
@@ -64,6 +69,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     clientVaultItems,
     clientContracts,
     nodes,
+    regulatoryTramites,
     currentUser,
     markChargeAsPaid,
   } = useApp();
@@ -136,6 +142,17 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     ).length;
   }, [clientProjects, client.id]);
 
+  const clientPendingTramitesCount = useMemo(() => {
+    return regulatoryTramites.filter(
+      (t) =>
+        (t.clientId === client.id ||
+          (t.clientName && t.clientName.toLowerCase() === client.businessName.toLowerCase())) &&
+        t.dynamicStatus !== "aprobado" &&
+        t.dynamicStatus !== "finalizado" &&
+        t.dynamicStatus !== "archivado"
+    ).length;
+  }, [regulatoryTramites, client.id, client.businessName]);
+
   const allTabs: { id: ProfileTab; label: string; icon: any; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
     { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
@@ -145,6 +162,8 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
     { id: "proyectos", label: "Tareas", icon: ListTodo, permission: "manage_network" },
+    { id: "tramites", label: "Trámites", icon: FileText, permission: "manage_clients" },
+    { id: "arcotel", label: "ARCOTEL", icon: ShieldAlert, permission: "manage_clients" },
     { id: "dossier", label: "Informes", icon: Printer, permission: "manage_clients" },
   ];
 
@@ -247,6 +266,17 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                     }`}
                   >
                     {clientPendingTasksCount}
+                  </span>
+                )}
+                {tab.id === "tramites" && clientPendingTramitesCount > 0 && (
+                  <span
+                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive
+                        ? "bg-white text-[#004ac6]"
+                        : "bg-blue-100 text-blue-900 border border-blue-300"
+                    }`}
+                  >
+                    {clientPendingTramitesCount}
                   </span>
                 )}
               </button>
@@ -534,6 +564,12 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
           {/* TAB 8: TAREAS / GESTOR DE CRONOGRAMA & SEGUIMIENTO */}
           {currentTabAllowed && activeTab === "proyectos" && <ClientTasksTab client={client} />}
+
+          {/* TAB: TRAMITES INSTITUCIONALES & REGULATORIOS */}
+          {currentTabAllowed && activeTab === "tramites" && <ClientTramitesTab client={client} />}
+
+          {/* TAB: EXPEDIENTE REGULATORIO ARCOTEL */}
+          {currentTabAllowed && activeTab === "arcotel" && <ClientArcotelTab client={client} />}
 
           {/* TAB 9: DOSSIER TECNICO INTEGRAL */}
           {currentTabAllowed && activeTab === "dossier" && <ClientDossierTab client={client} />}

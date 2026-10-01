@@ -285,7 +285,7 @@ export function BillingManager() {
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Emitir Factura</span>
+                <span>Registrar Venta</span>
               </button>
             )}
 
