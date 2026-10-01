@@ -235,7 +235,7 @@ export function AccountsPayableTab() {
               <th className="py-3 px-4 font-bold">Vencimiento</th>
               <th className="py-3 px-4 font-bold text-center">Semáforo</th>
               <th className="py-3 px-4 font-bold text-right">Total Factura</th>
-              <th className="py-3 px-4 font-bold text-right">Abonado</th>
+              <th className="py-3 px-4 font-bold text-right">Monto Pagado</th>
               <th className="py-3 px-4 font-bold text-right">Saldo Pendiente</th>
               <th className="py-3 px-4 font-bold text-center">Acción</th>
             </tr>

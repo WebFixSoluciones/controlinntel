@@ -49,10 +49,10 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => setIsNewClientModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Registrar nuevo abonado"
+                title="Registrar nuevo cliente"
               >
                 <UserPlus className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
-                <span>Nuevo Abonado</span>
+                <span>Nuevo Cliente</span>
               </button>
 
               <Link

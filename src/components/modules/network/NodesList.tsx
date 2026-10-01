@@ -92,7 +92,7 @@ export function NodesList() {
               <th scope="col" className="px-5 py-3 font-bold">Proveedor</th>
               <th scope="col" className="px-5 py-3 font-bold">RouterOS</th>
               <th scope="col" className="px-5 py-3 font-bold">Capacidad</th>
-              <th scope="col" className="px-5 py-3 text-right font-bold">Abonados</th>
+              <th scope="col" className="px-5 py-3 text-right font-bold">Clientes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">

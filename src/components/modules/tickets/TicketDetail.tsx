@@ -48,11 +48,11 @@ const CANNED_RESPONSES = [
   },
   {
     title: "Verificación de Potencia Óptica Normal",
-    body: "Estimado abonado, hemos verificado desde el OLT los niveles de potencia óptica de su enlace, registrando valores dentro del rango estándar (-19 dBm a -23 dBm). Por favor confirme si en su equipo ONT la luz 'PON' se encuentra encendida en color verde fijo o si parpadea la luz 'LOS'.",
+    body: "Estimado cliente, hemos verificado desde el OLT los niveles de potencia óptica de su enlace, registrando valores dentro del rango estándar (-19 dBm a -23 dBm). Por favor confirme si en su equipo ONT la luz 'PON' se encuentra encendida en color verde fijo o si parpadea la luz 'LOS'.",
   },
   {
     title: "Despacho de Cuadrilla Técnica en Terreno",
-    body: "Estimado abonado, se ha derivado su caso al departamento de Planta Externa con orden de trabajo prioritaria. Una cuadrilla técnica se trasladará a su domicilio para verificar la acometida de fibra óptica y el conector SC/APC. Nos comunicaremos previamente al número de contacto registrado.",
+    body: "Estimado cliente, se ha derivado su caso al departamento de Planta Externa con orden de trabajo prioritaria. Una cuadrilla técnica se trasladará a su domicilio para verificar la acometida de fibra óptica y el conector SC/APC. Nos comunicaremos previamente al número de contacto registrado.",
   },
   {
     title: "Interrupción de Servicio por Falla Masiva",
@@ -404,7 +404,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                 onChange={(e) => setReplyBody(e.target.value)}
                 placeholder={
                   replyMode === "reply"
-                    ? "Escribe la respuesta formal para el cliente/abonado..."
+                    ? "Escribe la respuesta formal para el cliente..."
                     : "Escribe una nota interna para la cuadrilla (detalles de mufa, niveles de potencia, causas del corte)..."
                 }
                 className={`w-full p-3 rounded-xl border text-xs focus:outline-hidden transition-colors ${
@@ -499,7 +499,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                     <div>
                       <span className="font-bold text-xs text-[#0b1c30]">{ticket.clientName}</span>
                       <span className="ml-2 px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#f1f5f9] text-[#434655]">
-                        Abonado / Solicitud Inicial
+                        Cliente / Solicitud Inicial
                       </span>
                     </div>
                   </div>
@@ -593,15 +593,15 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         {/* RIGHT COLUMN: Ticket Properties & Subscriber Dossier (4c) */}
         {/* ========================================================= */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Card 1: Ficha del Abonado */}
+          {/* Card 1: Ficha del Cliente */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-2xs space-y-3">
             <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-2">
               <h4 className="font-bold text-xs text-[#0b1c30] flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-[#004ac6]" />
-                <span>Ficha del Abonado</span>
+                <span>Ficha del Cliente</span>
               </h4>
               <Link
-                href={`/abonados?id=${ticket.clientId}`}
+                href={`/clientes?id=${ticket.clientId}`}
                 className="text-[11px] text-[#004ac6] hover:underline font-bold flex items-center gap-0.5"
               >
                 <span>Ficha 360°</span>

@@ -111,7 +111,7 @@ export function TemplateGenerator() {
 
   const handleDownloadContract = async () => {
     if (clients.length === 0) {
-      showWarning("Sin Clientes", "No hay abonados registrados para generar el contrato.");
+      showWarning("Sin Clientes", "No hay clientes registrados para generar el contrato.");
       return;
     }
     try {

@@ -413,7 +413,7 @@ export function ProjectTaskModal({
                       }`}
                     >
                       <Building2 className="w-3.5 h-3.5" />
-                      <span>Abonado / Cliente</span>
+                      <span>Cliente</span>
                     </button>
 
                     <button
@@ -469,7 +469,7 @@ export function ProjectTaskModal({
               {projectType === "cliente" ? (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Cliente / Abonado Asignado <span className="text-rose-500">*</span>
+                    Cliente Asignado <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={clientId}

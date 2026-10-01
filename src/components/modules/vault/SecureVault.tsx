@@ -136,7 +136,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
         <div className="flex items-center gap-2">
           <KeyRound className="w-5 h-5 text-[#004ac6]" />
           <h2 className="text-lg font-bold text-[#0b1c30]">
-            {clientId ? "Credenciales & Claves del Abonado" : "Accesos Cifrados de Infraestructura NOC"}
+            {clientId ? "Credenciales & Claves del Cliente" : "Accesos Cifrados de Infraestructura NOC"}
           </h2>
         </div>
 

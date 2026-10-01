@@ -257,7 +257,7 @@ export function ProjectsManager() {
             className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Tipos</option>
-            <option value="cliente">Solo Clientes / Abonados</option>
+            <option value="cliente">Solo Clientes</option>
             <option value="infraestructura_interna">Solo Infraestructura (POPs / Nodos)</option>
           </select>
 

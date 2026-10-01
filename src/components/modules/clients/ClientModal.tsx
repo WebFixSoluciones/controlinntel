@@ -76,7 +76,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         setContacts([]);
       }
     } else {
-      // Valores iniciales limpios al crear un nuevo abonado
+      // Valores iniciales limpios al crear un nuevo cliente
       setIdentificationType("RUC");
       setIdentificationNumber("");
       setBusinessName("");
@@ -231,7 +231,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             cutoffDay: Number(cutoffDay),
           }
         );
-        showSuccess("Abonado Registrado", `Nuevo cliente ${businessName} registrado con modalidad ${billingType.toUpperCase()}.`);
+        showSuccess("Cliente Registrado", `Nuevo cliente ${businessName} registrado con modalidad ${billingType.toUpperCase()}.`);
       }
 
       onClose();
@@ -257,7 +257,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-sm md:text-base">
-                {clientToEdit ? `Editar Ficha de Abonado: ${clientToEdit.businessName}` : "Registrar Nuevo Abonado"}
+                {clientToEdit ? `Editar Ficha de Cliente: ${clientToEdit.businessName}` : "Registrar Nuevo Cliente"}
               </h3>
               <p className="text-[11px] text-[#737686]">
                 {clientToEdit
@@ -404,13 +404,13 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
           </div>
 
-          {/* SECCIÓN 2: PERSONAS DE CONTACTO (MÚLTIPLES CONTACTOS POR ABONADO) */}
+          {/* SECCIÓN 2: PERSONAS DE CONTACTO (MÚLTIPLES CONTACTOS POR CLIENTE) */}
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div>
                 <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-[#004ac6]" />
-                  <span>2. Personas de Contacto del Abonado ({contacts.length})</span>
+                  <span>2. Personas de Contacto del Cliente ({contacts.length})</span>
                 </h4>
                 <p className="text-[11px] text-[#737686] mt-0.5">
                   El cliente puede tener múltiples contactos (Administrador, Pagos, Soporte Técnico, etc.)
@@ -638,7 +638,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
             >
               <Check className="w-4 h-4" />
-              <span>{busy ? "Guardando..." : clientToEdit ? "Guardar Cambios de Ficha" : "Registrar Abonado"}</span>
+              <span>{busy ? "Guardando..." : clientToEdit ? "Guardar Cambios de Ficha" : "Registrar Cliente"}</span>
             </button>
           </div>
         </form>

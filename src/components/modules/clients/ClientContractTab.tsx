@@ -67,7 +67,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         fileUrl: "#",
       });
 
-      showSuccess("Documento Guardado", `El archivo ${selectedFile.name} se vinculó al expediente del abonado.`);
+      showSuccess("Documento Guardado", `El archivo ${selectedFile.name} se vinculó al expediente del cliente.`);
       setIsUploadModalOpen(false);
       setDocTitle("");
       setSelectedFile(null);
@@ -138,13 +138,13 @@ export function ClientContractTab({ client }: { client: Client }) {
       {/* 1. Contratos SAI ARCOTEL Registrados */}
       <ContractsManager clientId={client.id} />
 
-      {/* 2. Repositorio de Documentos Digitales del Abonado (PDF Página 4) */}
+      {/* 2. Repositorio de Documentos Digitales del Cliente (PDF Página 4) */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider flex items-center gap-2">
               <FileCheck className="w-4 h-4 text-[#004ac6]" />
-              Expediente Digital del Abonado (Contratos & Protección de Datos)
+              Expediente Digital del Cliente (Contratos & Protección de Datos)
             </h3>
             <p className="text-[11px] text-[#737686]">
               Archivos digitalizados: Contrato de Adhesión firmado, Cláusula de Protección de Datos Personales, Cédula y Actas
@@ -180,7 +180,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-xs text-[#737686]">
                     <Upload className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
-                    <p className="font-semibold text-slate-600">No se han cargado documentos para este abonado.</p>
+                    <p className="font-semibold text-slate-600">No se han cargado documentos para este cliente.</p>
                     <p className="text-[11px] text-slate-400">Puedes cargar el contrato de adhesión escaneado y la autorización de protección de datos.</p>
                   </td>
                 </tr>
@@ -237,7 +237,7 @@ export function ClientContractTab({ client }: { client: Client }) {
           </div>
           <div>
             <h4 className="font-bold text-xs text-[#0b1c30]">Modelo Homologado ARCOTEL en Formato Word (.docx)</h4>
-            <span className="text-[11px] text-[#737686]">Plantilla institucional pre-llenada con los datos legales del abonado</span>
+            <span className="text-[11px] text-[#737686]">Plantilla institucional pre-llenada con los datos legales del cliente</span>
           </div>
         </div>
 
@@ -250,14 +250,14 @@ export function ClientContractTab({ client }: { client: Client }) {
         </button>
       </div>
 
-      {/* Modal Subir Documento del Abonado */}
+      {/* Modal Subir Documento del Cliente */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-[#004ac6]" />
-                <h3 className="font-bold text-[#0b1c30] text-xs">Cargar Documento del Abonado</h3>
+                <h3 className="font-bold text-[#0b1c30] text-xs">Cargar Documento del Cliente</h3>
               </div>
               <button
                 onClick={() => setIsUploadModalOpen(false)}

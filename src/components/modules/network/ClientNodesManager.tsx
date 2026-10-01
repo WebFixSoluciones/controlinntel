@@ -215,7 +215,7 @@ export function ClientNodesManager() {
   const handleDeleteNode = (node: NodeLocation) => {
     showConfirm(
       "¿Eliminar Nodo?",
-      `¿Confirmas la eliminación del POP "${node.name}"? Los abonados asignados deberán ser migrados.`,
+      `¿Confirmas la eliminación del POP "${node.name}"? Los clientes asignados deberán ser migrados.`,
       async () => {
         try {
           await deleteNode(node.id);
@@ -414,7 +414,7 @@ export function ClientNodesManager() {
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Nodos por Abonado</span>
+          <span>Nodos por Cliente</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
               activeTab === "clientes" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
@@ -499,7 +499,7 @@ export function ClientNodesManager() {
                     <th className="py-3.5 px-5">Proveedores Upstream (Multi-Carrier)</th>
                     <th className="py-3.5 px-5">Sistemas & Credenciales</th>
                     <th className="py-3.5 px-5">Capacidad / Uso</th>
-                    <th className="py-3.5 px-5 text-center">Abonados</th>
+                    <th className="py-3.5 px-5 text-center">Clientes</th>
                     <th className="py-3.5 px-5 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -670,7 +670,7 @@ export function ClientNodesManager() {
         </div>
       )}
 
-      {/* TAB 2: NODOS POR ABONADO */}
+      {/* TAB 2: NODOS POR CLIENTE */}
       {activeTab === "clientes" && (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
@@ -678,7 +678,7 @@ export function ClientNodesManager() {
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Buscar por abonado, RUC, nodo asignado o IP..."
+                placeholder="Buscar por cliente, RUC, nodo asignado o IP..."
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
                 className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
@@ -829,7 +829,7 @@ export function ClientNodesManager() {
                   <span className="font-mono font-bold text-sm text-[#004ac6]">{detailNode.mikrotikIp || "Sin IP"}</span>
                 </div>
                 <div className="p-3 bg-[#f8f9ff] rounded-xl border border-slate-200">
-                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Abonados Conectados</span>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Clientes Conectados</span>
                   <span className="font-mono font-bold text-sm text-slate-800">{detailNode.activeClientsCount}</span>
                 </div>
               </div>

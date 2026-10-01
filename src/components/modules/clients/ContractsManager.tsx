@@ -45,7 +45,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const clientName = (id: string) => clients.find((c) => c.id === id)?.businessName || "Abonado no disponible";
+  const clientName = (id: string) => clients.find((c) => c.id === id)?.businessName || "Cliente no disponible";
 
   const filteredContracts = clientContracts.filter((c) => {
     const matchesClientScope = !clientId || c.clientId === clientId;
@@ -94,7 +94,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
       !Number.isFinite(draft.monthlyPrice) ||
       draft.monthlyPrice < 0
     ) {
-      setFormError("Verifica los campos obligatorios: Abonado, Número, Servicio y Fechas coherentes.");
+      setFormError("Verifica los campos obligatorios: Cliente, Número, Servicio y Fechas coherentes.");
       return;
     }
 
@@ -105,7 +105,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
         c.contractNumber.trim().toLowerCase() === draft.contractNumber.trim().toLowerCase()
     );
     if (isDuplicate) {
-      setFormError("Este abonado ya cuenta con un contrato registrado con ese número.");
+      setFormError("Este cliente ya cuenta con un contrato registrado con ese número.");
       return;
     }
 
@@ -243,7 +243,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Contratos de Abonados (SAI)</span>
+            <span>Contratos de Clientes (SAI)</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
                 activeTab === "contratos" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
@@ -281,14 +281,14 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />
         </>
       ) : (
-        /* Subtab Content: Contratos de Abonados */
+        /* Subtab Content: Contratos de Clientes */
         <div className="space-y-4">
           {/* Action Bar for Client 360 mode */}
           {clientId && (
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#004ac6]" />
-                Contratos Homologados del Abonado
+                Contratos Homologados del Cliente
               </h3>
               <button
                 onClick={() => handleOpenForm()}
@@ -320,7 +320,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   onChange={(e) => setClientFilter(e.target.value)}
                   className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer max-w-xs"
                 >
-                  <option value="">Todos los Abonados</option>
+                  <option value="">Todos los Clientes</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.businessName}
@@ -374,10 +374,10 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[1000px]">
-                <caption className="sr-only">Contratos de abonados registrados</caption>
+                <caption className="sr-only">Contratos de clientes registrados</caption>
                 <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3.5 px-5">Abonado / Razón Social</th>
+                    <th className="py-3.5 px-5">Cliente / Razón Social</th>
                     <th className="py-3.5 px-5">N° Contrato</th>
                     <th className="py-3.5 px-5">Servicio / Infraestructura</th>
                     <th className="py-3.5 px-5">Homologación</th>
@@ -468,7 +468,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
               <div className="flex items-center gap-2.5">
                 <FileText className="w-5 h-5 text-[#004ac6]" />
                 <h3 className="font-bold text-[#0b1c30] text-sm">
-                  {editingId ? `Editar Contrato: ${draft.contractNumber}` : "Registrar Contrato de Abonado"}
+                  {editingId ? `Editar Contrato: ${draft.contractNumber}` : "Registrar Contrato de Cliente"}
                 </h3>
               </div>
               <button
@@ -482,7 +482,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
             <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
               <fieldset disabled={busy} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="font-bold text-[#434655] block mb-1">Abonado / Cliente *</label>
+                  <label className="font-bold text-[#434655] block mb-1">Cliente *</label>
                   <select
                     required
                     disabled={!!clientId || !!editingId}
@@ -490,7 +490,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                     value={draft.clientId}
                     onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
                   >
-                    <option value="">Selecciona un abonado</option>
+                    <option value="">Selecciona un cliente</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.businessName} ({c.identificationNumber})

@@ -118,11 +118,11 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
     showConfirm(
       "¿Emitir Cobros / Órdenes del Día 1?",
-      `Se generarán las órdenes de pedido y facturación para ${clients.length} abonados registrados para el periodo ${month}/${year}. ¿Continuar?`,
+      `Se generarán las órdenes de pedido y facturación para ${clients.length} clientes registrados para el periodo ${month}/${year}. ¿Continuar?`,
       async () => {
         try {
           await generateMonthlyBillingBatch(month, year);
-          showSuccess("Lote Emitido", `Cobros del Día 1 generados para ${clients.length} abonados.`);
+          showSuccess("Lote Emitido", `Cobros del Día 1 generados para ${clients.length} clientes.`);
         } catch (error) {
           window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo emitir el lote." }));
         }
@@ -614,7 +614,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
             <form onSubmit={handleCreateManualInvoice} className="p-5 space-y-4 text-xs">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Abonado / Cliente Destinatario *</label>
+                <label className="font-bold text-[#434655] block mb-1">Cliente Destinatario *</label>
                 <select
                   value={manualClientId}
                   onChange={(e) => setManualClientId(e.target.value)}

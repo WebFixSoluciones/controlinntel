@@ -72,13 +72,13 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
   const handleDeleteClient = (client: Client, e: React.MouseEvent) => {
     e.stopPropagation();
     showConfirm(
-      "¿Eliminar Abonado?",
-      `¿Estás seguro de dar de baja definitiva al abonado "${client.businessName}" (${client.identificationNumber})?`,
+      "¿Eliminar Cliente?",
+      `¿Estás seguro de dar de baja definitiva al cliente "${client.businessName}" (${client.identificationNumber})?`,
       async () => {
     try {
 
         await deleteClient(client.id);
-        showSuccess("Abonado Eliminado", `El cliente ${client.businessName} ha sido removido.`);
+        showSuccess("Cliente Eliminado", `El cliente ${client.businessName} ha sido removido.`);
       
     } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
 },
@@ -307,7 +307,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal, onEditClient }: C
           <span className="font-medium">
             Mostrando <strong className="text-[#0b1c30]">{startIndex}</strong> a{" "}
             <strong className="text-[#0b1c30]">{endIndex}</strong> de{" "}
-            <strong className="text-[#0b1c30]">{filtered.length}</strong> abonados
+            <strong className="text-[#0b1c30]">{filtered.length}</strong> clientes
           </span>
 
           <div className="flex items-center gap-1">

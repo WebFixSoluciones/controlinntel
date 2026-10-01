@@ -71,7 +71,7 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
       e.preventDefault();
 
       if (!clientId) {
-        showError("Cliente No Seleccionado", "Debes vincular el ticket a un abonado registrado.");
+        showError("Cliente No Seleccionado", "Debes vincular el ticket a un cliente registrado.");
         return;
       }
 
@@ -126,7 +126,7 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-sm">Abrir Ticket de Soporte Técnico</h3>
-              <p className="text-[11px] text-[#737686]">Flujo de mesa de ayuda ISP y atención de abonados</p>
+              <p className="text-[11px] text-[#737686]">Flujo de mesa de ayuda ISP y atención de clientes</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-200/60 cursor-pointer transition-colors">
@@ -135,7 +135,7 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
-          {/* Abonado & Servicio Contratado */}
+          {/* Cliente & Servicio Contratado */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80">
             <div>
               <label className="font-bold text-[#434655] flex items-center gap-1.5 mb-1">

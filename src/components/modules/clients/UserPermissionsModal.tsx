@@ -166,14 +166,14 @@ export function UserPermissionsModal({
               Matriz Granular de Activación por Módulo y Submódulo
             </h3>
 
-            {/* 1. Módulo Abonados */}
+            {/* 1. Módulo Clientes */}
             <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#004ac6]" />
                   <div>
-                    <span className="text-xs font-bold text-[#0b1c30]">Módulo Abonados (/abonados)</span>
-                    <p className="text-[11px] text-[#737686]">Gestión de suscriptores, servicios contratados y ficha técnica 360°</p>
+                    <span className="text-xs font-bold text-[#0b1c30]">Módulo Clientes (/clientes)</span>
+                    <p className="text-[11px] text-[#737686]">Gestión de clientes, servicios contratados y ficha técnica 360°</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">

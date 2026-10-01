@@ -75,7 +75,7 @@ function FinanzasContent() {
       case "cuentas_por_cobrar":
         return {
           title: "Cuentas por Cobrar (CxC)",
-          description: "Seguimiento de facturas y cobros emitidos a abonados con valores pendientes",
+          description: "Seguimiento de facturas y cobros emitidos a clientes con valores pendientes",
           badge: pendingCxCCount,
         };
       case "cuentas_por_pagar":

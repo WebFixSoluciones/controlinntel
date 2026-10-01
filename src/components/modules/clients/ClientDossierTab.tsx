@@ -69,7 +69,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
             <div>
               <h2 className="text-base font-black text-slate-900">INNTEL CORP S.A.</h2>
               <p className="text-[11px] font-semibold text-sky-700 uppercase tracking-wider">
-                Expediente Técnico del Abonado • Código SAI {client.id.toUpperCase()}
+                Expediente Técnico del Cliente • Código SAI {client.id.toUpperCase()}
               </p>
             </div>
           </div>
@@ -109,7 +109,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
               <span className="font-medium text-slate-800">{client.address} ({client.sector || "Sector Central"})</span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold block">Estado del Abonado</span>
+              <span className="text-[10px] text-slate-400 font-bold block">Estado del Cliente</span>
               <span className="font-bold text-emerald-700 uppercase">{client.status}</span>
             </div>
             <div>
@@ -207,7 +207,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
           <div>
             <div className="border-b border-slate-300 w-48 mx-auto h-12" />
             <p className="font-bold text-slate-900 mt-2">{client.businessName}</p>
-            <p className="text-[10px] text-slate-400">Firma del Abonado / Representante</p>
+            <p className="text-[10px] text-slate-400">Firma del Cliente / Representante</p>
           </div>
           <div>
             <div className="border-b border-slate-300 w-48 mx-auto h-12" />

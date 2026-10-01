@@ -69,7 +69,7 @@ export function QuickSearchModal() {
                 {filteredClients.slice(0, 4).map((c) => (
                   <Link
                     key={c.id}
-                    href="/abonados"
+                    href={`/clientes?id=${c.id}`}
                     onClick={() => setIsSearchOpen(false)}
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
@@ -117,7 +117,7 @@ export function QuickSearchModal() {
           {filteredPolicies.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Contratos de abonados ({filteredPolicies.length})
+                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Contratos de clientes ({filteredPolicies.length})
               </div>
               <div className="space-y-1.5">
                 {filteredPolicies.map((p) => (
@@ -129,7 +129,7 @@ export function QuickSearchModal() {
                   >
                     <div>
                       <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{p.contractNumber}</p>
-                      <p className="text-[#737686] text-[11px]">{clients.find(c => c.id === p.clientId)?.businessName || "Abonado no disponible"} • Vence: {p.expirationDate}</p>
+                      <p className="text-[#737686] text-[11px]">{clients.find(c => c.id === p.clientId)?.businessName || "Cliente no disponible"} • Vence: {p.expirationDate}</p>
                     </div>
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

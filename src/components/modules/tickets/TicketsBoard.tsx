@@ -257,7 +257,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
               <tr>
                 <th className="py-3 px-4 font-bold">N° Ticket</th>
                 <th className="py-3 px-4 font-bold">Incidencia / Asunto</th>
-                <th className="py-3 px-4 font-bold">Cliente / Abonado</th>
+                <th className="py-3 px-4 font-bold">Cliente</th>
                 <th className="py-3 px-4 font-bold">Departamento</th>
                 <th className="py-3 px-4 font-bold">Asignado a</th>
                 <th className="py-3 px-4 font-bold text-center">Prioridad SLA</th>

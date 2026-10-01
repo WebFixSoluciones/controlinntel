@@ -254,7 +254,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold block">Razón Social / Abonado</label>
+                    <label className="text-[10px] text-slate-400 font-bold block">Razón Social / Cliente</label>
                     <span className="font-bold text-slate-900 text-sm">{client.businessName}</span>
                   </div>
 
@@ -336,7 +336,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
                 {allContacts.length === 0 ? (
                   <div className="text-center py-6 text-xs text-slate-400 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                    No se han registrado personas de contacto. Haz clic en &quot;Editar Ficha&quot; para agregar contactos al abonado.
+                    No se han registrado personas de contacto. Haz clic en &quot;Editar Ficha&quot; para agregar contactos al cliente.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -392,7 +392,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               {services.length > 0 && (
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
                   <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
-                    Planes de Internet & Enlaces del Abonado
+                    Planes de Internet & Enlaces del Cliente
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                     {services.map((srv) => (
@@ -454,7 +454,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                     {charges.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-8 text-center text-slate-400 italic">
-                          Sin cobros registrados para este abonado.
+                          Sin cobros registrados para este cliente.
                         </td>
                       </tr>
                     ) : (

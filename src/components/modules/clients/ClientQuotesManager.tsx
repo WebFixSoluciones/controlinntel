@@ -231,7 +231,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
           </div>
           <div>
             <h3 className="font-bold text-sm text-[#0b1c30]">Cotizaciones Comerciales & Órdenes de Pedido</h3>
-            <span className="text-[11px] text-[#737686]">Propuestas económicas y pedidos de servicio para este abonado</span>
+            <span className="text-[11px] text-[#737686]">Propuestas económicas y pedidos de servicio para este cliente</span>
           </div>
         </div>
 

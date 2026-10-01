@@ -8,7 +8,7 @@ import { Search, Bell, HelpCircle, RotateCcw } from "lucide-react";
 
 function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/") return "Dashboard";
-  if (pathname === "/abonados" || pathname === "/clientes") return "Abonados";
+  if (pathname === "/abonados" || pathname === "/clientes") return "Clientes";
 
   if (pathname === "/compras") {
     switch (subParam) {

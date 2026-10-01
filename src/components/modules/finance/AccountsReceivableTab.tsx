@@ -107,7 +107,7 @@ export function AccountsReceivableTab() {
           <div className="mt-2 text-2xl font-bold font-mono text-[#b45309]">
             ${totalPorCobrar.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <p className="mt-1 text-[11px] text-[#b45309]">Valores pendientes de abonados</p>
+          <p className="mt-1 text-[11px] text-[#b45309]">Valores pendientes de clientes</p>
         </div>
 
         <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
@@ -156,7 +156,7 @@ export function AccountsReceivableTab() {
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar por abonado, RUC o N° Factura..."
+            placeholder="Buscar por cliente, RUC o N° Factura..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6]"
@@ -180,7 +180,7 @@ export function AccountsReceivableTab() {
           <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
             <tr>
               <th className="py-3 px-4 font-bold">N° Factura</th>
-              <th className="py-3 px-4 font-bold">Abonado / Cliente</th>
+              <th className="py-3 px-4 font-bold">Cliente</th>
               <th className="py-3 px-4 font-bold">Concepto / Plan</th>
               <th className="py-3 px-4 font-bold text-center">Periodo</th>
               <th className="py-3 px-4 font-bold text-right">Total</th>
@@ -255,7 +255,7 @@ export function AccountsReceivableTab() {
           <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div>
-                <h3 className="text-base font-bold text-[#0b1c30]">Registrar Cobro de Abonado</h3>
+                <h3 className="text-base font-bold text-[#0b1c30]">Registrar Cobro de Cliente</h3>
                 <p className="text-xs text-[#737686]">{selectedCharge.clientName}</p>
               </div>
               <button onClick={() => setSelectedCharge(null)} className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0]">

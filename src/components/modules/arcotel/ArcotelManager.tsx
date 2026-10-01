@@ -995,7 +995,7 @@ export function ArcotelManager() {
                 Sistema BDH (Bono de Desarrollo Humano - Subsidio Tarifa Social)
               </h3>
               <p className="text-[11px] text-[#737686]">
-                Carga y cruce en formato Excel (.xlsx) de los abonados beneficiarios de tarifas preferenciales subsidiadas ante ARCOTEL.
+                Carga y cruce en formato Excel (.xlsx) de los clientes beneficiarios de tarifas preferenciales subsidiadas ante ARCOTEL.
               </p>
             </div>
             <button

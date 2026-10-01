@@ -45,7 +45,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/abonados", label: "Abonados", icon: Users },
+  { href: "/clientes", label: "Clientes", icon: Users },
   {
     href: "/facturacion",
     label: "Facturación SRI",
@@ -202,7 +202,9 @@ function SidebarContent() {
         {NAV_ITEMS.filter((item) => canAccessRoute(currentUser, item.href)).map((item) => {
           const Icon = item.icon;
           const isCurrentRoute =
-            pathname === item.href || (item.href === "/abonados" && pathname === "/clientes");
+            pathname === item.href ||
+            (item.href === "/clientes" && pathname === "/abonados") ||
+            (item.href === "/abonados" && pathname === "/clientes");
 
           // Filter accessible submodules
           const accessibleSubmodules = item.submodules
@@ -266,6 +268,11 @@ function SidebarContent() {
                 // Single Module Link (No Submodules)
                 <Link
                   href={item.href}
+                  onClick={() => {
+                    if (item.href === "/clientes" || item.href === "/abonados") {
+                      window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
+                    }
+                  }}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group border-l-4 ${
                     isCurrentRoute
                       ? "bg-[#eff4ff] text-[#004ac6] font-bold border-[#004ac6] shadow-2xs"

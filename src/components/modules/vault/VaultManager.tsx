@@ -49,7 +49,7 @@ export function VaultManager() {
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Credenciales de Abonados</span>
+          <span>Credenciales de Clientes</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
               activeTab === "clientes" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
@@ -95,7 +95,7 @@ export function VaultManager() {
                     className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Volver al Listado de Abonados</span>
+                    <span>Volver al Listado de Clientes</span>
                   </button>
                   <span className="text-slate-300">/</span>
                   <span className="text-xs font-bold text-[#0b1c30]">{selectedClient.businessName}</span>
@@ -116,7 +116,7 @@ export function VaultManager() {
                   <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    placeholder="Buscar abonado, RUC, o servicio con credencial..."
+                    placeholder="Buscar cliente, RUC, o servicio con credencial..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
@@ -141,7 +141,7 @@ export function VaultManager() {
                     <caption className="sr-only">Bóveda de credenciales agrupadas por cliente</caption>
                     <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
                       <tr>
-                        <th className="py-3.5 px-5">Abonado / Razón Social</th>
+                        <th className="py-3.5 px-5">Cliente / Razón Social</th>
                         <th className="py-3.5 px-5 text-center">Credenciales Almacenadas</th>
                         <th className="py-3.5 px-5">Servicios & Destinos</th>
                         <th className="py-3.5 px-5 text-center">Protección Criptográfica</th>
@@ -153,7 +153,7 @@ export function VaultManager() {
                         <tr>
                           <td colSpan={5} className="py-12 text-center text-xs text-[#737686]">
                             <KeyRound className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                            <p className="font-bold text-slate-600">No se encontraron abonados con los criterios ingresados.</p>
+                            <p className="font-bold text-slate-600">No se encontraron clientes con los criterios ingresados.</p>
                           </td>
                         </tr>
                       ) : (
@@ -222,7 +222,7 @@ export function VaultManager() {
 
                 <div className="p-3 px-5 border-t border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between text-xs text-[#737686]">
                   <span>
-                    Abonados con claves gestionadas: <strong className="text-[#0b1c30]">{clients.length}</strong>
+                    Clientes con claves gestionadas: <strong className="text-[#0b1c30]">{clients.length}</strong>
                   </span>
                 </div>
               </div>
