@@ -183,52 +183,8 @@ export function ProjectsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
-              <Briefcase className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                Gestión de Proyectos & Obras
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Control maestro de proyectos corporativos, asignación de tareas, cronogramas y tableros Canva estilo Notion
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Header Action Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsTrashModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
-            title="Papelera de reciclaje de proyectos eliminados"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Papelera</span>
-            {deletedProjectsCount > 0 && (
-              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
-                {deletedProjectsCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={handleOpenCreateProject}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-md shadow-blue-500/20"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Proyecto</span>
-          </button>
-        </div>
-      </div>
-
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</div>
           <div className="flex items-baseline gap-2">
@@ -260,22 +216,10 @@ export function ProjectsManager() {
             <span className="text-xs text-emerald-600 font-medium">finalizados</span>
           </div>
         </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1 col-span-2 md:col-span-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Presupuesto Global</div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-black text-slate-900">
-              ${kpis.totalPresupuesto.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </span>
-          </div>
-          <div className="text-[10px] text-slate-400">
-            Ejecutado: ${kpis.totalEjecutado.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </div>
-        </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* Filter, Search Bar & Actions */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -316,6 +260,31 @@ export function ProjectsManager() {
             <option value="cliente">Asignado a Clientes</option>
             <option value="infraestructura_interna">POP / Infraestructura</option>
           </select>
+
+          <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
+
+          {/* Botones de Acción: Papelera y Nuevo Proyecto */}
+          <button
+            onClick={() => setIsTrashModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
+            title="Papelera de reciclaje de proyectos eliminados"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Papelera</span>
+            {deletedProjectsCount > 0 && (
+              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded-full font-bold">
+                {deletedProjectsCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={handleOpenCreateProject}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nuevo Proyecto</span>
+          </button>
         </div>
       </div>
 
@@ -330,7 +299,7 @@ export function ProjectsManager() {
                 <th className="py-3.5 px-4">Fecha Inicio</th>
                 <th className="py-3.5 px-4">Fecha Fin</th>
                 <th className="py-3.5 px-4">Tareas Globales</th>
-                <th className="py-3.5 px-4">Presupuesto / Costos</th>
+                <th className="py-3.5 px-4">Presupuesto</th>
                 <th className="py-3.5 px-4">Estado</th>
                 <th className="py-3.5 px-4 text-center">Acciones</th>
               </tr>
@@ -359,9 +328,6 @@ export function ProjectsManager() {
                   ).length;
                   const taskPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-                  // Costs calculation
-                  const projectExecuted = pTasks.reduce((sum, t) => sum + (t.executedCost || 0), p.executedCost || 0);
-
                   const curStatus = statusStyles[p.status] || statusStyles.inicio;
 
                   return (
@@ -369,53 +335,29 @@ export function ProjectsManager() {
                       key={p.id}
                       className="hover:bg-slate-50/70 transition-colors group"
                     >
-                      {/* 1. Nombre de Proyecto */}
+                      {/* 1. Nombre de Proyecto (sin icono, solo título y fases) */}
                       <td className="py-4 px-4">
-                        <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center flex-shrink-0 mt-0.5">
-                            {p.type === "cliente" ? (
-                              <Building2 className="w-4 h-4" />
-                            ) : (
-                              <Radio className="w-4 h-4" />
-                            )}
-                          </div>
-                          <div>
-                            <button
-                              onClick={() => setSelectedProjectId(p.id)}
-                              className="font-bold text-slate-900 hover:text-[#004ac6] text-left transition-colors cursor-pointer text-xs flex items-center gap-1.5"
-                            >
-                              <span>{p.title}</span>
-                              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#004ac6]" />
-                            </button>
-                            {p.description && (
-                              <p className="text-[11px] text-slate-400 line-clamp-1 max-w-xs mt-0.5">
-                                {p.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-                              <span className="font-mono">{p.id}</span>
-                              <span>·</span>
-                              <span className="bg-slate-100 px-1.5 py-0.2 rounded font-medium text-slate-600">
-                                {p.columns.length} fases canva
-                              </span>
-                            </div>
+                        <div>
+                          <button
+                            onClick={() => setSelectedProjectId(p.id)}
+                            className="font-bold text-slate-900 hover:text-[#004ac6] text-left transition-colors cursor-pointer text-xs flex items-center gap-1.5"
+                          >
+                            <span>{p.title}</span>
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#004ac6]" />
+                          </button>
+                          <div className="mt-1">
+                            <span className="inline-block text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                              {p.columns.length} fases canva
+                            </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* 2. Cliente Asignado */}
+                      {/* 2. Cliente Asignado (sin icono) */}
                       <td className="py-4 px-4">
-                        {p.type === "cliente" ? (
-                          <div className="flex items-center gap-1.5 text-slate-800 font-bold">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="truncate max-w-[180px]">{p.clientName || "Cliente No Asignado"}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-slate-800 font-bold">
-                            <Radio className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="truncate max-w-[180px]">{p.nodeName || "POP / Nodo Interno"}</span>
-                          </div>
-                        )}
+                        <span className="text-slate-800 font-bold block truncate max-w-[200px]">
+                          {p.type === "cliente" ? (p.clientName || "Cliente No Asignado") : (p.nodeName || "POP / Nodo Interno")}
+                        </span>
                       </td>
 
                       {/* 3. Fecha Inicio */}
@@ -434,33 +376,30 @@ export function ProjectsManager() {
                         </div>
                       </td>
 
-                      {/* 5. Tareas Globales */}
+                      {/* 5. Tareas Globales (Píldora minimalista) */}
                       <td className="py-4 px-4">
-                        <div className="space-y-1 max-w-[140px]">
-                          <div className="flex items-center justify-between text-[11px] font-bold">
-                            <span className="text-slate-700">{totalTasks} tareas</span>
-                            <span className="text-slate-500">{taskPercent}%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                            <div
-                              className="bg-[#004ac6] h-full rounded-full transition-all"
-                              style={{ width: `${taskPercent}%` }}
-                            />
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {completedTasks} completadas
-                          </div>
+                        <div
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                            totalTasks === 0
+                              ? "bg-slate-100 text-slate-500 border-slate-200"
+                              : completedTasks === totalTasks
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-blue-50 text-[#004ac6] border-blue-200"
+                          }`}
+                        >
+                          <span className="font-bold">{completedTasks}/{totalTasks}</span>
+                          <span className="text-[10px] opacity-75">tareas</span>
+                          {totalTasks > 0 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-white/80 shadow-2xs">
+                              {taskPercent}%
+                            </span>
+                          )}
                         </div>
                       </td>
 
-                      {/* 6. Presupuesto / Costos */}
-                      <td className="py-4 px-4">
-                        <div className="font-mono text-[11px] text-slate-800 font-bold">
-                          ${p.estimatedBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          Costo: ${projectExecuted.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </div>
+                      {/* 6. Presupuesto (sin costo) */}
+                      <td className="py-4 px-4 font-mono text-xs text-slate-800 font-bold">
+                        ${p.estimatedBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                       </td>
 
                       {/* 7. Estado del Proyecto */}
