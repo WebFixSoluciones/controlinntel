@@ -525,20 +525,8 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
 
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
-      {/* Top Header Row with Close Button */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Registrar Venta</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-              Facturación Electrónica SRI
-            </span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Emisión directa de comprobantes digitales autorizados con control de stock y formas de pago
-          </p>
-        </div>
-
+      {/* Top Minimal Action Row with Close Button (WebFix Style) */}
+      <div className="flex justify-end -mb-2">
         <button
           type="button"
           onClick={onBack}
@@ -1062,21 +1050,16 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Resumen & Forma de Pago (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* CARD 1: RESUMEN */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
-                <Receipt className="w-4 h-4 text-[#004ac6]" />
-                <span>RESUMEN</span>
-              </div>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                Factura SRI
-              </span>
+        {/* RIGHT COLUMN: Resumen & Forma de Pago (Unificado en una sola columna/tarjeta) */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
+            {/* SECCIÓN RESUMEN */}
+            <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider pb-2 border-b border-slate-100">
+              <Receipt className="w-4 h-4 text-[#004ac6]" />
+              <span>RESUMEN</span>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal:</span>
                 <span className="font-mono font-semibold">${(subtotal15 + subtotal0 + discountTotal).toFixed(2)}</span>
@@ -1113,130 +1096,122 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                 </span>
               </div>
             </div>
-          </div>
 
-          {/* CARD 2: FORMA DE PAGO */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            {/* SECCIÓN FORMA DE PAGO */}
+            <div className="pt-3 border-t border-slate-100 space-y-3">
               <div className="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wider">
                 <CreditCard className="w-4 h-4 text-[#004ac6]" />
                 <span>FORMA DE PAGO</span>
               </div>
-              <span className="text-xs font-mono font-bold text-slate-500">
-                ${coveredAmount.toFixed(2)} / ${total.toFixed(2)}
-              </span>
-            </div>
 
-            {/* 4 Payment Methods Buttons (WebFix style) */}
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                type="button"
-                onClick={() => setPaymentTab("efectivo")}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  paymentTab === "efectivo"
-                    ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                }`}
-              >
-                <DollarSign className="w-4 h-4 mb-1" />
-                <span>Efectivo</span>
-              </button>
+              {/* 4 Payment Methods Buttons (WebFix style) */}
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentTab("efectivo")}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    paymentTab === "efectivo"
+                      ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  <DollarSign className="w-4 h-4 mb-1" />
+                  <span>Efectivo</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPaymentTab("transferencia")}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  paymentTab === "transferencia"
-                    ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                }`}
-              >
-                <ArrowLeftRight className="w-4 h-4 mb-1" />
-                <span>Transf.</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentTab("transferencia")}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    paymentTab === "transferencia"
+                      ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  <ArrowLeftRight className="w-4 h-4 mb-1" />
+                  <span>Transf.</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPaymentTab("tarjeta")}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  paymentTab === "tarjeta"
-                    ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                }`}
-              >
-                <CreditCard className="w-4 h-4 mb-1" />
-                <span>Tarjeta</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentTab("tarjeta")}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    paymentTab === "tarjeta"
+                      ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 mb-1" />
+                  <span>Tarjeta</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setPaymentTab("credito")}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                  paymentTab === "credito"
-                    ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                }`}
-              >
-                <User className="w-4 h-4 mb-1" />
-                <span>Crédito</span>
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentTab("credito")}
+                  className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
+                    paymentTab === "credito"
+                      ? "bg-[#eff4ff] border-[#004ac6] text-[#004ac6] shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  <User className="w-4 h-4 mb-1" />
+                  <span>Crédito</span>
+                </button>
+              </div>
 
-            {/* Dynamic Fields Based on Payment Tab */}
-            <div className="space-y-3 pt-1 text-xs">
-              {paymentTab === "transferencia" && (
-                <>
-                  <div>
-                    <div className="flex justify-between items-center text-[11px] font-bold text-slate-600 mb-1">
-                      <span>Transferencia</span>
-                      <span className="font-mono text-slate-400">${total.toFixed(2)}</span>
+              {/* Dynamic Fields Based on Payment Tab */}
+              <div className="space-y-3 pt-1 text-xs">
+                {paymentTab === "transferencia" && (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Transferencia
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={paymentAmount || ""}
+                          placeholder="0.00"
+                          onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                          className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-900 outline-hidden focus:ring-2 focus:ring-[#004ac6]"
+                        />
+                      </div>
                     </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
+
+                    <div>
+                      <select
+                        value={bankAccount}
+                        onChange={(e) => setBankAccount(e.target.value)}
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium outline-hidden cursor-pointer"
+                      >
+                        <option value="">-- Cuenta Bancaria Destino --</option>
+                        <option value="Pichincha - Cta. Cte. #2100889901">Banco Pichincha - Cta. Cte. #2100889901</option>
+                        <option value="Guayaquil - Cta. Cte. #1100345672">Banco Guayaquil - Cta. Cte. #1100345672</option>
+                        <option value="Produbanco - Cta. Ahorros #1200984511">Produbanco - Cta. Ahorros #1200984511</option>
+                        <option value="Austro - Cta. Cte. #0500123987">Banco del Austro - Cta. Cte. #0500123987</option>
+                      </select>
+                    </div>
+
+                    <div>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={paymentAmount || ""}
-                        placeholder="0.00"
-                        onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                        className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-900 outline-hidden focus:ring-2 focus:ring-[#004ac6]"
+                        type="text"
+                        value={bankReference}
+                        onChange={(e) => setBankReference(e.target.value)}
+                        placeholder="Banco / Referencia de depósito"
+                        className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white outline-hidden focus:ring-2 focus:ring-[#004ac6]"
                       />
                     </div>
-                  </div>
+                  </>
+                )}
 
-                  <div>
-                    <select
-                      value={bankAccount}
-                      onChange={(e) => setBankAccount(e.target.value)}
-                      className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium outline-hidden cursor-pointer"
-                    >
-                      <option value="">-- Cuenta Bancaria Destino --</option>
-                      <option value="Pichincha - Cta. Cte. #2100889901">Banco Pichincha - Cta. Cte. #2100889901</option>
-                      <option value="Guayaquil - Cta. Cte. #1100345672">Banco Guayaquil - Cta. Cte. #1100345672</option>
-                      <option value="Produbanco - Cta. Ahorros #1200984511">Produbanco - Cta. Ahorros #1200984511</option>
-                      <option value="Austro - Cta. Cte. #0500123987">Banco del Austro - Cta. Cte. #0500123987</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <input
-                      type="text"
-                      value={bankReference}
-                      onChange={(e) => setBankReference(e.target.value)}
-                      placeholder="Banco / Referencia de depósito"
-                      className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white outline-hidden focus:ring-2 focus:ring-[#004ac6]"
-                    />
-                  </div>
-                </>
-              )}
-
-              {paymentTab === "efectivo" && (
-                <>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1 flex justify-between">
-                      <span>Monto Recibido</span>
-                      <span className="font-mono text-slate-400">Total: ${total.toFixed(2)}</span>
-                    </label>
+                {paymentTab === "efectivo" && (
+                  <>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Monto Recibido
+                      </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
                       <input
@@ -1417,6 +1392,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
           </div>
         </div>
       </div>
+    </div>
 
       {/* QUICK CLIENT MODAL */}
       {isQuickClientOpen && (
