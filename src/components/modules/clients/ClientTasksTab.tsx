@@ -40,6 +40,7 @@ import {
   TrendingUp,
   Layers,
   ShieldAlert,
+  Briefcase,
 } from "lucide-react";
 
 interface ClientTasksTabProps {
@@ -48,6 +49,7 @@ interface ClientTasksTabProps {
 
 export function ClientTasksTab({ client }: ClientTasksTabProps) {
   const {
+    projects,
     clientProjects,
     currentUser,
     systemUsers,
@@ -69,6 +71,12 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
   const [priorityFilter, setPriorityFilter] = useState<string>("todas");
   const [statusFilter, setStatusFilter] = useState<string>("todas");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("todos");
+  const [projectFilter, setProjectFilter] = useState<string>("todos");
+
+  // Projects of this client
+  const clientProjectsList = useMemo(() => {
+    return projects.filter((p) => !p.isDeleted && p.clientId === client.id);
+  }, [projects, client.id]);
 
   // Expanded comments accordion state
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -164,6 +172,11 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         if ((t.assignedTo || "").toLowerCase() !== assigneeFilter.toLowerCase()) return false;
       }
 
+      // Project filter
+      if (projectFilter !== "todos" && t.projectId !== projectFilter) {
+        return false;
+      }
+
       return true;
     }).sort((a, b) => {
       // Sorting: Pending first, then by dueDate asc
@@ -188,6 +201,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
     priorityFilter,
     statusFilter,
     assigneeFilter,
+    projectFilter,
     currentUserName,
     currentUserId,
   ]);
@@ -530,7 +544,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       {/* ========================================================= */}
       {/* 3. FILTERS & SEARCH TOOLBAR                               */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 ${clientProjectsList.length > 0 ? "lg:grid-cols-5" : ""} gap-2.5 p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs`}>
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -541,6 +555,22 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
             className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
           />
         </div>
+
+        {/* Project Filter */}
+        {clientProjectsList.length > 0 && (
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-medium focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+          >
+            <option value="todos">Todos los Proyectos ({clientProjectsList.length})</option>
+            {clientProjectsList.map((p) => (
+              <option key={p.id} value={p.id}>
+                📁 {p.title}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Priority Filter */}
         <select
@@ -667,6 +697,14 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#004ac6] text-white">
                             <User className="w-3 h-3" />
                             A tu cargo
+                          </span>
+                        )}
+
+                        {/* Project Badge */}
+                        {task.projectName && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                            <Briefcase className="w-3 h-3" />
+                            <span>{task.projectName}</span>
                           </span>
                         )}
                       </div>
@@ -1008,6 +1046,12 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           </div>
 
                           <div>
+                            {task.projectName && (
+                              <div className="text-[10px] font-bold text-[#004ac6] flex items-center gap-1 mb-1">
+                                <Briefcase className="w-3 h-3 text-[#004ac6]" />
+                                <span className="truncate">{task.projectName}</span>
+                              </div>
+                            )}
                             <h5
                               onClick={() => {
                                 setTaskToEdit(task);
@@ -1110,6 +1154,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         defaultColumn={modalDefaultCol}
         defaultClientId={client.id}
         defaultClientName={client.businessName}
+        defaultProjectId={projectFilter !== "todos" ? projectFilter : undefined}
       />
     </div>
   );

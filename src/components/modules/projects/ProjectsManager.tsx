@@ -3,524 +3,573 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { Project, ProjectStatus } from "@/types";
+import { ProjectModal } from "./ProjectModal";
+import { ProjectGanttModal } from "./ProjectGanttModal";
+import { ProjectTrashModal } from "./ProjectTrashModal";
+import { ProjectWorkspace } from "./ProjectWorkspace";
 import {
-  ClientProjectTask,
-  ProjectBoardFlow,
-  ProjectKanbanColumn,
-} from "@/types";
-import {
-  ProjectTaskModal,
-  ISP_FLOW_COLUMNS,
-  GENERAL_FLOW_COLUMNS,
-} from "./ProjectTaskModal";
-import {
-  Kanban,
+  Briefcase,
   Plus,
   Search,
   Filter,
+  Eye,
+  Edit2,
+  Trash2,
+  Calendar,
   Layers,
   Building2,
   Radio,
-  Clock,
-  User,
-  CheckSquare,
-  MessageSquare,
-  DollarSign,
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  Edit2,
-  Trash2,
-  RefreshCw,
   CheckCircle2,
-  Calendar,
+  Clock,
+  AlertTriangle,
+  RotateCcw,
+  DollarSign,
+  TrendingUp,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 
 export function ProjectsManager() {
   const {
+    projects,
     clientProjects,
-    systemUsers,
-    moveProjectTaskColumn,
-    deleteClientProjectTask,
-    updateClientProjectTask,
+    deleteProject,
+    updateProject,
   } = useApp();
-  const { showSuccess, showConfirm } = useToast();
+  const { showSuccess, showConfirm, showError } = useToast();
 
-  // Active Flow View
-  const [activeFlow, setActiveFlow] = useState<ProjectBoardFlow>("isp_tecnico");
+  // Active Selected Project (if non-null, views that Project's Canva Workspace)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Filters
+  // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"todos" | "cliente" | "infraestructura_interna">("todos");
-  const [priorityFilter, setPriorityFilter] = useState<string>("todas");
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("todos");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [typeFilter, setTypeFilter] = useState<string>("todos");
 
-  // Drag and drop state
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<ProjectKanbanColumn | null>(null);
+  // Modals state
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<ClientProjectTask | null>(null);
-  const [modalDefaultCol, setModalDefaultCol] = useState<ProjectKanbanColumn | undefined>(undefined);
+  const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
 
-  // Active Columns based on Flow
-  const currentColumns = activeFlow === "isp_tecnico" ? ISP_FLOW_COLUMNS : GENERAL_FLOW_COLUMNS;
+  const [isGanttModalOpen, setIsGanttModalOpen] = useState(false);
+  const [selectedGanttProject, setSelectedGanttProject] = useState<Project | null>(null);
 
-  // Filter tasks
-  const filteredTasks = useMemo(() => {
-    return clientProjects.filter((task) => {
-      // 1. Flow filter (if task has an explicit boardFlow, match it; if not, default to isp_tecnico)
-      const taskFlow = task.boardFlow || "isp_tecnico";
-      if (taskFlow !== activeFlow) return false;
+  // Active (non-deleted) projects
+  const activeProjects = useMemo(() => {
+    return projects.filter((p) => !p.isDeleted);
+  }, [projects]);
 
-      // 2. Search query filter
+  // Trash count
+  const deletedProjectsCount = useMemo(() => {
+    return projects.filter((p) => p.isDeleted).length;
+  }, [projects]);
+
+  // Currently selected project object for workspace
+  const activeWorkspaceProject = useMemo(() => {
+    if (!selectedProjectId) return null;
+    return projects.find((p) => p.id === selectedProjectId) || null;
+  }, [selectedProjectId, projects]);
+
+  // Filtered projects for the master table
+  const filteredProjects = useMemo(() => {
+    return activeProjects.filter((p) => {
+      // 1. Search text
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesTitle = task.title.toLowerCase().includes(query);
-        const matchesDesc = (task.description || "").toLowerCase().includes(query);
-        const matchesClient = (task.clientName || "").toLowerCase().includes(query);
-        const matchesNode = (task.nodeName || "").toLowerCase().includes(query);
-        const matchesAssignee = (task.assignedTo || "").toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesClient && !matchesNode && !matchesAssignee) {
-          return false;
-        }
+        const q = searchQuery.toLowerCase();
+        const matchTitle = p.title.toLowerCase().includes(q);
+        const matchDesc = (p.description || "").toLowerCase().includes(q);
+        const matchClient = (p.clientName || "").toLowerCase().includes(q);
+        const matchNode = (p.nodeName || "").toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchClient && !matchNode) return false;
       }
 
-      // 3. Type filter
-      if (typeFilter !== "todos") {
-        const actualType = task.type || (task.nodeId ? "infraestructura_interna" : "cliente");
-        if (actualType !== typeFilter) return false;
-      }
-
-      // 4. Priority filter
-      if (priorityFilter !== "todas" && task.priority !== priorityFilter) {
+      // 2. Status filter
+      if (statusFilter !== "todos" && p.status !== statusFilter) {
         return false;
       }
 
-      // 5. Assignee filter
-      if (assigneeFilter !== "todos" && task.assignedTo !== assigneeFilter) {
+      // 3. Type filter
+      if (typeFilter !== "todos" && p.type !== typeFilter) {
         return false;
       }
 
       return true;
     });
-  }, [clientProjects, activeFlow, searchQuery, typeFilter, priorityFilter, assigneeFilter]);
+  }, [activeProjects, searchQuery, statusFilter, typeFilter]);
 
-  // Drag and Drop handlers
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedTaskId(id);
-    e.dataTransfer.setData("text/plain", id);
-    e.dataTransfer.effectAllowed = "move";
+  // KPI Metrics calculations
+  const kpis = useMemo(() => {
+    const total = activeProjects.length;
+    const enProceso = activeProjects.filter((p) => p.status === "en_proceso").length;
+    const enRevision = activeProjects.filter((p) => p.status === "revision").length;
+    const terminados = activeProjects.filter((p) => p.status === "terminado").length;
+    const totalPresupuesto = activeProjects.reduce((acc, p) => acc + (p.estimatedBudget || 0), 0);
+    const totalEjecutado = activeProjects.reduce((acc, p) => {
+      const taskCosts = clientProjects
+        .filter((t) => t.projectId === p.id)
+        .reduce((sum, t) => sum + (t.executedCost || 0), 0);
+      return acc + (p.executedCost || 0) + taskCosts;
+    }, 0);
+
+    return { total, enProceso, enRevision, terminados, totalPresupuesto, totalEjecutado };
+  }, [activeProjects, clientProjects]);
+
+  // Status Badge styling helper
+  const statusStyles: Record<ProjectStatus, { bg: string; text: string; border: string; label: string }> = {
+    inicio: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300", label: "Inicio / Planeado" },
+    en_proceso: { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", label: "En Proceso" },
+    revision: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", label: "En Revisión" },
+    terminado: { bg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", label: "Terminado" },
+    en_pausa: { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-300", label: "En Pausa" },
+    cancelado: { bg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", label: "Cancelado" },
   };
 
-  const handleDragOver = (e: React.DragEvent, colId: ProjectKanbanColumn) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (dragOverColumn !== colId) {
-      setDragOverColumn(colId);
+  // Handlers
+  const handleOpenCreateProject = () => {
+    setProjectToEdit(null);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleOpenEditProject = (project: Project) => {
+    setProjectToEdit(project);
+    setIsProjectModalOpen(true);
+  };
+
+  const handleOpenGantt = (project: Project) => {
+    setSelectedGanttProject(project);
+    setIsGanttModalOpen(true);
+  };
+
+  const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
+    try {
+      await updateProject(projectId, { status: newStatus });
+      showSuccess("Estado Actualizado", "El estado del proyecto se ha modificado correctamente.");
+    } catch {
+      showError("Error", "No se pudo actualizar el estado del proyecto.");
     }
   };
 
-  const handleDragLeave = () => {
-    setDragOverColumn(null);
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetCol: ProjectKanbanColumn) => {
-    e.preventDefault();
-    setDragOverColumn(null);
-    const id = e.dataTransfer.getData("text/plain") || draggedTaskId;
-    if (id) {
-      try {
-        await moveProjectTaskColumn(id, targetCol);
-        showSuccess("Fase Actualizada", "Proyecto reubicado exitosamente.");
-      } catch (err) {
-        // Fallback error
-      }
-      setDraggedTaskId(null);
-    }
-  };
-
-  // Quick column shift buttons
-  const handleShiftColumn = async (task: ClientProjectTask, direction: "prev" | "next") => {
-    const currentIndex = currentColumns.findIndex((c) => c.id === task.column);
-    if (direction === "next" && currentIndex < currentColumns.length - 1) {
-      await moveProjectTaskColumn(task.id, currentColumns[currentIndex + 1].id);
-    } else if (direction === "prev" && currentIndex > 0) {
-      await moveProjectTaskColumn(task.id, currentColumns[currentIndex - 1].id);
-    }
-  };
-
-  // Delete task with confirmation
-  const handleDeleteTask = (task: ClientProjectTask) => {
+  const handleDeleteProject = (project: Project) => {
     showConfirm(
-      "¿Eliminar Proyecto / Tarea?",
-      `¿Deseas remover definitivamente "${task.title}" del tablero? Esta acción no se puede deshacer.`,
+      "¿Enviar Proyecto a la Papelera?",
+      `El proyecto "${project.title}" se moverá a la papelera de reciclaje. Podrás restaurarlo o purgarlo definitivamente en cualquier momento.`,
       async () => {
         try {
-          await deleteClientProjectTask(task.id);
-          showSuccess("Proyecto Eliminado", "La tarjeta fue removida del tablero.");
-        } catch (err) {
-          // Error
+          await deleteProject(project.id);
+          showSuccess("Proyecto en Papelera", `"${project.title}" ha sido enviado a la papelera.`);
+          if (selectedProjectId === project.id) {
+            setSelectedProjectId(null);
+          }
+        } catch {
+          showError("Error", "No se pudo mover el proyecto a la papelera.");
         }
       },
-      "Eliminar Proyecto"
+      "Mover a Papelera"
     );
   };
 
-  // Open modal in create mode
-  const handleOpenCreateModal = (defaultCol?: ProjectKanbanColumn) => {
-    setTaskToEdit(null);
-    setModalDefaultCol(defaultCol || (activeFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar"));
-    setIsModalOpen(true);
-  };
-
-  // Open modal in edit mode
-  const handleOpenEditModal = (task: ClientProjectTask) => {
-    setTaskToEdit(task);
-    setIsModalOpen(true);
-  };
-
-  // List of distinct assignees for filter
-  const distinctAssignees = useMemo(() => {
-    const set = new Set<string>();
-    clientProjects.forEach((t) => {
-      if (t.assignedTo) set.add(t.assignedTo);
-    });
-    return Array.from(set);
-  }, [clientProjects]);
+  // If a project is selected for viewing its Notion-style Canva workspace
+  if (activeWorkspaceProject) {
+    return (
+      <ProjectWorkspace
+        project={activeWorkspaceProject}
+        onBack={() => setSelectedProjectId(null)}
+        onEditProject={(p) => handleOpenEditProject(p)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Filter, Flow Selector and Action Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5 select-none">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Flow Segmented Control */}
-          <div className="flex items-center p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0]">
-            <button
-              onClick={() => setActiveFlow("isp_tecnico")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeFlow === "isp_tecnico"
-                  ? "bg-white text-[#004ac6] shadow-xs"
-                  : "text-[#434655] hover:text-[#0b1c30]"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Flujo Técnico ISP (6 Fases)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveFlow("general")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeFlow === "general"
-                  ? "bg-white text-[#004ac6] shadow-xs"
-                  : "text-[#434655] hover:text-[#0b1c30]"
-              }`}
-            >
-              <Kanban className="w-3.5 h-3.5" />
-              <span>Flujo General (4 Fases)</span>
-            </button>
-          </div>
-
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-medium text-[#737686] hidden md:inline">
-              Mostrando {filteredTasks.length} proyectos en este flujo
-            </span>
-
-            <button
-              onClick={() => handleOpenCreateModal()}
-              className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Proyecto / Tarea</span>
-            </button>
+            <div className="w-10 h-10 rounded-xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+              <Briefcase className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                Gestión de Proyectos & Obras
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Control maestro de proyectos corporativos, asignación de tareas, cronogramas y tableros Canva estilo Notion
+              </p>
+            </div>
           </div>
         </div>
-        {/* Filter Inputs Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Buscar por título, cliente, nodo..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
-            />
+
+        {/* Header Action Buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsTrashModalOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
+            title="Papelera de reciclaje de proyectos eliminados"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Papelera</span>
+            {deletedProjectsCount > 0 && (
+              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-bold">
+                {deletedProjectsCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={handleOpenCreateProject}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-md shadow-blue-500/20"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Proyecto</span>
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900">{kpis.total}</span>
+            <span className="text-xs text-slate-400 font-medium">activos</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Proceso</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-blue-600">{kpis.enProceso}</span>
+            <span className="text-xs text-blue-500 font-medium">en ejecución</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Revisión</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-600">{kpis.enRevision}</span>
+            <span className="text-xs text-amber-500 font-medium">supervisión</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Terminados</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-700">{kpis.terminados}</span>
+            <span className="text-xs text-emerald-600 font-medium">finalizados</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1 col-span-2 md:col-span-1">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Presupuesto Global</div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-black text-slate-900">
+              ${kpis.totalPresupuesto.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </span>
+          </div>
+          <div className="text-[10px] text-slate-400">
+            Ejecutado: ${kpis.totalEjecutado.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre de proyecto, cliente o POP..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Filtros:</span>
           </div>
 
-          {/* Filter by Type */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
+          >
+            <option value="todos">Estado: Todos</option>
+            <option value="inicio">Inicio / Planeado</option>
+            <option value="en_proceso">En Proceso</option>
+            <option value="revision">En Revisión</option>
+            <option value="terminado">Terminado</option>
+            <option value="en_pausa">En Pausa</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
           >
-            <option value="todos">Todos los Tipos</option>
-            <option value="cliente">Solo Clientes</option>
-            <option value="infraestructura_interna">Solo Infraestructura (POPs / Nodos)</option>
-          </select>
-
-          {/* Filter by Priority */}
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
-          >
-            <option value="todas">Todas las Prioridades</option>
-            <option value="urgente">Urgente</option>
-            <option value="alta">Alta</option>
-            <option value="media">Media</option>
-            <option value="baja">Baja</option>
-          </select>
-
-          {/* Filter by Assignee */}
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
-          >
-            <option value="todos">Todos los Responsables</option>
-            {distinctAssignees.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
+            <option value="todos">Tipo: Todos</option>
+            <option value="cliente">Asignado a Clientes</option>
+            <option value="infraestructura_interna">POP / Infraestructura</option>
           </select>
         </div>
       </div>
 
-      {/* 4. Kanban Board Grid */}
-      <div className={`grid grid-cols-1 ${activeFlow === "isp_tecnico" ? "md:grid-cols-3 lg:grid-cols-6" : "md:grid-cols-2 lg:grid-cols-4"} gap-3.5 items-start overflow-x-auto pb-4 select-none`}>
-        {currentColumns.map((col) => {
-          const colTasks = filteredTasks.filter((t) => t.column === col.id);
-          const isDragTarget = dragOverColumn === col.id;
+      {/* Master Projects Table */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="py-3.5 px-4">Nombre del Proyecto</th>
+                <th className="py-3.5 px-4">Cliente Asignado</th>
+                <th className="py-3.5 px-4">Fecha Inicio</th>
+                <th className="py-3.5 px-4">Fecha Fin</th>
+                <th className="py-3.5 px-4">Tareas Globales</th>
+                <th className="py-3.5 px-4">Presupuesto / Costos</th>
+                <th className="py-3.5 px-4">Estado</th>
+                <th className="py-3.5 px-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
+              {filteredProjects.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-16 text-center text-xs text-slate-400">
+                    <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    No se encontraron proyectos activos con los criterios seleccionados.
+                  </td>
+                </tr>
+              ) : (
+                filteredProjects.map((p) => {
+                  // Calculate tasks for this project
+                  const pTasks = clientProjects.filter(
+                    (t) => t.projectId === p.id || (!t.projectId && t.clientId === p.clientId)
+                  );
+                  const totalTasks = pTasks.length;
+                  const completedTasks = pTasks.filter(
+                    (t) =>
+                      t.column === "terminado" ||
+                      t.column === "completado" ||
+                      t.column === "finalizado" ||
+                      (p.columns[p.columns.length - 1] && t.column === p.columns[p.columns.length - 1].id)
+                  ).length;
+                  const taskPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-          return (
-            <div
-              key={col.id}
-              onDragOver={(e) => handleDragOver(e, col.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className={`rounded-2xl border flex flex-col p-3 transition-all min-h-[500px] ${
-                isDragTarget
-                  ? "bg-blue-50/80 border-[#004ac6] ring-2 ring-[#004ac6]/30 shadow-md"
-                  : "bg-slate-50/70 border-slate-200/80 hover:border-slate-300"
-              }`}
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-200/80 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
-                  <span className="font-bold text-slate-800 text-xs truncate" title={col.label}>
-                    {col.shortLabel}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold bg-white text-slate-700 px-2 py-0.5 rounded-full border border-slate-200 shadow-2xs">
-                    {colTasks.length}
-                  </span>
-                  <button
-                    onClick={() => handleOpenCreateModal(col.id)}
-                    className="p-1 text-slate-400 hover:text-[#004ac6] hover:bg-white rounded-lg transition-colors cursor-pointer"
-                    title={`Añadir tarea a ${col.shortLabel}`}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+                  // Costs calculation
+                  const projectExecuted = pTasks.reduce((sum, t) => sum + (t.executedCost || 0), p.executedCost || 0);
 
-              {/* Tasks List */}
-              <div className="space-y-3 flex-1 overflow-y-auto">
-                {colTasks.length === 0 ? (
-                  <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-200/90 rounded-xl text-center p-3 text-slate-400">
-                    <span className="text-[11px] font-medium">Soltar tarjeta aquí</span>
-                    <button
-                      onClick={() => handleOpenCreateModal(col.id)}
-                      className="mt-1 text-[10px] font-bold text-[#004ac6] hover:underline cursor-pointer"
+                  const curStatus = statusStyles[p.status] || statusStyles.inicio;
+
+                  return (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-slate-50/70 transition-colors group"
                     >
-                      + Crear tarea
-                    </button>
-                  </div>
-                ) : (
-                  colTasks.map((task) => {
-                    const checklistTotal = task.checklist ? task.checklist.length : 0;
-                    const checklistDone = task.checklist ? task.checklist.filter((c) => c.done).length : 0;
-                    const checklistPercent = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
-                    const isTaskOverdue = new Date(task.dueDate).getTime() < Date.now() && task.column !== "completado" && task.column !== "finalizado";
-                    const isTaskOverBudget = (task.executedCost || 0) > (task.estimatedBudget || 0) && (task.estimatedBudget || 0) > 0;
-                    const notesCount = task.notesThread ? task.notesThread.length : 0;
-                    const isInternal = task.type === "infraestructura_interna" || (!task.clientId && !!task.nodeId);
-
-                    return (
-                      <div
-                        key={task.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, task.id)}
-                        className="bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-2xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-2.5 group relative"
-                      >
-                        {/* Top Metadata Row: Priority & Type */}
-                        <div className="flex items-center justify-between gap-1">
-                          <span
-                            className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
-                              task.priority === "urgente"
-                                ? "bg-rose-100 text-rose-800 border border-rose-200"
-                                : task.priority === "alta"
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                : task.priority === "media"
-                                ? "bg-blue-100 text-blue-800 border border-blue-200"
-                                : "bg-slate-100 text-slate-700 border border-slate-200"
-                            }`}
-                          >
-                            {task.priority}
-                          </span>
-
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleOpenEditModal(task)}
-                              className="p-1 text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                              title="Editar Ficha"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task)}
-                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                              title="Eliminar Tarea"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Entity Linking Badge */}
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold truncate">
-                          {isInternal ? (
-                            <span className="flex items-center gap-1 text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 truncate max-w-full">
-                              <Radio className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{task.nodeName || "POP Interno"}</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100 truncate max-w-full">
-                              <Building2 className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{task.clientName || "Cliente Asignado"}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Title and Short Description */}
-                        <div>
-                          <h4
-                            onClick={() => handleOpenEditModal(task)}
-                            className="font-bold text-xs text-slate-900 leading-snug hover:text-[#004ac6] transition-colors cursor-pointer"
-                          >
-                            {task.title}
-                          </h4>
-                          {task.description && (
-                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-normal">
-                              {task.description}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Checklist progress bar (if any checklist exists) */}
-                        {checklistTotal > 0 && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
-                              <span className="flex items-center gap-1">
-                                <CheckSquare className="w-3 h-3 text-slate-400" />
-                                Subtareas
-                              </span>
-                              <span>
-                                {checklistDone}/{checklistTotal} ({checklistPercent}%)
-                              </span>
-                            </div>
-                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className={`h-1.5 rounded-full transition-all duration-300 ${
-                                  checklistPercent === 100 ? "bg-emerald-500" : "bg-[#004ac6]"
-                                }`}
-                                style={{ width: `${checklistPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Financial Pill (if budget or cost defined) */}
-                        {(task.estimatedBudget !== undefined || task.executedCost !== undefined) && (
-                          <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200/70 text-[10px]">
-                            <span className="text-slate-500 font-semibold flex items-center gap-1">
-                              <DollarSign className="w-3 h-3 text-slate-400" />
-                              Costo / Presup.
-                            </span>
-                            <span className={`font-bold ${isTaskOverBudget ? "text-rose-600" : "text-slate-800"}`}>
-                              ${task.executedCost || 0} / ${task.estimatedBudget || 0}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Card Footer: Assignee & Due Date */}
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-                          <div className="flex items-center gap-1 truncate max-w-[55%]">
-                            <User className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span className="truncate">{task.assignedTo || "Cuadrilla NOC"}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {notesCount > 0 && (
-                              <span className="flex items-center gap-0.5 text-slate-500 font-bold" title={`${notesCount} notas registradas`}>
-                                <MessageSquare className="w-3 h-3 text-slate-400" />
-                                {notesCount}
-                              </span>
+                      {/* 1. Nombre de Proyecto */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {p.type === "cliente" ? (
+                              <Building2 className="w-4 h-4" />
+                            ) : (
+                              <Radio className="w-4 h-4" />
                             )}
-                            <div className={`flex items-center gap-1 font-semibold ${isTaskOverdue ? "text-rose-600 font-bold" : "text-slate-500"}`}>
-                              <Clock className="w-3 h-3 shrink-0" />
-                              <span>{task.dueDate.split("-").slice(1).join("/")}</span>
+                          </div>
+                          <div>
+                            <button
+                              onClick={() => setSelectedProjectId(p.id)}
+                              className="font-bold text-slate-900 hover:text-[#004ac6] text-left transition-colors cursor-pointer text-xs flex items-center gap-1.5"
+                            >
+                              <span>{p.title}</span>
+                              <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#004ac6]" />
+                            </button>
+                            {p.description && (
+                              <p className="text-[11px] text-slate-400 line-clamp-1 max-w-xs mt-0.5">
+                                {p.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                              <span className="font-mono">{p.id}</span>
+                              <span>·</span>
+                              <span className="bg-slate-100 px-1.5 py-0.2 rounded font-medium text-slate-600">
+                                {p.columns.length} fases canva
+                              </span>
                             </div>
                           </div>
                         </div>
+                      </td>
 
-                        {/* Quick Column Shift Arrows */}
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100/60 opacity-60 hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={() => handleShiftColumn(task, "prev")}
-                            disabled={currentColumns.findIndex((c) => c.id === task.column) === 0}
-                            className="p-1 text-slate-400 hover:text-slate-800 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
-                            title="Mover a etapa anterior"
+                      {/* 2. Cliente Asignado */}
+                      <td className="py-4 px-4">
+                        {p.type === "cliente" ? (
+                          <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="truncate max-w-[180px]">{p.clientName || "Cliente No Asignado"}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                            <Radio className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="truncate max-w-[180px]">{p.nodeName || "POP / Nodo Interno"}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* 3. Fecha Inicio */}
+                      <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{p.startDate}</span>
+                        </div>
+                      </td>
+
+                      {/* 4. Fecha Fin */}
+                      <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{p.endDate}</span>
+                        </div>
+                      </td>
+
+                      {/* 5. Tareas Globales */}
+                      <td className="py-4 px-4">
+                        <div className="space-y-1 max-w-[140px]">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <span className="text-slate-700">{totalTasks} tareas</span>
+                            <span className="text-slate-500">{taskPercent}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className="bg-[#004ac6] h-full rounded-full transition-all"
+                              style={{ width: `${taskPercent}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {completedTasks} completadas
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* 6. Presupuesto / Costos */}
+                      <td className="py-4 px-4">
+                        <div className="font-mono text-[11px] text-slate-800 font-bold">
+                          ${p.estimatedBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          Costo: ${projectExecuted.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                      </td>
+
+                      {/* 7. Estado del Proyecto */}
+                      <td className="py-4 px-4">
+                        <div className="relative inline-block">
+                          <select
+                            value={p.status}
+                            onChange={(e) => handleStatusChange(p.id, e.target.value as ProjectStatus)}
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-hidden transition-all ${curStatus.bg} ${curStatus.text} ${curStatus.border}`}
                           >
-                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <option value="inicio">Inicio / Planeado</option>
+                            <option value="en_proceso">En Proceso</option>
+                            <option value="revision">En Revisión</option>
+                            <option value="terminado">Terminado</option>
+                            <option value="en_pausa">En Pausa</option>
+                            <option value="cancelado">Cancelado</option>
+                          </select>
+                        </div>
+                      </td>
+
+                      {/* 8. Iconos de Acciones Solicitados */}
+                      <td className="py-4 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {/* 👁️ Ver Proyecto */}
+                          <button
+                            onClick={() => setSelectedProjectId(p.id)}
+                            title="Ver Canva del Proyecto"
+                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
                           </button>
 
-                          <span className="text-[9px] text-slate-400 font-medium">Arrastrar o mover</span>
-
+                          {/* ✏️ Editar Proyecto */}
                           <button
-                            type="button"
-                            onClick={() => handleShiftColumn(task, "next")}
-                            disabled={currentColumns.findIndex((c) => c.id === task.column) === currentColumns.length - 1}
-                            className="p-1 text-slate-400 hover:text-slate-800 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
-                            title="Mover a etapa siguiente"
+                            onClick={() => handleOpenEditProject(p)}
+                            title="Editar Datos del Proyecto"
+                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+
+                          {/* 🔄 Cambiar Estado */}
+                          <button
+                            onClick={() => {
+                              // Quick cycle status
+                              const flow: ProjectStatus[] = ["inicio", "en_proceso", "revision", "terminado"];
+                              const currentIndex = flow.indexOf(p.status);
+                              const nextStatus = flow[(currentIndex + 1) % flow.length];
+                              handleStatusChange(p.id, nextStatus);
+                            }}
+                            title="Avanzar Estado Rápido"
+                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+
+                          {/* 📊 Ver Diagrama de Proyecto (Gantt) */}
+                          <button
+                            onClick={() => handleOpenGantt(p)}
+                            title="Ver Diagrama de Fechas y Cronograma"
+                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <TrendingUp className="w-4 h-4" />
+                          </button>
+
+                          {/* 🗑️ Eliminar Proyecto (Envía a Papelera) */}
+                          <button
+                            onClick={() => handleDeleteProject(p)}
+                            title="Enviar Proyecto a Papelera"
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          );
-        })}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Project Task Modal */}
-      <ProjectTaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        taskToEdit={taskToEdit}
-        defaultFlow={activeFlow}
-        defaultColumn={modalDefaultCol}
+      {/* Modal Crear / Editar Proyecto */}
+      <ProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => {
+          setIsProjectModalOpen(false);
+          setProjectToEdit(null);
+        }}
+        projectToEdit={projectToEdit}
+      />
+
+      {/* Modal Papelera de Proyectos */}
+      <ProjectTrashModal
+        isOpen={isTrashModalOpen}
+        onClose={() => setIsTrashModalOpen(false)}
+      />
+
+      {/* Modal Diagrama Gantt */}
+      <ProjectGanttModal
+        isOpen={isGanttModalOpen}
+        onClose={() => {
+          setIsGanttModalOpen(false);
+          setSelectedGanttProject(null);
+        }}
+        project={selectedGanttProject}
+        tasks={clientProjects}
       />
     </div>
   );

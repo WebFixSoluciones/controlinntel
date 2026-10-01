@@ -21,6 +21,9 @@ import {
   UserRole,
   SystemUser,
   ClientProjectTask,
+  Project,
+  ProjectCustomColumn,
+  ProjectStatus,
   ProjectNoteItem,
   ClientQuoteOrder,
   ClientVaultItem,
@@ -71,6 +74,8 @@ import {
   INITIAL_TICKETS,
   INITIAL_EXPENSES,
   INITIAL_MONTHLY_CHARGES,
+  INITIAL_PROJECTS,
+  DEFAULT_PROJECT_COLUMNS,
   INITIAL_PROJECT_TASKS,
   INITIAL_QUOTES,
   INITIAL_CLIENT_VAULT,
@@ -157,11 +162,20 @@ interface AppContextType {
   monthlyCharges: MonthlyCharge[];
   auditLogs: AuditLog[];
 
-  // Client 360 Extensions
+  // Projects Management (Notion-style hierarchy)
+  projects: Project[];
+  addProject: (project: Omit<Project, "id" | "createdAt" | "updatedAt">) => Promise<string>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  restoreProject: (id: string) => Promise<void>;
+  permanentDeleteProject: (id: string) => Promise<void>;
+  updateProjectColumns: (projectId: string, columns: ProjectCustomColumn[]) => Promise<void>;
+
+  // Client 360 Extensions & Project Tasks
   clientProjects: ClientProjectTask[];
   addClientProjectTask: (task: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   updateClientProjectTask: (id: string, updates: Partial<ClientProjectTask>) => Promise<void>;
-  moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn) => Promise<void>;
+  moveProjectTaskColumn: (id: string, newColumn: ProjectKanbanColumn | string) => Promise<void>;
   addProjectTaskNote: (taskId: string, content: string) => Promise<void>;
   deleteClientProjectTask: (id: string) => Promise<void>;
 
@@ -384,7 +398,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
-  // Client 360 Extensions State
+  // Projects & Tasks State (Notion-style hierarchy)
+  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [clientProjects, setClientProjects] = useState<ClientProjectTask[]>(INITIAL_PROJECT_TASKS);
   const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>(INITIAL_QUOTES);
   const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>(INITIAL_CLIENT_VAULT);
@@ -879,6 +894,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
       { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
       { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
+      { name: "projects", setter: setProjects, initialData: INITIAL_PROJECTS },
       { name: "clientProjects", setter: setClientProjects, initialData: INITIAL_PROJECT_TASKS },
       { name: "clientQuotes", setter: setClientQuotes, initialData: INITIAL_QUOTES },
       { name: "clientVaultItems", setter: setClientVaultItems, initialData: INITIAL_CLIENT_VAULT },
@@ -1191,7 +1207,59 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await updateSystemUser(uid, { status: newStatus });
   };
 
-  // Client Project Kanban
+  // Projects Management (Notion-style hierarchy)
+  const addProject = async (projectData: Omit<Project, "id" | "createdAt" | "updatedAt">): Promise<string> => {
+    const newProject: Project = {
+      ...projectData,
+      id: "proj-" + Date.now(),
+      isDeleted: false,
+      columns: projectData.columns && projectData.columns.length > 0 ? projectData.columns : DEFAULT_PROJECT_COLUMNS,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await syncToFirestore("projects", newProject.id, newProject);
+    setProjects((prev) => [newProject, ...prev]);
+    addAuditLog("CREATE_CLIENT", `Nuevo Proyecto: ${newProject.title}`, `Asignado: ${newProject.clientName || newProject.nodeName || "General"}`);
+    return newProject.id;
+  };
+
+  const updateProject = async (id: string, updates: Partial<Project>) => {
+    const updated = { ...updates, updatedAt: new Date().toISOString() };
+    await syncToFirestore("projects", id, updated);
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+    addAuditLog("UPDATE_CLIENT", `Proyecto Actualizado: ${id}`, `Estado/Detalles modificados`);
+  };
+
+  const deleteProject = async (id: string) => {
+    // Soft delete to trash
+    const updated = { isDeleted: true, deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    await syncToFirestore("projects", id, updated);
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+    addAuditLog("UPDATE_CLIENT", `Proyecto Enviado a Papelera: ${id}`, `Papelera`);
+  };
+
+  const restoreProject = async (id: string) => {
+    // Restore from trash
+    const updated = { isDeleted: false, deletedAt: undefined, updatedAt: new Date().toISOString() };
+    await syncToFirestore("projects", id, updated);
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+    addAuditLog("CREATE_CLIENT", `Proyecto Restaurado: ${id}`, `Restaurado de papelera`);
+  };
+
+  const permanentDeleteProject = async (id: string) => {
+    // Hard delete
+    await deleteFromFirestore("projects", id);
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    // Also remove associated tasks
+    setClientProjects((prev) => prev.filter((t) => t.projectId !== id));
+    addAuditLog("UPDATE_CLIENT", `Proyecto Eliminado Definitivamente: ${id}`, `Purga definitiva`);
+  };
+
+  const updateProjectColumns = async (projectId: string, columns: ProjectCustomColumn[]) => {
+    await updateProject(projectId, { columns });
+  };
+
+  // Client Project Tasks
   const addClientProjectTask = async (taskData: Omit<ClientProjectTask, "id" | "createdAt" | "updatedAt">) => {
     const newTask: ClientProjectTask = {
       ...taskData,
@@ -1201,7 +1269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     await syncToFirestore("clientProjects", newTask.id, newTask);
     setClientProjects((prev) => [newTask, ...prev]);
-    addAuditLog("CREATE_CLIENT", `Proyecto Kanban: ${newTask.title}`, `Cliente: ${newTask.clientName}`);
+    addAuditLog("CREATE_CLIENT", `Tarea de Proyecto: ${newTask.title}`, `Cliente: ${newTask.clientName || "General"}`);
   };
 
   const updateClientProjectTask = async (id: string, updates: Partial<ClientProjectTask>) => {
@@ -1212,7 +1280,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const moveProjectTaskColumn = async (id: string, newColumn: ProjectKanbanColumn) => {
+  const moveProjectTaskColumn = async (id: string, newColumn: ProjectKanbanColumn | string) => {
     await updateClientProjectTask(id, { column: newColumn });
   };
 
@@ -3019,6 +3087,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateSystemUser,
           deleteSystemUser,
           toggleUserStatus,
+          projects,
+          addProject,
+          updateProject,
+          deleteProject,
+          restoreProject,
+          permanentDeleteProject,
+          updateProjectColumns,
           clientProjects,
           addClientProjectTask,
           updateClientProjectTask,

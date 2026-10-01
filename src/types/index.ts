@@ -414,8 +414,46 @@ export interface ProjectNoteItem {
   createdAt: string;
 }
 
+export interface ProjectCustomColumn {
+  id: string;
+  label: string;
+  color: "slate" | "blue" | "amber" | "emerald" | "purple" | "rose" | "indigo";
+}
+
+export type ProjectStatus =
+  | "inicio"
+  | "en_proceso"
+  | "revision"
+  | "terminado"
+  | "en_pausa"
+  | "cancelado";
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  type: "cliente" | "infraestructura_interna";
+  clientId?: string;
+  clientName?: string;
+  nodeId?: string;
+  nodeName?: string;
+  startDate: string;
+  endDate: string;
+  estimatedBudget: number;
+  executedCost: number;
+  status: ProjectStatus;
+  columns: ProjectCustomColumn[];
+  isDeleted: boolean;
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ClientProjectTask {
   id: string;
+  projectId?: string;
+  projectName?: string;
+  isDeleted?: boolean;
   // Vinculación
   type?: "cliente" | "infraestructura_interna";
   clientId?: string;
@@ -426,7 +464,7 @@ export interface ClientProjectTask {
   title: string;
   description: string;
   boardFlow?: ProjectBoardFlow; // 'isp_tecnico' (default) | 'general'
-  column: ProjectKanbanColumn;
+  column: ProjectKanbanColumn | string;
   priority: "baja" | "media" | "alta" | "urgente";
   assignedTo: string;
   assignedToId?: string;

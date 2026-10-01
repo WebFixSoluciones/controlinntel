@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Layers,
   Send,
+  Briefcase,
 } from "lucide-react";
 
 export const ISP_FLOW_COLUMNS: { id: ProjectKanbanColumn; label: string; shortLabel: string; color: string; badge: string; dot: string }[] = [
@@ -52,9 +53,12 @@ interface ProjectTaskModalProps {
   onClose: () => void;
   taskToEdit?: ClientProjectTask | null;
   defaultFlow?: ProjectBoardFlow;
-  defaultColumn?: ProjectKanbanColumn;
+  defaultColumn?: ProjectKanbanColumn | string;
   defaultClientId?: string;
   defaultClientName?: string;
+  defaultProjectId?: string;
+  defaultProjectName?: string;
+  availableColumns?: { id: string; label: string; color?: string }[];
 }
 
 export function ProjectTaskModal({
@@ -65,10 +69,14 @@ export function ProjectTaskModal({
   defaultColumn,
   defaultClientId,
   defaultClientName,
+  defaultProjectId,
+  defaultProjectName,
+  availableColumns,
 }: ProjectTaskModalProps) {
   const {
     clients,
     nodes,
+    projects,
     systemUsers,
     currentUser,
     addClientProjectTask,
@@ -78,6 +86,10 @@ export function ProjectTaskModal({
   const { showSuccess, showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<"general" | "presupuesto" | "checklist" | "bitacora">("general");
+
+  // Project linking state
+  const [projectId, setProjectId] = useState<string>("");
+  const [projectName, setProjectName] = useState<string>("");
 
   // Form states
   const [projectType, setProjectType] = useState<"cliente" | "infraestructura_interna">("cliente");
@@ -89,7 +101,7 @@ export function ProjectTaskModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [boardFlow, setBoardFlow] = useState<ProjectBoardFlow>(defaultFlow);
-  const [column, setColumn] = useState<ProjectKanbanColumn>("factibilidad");
+  const [column, setColumn] = useState<string>("factibilidad");
   const [priority, setPriority] = useState<ClientProjectTask["priority"]>("media");
   const [assignedTo, setAssignedTo] = useState("");
   const [assignedToId, setAssignedToId] = useState("");
@@ -113,6 +125,8 @@ export function ProjectTaskModal({
     if (!isOpen) return;
 
     if (taskToEdit) {
+      setProjectId(taskToEdit.projectId || defaultProjectId || "");
+      setProjectName(taskToEdit.projectName || defaultProjectName || "");
       setProjectType(taskToEdit.type || (taskToEdit.nodeId ? "infraestructura_interna" : "cliente"));
       setClientId(taskToEdit.clientId || "");
       setClientName(taskToEdit.clientName || "");
@@ -136,6 +150,8 @@ export function ProjectTaskModal({
       setNotesThread(taskToEdit.notesThread ? [...taskToEdit.notesThread] : []);
     } else {
       // New task default values
+      setProjectId(defaultProjectId || "");
+      setProjectName(defaultProjectName || "");
       const initialFlow = defaultFlow;
       setBoardFlow(initialFlow);
       if (defaultClientId) {
@@ -158,7 +174,10 @@ export function ProjectTaskModal({
 
       setTitle("");
       setDescription("");
-      const initialCol = defaultColumn || (initialFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar");
+      const initialCol =
+        defaultColumn ||
+        (availableColumns && availableColumns[0]?.id) ||
+        (initialFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar");
       setColumn(initialCol);
       setPriority("media");
 
@@ -176,7 +195,20 @@ export function ProjectTaskModal({
     setActiveTab("general");
     setNewChecklistText("");
     setNewNoteContent("");
-  }, [isOpen, taskToEdit, defaultFlow, defaultColumn, defaultClientId, defaultClientName, clients, nodes, systemUsers]);
+  }, [
+    isOpen,
+    taskToEdit,
+    defaultFlow,
+    defaultColumn,
+    defaultClientId,
+    defaultClientName,
+    defaultProjectId,
+    defaultProjectName,
+    availableColumns,
+    clients,
+    nodes,
+    systemUsers,
+  ]);
 
   if (!isOpen) return null;
 
@@ -261,6 +293,8 @@ export function ProjectTaskModal({
 
       const taskDataPayload = {
         type: projectType,
+        projectId: projectId || undefined,
+        projectName: projectName || undefined,
         clientId: projectType === "cliente" ? clientId : undefined,
         clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName || "Cliente No Asignado") : undefined,
         nodeId: projectType === "infraestructura_interna" ? nodeId : undefined,
@@ -293,7 +327,15 @@ export function ProjectTaskModal({
     }
   };
 
-  const columnsList = boardFlow === "isp_tecnico" ? ISP_FLOW_COLUMNS : GENERAL_FLOW_COLUMNS;
+  const currentLinkedProject = projects.find((p) => p.id === projectId);
+  const columnsList: { id: string; label: string; [key: string]: any }[] =
+    availableColumns && availableColumns.length > 0
+      ? availableColumns
+      : currentLinkedProject && currentLinkedProject.columns && currentLinkedProject.columns.length > 0
+      ? currentLinkedProject.columns
+      : boardFlow === "isp_tecnico"
+      ? ISP_FLOW_COLUMNS
+      : GENERAL_FLOW_COLUMNS;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
@@ -396,11 +438,75 @@ export function ProjectTaskModal({
           {/* TAB 1: DATOS & ASIGNACIÓN */}
           {activeTab === "general" && (
             <div className="space-y-4">
+              {/* Project Linking Header */}
+              {projectId || defaultProjectId ? (
+                <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-sky-50/50 to-indigo-50/30 rounded-xl border border-blue-200/90 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#004ac6] text-white flex items-center justify-center shadow-xs">
+                      <Briefcase className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Proyecto Notion Canva
+                      </div>
+                      <div className="text-sm font-bold text-slate-900">
+                        {projectName || currentLinkedProject?.title || "Proyecto Vinculado"}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[11px] bg-blue-100/80 text-[#004ac6] font-bold px-2.5 py-1 rounded-full border border-blue-200">
+                    Canva Personalizado
+                  </span>
+                </div>
+              ) : projects.filter((p) => !p.isDeleted).length > 0 ? (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-[#004ac6]" />
+                    <span>Asignar a un Proyecto (Opcional)</span>
+                  </label>
+                  <select
+                    value={projectId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      setProjectId(pId);
+                      const prj = projects.find((p) => p.id === pId);
+                      if (prj) {
+                        setProjectName(prj.title);
+                        if (prj.clientId) {
+                          setProjectType("cliente");
+                          setClientId(prj.clientId);
+                          setClientName(prj.clientName || "");
+                        } else if (prj.nodeId) {
+                          setProjectType("infraestructura_interna");
+                          setNodeId(prj.nodeId);
+                          setNodeName(prj.nodeName || "");
+                        }
+                        if (prj.columns && prj.columns.length > 0) {
+                          setColumn(prj.columns[0].id);
+                        }
+                      } else {
+                        setProjectName("");
+                      }
+                    }}
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+                  >
+                    <option value="">-- Sin Proyecto (Tarea Suelta / Independiente) --</option>
+                    {projects
+                      .filter((p) => !p.isDeleted)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          📁 {p.title} ({p.clientName || p.nodeName || "General"})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              ) : null}
+
               {/* Type and Workflow Selection */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+              <div className={`grid grid-cols-1 ${projectId || (availableColumns && availableColumns.length > 0) ? "md:grid-cols-1" : "md:grid-cols-2"} gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80`}>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                    Vinculación del Proyecto
+                    Vinculación de la Tarea
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -431,38 +537,40 @@ export function ProjectTaskModal({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                    Flujo de Tablero Kanban
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleFlowSwitch("isp_tecnico")}
-                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                        boardFlow === "isp_tecnico"
-                          ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                          : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Flujo ISP (6 Fases)</span>
-                    </button>
+                {!projectId && (!availableColumns || availableColumns.length === 0) && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                      Flujo de Tablero Kanban
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleFlowSwitch("isp_tecnico")}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          boardFlow === "isp_tecnico"
+                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
+                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Flujo ISP (6 Fases)</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleFlowSwitch("general")}
-                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                        boardFlow === "general"
-                          ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                          : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                      }`}
-                    >
-                      <Kanban className="w-3.5 h-3.5" />
-                      <span>General (4 Fases)</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFlowSwitch("general")}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          boardFlow === "general"
+                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
+                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
+                        }`}
+                      >
+                        <Kanban className="w-3.5 h-3.5" />
+                        <span>General (4 Fases)</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Target Entity Selector */}
