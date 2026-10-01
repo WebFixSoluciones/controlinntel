@@ -242,7 +242,6 @@ export interface UserModulePermissions {
     submodules?: {
       general: boolean;
       sri: boolean;
-      planes: boolean;
     };
   };
 }

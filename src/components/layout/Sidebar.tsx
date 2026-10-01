@@ -125,7 +125,6 @@ const NAV_ITEMS: NavItem[] = [
     submodules: [
       { key: "general", label: "General", href: "/configuracion?sub=general", submoduleKey: "general" },
       { key: "sri", label: "Configuración SRI", href: "/configuracion?sub=sri", submoduleKey: "sri" },
-      { key: "planes", label: "Planes de Servicio", href: "/configuracion?sub=planes", submoduleKey: "planes" },
     ],
   },
 ];

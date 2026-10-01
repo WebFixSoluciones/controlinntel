@@ -7,12 +7,11 @@ import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { GeneralSettingsView } from "@/components/modules/settings/GeneralSettingsView";
 import { SriConfigView } from "@/components/modules/settings/SriConfigView";
-import { PlansManager } from "@/components/modules/settings/RecordManager";
 import { useApp } from "@/lib/state";
 import { canAccessModule, canAccessSubmodule } from "@/lib/permissions";
 import { ShieldAlert } from "lucide-react";
 
-export type ConfigSubmoduleTab = "general" | "sri" | "planes";
+export type ConfigSubmoduleTab = "general" | "sri";
 
 function ConfiguracionContent() {
   const { currentUser } = useApp();
@@ -21,21 +20,16 @@ function ConfiguracionContent() {
   const canAccessConfig = canAccessModule(currentUser, "configuracion");
   const canGeneral = canAccessSubmodule(currentUser, "configuracion", "general");
   const canSri = canAccessSubmodule(currentUser, "configuracion", "sri");
-  const canPlanes = canAccessSubmodule(currentUser, "configuracion", "planes");
 
   const subParam = searchParams.get("sub") as ConfigSubmoduleTab | null;
 
   let activeTab: ConfigSubmoduleTab = "general";
   if (subParam === "sri" && canSri) {
     activeTab = "sri";
-  } else if (subParam === "planes" && canPlanes) {
-    activeTab = "planes";
   } else if (subParam === "general" && canGeneral) {
     activeTab = "general";
   } else if (!canGeneral && canSri) {
     activeTab = "sri";
-  } else if (!canGeneral && !canSri && canPlanes) {
-    activeTab = "planes";
   }
 
   if (!canAccessConfig) {
@@ -56,7 +50,6 @@ function ConfiguracionContent() {
     <div className="w-full">
       {activeTab === "general" && canGeneral && <GeneralSettingsView />}
       {activeTab === "sri" && canSri && <SriConfigView />}
-      {activeTab === "planes" && canPlanes && <PlansManager />}
     </div>
   );
 }

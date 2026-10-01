@@ -437,7 +437,7 @@ export function UserPermissionsModal({
                         className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
                       />
                       <span className="capitalize text-[#434655] font-medium text-[11px]">
-                        {subKey === "sri" ? "Configuración SRI" : subKey === "planes" ? "Planes de Servicio" : "General"}
+                        {subKey === "sri" ? "Configuración SRI" : "General"}
                       </span>
                     </label>
                   ))}

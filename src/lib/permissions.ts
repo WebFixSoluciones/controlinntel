@@ -50,7 +50,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: true },
     boveda: { enabled: true },
     plantillas: { enabled: true },
-    configuracion: { enabled: true, submodules: { general: true, sri: true, planes: true } },
+    configuracion: { enabled: true, submodules: { general: true, sri: true } },
   },
   admin: {
     abonados: { enabled: true },
@@ -65,7 +65,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: true },
     boveda: { enabled: false }, // restringido por defecto a superadmin
     plantillas: { enabled: true },
-    configuracion: { enabled: true, submodules: { general: true, sri: true, planes: true } },
+    configuracion: { enabled: true, submodules: { general: true, sri: true } },
   },
   finanzas: {
     abonados: { enabled: true },
@@ -80,7 +80,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: false },
     boveda: { enabled: false },
     plantillas: { enabled: true },
-    configuracion: { enabled: true, submodules: { general: false, sri: true, planes: false } },
+    configuracion: { enabled: true, submodules: { general: false, sri: true } },
   },
   tecnico: {
     abonados: { enabled: true },
@@ -95,7 +95,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: false },
     boveda: { enabled: true },
     plantillas: { enabled: false },
-    configuracion: { enabled: false, submodules: { general: false, sri: false, planes: false } },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
   },
   soporte: {
     abonados: { enabled: true },
@@ -110,7 +110,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: false },
     boveda: { enabled: true },
     plantillas: { enabled: false },
-    configuracion: { enabled: false, submodules: { general: false, sri: false, planes: false } },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
   },
   legal: {
     abonados: { enabled: true },
@@ -125,7 +125,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: true },
     boveda: { enabled: false },
     plantillas: { enabled: true },
-    configuracion: { enabled: false, submodules: { general: false, sri: false, planes: false } },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
   },
   consulta: {
     abonados: { enabled: true },
@@ -140,7 +140,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     arcotel: { enabled: true },
     boveda: { enabled: false },
     plantillas: { enabled: true },
-    configuracion: { enabled: false, submodules: { general: false, sri: false, planes: false } },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
   },
 };
 

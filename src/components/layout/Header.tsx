@@ -91,8 +91,6 @@ function getPageTitle(pathname: string, subParam: string | null): string {
     switch (subParam) {
       case "sri":
         return "Configuración SRI";
-      case "planes":
-        return "Planes de Servicio";
       default:
         return "Configuración General";
     }
