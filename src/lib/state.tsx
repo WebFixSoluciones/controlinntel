@@ -193,7 +193,7 @@ interface AppContextType {
   addClientContract: (contract: Omit<ClientContractInfo, "id">) => Promise<void>;
   updateClientContract: (id: string, updates: Partial<ClientContractInfo>) => Promise<void>;
 
-  addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => Promise<void>;
+  addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => Promise<Client>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
 
@@ -1434,7 +1434,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addClient = async (
     clientData: Omit<Client, "id" | "createdAt" | "updatedAt">,
     serviceData?: Partial<ClientService>
-  ) => {
+  ): Promise<Client> => {
     const newId = "cli-" + (clients.length + 1).toString().padStart(3, "0");
     const newClient: Client = {
       ...clientData,
@@ -1503,6 +1503,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     addAuditLog("CREATE_CLIENT", `Cliente: ${newClient.businessName}`, `ID: ${newClient.identificationNumber}`);
+    return newClient;
   };
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
