@@ -5,7 +5,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientContactPerson } from "@/types";
 import { can, tabPermissions } from "@/lib/permissions";
-import { ClientProjectKanban } from "./ClientProjectKanban";
+import { ClientTasksTab } from "./ClientTasksTab";
 import { ClientQuotesManager } from "./ClientQuotesManager";
 import { ClientVaultTab } from "./ClientVaultTab";
 import { ClientContractTab } from "./ClientContractTab";
@@ -21,6 +21,7 @@ import {
   DollarSign,
   Ticket as TicketIcon,
   Kanban,
+  ListTodo,
   Printer,
   Edit2,
   Download,
@@ -126,16 +127,25 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     );
   };
 
+  const clientPendingTasksCount = useMemo(() => {
+    return clientProjects.filter(
+      (t) =>
+        t.clientId === client.id &&
+        t.column !== "completado" &&
+        t.column !== "finalizado"
+    ).length;
+  }, [clientProjects, client.id]);
+
   const allTabs: { id: ProfileTab; label: string; icon: any; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
-    { id: "red", label: "Sedes & Nodos", icon: Radio, permission: "manage_network" },
+    { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
     { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
-    { id: "proyectos", label: "Obras", icon: Kanban, permission: "manage_network" },
-    { id: "dossier", label: "Informe 360°", icon: Printer, permission: "manage_clients" },
+    { id: "proyectos", label: "Tareas", icon: ListTodo, permission: "manage_network" },
+    { id: "dossier", label: "Informes", icon: Printer, permission: "manage_clients" },
   ];
 
   // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
@@ -228,6 +238,17 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
                 <span>{tab.label}</span>
+                {tab.id === "proyectos" && clientPendingTasksCount > 0 && (
+                  <span
+                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      isActive
+                        ? "bg-white text-[#004ac6]"
+                        : "bg-amber-100 text-amber-900 border border-amber-300"
+                    }`}
+                  >
+                    {clientPendingTasksCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -383,7 +404,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </div>
           )}
 
-          {/* TAB 2: SEDES & NODOS DEL CLIENTE */}
+          {/* TAB 2: NODOS DEL CLIENTE */}
           {currentTabAllowed && activeTab === "red" && (
             <div className="space-y-6">
               <ClientNodesTab client={client} />
@@ -542,8 +563,8 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </div>
           )}
 
-          {/* TAB 8: PROYECTOS / KANBAN TRELLO */}
-          {currentTabAllowed && activeTab === "proyectos" && <ClientProjectKanban client={client} />}
+          {/* TAB 8: TAREAS / GESTOR DE CRONOGRAMA & SEGUIMIENTO */}
+          {currentTabAllowed && activeTab === "proyectos" && <ClientTasksTab client={client} />}
 
           {/* TAB 9: DOSSIER TECNICO INTEGRAL */}
           {currentTabAllowed && activeTab === "dossier" && <ClientDossierTab client={client} />}

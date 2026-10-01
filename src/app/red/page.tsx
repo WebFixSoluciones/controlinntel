@@ -33,7 +33,7 @@ export default function RedRedirectPage() {
                 Módulo Reorganizado en Clientes
               </h2>
               <p className="text-xs text-slate-500 leading-relaxed">
-                El control de sedes y nodos ahora es un submódulo exclusivo de cada cliente. Puedes consultar y registrar los nodos del cliente directamente desde su <strong>Ficha 360°</strong> (pestaña Sedes & Nodos).
+                El control de sedes y nodos ahora es un submódulo exclusivo de cada cliente. Puedes consultar y registrar los nodos del cliente directamente desde su <strong>Ficha del Cliente</strong> (pestaña Nodos).
               </p>
             </div>
 

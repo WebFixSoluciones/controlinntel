@@ -28,12 +28,12 @@ interface UserModalProps {
 
 const ALL_PERMISSIONS: { id: SystemPermission; label: string; desc: string }[] = [
   { id: "all", label: "Control Total del Sistema (Super Admin)", desc: "Acceso irrestricto a todos los módulos y pestañas" },
-  { id: "manage_network", label: "Nodos, Red & Proyectos (Obras)", desc: "Módulos Nodos, Proyectos (Trello) y pestaña Obras en Ficha 360°" },
-  { id: "manage_policies", label: "ARCOTEL & Cumplimiento Regulatorio", desc: "Módulo ARCOTEL (SIETEL, FODETEL, BDH) y pestaña Contratos en Ficha 360°" },
+  { id: "manage_network", label: "Nodos, Red & Proyectos (Tareas)", desc: "Módulos Nodos, Proyectos y pestaña Tareas en Ficha del Cliente" },
+  { id: "manage_policies", label: "ARCOTEL & Cumplimiento Regulatorio", desc: "Módulo ARCOTEL (SIETEL, FODETEL, BDH) y pestaña Servicios en Ficha del Cliente" },
   { id: "manage_finance", label: "Cobros & Finanzas", desc: "Módulo Finanzas (Facturas, Pagos, OPEX) y pestañas Cobros / Cotizaciones" },
-  { id: "manage_clients", label: "Clientes & Ficha 360°", desc: "Creación y administración de clientes, pestaña Identificación e Informe 360°" },
-  { id: "manage_tickets", label: "Mesa de Soporte & Tickets NOC", desc: "Módulo Soporte y pestaña Tickets en Ficha 360°" },
-  { id: "manage_vault", label: "Bóveda de Credenciales", desc: "Módulo Credenciales y pestaña Bóveda en Ficha 360°" },
+  { id: "manage_clients", label: "Clientes & Ficha del Cliente", desc: "Creación y administración de clientes, pestaña Identificación e Informes" },
+  { id: "manage_tickets", label: "Mesa de Soporte & Tickets NOC", desc: "Módulo Soporte y pestaña Tickets en Ficha del Cliente" },
+  { id: "manage_vault", label: "Bóveda de Credenciales", desc: "Módulo Credenciales y pestaña Bóveda en Ficha del Cliente" },
   { id: "manage_users", label: "Gestión de Usuarios & Roles", desc: "Crear, editar, activar y eliminar operadores del sistema" },
   { id: "export_reports", label: "Plantillas & Reportería Oficial", desc: "Descarga de plantillas Word/Excel y exportación de datos" },
 ];
