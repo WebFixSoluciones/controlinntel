@@ -1028,7 +1028,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     type="text"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder="Av. 10 de Agosto y Colón, Edif. Platinum Plaza..."
+                    placeholder="Ingrese dirección de entrega o instalación..."
                     className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   />
                 </div>
@@ -1434,7 +1434,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   required
                   value={newClientName}
                   onChange={(e) => setNewClientName(e.target.value)}
-                  placeholder="Ej. ANDERSON URRESTA"
+                  placeholder="Ingrese nombres o razón social"
                   className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
@@ -1448,7 +1448,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   required
                   value={newClientRuc}
                   onChange={(e) => setNewClientRuc(e.target.value)}
-                  placeholder="Ej. 1722110895 o 1790012345001"
+                  placeholder="Ingrese número de RUC o Cédula"
                   className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white font-mono focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
@@ -1460,7 +1460,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     type="email"
                     value={newClientEmail}
                     onChange={(e) => setNewClientEmail(e.target.value)}
-                    placeholder="cliente@correo.com"
+                    placeholder="Ingrese correo electrónico"
                     className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   />
                 </div>
@@ -1471,7 +1471,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     type="text"
                     value={newClientPhone}
                     onChange={(e) => setNewClientPhone(e.target.value)}
-                    placeholder="0980444782"
+                    placeholder="Ingrese número de teléfono"
                     className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   />
                 </div>
@@ -1483,7 +1483,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   type="text"
                   value={newClientAddress}
                   onChange={(e) => setNewClientAddress(e.target.value)}
-                  placeholder="Quito, Av. República y Eloy Alfaro"
+                  placeholder="Ingrese dirección domiciliaria"
                   className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
@@ -1535,7 +1535,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   required
                   value={newProdName}
                   onChange={(e) => setNewProdName(e.target.value)}
-                  placeholder="Ej. Soporte Digital / Mantenimiento Fibra"
+                  placeholder="Ingrese nombre del producto o servicio"
                   className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
@@ -1559,7 +1559,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     type="text"
                     value={newProdSku}
                     onChange={(e) => setNewProdSku(e.target.value)}
-                    placeholder="Ej. WF-SDI001"
+                    placeholder="Ingrese código o SKU (opcional)"
                     className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-white font-mono outline-hidden"
                   />
                 </div>
