@@ -22,6 +22,8 @@ import {
   Layers,
   Percent,
   Check,
+  ArrowLeftRight,
+  Clock,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -73,7 +75,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
   const [paymentTab, setPaymentTab] = useState<"efectivo" | "transferencia" | "tarjeta" | "credito">("transferencia");
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [cashReceived, setCashReceived] = useState<number>(0);
-  const [bankAccount, setBankAccount] = useState("Pichincha - Cta. Cte. #2100889901");
+  const [bankAccount, setBankAccount] = useState("");
   const [bankReference, setBankReference] = useState("");
   const [cardType, setCardType] = useState("Visa");
   const [cardAuthCode, setCardAuthCode] = useState("");
@@ -99,15 +101,12 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
   const [newProdIva, setNewProdIva] = useState<number>(15);
   const [newProdType, setNewProdType] = useState<"producto" | "servicio">("servicio");
 
-  // Initialize warehouse & default client
+  // Initialize warehouse
   useEffect(() => {
     if (inventoryWarehouses.length > 0 && !warehouseId) {
       setWarehouseId(inventoryWarehouses[0].id);
     }
-    if (clients.length > 0 && !selectedClientId) {
-      setSelectedClientId(clients[0].id);
-    }
-  }, [inventoryWarehouses, clients, warehouseId, selectedClientId]);
+  }, [inventoryWarehouses, warehouseId]);
 
   // Click outside listener for search dropdowns
   useEffect(() => {
@@ -585,7 +584,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Buscar cliente por Nombre o RUC/CI..."
+                    placeholder="Escribe para buscar cliente..."
                     value={clientSearch}
                     onFocus={() => setIsClientSearchOpen(true)}
                     onChange={(e) => {
@@ -657,8 +656,13 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
               )}
             </div>
 
-            {/* Selected Client Info Banner (Exact WebFix format) */}
-            {selectedClient && (
+            {/* Selected Client Info Banner vs Alert when empty (WebFix Design) */}
+            {!selectedClient ? (
+              <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-800 text-xs flex items-center justify-center gap-2 font-medium">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Selecciona un cliente para habilitar la facturación.</span>
+              </div>
+            ) : (
               <div className="bg-gradient-to-r from-emerald-50/70 via-slate-50 to-emerald-50/30 border border-emerald-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-4 text-xs animate-in fade-in">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Razón Social</span>
@@ -676,6 +680,18 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     {selectedClient.phone || "S/N"} | {selectedClient.email || "S/C"}
                   </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedClientId("");
+                    setClientSearch("");
+                  }}
+                  className="text-[10px] font-bold text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 bg-white px-2 py-1 rounded-lg transition cursor-pointer"
+                  title="Cambiar cliente"
+                >
+                  Cambiar
+                </button>
               </div>
             )}
 
@@ -868,30 +884,26 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
               )}
             </div>
 
-            {/* Items Table (WebFix Design) */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
-                  <tr>
-                    <th className="py-2.5 px-3">CÓDIGO & PRODUCTO / DETALLE</th>
-                    <th className="py-2.5 px-2 text-center w-28">CANT.</th>
-                    <th className="py-2.5 px-2 text-center w-24">P. UNIT.</th>
-                    <th className="py-2.5 px-2 text-center w-20">DTO.</th>
-                    <th className="py-2.5 px-3 text-right w-24">SUBTOTAL</th>
-                    <th className="py-2.5 px-2 text-center w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {items.length === 0 ? (
+            {/* Items Table / Empty State (WebFix Design) */}
+            {items.length === 0 ? (
+              <div className="py-16 text-center text-xs text-slate-400 font-medium">
+                No hay productos en el carrito. Utiliza el buscador para añadir ítems.
+              </div>
+            ) : (
+              <div className="border border-slate-200 rounded-xl overflow-hidden animate-in fade-in">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400">
-                        <ShoppingCart className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-60" />
-                        <p className="font-semibold text-xs">No hay productos o servicios en el comprobante.</p>
-                        <p className="text-[11px] text-slate-400">Busca en el catálogo arriba para agregar ítems a la venta.</p>
-                      </td>
+                      <th className="py-2.5 px-3">CÓDIGO & PRODUCTO / DETALLE</th>
+                      <th className="py-2.5 px-2 text-center w-28">CANT.</th>
+                      <th className="py-2.5 px-2 text-center w-24">P. UNIT.</th>
+                      <th className="py-2.5 px-2 text-center w-20">DTO.</th>
+                      <th className="py-2.5 px-3 text-right w-24">SUBTOTAL</th>
+                      <th className="py-2.5 px-2 text-center w-10"></th>
                     </tr>
-                  ) : (
-                    items.map((it) => (
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {items.map((it) => (
                       <tr key={it.id} className="hover:bg-slate-50/50 transition">
                         {/* Producto & Detalle */}
                         <td className="py-2.5 px-3">
@@ -981,11 +993,11 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* CARD 3: Datos Adicionales del Comprobante (Opcional - Accordion) */}
@@ -1139,7 +1151,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     : "border-slate-200 hover:bg-slate-50 text-slate-600"
                 }`}
               >
-                <Zap className="w-4 h-4 mb-1" />
+                <ArrowLeftRight className="w-4 h-4 mb-1" />
                 <span>Transf.</span>
               </button>
 
@@ -1165,7 +1177,7 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                     : "border-slate-200 hover:bg-slate-50 text-slate-600"
                 }`}
               >
-                <Calendar className="w-4 h-4 mb-1" />
+                <User className="w-4 h-4 mb-1" />
                 <span>Crédito</span>
               </button>
             </div>
@@ -1175,16 +1187,17 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
               {paymentTab === "transferencia" && (
                 <>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1 flex justify-between">
-                      <span>Monto Transferencia</span>
+                    <div className="flex justify-between items-center text-[11px] font-bold text-slate-600 mb-1">
+                      <span>Transferencia</span>
                       <span className="font-mono text-slate-400">${total.toFixed(2)}</span>
-                    </label>
+                    </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-slate-400 font-bold">$</span>
                       <input
                         type="number"
                         step="0.01"
-                        value={paymentAmount}
+                        value={paymentAmount || ""}
+                        placeholder="0.00"
                         onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                         className="w-full pl-7 pr-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-900 outline-hidden focus:ring-2 focus:ring-[#004ac6]"
                       />
@@ -1192,14 +1205,12 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      Cuenta Bancaria Destino
-                    </label>
                     <select
                       value={bankAccount}
                       onChange={(e) => setBankAccount(e.target.value)}
                       className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium outline-hidden cursor-pointer"
                     >
+                      <option value="">-- Cuenta Bancaria Destino --</option>
                       <option value="Pichincha - Cta. Cte. #2100889901">Banco Pichincha - Cta. Cte. #2100889901</option>
                       <option value="Guayaquil - Cta. Cte. #1100345672">Banco Guayaquil - Cta. Cte. #1100345672</option>
                       <option value="Produbanco - Cta. Ahorros #1200984511">Produbanco - Cta. Ahorros #1200984511</option>
@@ -1208,14 +1219,11 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      Banco / Referencia de depósito
-                    </label>
                     <input
                       type="text"
                       value={bankReference}
                       onChange={(e) => setBankReference(e.target.value)}
-                      placeholder="Ej. Transf. #948201 / Comprobante"
+                      placeholder="Banco / Referencia de depósito"
                       className="w-full py-2 px-3 rounded-xl border border-slate-200 bg-white outline-hidden focus:ring-2 focus:ring-[#004ac6]"
                     />
                   </div>
@@ -1339,16 +1347,16 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
 
             {/* Payment Summary Box: CAMBIO / VUELTO & CUBIERTO (WebFix style) */}
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-100 text-center">
-                <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider block">
+              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/60 text-center">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
                   CAMBIO / VUELTO
                 </span>
-                <span className="text-base font-black font-mono text-rose-600">
+                <span className="text-base font-black font-mono text-emerald-700">
                   ${changeDue.toFixed(2)}
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+              <div className="p-3 rounded-xl bg-slate-50/60 border border-slate-200 text-center">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                   CUBIERTO
                 </span>
@@ -1358,19 +1366,21 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
               </div>
             </div>
 
-            {/* Payment Validation Alert */}
-            {coveredAmount < total ? (
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
-                <span className="font-semibold text-[11px]">
-                  Falta cubrir ${(total - coveredAmount).toFixed(2)} de la venta.
-                </span>
-              </div>
-            ) : (
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-                <span className="font-semibold text-[11px]">Monto completo cubierto.</span>
-              </div>
+            {/* Payment Validation Alert (Only show when there are items in the cart) */}
+            {items.length > 0 && (
+              coveredAmount < total ? (
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <span className="font-semibold text-[11px]">
+                    Falta cubrir ${(total - coveredAmount).toFixed(2)} de la venta.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span className="font-semibold text-[11px]">Monto completo cubierto.</span>
+                </div>
+              )
             )}
 
             {/* Big Action Button (WebFix style) */}
@@ -1398,9 +1408,10 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
                 type="button"
                 onClick={() => handleSubmit(true)}
                 disabled={isSubmitting || items.length === 0}
-                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 font-semibold transition py-1 cursor-pointer"
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 font-semibold transition py-1 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Guardar Borrador
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Guardar Borrador</span>
               </button>
             </div>
           </div>
