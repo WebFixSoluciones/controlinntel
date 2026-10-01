@@ -92,7 +92,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           name: client.contactName,
           role: client.contactRole || "Contacto Principal",
           phone: client.contactPhone || client.phone,
-          address: client.contactAddress || client.address,
+          address: client.contactAddress || "",
         },
       ];
     }
@@ -205,8 +205,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                   {client.identificationType}: {client.identificationNumber}
                 </span>
-                <span>•</span>
-                <span>{client.address}</span>
               </div>
             </div>
           </div>
@@ -308,7 +306,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
 
                   <div>
                     <label className="text-[10px] text-slate-400 font-bold block">Sector / Zona</label>
-                    <span className="font-medium text-slate-800">{client.sector || "Sector Matriz"}</span>
+                    <span className="font-medium text-slate-800">{client.sector || "No especificado"}</span>
                   </div>
 
                   <div className="col-span-full">

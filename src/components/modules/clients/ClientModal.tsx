@@ -69,7 +69,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             role: clientToEdit.contactRole || "",
             phone: clientToEdit.contactPhone || clientToEdit.phone || "",
             email: "",
-            address: clientToEdit.contactAddress || clientToEdit.address || "",
+            address: clientToEdit.contactAddress || "",
           },
         ]);
       } else {
