@@ -63,6 +63,15 @@ export interface ClientService {
   notes?: string;
 }
 
+export interface ClientContactPerson {
+  id: string;
+  name: string;
+  role?: string;
+  phone: string;
+  email?: string;
+  address?: string;
+}
+
 export interface Client {
   id: string;
   identificationType: IdentificationType;
@@ -83,6 +92,7 @@ export interface Client {
   contactRole?: string;
   contactPhone?: string;
   contactAddress?: string;
+  contacts?: ClientContactPerson[];
 }
 
 export interface Plan {

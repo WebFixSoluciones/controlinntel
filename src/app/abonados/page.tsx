@@ -77,9 +77,9 @@ export default function AbonadosPage() {
               <div className="w-full">
                 {selectedClient ? (
                   <ClientProfile360
-                    client={selectedClient}
+                    client={clients.find((c) => c.id === selectedClient.id) || selectedClient}
                     onClose={() => setSelectedClient(null)}
-                    onEdit={() => handleEdit(selectedClient)}
+                    onEdit={() => handleEdit(clients.find((c) => c.id === selectedClient.id) || selectedClient)}
                   />
                 ) : (
                   <ClientsTable
@@ -95,6 +95,7 @@ export default function AbonadosPage() {
 
               {/* New/Edit Modal */}
               <ClientModal
+                key={clientToEdit ? clientToEdit.id : "new-client"}
                 isOpen={isNewModalOpen}
                 onClose={handleCloseModal}
                 clientToEdit={clientToEdit}

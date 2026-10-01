@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Client } from "@/types";
+import { Client, ClientContactPerson } from "@/types";
 import { can, tabPermissions } from "@/lib/permissions";
 import { ClientProjectKanban } from "./ClientProjectKanban";
 import { ClientQuotesManager } from "./ClientQuotesManager";
@@ -79,8 +79,25 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const projects = clientProjects.filter((p) => p.clientId === client.id);
   const quotes = clientQuotes.filter((q) => q.clientId === client.id);
   const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
-  const contracts = clientContracts.filter((c) => c.clientId === client.id);
   const clientNodesList = nodes.filter((n) => n.clientId === client.id);
+
+  const allContacts: ClientContactPerson[] = useMemo(() => {
+    if (client.contacts && client.contacts.length > 0) {
+      return client.contacts;
+    }
+    if (client.contactName && client.contactName.trim()) {
+      return [
+        {
+          id: "ct-legacy",
+          name: client.contactName,
+          role: client.contactRole || "Contacto Principal",
+          phone: client.contactPhone || client.phone,
+          address: client.contactAddress || client.address,
+        },
+      ];
+    }
+    return [];
+  }, [client]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -109,15 +126,15 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     );
   };
 
-  const allTabs: { id: ProfileTab; label: string; icon: any; count?: number; permission: string }[] = [
+  const allTabs: { id: ProfileTab; label: string; icon: any; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
-    { id: "red", label: "Sedes & Nodos", icon: Radio, count: clientNodesList.length, permission: "manage_network" },
-    { id: "boveda", label: "Bóveda", icon: KeyRound, count: vaultItems.length, permission: "manage_vault" },
-    { id: "contratos", label: "Servicios", icon: ShieldCheck, count: contracts.length, permission: "manage_policies" },
-    { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, count: quotes.length, permission: "manage_finance" },
-    { id: "finanzas", label: "Cobros", icon: DollarSign, count: charges.length, permission: "manage_finance" },
-    { id: "tickets", label: "Tickets", icon: TicketIcon, count: clientTickets.length, permission: "manage_tickets" },
-    { id: "proyectos", label: "Obras", icon: Kanban, count: projects.length, permission: "manage_network" },
+    { id: "red", label: "Sedes & Nodos", icon: Radio, permission: "manage_network" },
+    { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
+    { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
+    { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
+    { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
+    { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
+    { id: "proyectos", label: "Obras", icon: Kanban, permission: "manage_network" },
     { id: "dossier", label: "Informe 360°", icon: Printer, permission: "manage_clients" },
   ];
 
@@ -213,17 +230,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
                 <span>{tab.label}</span>
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono ${
-                      isActive
-                        ? "bg-white/25 text-white border border-white/30"
-                        : "bg-slate-100 text-slate-800 border border-slate-300"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -312,29 +318,69 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 </div>
               </div>
 
-              {/* Tarjeta de Persona de Contacto (PDF Página 2) */}
+              {/* Tarjeta de Personas de Contacto (Múltiples Contactos) */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
-                  Datos de Contacto de una Persona
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block">Nombre</label>
-                    <span className="font-bold text-slate-900">{client.contactName || "No registrado"}</span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block">Cargo</label>
-                    <span className="font-medium text-slate-800">{client.contactRole || "No especificado"}</span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block">Teléfono</label>
-                    <span className="font-medium text-slate-800">{client.contactPhone || client.phone}</span>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-400 font-bold block">Dirección</label>
-                    <span className="font-medium text-slate-800">{client.contactAddress || client.address}</span>
-                  </div>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#004ac6]" />
+                    <span>Datos de Personas de Contacto ({allContacts.length})</span>
+                  </h4>
+                  {onEdit && (
+                    <button
+                      onClick={onEdit}
+                      className="text-xs font-bold text-[#004ac6] hover:text-[#003da6] flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      <span>Gestionar Contactos</span>
+                    </button>
+                  )}
                 </div>
+
+                {allContacts.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-slate-400 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    No se han registrado personas de contacto. Haz clic en &quot;Editar Ficha&quot; para agregar contactos al abonado.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {allContacts.map((contact, idx) => (
+                      <div
+                        key={contact.id || idx}
+                        className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2 text-xs hover:border-[#bfdbfe] transition"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-bold text-slate-900 block text-xs">{contact.name}</span>
+                            <span className="text-[11px] text-[#004ac6] font-semibold block">{contact.role || "Contacto"}</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-600 border border-slate-200">
+                            #{idx + 1}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1 text-[11px] text-slate-600 pt-1.5 border-t border-slate-200/60">
+                          {contact.phone && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Teléfono:</span>
+                              <span className="font-medium text-slate-800 font-mono">{contact.phone}</span>
+                            </div>
+                          )}
+                          {contact.email && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Email:</span>
+                              <span className="font-medium text-slate-800 truncate max-w-[180px]">{contact.email}</span>
+                            </div>
+                          )}
+                          {contact.address && (
+                            <div className="pt-0.5">
+                              <span className="text-slate-400 block text-[10px]">Dirección:</span>
+                              <span className="font-medium text-slate-700 block">{contact.address}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
