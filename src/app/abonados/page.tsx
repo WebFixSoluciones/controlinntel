@@ -50,16 +50,9 @@ export default function AbonadosPage() {
             </div>
           ) : (
             <>
-              {/* Action Toolbar without redundant title or description */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#434655]">Total Abonados:</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-                    {clients.length}
-                  </span>
-                </div>
-
-                {!selectedClient && (
+              {/* Action Toolbar */}
+              {!selectedClient && (
+                <div className="flex items-center justify-end">
                   <button
                     onClick={() => {
                       setClientToEdit(null);
@@ -70,8 +63,8 @@ export default function AbonadosPage() {
                     <Plus className="w-4 h-4" />
                     <span>Nuevo Abonado</span>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Main Content */}
               <div className="w-full">
