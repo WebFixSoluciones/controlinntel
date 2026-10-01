@@ -405,38 +405,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           )}
 
           {/* TAB 2: NODOS DEL CLIENTE */}
-          {currentTabAllowed && activeTab === "red" && (
-            <div className="space-y-6">
-              <ClientNodesTab client={client} />
-
-              {/* Servicios de Internet / Planes Contratados (si existen) */}
-              {services.length > 0 && (
-                <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3">
-                  <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider border-b border-slate-100 pb-2">
-                    Planes de Internet & Enlaces del Cliente
-                  </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                    {services.map((srv) => (
-                      <div key={srv.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                        <span className="font-bold text-slate-800 text-xs block">{srv.planName}</span>
-                        <div className="text-[11px] text-slate-500 font-mono">
-                          IPv4: <span className="font-bold text-sky-700">{srv.ipv4Address || "CGNAT"}</span>
-                        </div>
-                        {srv.pppoeUser && (
-                          <div className="text-[11px] text-slate-500 font-mono">
-                            PPPoE: <span className="text-slate-700">{srv.pppoeUser}</span>
-                          </div>
-                        )}
-                        <div className="text-[10px] text-slate-400">
-                          Instalado: {srv.installationDate}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {currentTabAllowed && activeTab === "red" && <ClientNodesTab client={client} />}
 
           {/* TAB 3: BOVEDA DE CLAVES */}
           {currentTabAllowed && activeTab === "boveda" && <ClientVaultTab client={client} />}
