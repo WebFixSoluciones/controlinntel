@@ -13,6 +13,7 @@ import { ClientDossierTab } from "./ClientDossierTab";
 import { ClientNodesTab } from "./ClientNodesTab";
 import { ClientTramitesTab } from "./ClientTramitesTab";
 import { ClientArcotelTab } from "./ClientArcotelTab";
+import { ClientTicketsTab } from "./ClientTicketsTab";
 import {
   X,
   User,
@@ -517,50 +518,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           )}
 
           {/* TAB 7: TICKETS NOC */}
-          {currentTabAllowed && activeTab === "tickets" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                    <TicketIcon className="w-4 h-4 text-sky-600" />
-                    Incidencias Técnicas & Tickets de Soporte
-                  </h4>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {clientTickets.length === 0 ? (
-                  <div className="col-span-full py-10 text-center bg-white rounded-2xl border border-dashed border-slate-200">
-                    <TicketIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-bold text-slate-600 text-xs">Sin incidencias técnicas registradas</p>
-                  </div>
-                ) : (
-                  clientTickets.map((t) => (
-                    <div key={t.id} className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-mono text-xs font-bold text-sky-700">{t.ticketNumber}</span>
-                        <span
-                          className={`px-2 py-0.2 rounded-full text-[10px] font-bold uppercase ${
-                            t.status === "resuelto"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {t.status.replace("_", " ")}
-                        </span>
-                      </div>
-                      <h5 className="font-bold text-xs text-slate-900">{t.title}</h5>
-                      <p className="text-[11px] text-slate-500">{t.description}</p>
-                      <div className="pt-2 border-t border-slate-100 flex justify-between text-[10px] text-slate-400">
-                        <span>SLA: {t.priority.toUpperCase()}</span>
-                        <span>{t.createdAt.split("T")[0]}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+          {currentTabAllowed && activeTab === "tickets" && <ClientTicketsTab client={client} />}
 
           {/* TAB 8: TAREAS / GESTOR DE CRONOGRAMA & SEGUIMIENTO */}
           {currentTabAllowed && activeTab === "proyectos" && <ClientTasksTab client={client} />}

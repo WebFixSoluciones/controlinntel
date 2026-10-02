@@ -9,6 +9,7 @@ import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck } from "lucide-r
 interface TicketModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialClientId?: string;
 }
 
 const ISP_FAULT_TOPICS = [
@@ -24,11 +25,11 @@ const ISP_FAULT_TOPICS = [
   { topic: "Otro motivo técnico (personalizado)", category: "otro" as const, defaultDept: "soporte_tecnico" as TicketDepartment },
 ];
 
-export function TicketModal({ isOpen, onClose }: TicketModalProps) {
+export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalProps) {
   const { addTicket, clients, clientServices, systemUsers } = useApp();
   const { showError, showSuccess } = useToast();
 
-  const [clientId, setClientId] = useState(clients[0]?.id || "");
+  const [clientId, setClientId] = useState(() => initialClientId || clients[0]?.id || "");
   const [selectedTopic, setSelectedTopic] = useState(ISP_FAULT_TOPICS[0].topic);
   const [customTitle, setCustomTitle] = useState("");
   const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
@@ -142,17 +143,23 @@ export function TicketModal({ isOpen, onClose }: TicketModalProps) {
                 <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
                 Cliente Afectado *
               </label>
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
-              >
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.businessName} ({c.identificationNumber})
-                  </option>
-                ))}
-              </select>
+              {initialClientId ? (
+                <div className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
+                  {selectedClient?.businessName || "Cliente Asignado"}
+                </div>
+              ) : (
+                <select
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                >
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.businessName} ({c.identificationNumber})
+                    </option>
+                  ))}
+                </select>
+              )}
               {selectedClient && (
                 <div className="mt-1 text-[11px] text-slate-500 flex gap-2">
                   <span>Tel: {selectedClient.phone || "S/N"}</span>
