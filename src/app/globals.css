@@ -52,3 +52,14 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 
+/* Unificación de radio máximo de 6px en botones, inputs, pestañas y elementos interactivos en todo el sistema */
+button:not(.rounded-full),
+input:not(.rounded-full),
+select:not(.rounded-full),
+textarea:not(.rounded-full),
+[role="button"]:not(.rounded-full),
+[role="tab"]:not(.rounded-full) {
+  border-radius: 6px;
+}
+
+

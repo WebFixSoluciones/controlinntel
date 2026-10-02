@@ -6,6 +6,18 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
+    borderRadius: {
+      none: "0px",
+      xs: "2px",
+      sm: "3px",
+      DEFAULT: "4px",
+      md: "6px",
+      lg: "6px",
+      xl: "6px",
+      "2xl": "6px",
+      "3xl": "6px",
+      full: "9999px",
+    },
     extend: {
       colors: {
         background: "var(--background)",
@@ -56,14 +68,6 @@ module.exports = {
           dark: "#0b1c30",
           cyan: "#0053db",
         },
-      },
-      borderRadius: {
-        sm: "0.25rem",
-        DEFAULT: "0.5rem",
-        md: "0.75rem",
-        lg: "1rem",
-        xl: "1.5rem",
-        full: "9999px",
       },
       boxShadow: {
         "lumina-subtle": "0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04)",
