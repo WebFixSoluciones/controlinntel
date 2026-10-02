@@ -161,10 +161,17 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     };
   };
 
-  // Unified list of quotes for this client
+  // Unified list of quotes strictly for this client
   const quotes: NormalizedQuote[] = useMemo(() => {
+    const matchesClient = (clientId?: string, ruc?: string, name?: string) => {
+      if (clientId && clientId === client.id) return true;
+      if (ruc && client.identificationNumber && ruc.trim() === client.identificationNumber.trim()) return true;
+      if (name && client.businessName && name.trim().toLowerCase() === client.businessName.trim().toLowerCase()) return true;
+      return false;
+    };
+
     const fromClientQuotes: NormalizedQuote[] = (clientQuotes || [])
-      .filter((q) => q.clientId === client.id)
+      .filter((q) => matchesClient(q.clientId, q.clientRuc, q.clientName))
       .map((q) => ({
         id: q.id,
         quoteNumber: q.quoteNumber,
@@ -188,7 +195,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
       }));
 
     const fromBillingQuotes: NormalizedQuote[] = (billingQuotes || [])
-      .filter((q) => q.clientId === client.id)
+      .filter((q) => matchesClient(q.clientId, q.clientRuc, q.clientName))
       .map((q) => ({
         id: q.id,
         quoteNumber: q.quoteNumber,
@@ -473,8 +480,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900">Cotizaciones Comerciales & Órdenes de Pedido</h3>
-            <span className="text-[11px] text-slate-500">Propuestas económicas y pedidos de servicio para este cliente</span>
+            <h3 className="font-bold text-sm text-slate-900">Cotizaciones</h3>
+            <span className="text-[11px] text-slate-500">Cotizaciones comerciales asignadas a este cliente</span>
           </div>
         </div>
 
@@ -484,7 +491,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
           className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Nueva Cotización Comercial</span>
+          <span>Nueva Cotización</span>
         </button>
       </div>
 
@@ -494,7 +501,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
           <FileSpreadsheet className="w-8 h-8 text-slate-300 mx-auto mb-2" />
           <p className="font-bold text-slate-700 text-xs">Sin cotizaciones registradas</p>
           <p className="text-[11px] text-slate-400 mt-0.5">
-            Crea una nueva cotización para registrar propuestas de internet, enlaces y equipos.
+            No existen cotizaciones asignadas para este cliente.
           </p>
           <button
             type="button"
@@ -502,7 +509,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Crear Cotización</span>
+            <span>Nueva Cotización</span>
           </button>
         </div>
       ) : (
@@ -569,36 +576,38 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                       </div>
                     </td>
 
-                    {/* Acciones */}
+                    {/* Acciones (solo iconos de acción) */}
                     <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {/* Transformar a Venta */}
+                      <div className="flex items-center justify-center gap-1">
+                        {/* Icono: Transformar a Venta */}
                         <button
                           type="button"
                           onClick={() => handleStartConvertToSale(q)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200 text-xs font-bold transition cursor-pointer shadow-2xs"
-                          title="Transformar a Venta (Factura Electrónica / Nota de Venta)"
+                          className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                          title="Transformar a Venta (Factura Electrónica SRI o Nota de Venta)"
+                          aria-label="Transformar a Venta"
                         >
-                          <ArrowRightLeft className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Transformar a Venta</span>
+                          <ShoppingCart className="w-4 h-4" />
                         </button>
 
-                        {/* Imprimir / Ver comprobante proforma */}
+                        {/* Icono: Imprimir / Ver cotización */}
                         <button
                           type="button"
                           onClick={() => setPreviewQuote(toClientQuote(q))}
-                          className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                          className="p-2 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
                           title="Imprimir / Ver Cotización Formal"
+                          aria-label="Imprimir / Ver Cotización Formal"
                         >
                           <Printer className="w-4 h-4" />
                         </button>
 
-                        {/* Eliminar cotización */}
+                        {/* Icono: Eliminar cotización */}
                         <button
                           type="button"
                           onClick={() => handleDeleteQuote(q)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                           title="Eliminar Cotización"
+                          aria-label="Eliminar Cotización"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -636,7 +645,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             <div className="p-4 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2.5">
                 <FileSpreadsheet className="w-5 h-5 text-[#004ac6]" />
-                <h4 className="font-bold text-slate-900 text-sm">Nueva Cotización Comercial</h4>
+                <h4 className="font-bold text-slate-900 text-sm">Nueva Cotización</h4>
               </div>
               <button
                 type="button"
