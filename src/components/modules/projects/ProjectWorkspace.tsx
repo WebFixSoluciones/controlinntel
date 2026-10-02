@@ -517,7 +517,7 @@ export function ProjectWorkspace({
               }`}
             >
               <ListTodo className="w-4 h-4" />
-              <span>Lista de Tareas ({projectTasks.length})</span>
+              <span>Lista de Tareas</span>
             </button>
 
             <button
@@ -798,7 +798,7 @@ export function ProjectWorkspace({
           <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/60">
             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
               <ListTodo className="w-4 h-4 text-[#004ac6]" />
-              <span>Tareas Registradas ({filteredTasks.length})</span>
+              <span>Tareas Registradas</span>
             </h3>
 
             <button
@@ -1008,7 +1008,7 @@ export function ProjectWorkspace({
             {/* Tasks Timeline Bars */}
             <div className="space-y-3 pt-4">
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Desglose por Tarea ({projectTasks.length})
+                Desglose por Tarea
               </h4>
 
               {projectTasks.length === 0 ? (

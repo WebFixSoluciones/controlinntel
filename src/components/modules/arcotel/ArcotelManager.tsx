@@ -389,13 +389,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
           <span>SIETEL (Archivos Periódicos)</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "sietel" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {arcotelFiles.filter((f) => f.subsystem.startsWith("sietel")).length}
-          </span>
         </button>
 
         <button
@@ -408,13 +401,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
         >
           <Layers className="w-3.5 h-3.5" />
           <span>FODETEL (Trimestral)</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "fodetel" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {getSubsystemFiles("fodetel").length}
-          </span>
         </button>
 
         <button
@@ -451,13 +437,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
         >
           <Building2 className="w-3.5 h-3.5" />
           <span>Registro de Infraestructura</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "infraestructura" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {getSubsystemFiles("registro_infraestructura").length}
-          </span>
         </button>
 
         <button
@@ -482,13 +461,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
         >
           <FileCheck className="w-3.5 h-3.5" />
           <span>Pólizas Regulatorias</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "polizas" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {policies.length}
-          </span>
         </button>
       </div>
 

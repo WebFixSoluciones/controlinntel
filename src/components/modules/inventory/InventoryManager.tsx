@@ -885,7 +885,7 @@ export function InventoryManager() {
                 }`}
               >
                 <Tags className="w-3.5 h-3.5" />
-                <span>Categorías ({inventoryCategories.length})</span>
+                <span>Categorías</span>
               </button>
               <button
                 onClick={() => setCategorySubView("marcas")}
@@ -896,7 +896,7 @@ export function InventoryManager() {
                 }`}
               >
                 <Award className="w-3.5 h-3.5" />
-                <span>Marcas & Fabricantes ({inventoryBrands.length})</span>
+                <span>Marcas & Fabricantes</span>
               </button>
             </div>
 

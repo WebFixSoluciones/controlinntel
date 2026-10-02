@@ -565,7 +565,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
             onChange={(e) => setProjectFilter(e.target.value)}
             className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-medium focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
           >
-            <option value="todos">Todos los Proyectos ({clientProjectsList.length})</option>
+            <option value="todos">Todos los Proyectos</option>
             {clientProjectsList.map((p) => (
               <option key={p.id} value={p.id}>
                 📁 {p.title}
@@ -817,7 +817,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                         <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900">
                           <span className="flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Trámites Regulatorios / Institucionales Vinculados ({taskTramites.length})</span>
+                            <span>Trámites Regulatorios / Institucionales Vinculados</span>
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -906,7 +906,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                         className="flex items-center gap-1.5 text-xs font-bold text-[#004ac6] hover:text-[#003ca0] transition-colors cursor-pointer"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Comentarios de Control & Seguimiento ({notes.length})</span>
+                        <span>Comentarios de Control & Seguimiento</span>
                         {isCommentsOpen ? (
                           <ChevronUp className="w-3.5 h-3.5" />
                         ) : (

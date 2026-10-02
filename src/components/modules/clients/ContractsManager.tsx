@@ -244,13 +244,6 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Contratos de Clientes (SAI)</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                activeTab === "contratos" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-              }`}
-            >
-              {clientContracts.length}
-            </span>
           </button>
 
           <button
@@ -263,13 +256,6 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           >
             <Shield className="w-3.5 h-3.5" />
             <span>Pólizas de Título Habilitante ARCOTEL</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                activeTab === "polizas" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-              }`}
-            >
-              {policies.length}
-            </span>
           </button>
         </div>
       )}

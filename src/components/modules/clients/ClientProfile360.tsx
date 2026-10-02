@@ -258,28 +258,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
                 <span>{tab.label}</span>
-                {tab.id === "proyectos" && clientPendingTasksCount > 0 && (
-                  <span
-                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      isActive
-                        ? "bg-white text-[#004ac6]"
-                        : "bg-amber-100 text-amber-900 border border-amber-300"
-                    }`}
-                  >
-                    {clientPendingTasksCount}
-                  </span>
-                )}
-                {tab.id === "tramites" && clientPendingTramitesCount > 0 && (
-                  <span
-                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      isActive
-                        ? "bg-white text-[#004ac6]"
-                        : "bg-blue-100 text-blue-900 border border-blue-300"
-                    }`}
-                  >
-                    {clientPendingTramitesCount}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -373,7 +351,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
                     <User className="w-4 h-4 text-[#004ac6]" />
-                    <span>Datos de Personas de Contacto ({allContacts.length})</span>
+                    <span>Datos de Personas de Contacto</span>
                   </h4>
                   {onEdit && (
                     <button

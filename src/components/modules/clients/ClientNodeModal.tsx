@@ -261,11 +261,6 @@ export function ClientNodeModal({
           >
             <Layers className="w-4 h-4" />
             <span>Enlaces & Portadores</span>
-            {providers.length > 0 && (
-              <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">
-                {providers.length}
-              </span>
-            )}
           </button>
 
           <button
@@ -279,11 +274,6 @@ export function ClientNodeModal({
           >
             <Server className="w-4 h-4" />
             <span>Equipos & Credenciales</span>
-            {services.length > 0 && (
-              <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded-full font-bold">
-                {services.length}
-              </span>
-            )}
           </button>
         </div>
 

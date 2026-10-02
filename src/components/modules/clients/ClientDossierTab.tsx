@@ -151,7 +151,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
           {/* Contracts */}
           <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Contratos ARCOTEL ({contracts.length})
+              <ShieldCheck className="w-4 h-4 text-emerald-600" /> Contratos ARCOTEL
             </div>
             {contracts.length === 0 ? (
               <p className="text-[11px] text-slate-400 italic">Sin contratos registrados</p>
@@ -168,7 +168,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
           {/* Active Projects */}
           <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-              <Kanban className="w-4 h-4 text-sky-600" /> Despliegue & Obras ({projects.length})
+              <Kanban className="w-4 h-4 text-sky-600" /> Despliegue & Obras
             </div>
             {projects.length === 0 ? (
               <p className="text-[11px] text-slate-400 italic">Sin proyectos en curso</p>
@@ -187,7 +187,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
           {/* Credentials */}
           <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
             <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-              <KeyRound className="w-4 h-4 text-purple-600" /> Claves & Accesos ({vaultItems.length})
+              <KeyRound className="w-4 h-4 text-purple-600" /> Claves & Accesos
             </div>
             {vaultItems.length === 0 ? (
               <p className="text-[11px] text-slate-400 italic">Sin claves almacenadas</p>

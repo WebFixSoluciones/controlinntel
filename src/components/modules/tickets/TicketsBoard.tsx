@@ -130,7 +130,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-[#0b1c30]"
               }`}
             >
-              Todos ({statusCounts.todos})
+              Todos
             </button>
             <button
               onClick={() => setFilterStatus("abiertos")}
@@ -140,7 +140,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-rose-700"
               }`}
             >
-              Abiertos ({statusCounts.abiertos})
+              Abiertos
             </button>
             <button
               onClick={() => setFilterStatus("en_progreso")}
@@ -150,7 +150,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-blue-700"
               }`}
             >
-              En Progreso ({statusCounts.en_progreso})
+              En Progreso
             </button>
             <button
               onClick={() => setFilterStatus("respondido")}
@@ -160,7 +160,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-purple-700"
               }`}
             >
-              Respondidos ({statusCounts.respondido})
+              Respondidos
             </button>
             <button
               onClick={() => setFilterStatus("en_espera")}
@@ -170,7 +170,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-amber-700"
               }`}
             >
-              En Espera ({statusCounts.en_espera})
+              En Espera
             </button>
             <button
               onClick={() => setFilterStatus("resueltos")}
@@ -180,7 +180,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                   : "text-[#434655] hover:text-emerald-700"
               }`}
             >
-              Resueltos ({statusCounts.resueltos})
+              Resueltos
             </button>
           </div>
 

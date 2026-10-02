@@ -457,11 +457,6 @@ export function ProjectTaskModal({
           >
             <DollarSign className="w-4 h-4" />
             <span>Presupuesto & Costos</span>
-            {estimatedBudget > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isOverBudget ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
-                ${executedCost} / ${estimatedBudget}
-              </span>
-            )}
           </button>
 
           <button
@@ -475,11 +470,6 @@ export function ProjectTaskModal({
           >
             <CheckSquare className="w-4 h-4" />
             <span>Checklist</span>
-            {checklist.length > 0 && (
-              <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full font-bold">
-                {completedChecklistCount}/{checklist.length}
-              </span>
-            )}
           </button>
 
           <button
@@ -493,11 +483,6 @@ export function ProjectTaskModal({
           >
             <FileText className="w-4 h-4" />
             <span>Trámites</span>
-            {linkedTramites.length > 0 && (
-              <span className="text-[10px] bg-blue-100 text-[#004ac6] px-1.5 py-0.5 rounded-full font-bold">
-                {linkedTramites.length}
-              </span>
-            )}
           </button>
 
           <button
@@ -511,11 +496,6 @@ export function ProjectTaskModal({
           >
             <MessageSquare className="w-4 h-4" />
             <span>Bitácora</span>
-            {notesThread.length > 0 && (
-              <span className="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.5 rounded-full font-bold">
-                {notesThread.length}
-              </span>
-            )}
           </button>
         </div>
 
@@ -1074,7 +1054,7 @@ export function ProjectTaskModal({
               {/* Tabla o Lista de Trámites Vinculados */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span>Trámites Asignados a esta Tarea ({linkedTramites.length})</span>
+                  <span>Trámites Asignados a esta Tarea</span>
                 </div>
 
                 {linkedTramites.length === 0 ? (

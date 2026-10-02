@@ -238,7 +238,7 @@ export function CreditNoteModal({
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
               <Package className="w-4 h-4 text-rose-600" />
-              Ítems a Devolver / Descontar ({items.length})
+              Ítems a Devolver / Descontar
             </h3>
 
             <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">

@@ -63,7 +63,7 @@ export function QuickSearchModal() {
           {filteredClients.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
-                <Users className="w-3.5 h-3.5 text-[#004ac6]" /> Clientes ({filteredClients.length})
+                <Users className="w-3.5 h-3.5 text-[#004ac6]" /> Clientes
               </div>
               <div className="space-y-1.5">
                 {filteredClients.slice(0, 4).map((c) => (
@@ -91,7 +91,7 @@ export function QuickSearchModal() {
           {filteredNodes.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
-                <Radio className="w-3.5 h-3.5 text-[#10B981]" /> Nodos & Red ({filteredNodes.length})
+                <Radio className="w-3.5 h-3.5 text-[#10B981]" /> Nodos & Red
               </div>
               <div className="space-y-1.5">
                 {filteredNodes.map((n) => (
@@ -117,7 +117,7 @@ export function QuickSearchModal() {
           {filteredPolicies.length > 0 && (
             <div>
               <div className="flex items-center gap-1.5 text-[#737686] font-bold uppercase tracking-wider text-[10px] mb-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Contratos de clientes ({filteredPolicies.length})
+                <ShieldCheck className="w-3.5 h-3.5 text-[#712ae2]" /> Contratos de clientes
               </div>
               <div className="space-y-1.5">
                 {filteredPolicies.map((p) => (

@@ -396,13 +396,6 @@ export function ClientNodesManager() {
         >
           <Server className="w-3.5 h-3.5" />
           <span>Infraestructura Multi-Carrier</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "nodos" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {nodes.length}
-          </span>
         </button>
 
         <button
@@ -415,13 +408,6 @@ export function ClientNodesManager() {
         >
           <Users className="w-3.5 h-3.5" />
           <span>Nodos por Cliente</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "clientes" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {clients.length}
-          </span>
         </button>
 
         <button
@@ -434,13 +420,6 @@ export function ClientNodesManager() {
         >
           <Layers className="w-3.5 h-3.5" />
           <span>Pools IP & Subredes IPv4</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "pools" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {ipPools.length}
-          </span>
         </button>
       </div>
 

@@ -342,7 +342,7 @@ export function RemissionGuideModal({
           {/* Fila 3: Mercadería Transportada */}
           <div className="space-y-3">
             <span className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-              Mercadería Transportada ({items.length})
+              Mercadería Transportada
             </span>
 
             <div className="flex gap-2">

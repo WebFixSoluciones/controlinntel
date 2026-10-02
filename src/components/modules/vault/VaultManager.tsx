@@ -50,13 +50,6 @@ export function VaultManager() {
         >
           <Users className="w-3.5 h-3.5" />
           <span>Credenciales de Clientes</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "clientes" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {clientVaultItems.length}
-          </span>
         </button>
 
         <button
@@ -71,14 +64,7 @@ export function VaultManager() {
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Accesos Internos del Sistema (NOC Core)</span>
-          <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === "sistema" ? "bg-white/20 text-white" : "bg-slate-100 text-[#434655]"
-            }`}
-          >
-            {vault.length}
-          </span>
+          <span>Accesos Internos del Sistema</span>
         </button>
       </div>
 

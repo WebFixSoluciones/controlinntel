@@ -311,7 +311,7 @@ export function BillingQuoteModal({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#004ac6]" />
-                Ítems Cotizados ({items.length})
+                Ítems Cotizados
               </h3>
 
               <div className="relative min-w-[280px]">

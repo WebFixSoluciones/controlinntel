@@ -410,7 +410,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               <div>
                 <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-[#004ac6]" />
-                  <span>2. Personas de Contacto del Cliente ({contacts.length})</span>
+                  <span>2. Personas de Contacto del Cliente</span>
                 </h4>
                 <p className="text-[11px] text-[#737686] mt-0.5">
                   El cliente puede tener múltiples contactos (Administrador, Pagos, Soporte Técnico, etc.)

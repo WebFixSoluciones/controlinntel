@@ -566,7 +566,7 @@ export function RegisterPurchaseModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
-                <span>Detalle de Productos / Servicios ({items.length})</span>
+                <span>Detalle de Productos / Servicios</span>
                 <span className="text-[11px] font-normal text-[#737686]">
                   (Los productos asignados ingresarán al Kardex de la bodega)
                 </span>

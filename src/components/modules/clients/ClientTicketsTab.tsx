@@ -183,7 +183,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Abiertos ({openTickets.length})
+              Abiertos
             </button>
             <button
               type="button"
@@ -194,7 +194,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                   : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Todos ({clientTickets.length})
+              Todos
             </button>
           </div>
 

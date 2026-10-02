@@ -271,11 +271,6 @@ export function ProjectsManager() {
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Papelera</span>
-            {deletedProjectsCount > 0 && (
-              <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded-full font-bold">
-                {deletedProjectsCount}
-              </span>
-            )}
           </button>
 
           <button

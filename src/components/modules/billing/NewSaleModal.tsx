@@ -484,9 +484,9 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
                   className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2 bg-white text-slate-900"
                 >
-                  <option value="transferencia">Transferencia Bancaria (20)</option>
-                  <option value="efectivo">Efectivo / Sin Sist. Financiero (01)</option>
-                  <option value="tarjeta">Tarjeta de Crédito / Débito (19)</option>
+                  <option value="transferencia">Transferencia Bancaria</option>
+                  <option value="efectivo">Efectivo / Sin Sist. Financiero</option>
+                  <option value="tarjeta">Tarjeta de Crédito / Débito</option>
                   <option value="credito">Crédito Comercial (30 Días)</option>
                 </select>
               </div>
@@ -498,7 +498,7 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#004ac6]" />
-                Ítems de la Venta ({items.length})
+                Ítems de la Venta
               </h3>
 
               {/* Buscador de catálogo rápido */}

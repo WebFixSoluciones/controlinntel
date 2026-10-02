@@ -451,7 +451,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#004ac6]" />
-                <span>Historial de Asistencia ({allMessages.length + 1})</span>
+                <span>Historial de Asistencia</span>
               </h3>
 
               <div className="flex items-center gap-1 p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] text-xs">
@@ -463,7 +463,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                       : "text-[#737686] hover:text-[#0b1c30]"
                   }`}
                 >
-                  Todos ({allMessages.length + 1})
+                  Todos
                 </button>
                 <button
                   onClick={() => setThreadFilter("publicos")}
@@ -483,7 +483,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                       : "text-[#737686] hover:text-[#0b1c30]"
                   }`}
                 >
-                  Notas Internas ({internalCount})
+                  Notas Internas
                 </button>
               </div>
             </div>
@@ -760,7 +760,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
           <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-2xs space-y-3">
             <h4 className="font-bold text-xs text-[#0b1c30] flex items-center gap-1.5 border-b border-[#f1f5f9] pb-2">
               <Clock className="w-4 h-4 text-[#737686]" />
-              <span>Otros Tickets del Cliente ({otherTickets.length})</span>
+              <span>Otros Tickets del Cliente</span>
             </h4>
 
             {otherTickets.length === 0 ? (

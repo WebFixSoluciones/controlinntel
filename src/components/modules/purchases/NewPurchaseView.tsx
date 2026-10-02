@@ -632,7 +632,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
           <div className="flex items-center gap-2">
             <Boxes className="w-4 h-4 text-[#004ac6]" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Detalle de Productos & Materiales Comprados ({items.length})
+              Detalle de Productos & Materiales Comprados
             </h3>
           </div>
 
