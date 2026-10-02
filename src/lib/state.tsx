@@ -300,6 +300,7 @@ interface AppContextType {
     id: string,
     updates: Partial<ClientQuote>
   ) => Promise<void>;
+  deleteBillingQuote: (id: string) => Promise<void>;
   convertQuoteToInvoice: (
     quoteId: string,
     warehouseId: string,
@@ -2352,6 +2353,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("UPDATE_CLIENT", `Cotización Actualizada: ${existing.quoteNumber}`, `Estado: ${updated.status}`);
   };
 
+  const deleteBillingQuote = async (id: string) => {
+    await deleteFromFirestore("billingQuotes", id);
+    setBillingQuotes((prev) => prev.filter((q) => q.id !== id));
+    addAuditLog("UPDATE_CLIENT", `Cotización Eliminada: ${id}`, "");
+  };
+
   const convertQuoteToInvoice = async (
     quoteId: string,
     warehouseId: string,
@@ -3192,6 +3199,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateInvoiceStatus,
           createBillingQuote,
           updateBillingQuote,
+          deleteBillingQuote,
           convertQuoteToInvoice,
           createCreditNote,
           createWithholding,

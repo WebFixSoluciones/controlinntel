@@ -34,9 +34,20 @@ interface NewSaleViewProps {
   onSuccess?: (invoice: SriInvoice) => void;
   initialClientId?: string;
   initialDocType?: "factura" | "nota_venta" | "cotizacion";
+  initialItems?: InvoiceItem[];
+  initialNotes?: string;
+  initialOrderNumber?: string;
 }
 
-export function NewSaleView({ onBack, onSuccess, initialClientId, initialDocType }: NewSaleViewProps) {
+export function NewSaleView({
+  onBack,
+  onSuccess,
+  initialClientId,
+  initialDocType,
+  initialItems,
+  initialNotes,
+  initialOrderNumber,
+}: NewSaleViewProps) {
   const {
     clients,
     inventoryWarehouses,
@@ -63,16 +74,16 @@ export function NewSaleView({ onBack, onSuccess, initialClientId, initialDocType
   const clientSearchRef = useRef<HTMLDivElement>(null);
 
   // Products and cart
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [items, setItems] = useState<InvoiceItem[]>(() => initialItems || []);
   const [productSearch, setProductSearch] = useState("");
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
   const productSearchRef = useRef<HTMLDivElement>(null);
   const [generalDiscount, setGeneralDiscount] = useState<number>(0);
 
   // Additional Data (Accordion)
-  const [isExtraDataOpen, setIsExtraDataOpen] = useState(false);
-  const [orderNumber, setOrderNumber] = useState("");
-  const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [isExtraDataOpen, setIsExtraDataOpen] = useState(() => Boolean(initialOrderNumber || initialNotes));
+  const [orderNumber, setOrderNumber] = useState(() => initialOrderNumber || "");
+  const [invoiceNotes, setInvoiceNotes] = useState(() => initialNotes || "");
   const [deliveryAddress, setDeliveryAddress] = useState("");
 
   // Payment section
