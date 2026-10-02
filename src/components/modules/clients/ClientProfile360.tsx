@@ -15,7 +15,6 @@ import { ClientTramitesTab } from "./ClientTramitesTab";
 import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
 import {
-  X,
   User,
   Radio,
   KeyRound,
@@ -36,7 +35,6 @@ import {
   Eye,
   EyeOff,
   ShieldAlert,
-  ArrowLeft,
   Server,
   AlertCircle,
 } from "lucide-react";
@@ -150,71 +148,35 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const currentTabAllowed = authorizedTabs.some((t) => t.id === activeTab);
 
   return (
-    <div className="w-full space-y-4 animate-in fade-in duration-200 select-none">
-      {/* Barra Superior de Navegación & Breadcrumb */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver al Listado de Clientes</span>
-          </button>
-          <span className="text-slate-300">/</span>
-          <span className="text-xs font-medium text-slate-500">Módulo Clientes</span>
-          <span className="text-slate-300">/</span>
-          <span className="text-xs font-bold text-slate-900 truncate max-w-sm">{client.businessName}</span>
-        </div>
+    <div className="w-full animate-in fade-in duration-200 select-none">
+      {/* Contenedor Principal de la Ficha */}
+      <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
+        {/* Hub Header Elegante y Limpio */}
+        <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-base font-semibold text-slate-800 tracking-normal">
+              {client.businessName}
+            </h1>
+            <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
+            <span className="font-mono text-xs font-medium text-slate-600">
+              RUC / CI: {client.identificationNumber}
+            </span>
+            <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+              {client.status}
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
           {onEdit && (
             <button
+              type="button"
               onClick={onEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Edit2 className="w-3.5 h-3.5" />
-              <span>Editar Ficha</span>
+              <span>Editar</span>
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-            <span>Cerrar Ficha</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Contenedor Principal de la Ficha en Pantalla Completa */}
-      <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
-        {/* Hub Header (Sin montos ni valores en cumplimiento de privacidad) */}
-        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 via-white to-sky-50/40 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-600 to-indigo-700 text-white flex items-center justify-center font-black text-xl shadow-sm">
-              {client.businessName.charAt(0)}
-            </div>
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-lg font-black text-slate-900 tracking-tight">{client.businessName}</h1>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                    client.status === "activo"
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                      : "bg-rose-100 text-rose-800 border border-rose-200"
-                  }`}
-                >
-                  {client.status}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1 font-medium">
-                <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                  {client.identificationType}: {client.identificationNumber}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}

@@ -45,7 +45,15 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users },
+  {
+    href: "/clientes",
+    label: "Clientes",
+    icon: Users,
+    moduleKey: "abonados",
+    submodules: [
+      { key: "listado", label: "Listado de Clientes", href: "/clientes", submoduleKey: "listado" },
+    ],
+  },
   {
     href: "/facturacion",
     label: "Ventas",
@@ -215,7 +223,10 @@ function SidebarContent() {
                   type="button"
                   onClick={() => {
                     toggleAccordion(item.href);
-                    if (!isCurrentRoute && accessibleSubmodules[0]) {
+                    if (item.href === "/clientes" || item.href === "/abonados") {
+                      window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
+                      router.push("/clientes");
+                    } else if (!isCurrentRoute && accessibleSubmodules[0]) {
                       router.push(accessibleSubmodules[0].href);
                     }
                   }}
@@ -288,6 +299,11 @@ function SidebarContent() {
                       <Link
                         key={sub.key}
                         href={sub.href}
+                        onClick={() => {
+                          if (sub.href === "/clientes" || sub.href.startsWith("/clientes") || sub.href.startsWith("/abonados")) {
+                            window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
+                          }
+                        }}
                         className={`block px-3 py-1.5 rounded-lg text-xs transition-all ${
                           isSubActive
                             ? "bg-[#eff4ff] text-[#004ac6] font-bold shadow-2xs border-l-2 border-[#004ac6]"

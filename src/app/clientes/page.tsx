@@ -28,6 +28,9 @@ function ClientesContent() {
     const handleReset = () => {
       setSelectedClient(null);
       setClientToEdit(null);
+      if (typeof window !== "undefined" && window.location.search) {
+        window.history.pushState({}, "", "/clientes");
+      }
     };
 
     window.addEventListener("inntel:reset-client-selection", handleReset);
@@ -43,6 +46,8 @@ function ClientesContent() {
       if (match) {
         setSelectedClient(match);
       }
+    } else {
+      setSelectedClient(null);
     }
   }, [clientIdFromUrl, clients]);
 
