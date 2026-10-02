@@ -195,9 +195,7 @@ export function NewSaleView({
     if (paymentTab === "transferencia" || paymentTab === "tarjeta" || paymentTab === "credito") {
       setPaymentAmount(total);
     } else if (paymentTab === "efectivo") {
-      if (cashReceived === 0 || cashReceived < total) {
-        setCashReceived(total);
-      }
+      setCashReceived((prev) => (prev === 0 || prev < total ? total : prev));
     }
   }, [total, paymentTab]);
 

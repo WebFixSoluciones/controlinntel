@@ -599,7 +599,7 @@ export function RegisterPurchaseModal({
                   {items.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-6 text-center text-xs text-[#737686]">
-                        No hay ítems registrados. Carga un XML del SRI o presiona "Añadir Fila".
+                        No hay ítems registrados. Carga un XML del SRI o presiona &quot;Añadir Fila&quot;.
                       </td>
                     </tr>
                   ) : (

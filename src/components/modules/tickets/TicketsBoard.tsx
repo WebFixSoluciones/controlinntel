@@ -274,7 +274,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                     <Headphones className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                     <p className="font-semibold text-[#434655]">No se encontraron tickets de soporte</p>
                     <p className="text-[11px] text-[#737686] mt-0.5">
-                      Ajusta los filtros de búsqueda o haz clic en "Abrir Ticket" para registrar una nueva solicitud.
+                      Ajusta los filtros de búsqueda o haz clic en &quot;Abrir Ticket&quot; para registrar una nueva solicitud.
                     </p>
                   </td>
                 </tr>

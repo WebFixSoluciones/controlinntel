@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -104,12 +104,12 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
   const currentUserId = (currentUser.uid || "").trim().toLowerCase();
 
   // Check if a task is assigned to current user
-  const isAssignedToCurrentUser = (task: ClientProjectTask) => {
+  const isAssignedToCurrentUser = useCallback((task: ClientProjectTask) => {
     if (!currentUserName && !currentUserId) return false;
     if (task.assignedToId && task.assignedToId.toLowerCase() === currentUserId) return true;
     const taskAssignee = (task.assignedTo || "").trim().toLowerCase();
     return taskAssignee.includes(currentUserName) || (currentUserName && currentUserName.includes(taskAssignee));
-  };
+  }, [currentUserName, currentUserId]);
 
   // Helper: Is task pending
   const isTaskPending = (task: ClientProjectTask) => {
@@ -123,7 +123,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
   const myPendingTasks = useMemo(() => {
     return pendingTasksTotal.filter(isAssignedToCurrentUser);
-  }, [pendingTasksTotal, currentUserName, currentUserId]);
+  }, [pendingTasksTotal, isAssignedToCurrentUser]);
 
   const completedTasksCount = useMemo(() => {
     return clientTasks.filter((t) => !isTaskPending(t)).length;
@@ -204,8 +204,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
     statusFilter,
     assigneeFilter,
     projectFilter,
-    currentUserName,
-    currentUserId,
+    isAssignedToCurrentUser,
   ]);
 
   // Relative deadline calculator

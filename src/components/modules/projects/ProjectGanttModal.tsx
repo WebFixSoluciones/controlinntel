@@ -28,15 +28,15 @@ export function ProjectGanttModal({
   project,
   tasks,
 }: ProjectGanttModalProps) {
-  if (!isOpen || !project) return null;
-
   // Filter tasks for this project
   const projectTasks = useMemo(() => {
+    if (!project) return [];
     return tasks.filter((t) => t.projectId === project.id || (t.clientId === project.clientId && !t.projectId));
-  }, [tasks, project.id, project.clientId]);
+  }, [tasks, project]);
 
   // Calculate timeline range
   const { minDate, maxDate, totalDays } = useMemo(() => {
+    if (!project) return { minDate: 0, maxDate: 0, totalDays: 1 };
     const dates: number[] = [
       new Date(project.startDate).getTime() || Date.now(),
       new Date(project.endDate).getTime() || Date.now() + 86400000 * 30,
@@ -52,6 +52,8 @@ export function ProjectGanttModal({
     const days = Math.max(1, Math.round((max - min) / (1000 * 60 * 60 * 24)));
     return { minDate: min, maxDate: max, totalDays: days };
   }, [project, projectTasks]);
+
+  if (!isOpen || !project) return null;
 
   // Position calculation helper (0% to 100%)
   const getBarPosition = (startStr?: string, dueStr?: string) => {

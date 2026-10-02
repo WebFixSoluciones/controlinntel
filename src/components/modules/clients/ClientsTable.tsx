@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
@@ -46,14 +46,14 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Helper: calculate pending balance for any client
-  const getClientPendingBalance = (client: Client): number => {
+  const getClientPendingBalance = useCallback((client: Client): number => {
     const pendingChargesSum = monthlyCharges
       .filter((c) => c.clientId === client.id && c.status === "pendiente")
       .reduce((sum, c) => sum + (c.balanceRemaining !== undefined ? c.balanceRemaining : c.total), 0);
 
     const clientBal = Number(client.currentBalance) || 0;
     return Math.round(Math.max(clientBal, pendingChargesSum) * 100) / 100;
-  };
+  }, [monthlyCharges]);
 
   // Filtered clients list
   const filtered = useMemo(() => {
@@ -75,7 +75,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
 
       return matchesQuery && matchesStatus && matchesBalance;
     });
-  }, [clients, filter, statusFilter, balanceFilter, monthlyCharges]);
+  }, [clients, filter, statusFilter, balanceFilter, getClientPendingBalance]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);

@@ -89,23 +89,20 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
   const clientNodesList = nodes.filter((n) => n.clientId === client.id);
 
-  const allContacts: ClientContactPerson[] = useMemo(() => {
-    if (client.contacts && client.contacts.length > 0) {
-      return client.contacts;
-    }
-    if (client.contactName && client.contactName.trim()) {
-      return [
-        {
-          id: "ct-legacy",
-          name: client.contactName,
-          role: client.contactRole || "Contacto Principal",
-          phone: client.contactPhone || client.phone,
-          address: client.contactAddress || "",
-        },
-      ];
-    }
-    return [];
-  }, [client]);
+  const allContacts: ClientContactPerson[] =
+    client?.contacts && client.contacts.length > 0
+      ? client.contacts
+      : client?.contactName && client.contactName.trim()
+      ? [
+          {
+            id: "ct-legacy",
+            name: client.contactName,
+            role: client.contactRole || "Contacto Principal",
+            phone: client.contactPhone || client.phone,
+            address: client.contactAddress || "",
+          },
+        ]
+      : [];
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -133,26 +130,6 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
       "Registrar Pago"
     );
   };
-
-  const clientPendingTasksCount = useMemo(() => {
-    return clientProjects.filter(
-      (t) =>
-        t.clientId === client.id &&
-        t.column !== "completado" &&
-        t.column !== "finalizado"
-    ).length;
-  }, [clientProjects, client.id]);
-
-  const clientPendingTramitesCount = useMemo(() => {
-    return regulatoryTramites.filter(
-      (t) =>
-        (t.clientId === client.id ||
-          (t.clientName && t.clientName.toLowerCase() === client.businessName.toLowerCase())) &&
-        t.dynamicStatus !== "aprobado" &&
-        t.dynamicStatus !== "finalizado" &&
-        t.dynamicStatus !== "archivado"
-    ).length;
-  }, [regulatoryTramites, client.id, client.businessName]);
 
   const allTabs: { id: ProfileTab; label: string; icon: any; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },

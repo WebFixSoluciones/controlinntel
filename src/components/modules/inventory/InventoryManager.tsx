@@ -803,7 +803,7 @@ export function InventoryManager() {
                         <Wrench className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No se encontraron servicios técnicos</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en "Nuevo Servicio" para dar de alta conceptos de mano de obra o suscripciones.
+                          Haz clic en &quot;Nuevo Servicio&quot; para dar de alta conceptos de mano de obra o suscripciones.
                         </p>
                       </td>
                     </tr>
@@ -1311,7 +1311,7 @@ export function InventoryManager() {
                         <ArrowRightLeft className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No hay transferencias registradas</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en "Trasladar Stock" para movilizar insumos entre almacenes.
+                          Haz clic en &quot;Trasladar Stock&quot; para movilizar insumos entre almacenes.
                         </p>
                       </td>
                     </tr>
@@ -1410,7 +1410,7 @@ export function InventoryManager() {
                         <Building2 className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No se encontraron bodegas registradas</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en "Nueva Bodega" para registrar un centro de distribución o móvil técnico.
+                          Haz clic en &quot;Nueva Bodega&quot; para registrar un centro de distribución o móvil técnico.
                         </p>
                       </td>
                     </tr>
@@ -1584,7 +1584,7 @@ export function InventoryManager() {
                         <SlidersHorizontal className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No hay ajustes registrados</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en "Nuevo Ajuste" para corregir saldos físicos o registrar mermas.
+                          Haz clic en &quot;Nuevo Ajuste&quot; para corregir saldos físicos o registrar mermas.
                         </p>
                       </td>
                     </tr>
