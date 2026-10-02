@@ -32,9 +32,11 @@ import { InvoiceItem, SriInvoice, InventoryProduct, Client } from "@/types";
 interface NewSaleViewProps {
   onBack: () => void;
   onSuccess?: (invoice: SriInvoice) => void;
+  initialClientId?: string;
+  initialDocType?: "factura" | "nota_venta" | "cotizacion";
 }
 
-export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
+export function NewSaleView({ onBack, onSuccess, initialClientId, initialDocType }: NewSaleViewProps) {
   const {
     clients,
     inventoryWarehouses,
@@ -47,13 +49,15 @@ export function NewSaleView({ onBack, onSuccess }: NewSaleViewProps) {
   const { showSuccess, showError, showConfirm } = useToast();
 
   // Document metadata
-  const [documentType, setDocumentType] = useState<"factura" | "nota_venta" | "cotizacion">("factura");
+  const [documentType, setDocumentType] = useState<"factura" | "nota_venta" | "cotizacion">(
+    () => initialDocType || "factura"
+  );
   const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [establishment, setEstablishment] = useState(() => sriCompanyConfig?.establecimiento || "001");
   const [warehouseId, setWarehouseId] = useState<string>("");
 
   // Client selection
-  const [selectedClientId, setSelectedClientId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string>(() => initialClientId || "");
   const [clientSearch, setClientSearch] = useState("");
   const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const clientSearchRef = useRef<HTMLDivElement>(null);
