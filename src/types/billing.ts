@@ -29,7 +29,42 @@ export interface SriCompanyConfig {
   emailNotificaciones?: string;
   telefonoContacto?: string;
   logoUrl?: string;
+  // Certificado digital de firma electrónica PKCS#12 (.p12 / .pfx)
+  certificadoNombre?: string;
+  certificadoVencimiento?: string;
+  certificadoEmisor?: string;
+  certificadoClave?: string;
+  certificadoCargado?: boolean;
 }
+
+export interface SriWsResponse {
+  success: boolean;
+  estado: "AUTORIZADO" | "EN PROCESO" | "DEVUELTA" | "NO AUTORIZADO" | "ERROR_CONEXION";
+  claveAcceso: string;
+  numeroAutorizacion?: string;
+  fechaAutorizacion?: string;
+  ambiente: SriEnvironment;
+  mensajes?: Array<{
+    identificador?: string;
+    mensaje: string;
+    informacionAdicional?: string;
+    tipo?: string;
+  }>;
+  xmlFirmado?: string;
+}
+
+export interface SriConnectionTestResult {
+  online: boolean;
+  ambiente: SriEnvironment;
+  recepcionWsUrl: string;
+  autorizacionWsUrl: string;
+  recepcionStatus: "disponible" | "inaccesible";
+  autorizacionStatus: "disponible" | "inaccesible";
+  latencyMs: number;
+  checkedAt: string;
+  message: string;
+}
+
 
 export interface InvoiceItem {
   id: string;

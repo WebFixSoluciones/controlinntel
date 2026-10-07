@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
+  Server,
+  Key,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { SriCompanyConfig } from "@/types";
@@ -34,6 +36,11 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
     ambiente: "1",
     emailNotificaciones: "facturacion@inntelcorp.com",
     telefonoContacto: "+593 2 394 5000",
+    certificadoNombre: "INNTEL_CORP_FIRMA_ELECTRONICA.p12",
+    certificadoVencimiento: "2027-12-31",
+    certificadoEmisor: "Security Data S.A. / Banco Central del Ecuador",
+    certificadoClave: "••••••••",
+    certificadoCargado: true,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +48,10 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
   useEffect(() => {
     if (isOpen && sriCompanyConfig) {
-      setForm(sriCompanyConfig);
+      setForm((prev) => ({
+        ...prev,
+        ...sriCompanyConfig,
+      }));
       setSuccessMsg(false);
     }
   }, [isOpen, sriCompanyConfig]);
@@ -57,7 +67,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
       setTimeout(() => {
         setSuccessMsg(false);
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (e) {
       console.error("Error al actualizar configuración SRI:", e);
     } finally {
@@ -67,25 +77,25 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-3xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
+            <div className="w-10 h-10 rounded-[6px] bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
               <Settings className="w-5 h-5 text-sky-400" />
             </div>
             <div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Parámetros Tributarios
               </span>
-              <h2 className="text-lg font-black text-white">
+              <h2 className="text-base font-black text-white">
                 Configuración del Emisor SRI
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-[6px] text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -94,7 +104,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
           {successMsg && (
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>Configuración SRI guardada con éxito.</span>
             </div>
@@ -110,7 +120,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.ruc}
                 onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -121,7 +131,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               <select
                 value={form.ambiente}
                 onChange={(e) => setForm({ ...form, ambiente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               >
                 <option value="1">1 - Pruebas / Homologación SRI</option>
                 <option value="2">2 - Producción Oficial SRI</option>
@@ -137,7 +147,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -149,7 +159,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 type="text"
                 value={form.nombreComercial}
                 onChange={(e) => setForm({ ...form, nombreComercial: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -163,7 +173,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 maxLength={3}
                 value={form.establecimiento}
                 onChange={(e) => setForm({ ...form, establecimiento: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -177,7 +187,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 maxLength={3}
                 value={form.puntoEmision}
                 onChange={(e) => setForm({ ...form, puntoEmision: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -190,7 +200,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.direccionMatriz}
                 onChange={(e) => setForm({ ...form, direccionMatriz: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -203,7 +213,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.direccionEstablecimiento}
                 onChange={(e) => setForm({ ...form, direccionEstablecimiento: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -215,7 +225,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 type="email"
                 value={form.emailNotificaciones || ""}
                 onChange={(e) => setForm({ ...form, emailNotificaciones: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -227,7 +237,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 type="text"
                 value={form.telefonoContacto || ""}
                 onChange={(e) => setForm({ ...form, telefonoContacto: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
               />
             </div>
 
@@ -238,7 +248,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               <select
                 value={form.tipoContribuyente}
                 onChange={(e) => setForm({ ...form, tipoContribuyente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               >
                 <option value="general">Régimen General</option>
                 <option value="rimpe_emprendedor">RIMPE Emprendedor</option>
@@ -249,12 +259,12 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             <div className="flex items-center gap-3 pt-6">
               <input
                 type="checkbox"
-                id="obligadoContabilidad"
+                id="obligadoContabilidadModal"
                 checked={form.obligadoContabilidad}
                 onChange={(e) => setForm({ ...form, obligadoContabilidad: e.target.checked })}
-                className="w-4 h-4 rounded-md text-[#004ac6] border-slate-300"
+                className="w-4 h-4 rounded-[4px] text-[#004ac6] border-slate-300"
               />
-              <label htmlFor="obligadoContabilidad" className="text-xs font-bold text-slate-800">
+              <label htmlFor="obligadoContabilidadModal" className="text-xs font-bold text-slate-800 cursor-pointer">
                 Obligado a Llevar Contabilidad
               </label>
             </div>
@@ -265,7 +275,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="px-4 py-2 rounded-[6px] text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               Cerrar
             </button>
@@ -273,7 +283,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2"
+              className="px-6 py-2.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Guardar Configuración SRI</span>

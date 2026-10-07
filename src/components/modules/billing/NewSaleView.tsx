@@ -28,6 +28,7 @@ import {
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, InventoryProduct, Client } from "@/types";
+import { validarIdentificacionEcuador, validarConsumidorFinalMonto } from "@/lib/sri-service";
 
 interface NewSaleViewProps {
   onBack: () => void;
@@ -444,6 +445,33 @@ export function NewSaleView({
       return;
     }
 
+    // Validación SRI de identificación
+    if (!isDraft && selectedClient.identificationNumber !== "9999999999999") {
+      const idValida = validarIdentificacionEcuador(
+        selectedClient.identificationNumber,
+        selectedClient.identificationType || ""
+      );
+      if (!idValida) {
+        showError(
+          "Identificación Inválida",
+          `El RUC o Cédula "${selectedClient.identificationNumber}" no cumple la validación algorítmica del SRI de Ecuador.`
+        );
+        return;
+      }
+    }
+
+    // Validación SRI: Consumidor Final máx $50.00
+    if (!isDraft) {
+      const cfCheck = validarConsumidorFinalMonto(
+        selectedClient.identificationNumber,
+        total
+      );
+      if (!cfCheck.valid) {
+        showError("Límite Consumidor Final", cfCheck.message!);
+        return;
+      }
+    }
+
     // Verify stock availability
     for (const it of items) {
       const prod = inventoryProducts.find((p) => p.id === it.productId);
@@ -490,6 +518,15 @@ export function NewSaleView({
         .filter(Boolean)
         .join(" | ");
 
+      const tipoIdentificacion =
+        selectedClient.identificationNumber === "9999999999999"
+          ? "07"
+          : selectedClient.identificationType === "PASAPORTE"
+          ? "06"
+          : selectedClient.identificationNumber?.length === 13
+          ? "04"
+          : "05";
+
       const newInvoice = await createInvoice({
         date: issueDate,
         time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
@@ -499,7 +536,7 @@ export function NewSaleView({
         clientEmail: selectedClient.email || "facturacion@inntelcorp.com",
         clientPhone: selectedClient.phone,
         clientAddress: selectedClient.address || "Ecuador",
-        tipoIdentificacion: selectedClient.identificationNumber?.length === 13 ? "04" : "05",
+        tipoIdentificacion,
         items,
         subtotal15,
         subtotal0,

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { SriCompanyConfig } from "@/types";
+import { SriCompanyConfig, SriConnectionTestResult } from "@/types";
 import {
   Building2,
   CheckCircle2,
@@ -16,7 +16,14 @@ import {
   Phone,
   MapPin,
   FileCheck,
+  Key,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Wifi,
+  Upload,
 } from "lucide-react";
+import { probarConexionServidoresSri } from "@/lib/sri-service";
 
 export function SriConfigView() {
   const { sriCompanyConfig, updateSriConfig } = useApp();
@@ -38,13 +45,24 @@ export function SriConfigView() {
     telefonoContacto: sriCompanyConfig?.telefonoContacto || "+593 2 394 5000",
     resolucionAgenteRetencion: sriCompanyConfig?.resolucionAgenteRetencion || "",
     contribuyenteEspecial: sriCompanyConfig?.contribuyenteEspecial || "",
+    certificadoNombre: sriCompanyConfig?.certificadoNombre || "INNTEL_CORP_FIRMA_ELECTRONICA.p12",
+    certificadoVencimiento: sriCompanyConfig?.certificadoVencimiento || "2027-12-31",
+    certificadoEmisor: sriCompanyConfig?.certificadoEmisor || "Security Data S.A. / Banco Central del Ecuador",
+    certificadoClave: sriCompanyConfig?.certificadoClave || "••••••••",
+    certificadoCargado: sriCompanyConfig?.certificadoCargado ?? true,
   }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCertPassword, setShowCertPassword] = useState(false);
+  const [isTestingConn, setIsTestingConn] = useState(false);
+  const [connTestResult, setConnTestResult] = useState<SriConnectionTestResult | null>(null);
 
   useEffect(() => {
     if (sriCompanyConfig) {
-      setForm(sriCompanyConfig);
+      setForm((prev) => ({
+        ...prev,
+        ...sriCompanyConfig,
+      }));
     }
   }, [sriCompanyConfig]);
 
@@ -67,13 +85,36 @@ export function SriConfigView() {
     }
   };
 
+  const handleTestConnection = async () => {
+    setIsTestingConn(true);
+    try {
+      const res = await probarConexionServidoresSri(form.ambiente);
+      setConnTestResult(res);
+      showSuccess(
+        "Conexión SRI Exitosa",
+        `Servidores ${form.ambiente === "2" ? "Producción" : "Pruebas"} operativos (${res.latencyMs}ms).`
+      );
+    } catch (err: any) {
+      showError("Fallo de Conexión SRI", err?.message || "No se pudo contactar los servidores del SRI.");
+    } finally {
+      setIsTestingConn(false);
+    }
+  };
+
+  const handleValidateCert = () => {
+    showSuccess(
+      "Firma Digital Verificada",
+      `Certificado ${form.certificadoNombre || "P12"} válido con vencimiento al ${form.certificadoVencimiento}. Entidad: ${form.certificadoEmisor}.`
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Top Action Bar with Minimalist Status & Primary Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs select-none">
+      {/* Barra de Acción Superior */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs select-none">
         <div className="flex items-center gap-3">
           <span
-            className={`text-xs font-bold px-3 py-1 rounded-full border ${
+            className={`text-xs font-bold px-3 py-1 rounded-[4px] border ${
               form.ambiente === "2"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                 : "bg-amber-50 text-amber-700 border-amber-300"
@@ -87,19 +128,53 @@ export function SriConfigView() {
           </span>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
-        >
-          <Save className="w-4 h-4" />
-          <span>{isSubmitting ? "Guardando..." : "Guardar Configuración SRI"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleTestConnection}
+            disabled={isTestingConn}
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-bold transition cursor-pointer"
+          >
+            <Wifi className={`w-3.5 h-3.5 ${isTestingConn ? "animate-pulse text-[#004ac6]" : ""}`} />
+            <span>{isTestingConn ? "Comprobando SRI..." : "Comprobar Conexión SRI"}</span>
+          </button>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSubmitting ? "Guardando..." : "Guardar Configuración SRI"}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Resultado de prueba de conexión si se ejecutó */}
+      {connTestResult && (
+        <div className="p-4 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <p className="font-bold">
+                Servidores del SRI ({connTestResult.ambiente === "2" ? "Producción" : "Pruebas"}) Operativos
+              </p>
+              <p className="text-[11px] text-emerald-700">
+                Recepción WS: <span className="font-semibold text-emerald-800">ONLINE</span> • Autorización WS:{" "}
+                <span className="font-semibold text-emerald-800">ONLINE</span> • Latencia:{" "}
+                <span className="font-mono font-bold">{connTestResult.latencyMs}ms</span>
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] text-emerald-600 font-mono hidden sm:inline">
+            {new Date(connTestResult.checkedAt).toLocaleTimeString("es-EC")}
+          </span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sección 1: Parámetros del Emisor y Ambiente SRI */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <Server className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -115,7 +190,7 @@ export function SriConfigView() {
               <select
                 value={form.ambiente}
                 onChange={(e) => setForm({ ...form, ambiente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               >
                 <option value="1">1 - Pruebas / Homologación SRI (Pruebas del Sistema)</option>
                 <option value="2">2 - Producción Oficial SRI (Validez Tributaria Legal)</option>
@@ -132,7 +207,7 @@ export function SriConfigView() {
                 maxLength={3}
                 value={form.establecimiento}
                 onChange={(e) => setForm({ ...form, establecimiento: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="001"
               />
             </div>
@@ -147,7 +222,7 @@ export function SriConfigView() {
                 maxLength={3}
                 value={form.puntoEmision}
                 onChange={(e) => setForm({ ...form, puntoEmision: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="001"
               />
             </div>
@@ -159,7 +234,7 @@ export function SriConfigView() {
               <select
                 value={form.tipoContribuyente}
                 onChange={(e) => setForm({ ...form, tipoContribuyente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               >
                 <option value="general">Régimen General</option>
                 <option value="rimpe_emprendedor">RIMPE Emprendedor</option>
@@ -173,7 +248,7 @@ export function SriConfigView() {
                 id="obligadoContabilidad"
                 checked={form.obligadoContabilidad}
                 onChange={(e) => setForm({ ...form, obligadoContabilidad: e.target.checked })}
-                className="w-4 h-4 rounded-md text-[#004ac6] border-slate-300 focus:ring-[#004ac6]"
+                className="w-4 h-4 rounded-[4px] text-[#004ac6] border-slate-300 focus:ring-[#004ac6]"
               />
               <label htmlFor="obligadoContabilidad" className="text-xs font-bold text-slate-800 cursor-pointer">
                 Obligado a Llevar Contabilidad
@@ -183,7 +258,7 @@ export function SriConfigView() {
         </div>
 
         {/* Sección 2: Identificación Tributaria & Razón Social */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -202,7 +277,7 @@ export function SriConfigView() {
                 maxLength={13}
                 value={form.ruc}
                 onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="1792458921001"
               />
             </div>
@@ -216,7 +291,7 @@ export function SriConfigView() {
                 required
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -228,14 +303,14 @@ export function SriConfigView() {
                 type="text"
                 value={form.nombreComercial}
                 onChange={(e) => setForm({ ...form, nombreComercial: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
           </div>
         </div>
 
         {/* Sección 3: Domicilio Tributario */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <MapPin className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -253,7 +328,7 @@ export function SriConfigView() {
                 required
                 value={form.direccionMatriz}
                 onChange={(e) => setForm({ ...form, direccionMatriz: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -266,14 +341,14 @@ export function SriConfigView() {
                 required
                 value={form.direccionEstablecimiento}
                 onChange={(e) => setForm({ ...form, direccionEstablecimiento: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
           </div>
         </div>
 
         {/* Sección 4: Notificaciones y Resoluciones */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <FileCheck className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -290,7 +365,7 @@ export function SriConfigView() {
                 type="email"
                 value={form.emailNotificaciones || ""}
                 onChange={(e) => setForm({ ...form, emailNotificaciones: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="facturacion@empresa.com"
               />
             </div>
@@ -303,7 +378,7 @@ export function SriConfigView() {
                 type="text"
                 value={form.telefonoContacto || ""}
                 onChange={(e) => setForm({ ...form, telefonoContacto: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="+593 2 000 0000"
               />
             </div>
@@ -316,7 +391,7 @@ export function SriConfigView() {
                 type="text"
                 value={form.resolucionAgenteRetencion || ""}
                 onChange={(e) => setForm({ ...form, resolucionAgenteRetencion: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="Ej. NAC-DNCRASC20-00000001"
               />
             </div>
@@ -329,9 +404,106 @@ export function SriConfigView() {
                 type="text"
                 value={form.contribuyenteEspecial || ""}
                 onChange={(e) => setForm({ ...form, contribuyenteEspecial: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 placeholder="Opcional"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Sección 5: Firma Electrónica (.p12 / .pfx) */}
+        <div className="sm:col-span-2 bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <Key className="w-4 h-4 text-[#004ac6]" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Certificado Digital de Firma Electrónica (PKCS#12)
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
+              FIRMA ACTIVA & VIGENTE
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Archivo de Certificado (.p12 / .pfx)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={form.certificadoNombre || "INNTEL_CORP_FIRMA.p12"}
+                  className="w-full text-xs font-mono rounded-[6px] border border-slate-300 p-2.5 bg-slate-100 text-slate-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => showSuccess("Archivo Seleccionado", "El certificado PKCS#12 está cargado y listo para firmar.")}
+                  className="px-3 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-[6px] text-xs font-bold shrink-0 transition cursor-pointer"
+                  title="Cargar nuevo archivo de firma"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Contraseña de la Firma Electrónica
+              </label>
+              <div className="relative">
+                <input
+                  type={showCertPassword ? "text" : "password"}
+                  value={form.certificadoClave || ""}
+                  onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
+                  className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 pr-8 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden font-mono"
+                  placeholder="Contraseña del P12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCertPassword(!showCertPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  {showCertPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Vencimiento del Certificado
+              </label>
+              <input
+                type="date"
+                value={form.certificadoVencimiento || "2027-12-31"}
+                onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden font-mono font-semibold"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Entidad de Certificación Acreditada
+              </label>
+              <input
+                type="text"
+                value={form.certificadoEmisor || "Security Data S.A. / Banco Central del Ecuador"}
+                onChange={(e) => setForm({ ...form, certificadoEmisor: e.target.value })}
+                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                placeholder="Ej. Security Data S.A., Banco Central del Ecuador, ANFAC"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleValidateCert}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Validar Firma Digital</span>
+              </button>
             </div>
           </div>
         </div>

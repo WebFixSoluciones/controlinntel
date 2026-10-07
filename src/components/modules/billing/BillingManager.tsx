@@ -10,6 +10,7 @@ import {
   CreditNote,
   WithholdingReceipt,
   RemissionGuide,
+  SriWsResponse,
 } from "@/types";
 import { RidePreviewModal } from "./RidePreviewModal";
 import { QuotePreviewModal } from "./QuotePreviewModal";
@@ -42,8 +43,18 @@ import {
   Calendar,
   Layers,
   FileCode,
+  RefreshCw,
+  X,
 } from "lucide-react";
-import { generarFacturaXml } from "@/lib/sri-service";
+import {
+  generarFacturaXml,
+  generarNotaCreditoXml,
+  generarComprobanteRetencionXml,
+  generarGuiaRemisionXml,
+  generarXmlFirmado,
+  descargarXmlArchivo,
+  consultarComprobanteEnSri,
+} from "@/lib/sri-service";
 
 type BillingTab =
   | "facturas"
@@ -101,6 +112,17 @@ export function BillingManager() {
   const [isRideOpen, setIsRideOpen] = useState(false);
   const [rideInvoice, setRideInvoice] = useState<SriInvoice | null>(null);
   const [rideCreditNote, setRideCreditNote] = useState<CreditNote | null>(null);
+  const [rideWithholding, setRideWithholding] = useState<WithholdingReceipt | null>(null);
+  const [rideRemissionGuide, setRideRemissionGuide] = useState<RemissionGuide | null>(null);
+
+  // SRI Status Verification Modal
+  const [sriStatusModal, setSriStatusModal] = useState<{
+    isOpen: boolean;
+    docNumber: string;
+    claveAcceso: string;
+    result?: SriWsResponse;
+    loading: boolean;
+  } | null>(null);
 
   // Convert Quote Dialog
   const [quoteToConvert, setQuoteToConvert] = useState<ClientQuote | null>(null);
@@ -155,30 +177,98 @@ export function BillingManager() {
   const handleOpenRide = (inv: SriInvoice) => {
     setRideInvoice(inv);
     setRideCreditNote(null);
+    setRideWithholding(null);
+    setRideRemissionGuide(null);
     setIsRideOpen(true);
   };
 
   const handleOpenNcRide = (nc: CreditNote) => {
     setRideCreditNote(nc);
     setRideInvoice(null);
+    setRideWithholding(null);
+    setRideRemissionGuide(null);
+    setIsRideOpen(true);
+  };
+
+  const handleOpenWithholdingRide = (ret: WithholdingReceipt) => {
+    setRideWithholding(ret);
+    setRideInvoice(null);
+    setRideCreditNote(null);
+    setRideRemissionGuide(null);
+    setIsRideOpen(true);
+  };
+
+  const handleOpenRemissionRide = (guia: RemissionGuide) => {
+    setRideRemissionGuide(guia);
+    setRideInvoice(null);
+    setRideCreditNote(null);
+    setRideWithholding(null);
     setIsRideOpen(true);
   };
 
   const handleDownloadXmlDirect = (inv: SriInvoice) => {
     try {
-      const xml = generarFacturaXml(inv, sriCompanyConfig);
-      const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `SRI-${inv.documentNumber}.xml`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showSuccess("Descarga Exitosa", `XML de ${inv.documentNumber} descargado.`);
+      const rawXml = generarFacturaXml(inv, sriCompanyConfig);
+      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
+      descargarXmlArchivo(signedXml, `SRI-${inv.documentNumber}.xml`);
+      showSuccess("Descarga Exitosa", `XML de Factura ${inv.documentNumber} descargado.`);
     } catch (e: any) {
       showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+    }
+  };
+
+  const handleDownloadXmlCreditNote = (nc: CreditNote) => {
+    try {
+      const rawXml = generarNotaCreditoXml(nc, sriCompanyConfig);
+      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
+      descargarXmlArchivo(signedXml, `SRI-NC-${nc.documentNumber}.xml`);
+      showSuccess("Descarga Exitosa", `XML de Nota de Crédito ${nc.documentNumber} descargado.`);
+    } catch (e: any) {
+      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+    }
+  };
+
+  const handleDownloadXmlWithholding = (ret: WithholdingReceipt) => {
+    try {
+      const rawXml = generarComprobanteRetencionXml(ret, sriCompanyConfig);
+      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
+      descargarXmlArchivo(signedXml, `SRI-RET-${ret.documentNumber}.xml`);
+      showSuccess("Descarga Exitosa", `XML de Retención ${ret.documentNumber} descargado.`);
+    } catch (e: any) {
+      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+    }
+  };
+
+  const handleDownloadXmlRemission = (guia: RemissionGuide) => {
+    try {
+      const rawXml = generarGuiaRemisionXml(guia, sriCompanyConfig);
+      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
+      descargarXmlArchivo(signedXml, `SRI-GUIA-${guia.documentNumber}.xml`);
+      showSuccess("Descarga Exitosa", `XML de Guía ${guia.documentNumber} descargado.`);
+    } catch (e: any) {
+      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+    }
+  };
+
+  const handleConsultarSri = async (claveAcceso: string, docNumber: string) => {
+    setSriStatusModal({
+      isOpen: true,
+      docNumber,
+      claveAcceso,
+      loading: true,
+    });
+    try {
+      const res = await consultarComprobanteEnSri(claveAcceso, sriCompanyConfig.ambiente);
+      setSriStatusModal({
+        isOpen: true,
+        docNumber,
+        claveAcceso,
+        result: res,
+        loading: false,
+      });
+    } catch (err: any) {
+      showError("Error de Conexión SRI", err?.message || "No se pudo consultar el SRI.");
+      setSriStatusModal(null);
     }
   };
 
@@ -199,9 +289,10 @@ export function BillingManager() {
       const invoice = await convertQuoteToInvoice(quoteToConvert.id, convertWarehouseId);
       showSuccess("Facturación Completada", `Cotización ${quoteToConvert.quoteNumber} convertida en Factura ${invoice.documentNumber}.`);
       setQuoteToConvert(null);
-      // Abrir RIDE de la nueva factura automáticamente
       setRideInvoice(invoice);
       setRideCreditNote(null);
+      setRideWithholding(null);
+      setRideRemissionGuide(null);
       setIsRideOpen(true);
     } catch (err: any) {
       showError("Error de Conversión", err?.message || "Error al convertir la cotización en factura.");
@@ -221,6 +312,8 @@ export function BillingManager() {
           setActiveTab("facturas");
           setRideInvoice(inv);
           setRideCreditNote(null);
+          setRideWithholding(null);
+          setRideRemissionGuide(null);
           setIsRideOpen(true);
           router.push("/facturacion?sub=facturas");
         }}
@@ -230,111 +323,111 @@ export function BillingManager() {
 
   return (
     <div className="space-y-6">
-      {/* Barra de Filtros (para tablas) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={
-                activeTab === "facturas"
-                  ? "Buscar por cliente, RUC, secuencial 001-001... o clave de acceso"
-                  : activeTab === "cotizaciones"
-                  ? "Buscar por cotización COT-2026-..., cliente o RUC..."
-                  : "Buscar comprobante..."
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            {activeTab === "facturas" && (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs font-semibold rounded-xl border border-slate-300 py-2 px-3 bg-white text-slate-700"
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="autorizada">Autorizadas</option>
-                <option value="emitida">Emitidas</option>
-                <option value="borrador">Borradores</option>
-              </select>
-            )}
-
-            {activeTab === "cotizaciones" && (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs font-semibold rounded-xl border border-slate-300 py-2 px-3 bg-white text-slate-700"
-              >
-                <option value="all">Todos los Estados</option>
-                <option value="enviada">Enviadas</option>
-                <option value="aprobada">Aprobadas</option>
-                <option value="facturada">Facturadas</option>
-              </select>
-            )}
-
-            {activeTab === "facturas" && (
-              <button
-                onClick={() => {
-                  setActiveTab("nueva_venta");
-                  router.push("/facturacion?sub=nueva_venta");
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Registrar Venta</span>
-              </button>
-            )}
-
-            {activeTab === "cotizaciones" && (
-              <button
-                onClick={() => {
-                  setQuoteToEdit(null);
-                  setIsQuoteModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Crear Cotización</span>
-              </button>
-            )}
-
-            {activeTab === "notas_credito" && (
-              <button
-                onClick={() => {
-                  setCreditNoteInitialInvoice(null);
-                  setIsCreditNoteModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Emitir Nota de Crédito</span>
-              </button>
-            )}
-
-            {activeTab === "guias_remision" && (
-              <button
-                onClick={() => {
-                  setRemissionInitialInvoice(null);
-                  setIsRemissionModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Emitir Guía de Remisión</span>
-              </button>
-            )}
-          </div>
+      {/* Barra de Filtros */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder={
+              activeTab === "facturas"
+                ? "Buscar por cliente, RUC, secuencial 001-001... o clave de acceso"
+                : activeTab === "cotizaciones"
+                ? "Buscar por cotización COT-2026-..., cliente o RUC..."
+                : "Buscar comprobante..."
+            }
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full text-xs pl-9 pr-3 py-2 rounded-[6px] border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
+          />
         </div>
+
+        <div className="flex items-center gap-2">
+          {activeTab === "facturas" && (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+            >
+              <option value="all">Todos los Estados</option>
+              <option value="autorizada">Autorizadas</option>
+              <option value="emitida">Emitidas</option>
+              <option value="borrador">Borradores</option>
+            </select>
+          )}
+
+          {activeTab === "cotizaciones" && (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+            >
+              <option value="all">Todos los Estados</option>
+              <option value="enviada">Enviadas</option>
+              <option value="aprobada">Aprobadas</option>
+              <option value="facturada">Facturadas</option>
+            </select>
+          )}
+
+          {activeTab === "facturas" && (
+            <button
+              onClick={() => {
+                setActiveTab("nueva_venta");
+                router.push("/facturacion?sub=nueva_venta");
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Registrar Venta</span>
+            </button>
+          )}
+
+          {activeTab === "cotizaciones" && (
+            <button
+              onClick={() => {
+                setQuoteToEdit(null);
+                setIsQuoteModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Crear Cotización</span>
+            </button>
+          )}
+
+          {activeTab === "notas_credito" && (
+            <button
+              onClick={() => {
+                setCreditNoteInitialInvoice(null);
+                setIsCreditNoteModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Emitir Nota de Crédito</span>
+            </button>
+          )}
+
+          {activeTab === "guias_remision" && (
+            <button
+              onClick={() => {
+                setRemissionInitialInvoice(null);
+                setIsRemissionModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Emitir Guía de Remisión</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Contenido de Cada Pestaña */}
 
       {/* 1. Facturas */}
       {activeTab === "facturas" && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lumina-card overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -395,7 +488,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span
-                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
                             inv.status === "autorizada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                               : inv.status === "emitida"
@@ -410,28 +503,35 @@ export function BillingManager() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenRide(inv)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition"
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
                             title="Ver / Imprimir RIDE PDF"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadXmlDirect(inv)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition"
-                            title="Descargar XML SRI"
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            title="Descargar XML SRI Firmado"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => handleConsultarSri(inv.claveAcceso, inv.documentNumber)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            title="Consultar Estado en SRI"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleEmitNcFromInvoice(inv)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition"
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Emitir Nota de Crédito"
                           >
                             <RotateCcw className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEmitRemissionFromInvoice(inv)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                             title="Emitir Guía de Remisión"
                           >
                             <Truck className="w-4 h-4" />
@@ -449,7 +549,7 @@ export function BillingManager() {
 
       {/* 2. Cotizaciones */}
       {activeTab === "cotizaciones" && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lumina-card overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -495,7 +595,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span
-                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
                             q.status === "facturada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                               : q.status === "aprobada"
@@ -511,7 +611,7 @@ export function BillingManager() {
                           {q.status !== "facturada" ? (
                             <button
                               onClick={() => setQuoteToConvert(q)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition cursor-pointer"
                             >
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Convertir a Factura</span>
@@ -524,7 +624,7 @@ export function BillingManager() {
 
                           <button
                             onClick={() => setQuoteToPreview(q)}
-                            className="p-1 rounded-lg text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition"
+                            className="p-1 rounded-[6px] text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Ver / Imprimir Cotización Formal PDF"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -535,7 +635,7 @@ export function BillingManager() {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
                             }}
-                            className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                            className="p-1 rounded-[6px] text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                             title="Editar Cotización"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -553,7 +653,7 @@ export function BillingManager() {
 
       {/* 3. Notas de Crédito */}
       {activeTab === "notas_credito" && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lumina-card overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -565,7 +665,7 @@ export function BillingManager() {
                   <th className="py-3 px-4">Motivo</th>
                   <th className="py-3 px-4 text-right font-black">Valor Acreditado</th>
                   <th className="py-3 px-3 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 text-right">RIDE</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -596,18 +696,34 @@ export function BillingManager() {
                         ${nc.total.toFixed(2)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
                           {nc.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleOpenNcRide(nc)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>RIDE</span>
-                        </button>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenNcRide(nc)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            title="Ver RIDE PDF"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadXmlCreditNote(nc)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            title="Descargar XML Nota de Crédito"
+                          >
+                            <FileCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleConsultarSri(nc.claveAcceso, nc.documentNumber)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            title="Consultar Estado en SRI"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -620,7 +736,7 @@ export function BillingManager() {
 
       {/* 4. Retenciones */}
       {activeTab === "retenciones" && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lumina-card overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -632,12 +748,13 @@ export function BillingManager() {
                   <th className="py-3 px-4">Impuestos Retenidos</th>
                   <th className="py-3 px-4 text-right font-black">Total Retenido ($)</th>
                   <th className="py-3 px-3 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {billingWithholdings.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
                       No hay comprobantes de retención registrados.
                     </td>
                   </tr>
@@ -660,7 +777,7 @@ export function BillingManager() {
                           {ret.items.map((it, idx) => (
                             <span
                               key={idx}
-                              className="inline-block mr-2 px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px]"
+                              className="inline-block mr-2 px-2 py-0.5 rounded-[4px] bg-slate-100 text-slate-700 font-mono text-[10px]"
                             >
                               {it.taxType} {it.percentage}%: ${it.retainedAmount.toFixed(2)}
                             </span>
@@ -671,9 +788,34 @@ export function BillingManager() {
                         ${ret.totalRetained.toFixed(2)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
                           {ret.status.toUpperCase()}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenWithholdingRide(ret)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            title="Ver RIDE PDF"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadXmlWithholding(ret)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            title="Descargar XML Retención"
+                          >
+                            <FileCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleConsultarSri(ret.claveAcceso, ret.documentNumber)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            title="Consultar Estado en SRI"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -686,7 +828,7 @@ export function BillingManager() {
 
       {/* 5. Guías de Remisión */}
       {activeTab === "guias_remision" && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-lumina-card overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -698,12 +840,13 @@ export function BillingManager() {
                   <th className="py-3 px-4">Destinatario</th>
                   <th className="py-3 px-4">Mercadería</th>
                   <th className="py-3 px-3 text-center">Estado</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {billingRemissionGuides.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                    <td colSpan={8} className="py-12 text-center text-slate-400">
                       No hay guías de remisión registradas.
                     </td>
                   </tr>
@@ -737,9 +880,34 @@ export function BillingManager() {
                         ))}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {g.status.toUpperCase()}
                         </span>
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenRemissionRide(g)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            title="Ver RIDE PDF"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDownloadXmlRemission(g)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            title="Descargar XML Guía"
+                          >
+                            <FileCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleConsultarSri(g.claveAcceso, g.documentNumber)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            title="Consultar Estado en SRI"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -750,14 +918,98 @@ export function BillingManager() {
         </div>
       )}
 
+      {/* Modal Dialog: Verificación en vivo de Estado en SRI */}
+      {sriStatusModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
+          <div className="w-full max-w-lg bg-white rounded-[6px] shadow-2xl border border-slate-200 p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-[#004ac6]" />
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  Consulta de Estado en SRI
+                </h3>
+              </div>
+              <button
+                onClick={() => setSriStatusModal(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1">
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-800">Comprobante:</span> {sriStatusModal.docNumber}
+                </p>
+                <p className="text-slate-600 break-all font-mono text-[11px]">
+                  <span className="font-semibold text-slate-800 font-sans">Clave de Acceso:</span> {sriStatusModal.claveAcceso}
+                </p>
+                <p className="text-slate-600">
+                  <span className="font-semibold text-slate-800">Ambiente:</span>{" "}
+                  {sriCompanyConfig.ambiente === "2" ? "2 - Producción Oficial" : "1 - Pruebas / Homologación"}
+                </p>
+              </div>
 
-      {/* Modal Dialog: Convertir Cotización a Factura con Selección de Bodega */}
+              {sriStatusModal.loading ? (
+                <div className="py-6 flex flex-col items-center justify-center gap-2 text-slate-500">
+                  <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-semibold">Consultando servidores del SRI...</span>
+                </div>
+              ) : sriStatusModal.result ? (
+                <div className="space-y-3">
+                  <div className="p-3 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-xs uppercase">
+                        Estado SRI: {sriStatusModal.result.estado}
+                      </span>
+                    </div>
+                    {sriStatusModal.result.numeroAutorizacion && (
+                      <p className="text-[11px] font-mono break-all text-emerald-900">
+                        No. Autorización: {sriStatusModal.result.numeroAutorizacion}
+                      </p>
+                    )}
+                    {sriStatusModal.result.fechaAutorizacion && (
+                      <p className="text-[11px] text-emerald-900">
+                        Fecha / Hora: {new Date(sriStatusModal.result.fechaAutorizacion).toLocaleString("es-EC")}
+                      </p>
+                    )}
+                  </div>
+
+                  {sriStatusModal.result.mensajes && sriStatusModal.result.mensajes.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-[11px] text-slate-700">Mensajes del SRI:</span>
+                      {sriStatusModal.result.mensajes.map((m, idx) => (
+                        <div key={idx} className="p-2 rounded-[4px] bg-slate-100 text-slate-700 text-[11px]">
+                          <strong>[{m.tipo || "INFO"}]</strong> {m.mensaje}
+                          {m.informacionAdicional && <span className="block text-slate-500">{m.informacionAdicional}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setSriStatusModal(null)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-[6px] text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cerrar Consulta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog: Convertir Cotización a Factura */}
       {quoteToConvert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-6 space-y-4">
+          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-[6px] bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
@@ -783,7 +1035,7 @@ export function BillingManager() {
               <select
                 value={convertWarehouseId}
                 onChange={(e) => setConvertWarehouseId(e.target.value)}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 text-slate-900"
+                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 text-slate-900"
               >
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
@@ -797,7 +1049,7 @@ export function BillingManager() {
               <button
                 type="button"
                 onClick={() => setQuoteToConvert(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-[6px] text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 Cancelar
               </button>
@@ -805,7 +1057,7 @@ export function BillingManager() {
                 type="button"
                 onClick={handleConfirmConvertQuote}
                 disabled={isConverting}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-2"
+                className="px-5 py-2 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer"
               >
                 {isConverting ? (
                   <>
@@ -848,6 +1100,8 @@ export function BillingManager() {
           showSuccess("Nota de Crédito Emitida", `Nota de Crédito ${nc.documentNumber} emitida.`);
           setRideCreditNote(nc);
           setRideInvoice(null);
+          setRideWithholding(null);
+          setRideRemissionGuide(null);
           setIsRideOpen(true);
         }}
       />
@@ -861,6 +1115,11 @@ export function BillingManager() {
         initialInvoice={remissionInitialInvoice}
         onSuccess={(g) => {
           showSuccess("Guía Emitida", `Guía de Remisión ${g.documentNumber} emitida con éxito.`);
+          setRideRemissionGuide(g);
+          setRideInvoice(null);
+          setRideCreditNote(null);
+          setRideWithholding(null);
+          setIsRideOpen(true);
         }}
       />
 
@@ -870,9 +1129,13 @@ export function BillingManager() {
           setIsRideOpen(false);
           setRideInvoice(null);
           setRideCreditNote(null);
+          setRideWithholding(null);
+          setRideRemissionGuide(null);
         }}
         invoice={rideInvoice}
         creditNote={rideCreditNote}
+        withholding={rideWithholding}
+        remissionGuide={rideRemissionGuide}
         companyConfig={sriCompanyConfig}
       />
 
