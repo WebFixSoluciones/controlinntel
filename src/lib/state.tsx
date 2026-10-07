@@ -1739,6 +1739,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const totalAmount = clientServs.reduce((sum, s) => sum + s.customPrice, 0) || 28.0;
       const subtotal = totalAmount / 1.15;
       const iva = totalAmount - subtotal;
+      const planNames = clientServs.map((s) => s.planName).join(" + ") || "Servicio de Internet";
       return {
         id: `chg-${client.id}-${month}-${year}`,
         clientId: client.id,
@@ -1746,7 +1747,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clientRuc: client.identificationNumber,
         month,
         year,
-        serviceDescription: `Servicio Internet Banda Ancha Fibra Óptica - Periodo ${month}/${year}`,
+        serviceDescription: `${planNames} - Periodo ${month}/${year}`,
         subtotal: parseFloat(subtotal.toFixed(2)),
         ivaAmount: parseFloat(iva.toFixed(2)),
         total: parseFloat(totalAmount.toFixed(2)),

@@ -14,7 +14,11 @@ import { AccountsReceivableTab } from "@/components/modules/finance/AccountsRece
 import { AccountsPayableTab } from "@/components/modules/finance/AccountsPayableTab";
 import { FinancialReportsTab } from "@/components/modules/finance/FinancialReportsTab";
 
+import { FinanceDashboard } from "@/components/modules/finance/FinanceDashboard";
+
 export type FinanceSubmoduleTab =
+  | "cobranzas_opex"
+  | "general"
   | "movimientos"
   | "bancos"
   | "cuentas_por_cobrar"
@@ -32,7 +36,8 @@ function FinanzasContent() {
   const canCxP = canAccessSubmodule(currentUser, "finanzas", "cuentas_por_pagar");
   const canReportes = canAccessSubmodule(currentUser, "finanzas", "reportes");
 
-  const subParam = (searchParams.get("sub") as FinanceSubmoduleTab) || "movimientos";
+  const rawSubParam = searchParams.get("sub");
+  const subParam = (rawSubParam as FinanceSubmoduleTab) || "cobranzas_opex";
   let activeTab: FinanceSubmoduleTab = subParam;
 
   if (activeTab === "movimientos" && !canMovimientos) {
@@ -104,10 +109,10 @@ function FinanzasContent() {
   return (
     <div className="space-y-6">
       {/* Status Bar without redundant description */}
-      {currentMeta.badge !== null && currentMeta.badge > 0 && (
+      {currentMeta.badge !== null && currentMeta.badge > 0 && activeTab !== "cobranzas_opex" && activeTab !== "general" && (
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#434655]">Comprobantes Pendientes:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
+          <span className="px-2.5 py-0.5 rounded-[6px] text-xs font-bold bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
             {currentMeta.badge}
           </span>
         </div>
@@ -115,6 +120,7 @@ function FinanzasContent() {
 
       {/* Submodule View Content */}
       <div className="w-full">
+        {(activeTab === "cobranzas_opex" || activeTab === "general") && <FinanceDashboard />}
         {activeTab === "movimientos" && canMovimientos && <MovementsTab />}
         {activeTab === "bancos" && canBancos && <BankAccountsTab />}
         {activeTab === "cuentas_por_cobrar" && canCxC && <AccountsReceivableTab />}

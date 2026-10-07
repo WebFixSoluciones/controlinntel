@@ -105,7 +105,12 @@ export function TemplateGenerator() {
     try {
       localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(updated));
     } catch (e) {
-      console.warn("Storage full or unavailable", e);
+      try {
+        const light = updated.map((t) => ({ ...t, fileData: undefined }));
+        localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(light));
+      } catch (err) {
+        console.warn("Storage quota exceeded", err);
+      }
     }
   };
 
@@ -270,14 +275,14 @@ export function TemplateGenerator() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#434655]">Total Plantillas:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+          <span className="px-2.5 py-0.5 rounded-[6px] text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
             {SYSTEM_TEMPLATES.length + customTemplates.length}
           </span>
         </div>
 
         <button
           onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Upload className="w-4 h-4" />
           <span>Subir Archivo / Plantilla</span>
@@ -296,14 +301,14 @@ export function TemplateGenerator() {
             return (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between hover:border-[#cbd5e1] transition-all"
+                className="p-6 rounded-[6px] bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between hover:border-[#cbd5e1] transition-all"
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-xl border ${tmpl.color}`}>
+                    <div className={`p-3 rounded-[6px] border ${tmpl.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-bold font-mono text-[#434655] bg-[#f8f9ff] px-2.5 py-0.5 rounded-md border border-[#e2e8f0]">
+                    <span className="text-[11px] font-bold font-mono text-[#434655] bg-[#f8f9ff] px-2.5 py-0.5 rounded-[6px] border border-[#e2e8f0]">
                       {tmpl.format}
                     </span>
                   </div>
@@ -318,7 +323,7 @@ export function TemplateGenerator() {
                   </span>
                   <button
                     onClick={tmpl.action}
-                    className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                    className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Generar {tmpl.format.split(" ")[0]}
@@ -342,7 +347,7 @@ export function TemplateGenerator() {
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
+        <div className="overflow-x-auto rounded-[6px] border border-[#e2e8f0] bg-white shadow-lumina-card">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
@@ -370,7 +375,7 @@ export function TemplateGenerator() {
                       <span className="text-[11px] text-[#737686] block mt-0.5">{item.description}</span>
                     </td>
                     <td className="py-3.5 px-5">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                      <span className="px-2.5 py-0.5 rounded-[6px] text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                         {item.category}
                       </span>
                     </td>
@@ -384,7 +389,7 @@ export function TemplateGenerator() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleDownloadCustom(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
                           title="Descargar archivo"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -392,7 +397,7 @@ export function TemplateGenerator() {
                         </button>
                         <button
                           onClick={() => handleDeleteCustom(item.id, item.name)}
-                          className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-red-50 rounded-[6px] transition-colors cursor-pointer"
                           title="Eliminar plantilla"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -410,7 +415,7 @@ export function TemplateGenerator() {
       {/* Upload Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
+          <div className="w-full max-w-lg bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
                 <Upload className="w-4 h-4 text-[#004ac6]" />
@@ -418,7 +423,7 @@ export function TemplateGenerator() {
               </h3>
               <button
                 onClick={() => setIsUploadModalOpen(false)}
-                className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
+                className="p-1 rounded-[6px] text-[#737686] hover:text-[#0b1c30] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -433,7 +438,7 @@ export function TemplateGenerator() {
                   placeholder="Ej: Acta de Entrega ONT / Formato de Cesión de Derechos"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
                 />
               </div>
 
@@ -442,7 +447,7 @@ export function TemplateGenerator() {
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
                 >
                   <option value="Contratos">Contratos</option>
                   <option value="Técnico / Red">Técnico / Red</option>
@@ -459,7 +464,7 @@ export function TemplateGenerator() {
                   placeholder="Explica brevemente cuándo o quién debe utilizar este documento..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30]"
                 />
               </div>
 
@@ -469,7 +474,7 @@ export function TemplateGenerator() {
                   type="file"
                   required
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-[#434655] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#eff4ff] file:text-[#004ac6] hover:file:bg-[#dce9ff] cursor-pointer"
+                  className="w-full text-xs text-[#434655] file:mr-3 file:py-2 file:px-4 file:rounded-[6px] file:border-0 file:text-xs file:font-bold file:bg-[#eff4ff] file:text-[#004ac6] hover:file:bg-[#dce9ff] cursor-pointer"
                 />
                 {selectedFile && (
                   <p className="text-[11px] text-[#059669] font-medium mt-1">
@@ -482,13 +487,13 @@ export function TemplateGenerator() {
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer"
+                  className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-[6px] font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Subir Archivo</span>

@@ -17,73 +17,74 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
   const { showError, showSuccess } = useToast();
 
   const [policyNumber, setPolicyNumber] = useState("");
-  const [insuranceCompany, setInsuranceCompany] = useState("Seguros Sucre / La Unión");
+  const [insuranceCompany, setInsuranceCompany] = useState("");
   const [policyType, setPolicyType] = useState<ArcotelPolicy["policyType"]>("fiel_cumplimiento");
-  const [titleGrantCode, setTitleGrantCode] = useState("ARCOTEL-TH-ISP-2018-094");
+  const [titleGrantCode, setTitleGrantCode] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
-  const [expirationDate, setExpirationDate] = useState("2027-09-01");
-  const [insuredAmount, setInsuredAmount] = useState(25000);
+  const [expirationDate, setExpirationDate] = useState("");
+  const [insuredAmount, setInsuredAmount] = useState<number | "">("");
   const [notes, setNotes] = useState("");
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     try {
+      e.preventDefault();
 
-    e.preventDefault();
+      if (!policyNumber || policyNumber.trim().length < 4) {
+        showError("Número de Póliza Inválido", "Por favor ingresa un número de póliza válido (ej. POL-2026-99482).");
+        return;
+      }
 
-    if (!policyNumber || policyNumber.trim().length < 4) {
-      showError("Número de Póliza Inválido", "Por favor ingresa un número de póliza válido (ej. POL-2026-99482).");
-      return;
+      if (!insuranceCompany || insuranceCompany.trim().length < 3) {
+        showError("Aseguradora Requerida", "Indica la compañía de seguros emisora de la garantía.");
+        return;
+      }
+
+      const dateVal = validateDateRange(startDate, expirationDate);
+      if (!dateVal.isValid) {
+        showError("Fechas Inválidas", dateVal.error || "La fecha de vencimiento no es coherente.");
+        return;
+      }
+
+      const numAmount = Number(insuredAmount) || 0;
+      const amountVal = validateMonetaryAmount(numAmount, "Monto asegurado");
+      if (!amountVal.isValid) {
+        showError("Monto Inválido", amountVal.error || "El monto asegurado debe ser mayor a cero.");
+        return;
+      }
+
+      const exp = new Date(expirationDate);
+      const now = new Date();
+      const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const status = days < 0 ? "vencida" : days <= 45 ? "por_vencer" : "vigente";
+
+      await addPolicy({
+        policyNumber: policyNumber.trim(),
+        insuranceCompany: insuranceCompany.trim(),
+        policyType,
+        titleGrantCode: titleGrantCode.trim(),
+        startDate,
+        expirationDate,
+        insuredAmount: numAmount,
+        status,
+        daysUntilExpiration: days,
+        notes: notes.trim(),
+      });
+
+      showSuccess("Póliza Registrada", `Póliza ${policyNumber} guardada en el registro regulatorio ARCOTEL.`);
+      onClose();
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." }));
     }
-
-    if (!insuranceCompany || insuranceCompany.trim().length < 3) {
-      showError("Aseguradora Requerida", "Indica la compañía de seguros emisora de la garantía.");
-      return;
-    }
-
-    const dateVal = validateDateRange(startDate, expirationDate);
-    if (!dateVal.isValid) {
-      showError("Fechas Inválidas", dateVal.error || "La fecha de vencimiento no es coherente.");
-      return;
-    }
-
-    const amountVal = validateMonetaryAmount(insuredAmount, "Monto asegurado");
-    if (!amountVal.isValid) {
-      showError("Monto Inválido", amountVal.error || "El monto asegurado debe ser mayor a cero.");
-      return;
-    }
-
-    const exp = new Date(expirationDate);
-    const now = new Date();
-    const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const status = days < 0 ? "vencida" : days <= 45 ? "por_vencer" : "vigente";
-
-    await addPolicy({
-      policyNumber,
-      insuranceCompany,
-      policyType,
-      titleGrantCode,
-      startDate,
-      expirationDate,
-      insuredAmount: Number(insuredAmount),
-      status,
-      daysUntilExpiration: days,
-      notes,
-    });
-
-    showSuccess("Póliza Registrada", `Póliza ${policyNumber} guardada en el registro regulatorio ARCOTEL.`);
-    onClose();
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
-};
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col">
+      <div className="w-full max-w-3xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-[6px] bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
               <ShieldPlus className="w-5 h-5" />
             </div>
             <div>
@@ -92,7 +93,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
+            className="p-1.5 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -107,7 +108,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               placeholder="POL-2026-99482"
               value={policyNumber}
               onChange={(e) => setPolicyNumber(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
             />
           </div>
 
@@ -120,7 +121,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 placeholder="Chubb Seguros / Seguros Alianza"
                 value={insuranceCompany}
                 onChange={(e) => setInsuranceCompany(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
               />
             </div>
 
@@ -129,7 +130,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               <select
                 value={policyType}
                 onChange={(e) => setPolicyType(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
               >
                 <option value="fiel_cumplimiento">Fiel Cumplimiento de Título</option>
                 <option value="responsabilidad_civil">Responsabilidad Civil</option>
@@ -144,9 +145,10 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               <input
                 type="number"
                 required
+                placeholder="25000"
                 value={insuredAmount}
-                onChange={(e) => setInsuredAmount(Number(e.target.value))}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#004ac6]"
+                onChange={(e) => setInsuredAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#004ac6]"
               />
             </div>
 
@@ -157,7 +159,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 required
                 value={expirationDate}
                 onChange={(e) => setExpirationDate(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30]"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30]"
               />
             </div>
           </div>
@@ -169,7 +171,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               placeholder="Endoso número 3 remitido por QUIPUX..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
+              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30]"
             />
           </div>
 
@@ -177,13 +179,13 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
+              className="px-4 py-2 rounded-[6px] text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               Guardar Póliza

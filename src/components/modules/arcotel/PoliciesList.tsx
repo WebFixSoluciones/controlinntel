@@ -37,14 +37,14 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
 
         <button
           onClick={onOpenNewModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar Póliza</span>
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
+      <div className="overflow-x-auto rounded-[6px] border border-[#e2e8f0] bg-white shadow-lumina-card">
         <table className="min-w-[1150px] w-full text-left text-xs">
           <caption className="sr-only">Pólizas y garantías registradas para control ARCOTEL</caption>
           <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
@@ -93,7 +93,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    <span className={`inline-flex rounded-[6px] border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       isUrgent
                         ? "border-amber-200 bg-amber-100 text-amber-800"
                         : isExpired
@@ -106,7 +106,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                   <td className="px-5 py-4 text-right">
                     <button
                       onClick={() => void handleDownloadRenewal(p)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#dce9ff] bg-[#eff4ff] px-3 py-1.5 text-xs font-bold text-[#004ac6] hover:bg-[#dce9ff]"
+                      className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#dce9ff] bg-[#eff4ff] px-3 py-1.5 text-xs font-bold text-[#004ac6] hover:bg-[#dce9ff]"
                     >
                       <Download className="size-3.5" />
                       Oficio ARCOTEL

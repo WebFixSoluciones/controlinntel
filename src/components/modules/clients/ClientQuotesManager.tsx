@@ -66,6 +66,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     updateBillingQuote,
     deleteBillingQuote,
     sriCompanyConfig,
+    inventoryProducts,
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
@@ -85,16 +86,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     "Tarifas en dólares americanos (USD). Incluye instalación de acometida de fibra óptica, router Wi-Fi 6 y soporte técnico 24/7."
   );
 
-  const [items, setItems] = useState<QuoteOrderItem[]>([
-    {
-      id: "item-1",
-      description: "Servicio de Internet Fibra Óptica Dedicado",
-      quantity: 1,
-      unitPrice: 35.0,
-      total: 35.0,
-    },
-  ]);
-
+  const [items, setItems] = useState<QuoteOrderItem[]>([]);
+  const [selectedProdId, setSelectedProdId] = useState("");
   const [newItemDesc, setNewItemDesc] = useState("");
   const [newItemQty, setNewItemQty] = useState(1);
   const [newItemPrice, setNewItemPrice] = useState(25.0);
@@ -244,19 +237,22 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
   const handleOpenModal = () => {
     setTitle(`Cotización de Servicio - ${client.businessName}`);
     setValidUntil(new Date(Date.now() + 86400000 * 15).toISOString().split("T")[0]);
+    setSelectedProdId("");
     setNewItemDesc("");
     setNewItemQty(1);
-    setNewItemPrice(30.0);
-    setItems([
-      {
-        id: "item-1",
-        description: "Servicio de Internet Fibra Óptica",
-        quantity: 1,
-        unitPrice: 28.0,
-        total: 28.0,
-      },
-    ]);
+    setNewItemPrice(0);
+    setItems([]);
     setIsModalOpen(true);
+  };
+
+  const handleSelectProduct = (prodId: string) => {
+    setSelectedProdId(prodId);
+    if (!prodId) return;
+    const prod = inventoryProducts.find((p) => p.id === prodId);
+    if (prod) {
+      setNewItemDesc(`${prod.name}${prod.sku ? ` - ${prod.sku}` : ""}`);
+      setNewItemPrice(prod.salePrice || 0);
+    }
   };
 
   const handleAddItem = () => {
@@ -687,14 +683,33 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                   <span className="text-[11px] text-slate-500">{items.length} artículo(s) en la lista</span>
                 </div>
 
-                {/* Input row for adding new item */}
-                <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
-                  <span className="text-[11px] font-bold text-[#004ac6] block">Agregar Nuevo Artículo / Servicio:</span>
+                {/* Input row for adding new item with inventory search */}
+                <div className="p-3 bg-blue-50/50 rounded-[6px] border border-blue-100 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-[#004ac6] block">Agregar Artículo o Servicio a la Cotización:</span>
+                    {inventoryProducts && inventoryProducts.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 whitespace-nowrap">Catálogo:</label>
+                        <select
+                          value={selectedProdId}
+                          onChange={(e) => handleSelectProduct(e.target.value)}
+                          className="text-xs px-2.5 py-1 rounded-[6px] border border-slate-300 bg-white font-medium text-slate-800"
+                        >
+                          <option value="">-- Buscar en Catálogo / Inventario --</option>
+                          {inventoryProducts.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {p.sku ? `(${p.sku})` : ""} - ${p.salePrice.toFixed(2)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                     <div className="sm:col-span-6">
                       <input
                         type="text"
-                        placeholder="Descripción (ej: Router Wi-Fi 6 GPON, Instalación fibra...)"
+                        placeholder="Descripción o nombre del producto..."
                         value={newItemDesc}
                         onChange={(e) => setNewItemDesc(e.target.value)}
                         onKeyDown={(e) => {
@@ -703,7 +718,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                             handleAddItem();
                           }
                         }}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
+                        className="w-full bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-xs font-medium text-slate-900 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -713,7 +728,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                         placeholder="Cant."
                         value={newItemQty}
                         onChange={(e) => setNewItemQty(parseInt(e.target.value) || 1)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-center text-xs font-semibold text-slate-900 outline-hidden"
+                        className="w-full bg-white border border-slate-300 rounded-[6px] px-2 py-2 text-center text-xs font-semibold text-slate-900 outline-hidden"
                         title="Cantidad"
                       />
                     </div>
@@ -725,7 +740,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                         placeholder="Precio $"
                         value={newItemPrice}
                         onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-right font-mono font-bold text-[#004ac6] text-xs outline-hidden"
+                        className="w-full bg-white border border-slate-300 rounded-[6px] px-2 py-2 text-right font-mono font-bold text-[#004ac6] text-xs outline-hidden"
                         title="Precio Unitario"
                       />
                     </div>
@@ -733,7 +748,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                       <button
                         type="button"
                         onClick={handleAddItem}
-                        className="w-full flex items-center justify-center gap-1 px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1 px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-[6px] text-xs transition shadow-xs cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Agregar</span>

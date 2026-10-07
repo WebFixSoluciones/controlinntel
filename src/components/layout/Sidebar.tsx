@@ -23,6 +23,7 @@ import {
   LogOut,
   Settings,
   Contact2,
+  Radio,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -102,6 +103,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: DollarSign,
     moduleKey: "finanzas",
     submodules: [
+      { key: "cobranzas_opex", label: "Cobranzas & OPEX", href: "/finanzas?sub=cobranzas_opex", submoduleKey: "movimientos" },
       { key: "movimientos", label: "Movimientos", href: "/finanzas?sub=movimientos", submoduleKey: "movimientos" },
       { key: "bancos", label: "Bancos", href: "/finanzas?sub=bancos", submoduleKey: "bancos" },
       { key: "cuentas_por_cobrar", label: "Cuentas por Cobrar", href: "/finanzas?sub=cuentas_por_cobrar", submoduleKey: "cuentas_por_cobrar" },
@@ -109,6 +111,8 @@ const NAV_ITEMS: NavItem[] = [
       { key: "reportes", label: "Reportes", href: "/finanzas?sub=reportes", submoduleKey: "reportes" },
     ],
   },
+  { href: "/red", label: "Nodos / Red", icon: Radio, moduleKey: "red" },
+  { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck, moduleKey: "arcotel" },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },

@@ -150,19 +150,39 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
 export function canAccessModule(user: UserProfile | undefined | null, moduleKey: keyof UserModulePermissions): boolean {
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
+  if (moduleKey === "actions") return true;
 
   // Si tiene permisos granulares configurados explícitamente
-  if (user.modulePermissions && user.modulePermissions[moduleKey] !== undefined) {
-    return !!user.modulePermissions[moduleKey]?.enabled;
+  const modPerm = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
+  if (modPerm !== undefined) {
+    return !!modPerm?.enabled;
   }
 
   // De lo contrario, inferir desde el rol predeterminado
-  const defaultByRole = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role];
-  if (defaultByRole && defaultByRole[moduleKey] !== undefined) {
-    return !!defaultByRole[moduleKey]?.enabled;
+  const defaultModPerm = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role]?.[moduleKey] as { enabled?: boolean } | undefined;
+  if (defaultModPerm !== undefined) {
+    return !!defaultModPerm?.enabled;
   }
 
   return true;
+}
+
+/**
+ * Verifica si un usuario tiene permiso para ejecutar una acción crítica específica.
+ */
+export function canPerformAction(
+  user: UserProfile | undefined | null,
+  actionKey: "canDeleteClients" | "canDeleteFiles" | "canEditInvoices" | "canDeleteInvoices"
+): boolean {
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+  if (user.modulePermissions?.actions?.[actionKey] !== undefined) {
+    return !!user.modulePermissions.actions[actionKey];
+  }
+  if (user.role === "admin") {
+    return actionKey !== "canDeleteInvoices";
+  }
+  return false;
 }
 
 /**

@@ -204,6 +204,13 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   };
 
   const handleDeleteFile = (fileId: string, name: string) => {
+    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
+    const canDelete = isSuperOrAdmin || currentUser.permissions?.includes("delete_files") || currentUser.modulePermissions?.actions?.canDeleteFiles;
+    if (!canDelete) {
+      showError("Acceso Restringido", "No tienes autorización para eliminar archivos regulatorios de ARCOTEL.");
+      return;
+    }
+
     showConfirm(
       "¿Eliminar Archivo Regulatorio?",
       `¿Confirmas la remoción del archivo ${name}?`,
@@ -349,15 +356,22 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#434655]">Archivos Regulatorios:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+          <span className="px-2.5 py-0.5 rounded-[6px] text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
             {arcotelFiles.length}
           </span>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
+            onClick={() => setIsPolicyModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#004ac6] rounded-[6px] text-xs font-bold shadow-2xs transition-all cursor-pointer"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Registrar Póliza</span>
+          </button>
+          <button
             onClick={() => handleOpenUploadModal("sietel_lopam")}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <Upload className="w-4 h-4" />
             <span>Subir Archivo Regulatorio</span>
@@ -369,7 +383,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("concesion")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "concesion"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -381,7 +395,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("sietel")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "sietel"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -393,7 +407,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("fodetel")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "fodetel"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -405,7 +419,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("contingencia")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "contingencia"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -417,7 +431,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("bdh")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "bdh"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -429,7 +443,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("infraestructura")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "infraestructura"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -441,7 +455,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("transformador")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "transformador"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -453,7 +467,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
         <button
           onClick={() => setActiveTab("polizas")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "polizas"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
@@ -1256,9 +1270,11 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {activeTab === "polizas" && (
         <div className="space-y-4">
           <PoliciesList onOpenNewModal={() => setIsPolicyModalOpen(true)} />
-          {isPolicyModalOpen && <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />}
         </div>
       )}
+
+      {/* MODAL GLOBAL PARA REGISTRO DE POLIZAS ARCOTEL */}
+      {isPolicyModalOpen && <PolicyModal isOpen={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />}
 
       {/* MODAL PARA SUBIR ARCHIVOS REGULATORIOS */}
       {isFileModalOpen && (

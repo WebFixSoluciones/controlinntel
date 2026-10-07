@@ -1,18 +1,15 @@
 "use client";
 
 import React, { useRef } from "react";
+import Image from "next/image";
 import {
   X,
   Printer,
   FileSpreadsheet,
-  Building2,
-  ShieldCheck,
   CheckCircle2,
-  Calendar,
-  AlertCircle,
 } from "lucide-react";
 import { ClientQuote, SriCompanyConfig } from "@/types";
-import { DEFAULT_INNTEL_SRI_CONFIG, numeroALetrasDolares } from "@/lib/sri-service";
+import { DEFAULT_INNTEL_SRI_CONFIG } from "@/lib/sri-service";
 
 interface QuotePreviewModalProps {
   isOpen?: boolean;
@@ -37,23 +34,41 @@ export function QuotePreviewModal({
     window.print();
   };
 
-  const emisor = companyConfig;
+  // Cálculos precisos de subtotales por tasa impositiva
+  const items = quote.items || [];
+  const subtotal15 = items
+    .filter((it) => (it.ivaRate === undefined || it.ivaRate === 15))
+    .reduce((sum, it) => sum + (it.subtotal || it.quantity * it.unitPrice), 0);
+
+  const subtotal5 = items
+    .filter((it) => it.ivaRate === 5)
+    .reduce((sum, it) => sum + (it.subtotal || it.quantity * it.unitPrice), 0);
+
+  const subtotal0 = items
+    .filter((it) => it.ivaRate === 0)
+    .reduce((sum, it) => sum + (it.subtotal || it.quantity * it.unitPrice), 0);
+
+  const iva15 = parseFloat((subtotal15 * 0.15).toFixed(2));
+  const iva5 = parseFloat((subtotal5 * 0.05).toFixed(2));
+  const descuento = quote.discountTotal || 0;
+  const total = parseFloat((subtotal15 + subtotal5 + subtotal0 + iva15 + iva5 - descuento).toFixed(2));
+  const saldo = total;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150 select-none">
+      <div className="w-full max-w-4xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden my-6 flex flex-col max-h-[94vh]">
         {/* Barra superior de control */}
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between no-print">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-[6px] bg-blue-50 text-[#004ac6] flex items-center justify-center font-bold">
               <FileSpreadsheet className="w-4 h-4" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
-                Cotización Formal N° {quote.quoteNumber}
+                Cotización N° {quote.quoteNumber}
               </h3>
               <p className="text-[11px] text-slate-500">
-                Formato oficial con normativas comerciales y regulatorias
+                Formato Oficial INNTEL INNOVACIÓN EN TELECOMUNICACIONES
               </p>
             </div>
           </div>
@@ -66,188 +81,282 @@ export function QuotePreviewModal({
                   onClose();
                   onConvertToInvoice(quote);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Convertir a Factura</span>
+                <span>Transformar a Venta</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#2563eb] text-white font-bold text-xs shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#2563eb] text-white font-bold text-xs shadow-xs transition cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir / Guardar PDF</span>
+              <span>Imprimir / PDF</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-[6px] transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Documento Imprimible (Formato Cotización PDF) */}
-        <div className="p-8 overflow-y-auto space-y-6 text-xs bg-white text-slate-900 flex-1 print:p-0 print:m-0" ref={printAreaRef}>
-          {/* Cabecera Principal */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-slate-200 pb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-black text-2xl tracking-tighter text-[#004ac6]">INNTEL</span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">
-                  Telecomunicaciones & Servicios ISP
+        {/* Documento Imprimible (Formato Oficial INNTEL idéntico a imagen del usuario) */}
+        <div
+          className="p-8 overflow-y-auto space-y-6 text-xs bg-white text-slate-900 flex-1 print:p-0 print:m-0"
+          ref={printAreaRef}
+        >
+          {/* Bloque Superior: Logo + Emisor (Izquierda) | Cotización + Cliente (Derecha) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* Lado Izquierdo */}
+            <div className="space-y-4">
+              <div className="flex flex-col items-start gap-1">
+                <Image
+                  src="/logo-inntel.webp"
+                  alt="INNTEL INNOVACION EN TELECOMUNICACIONES"
+                  width={190}
+                  height={65}
+                  className="h-14 w-auto object-contain"
+                  priority
+                />
+                <span className="text-[9px] font-black tracking-widest text-[#004ac6] uppercase mt-0.5">
+                  INNOVACIÓN EN TELECOMUNICACIONES
                 </span>
               </div>
-              <h4 className="font-bold text-sm text-slate-900">{emisor.razonSocial}</h4>
-              <p className="text-[11px] text-slate-600 mt-1"><strong>RUC:</strong> {emisor.ruc}</p>
-              <p className="text-[11px] text-slate-600"><strong>Matriz:</strong> {emisor.direccionMatriz}</p>
-              <p className="text-[11px] text-slate-600"><strong>Contacto:</strong> {emisor.emailNotificaciones || "contacto@inntelcorp.com"}</p>
-              <p className="text-[11px] text-slate-600"><strong>Obligado a llevar contabilidad:</strong> {emisor.obligadoContabilidad}</p>
+
+              {/* Caja Gris Emisor */}
+              <div className="p-4 bg-[#f1f5f9]/70 rounded-[6px] border border-slate-200 space-y-1 text-xs">
+                <div>
+                  <span className="text-slate-600 font-bold">Nombre comercial: </span>
+                  <span className="font-semibold text-slate-900">
+                    {companyConfig?.nombreComercial || "INNTEL CORP"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-600 font-bold">Razón Social: </span>
+                  <span className="font-semibold text-slate-900">
+                    {companyConfig?.razonSocial || "VALLE SAMPEDRO ALEXANDRA ANABEL"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-600 font-bold">RUC/CI: </span>
+                  <span className="font-mono font-semibold text-slate-900">
+                    {companyConfig?.ruc || "1750599340001"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-600 font-bold">Dirección: </span>
+                  <span className="font-semibold text-slate-900">
+                    {companyConfig?.direccionMatriz || "Quito"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-600 font-bold">Correo: </span>
+                  <span className="font-semibold text-slate-900">
+                    {companyConfig?.emailNotificaciones || "financiero@inntelcorp.com"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-600 font-bold">Teléfono: </span>
+                  <span className="font-semibold text-slate-900">
+                    {companyConfig?.telefonoContacto || "0990262239"}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block mb-1.5">
-                  PROFORMA / COTIZACIÓN
+            {/* Lado Derecho: Header Cotización y Datos del Cliente */}
+            <div className="space-y-4">
+              <div className="flex items-baseline justify-between border-b-2 border-slate-300 pb-2">
+                <span className="text-base font-black tracking-wider text-slate-900 uppercase">
+                  COTIZACION:
                 </span>
-                <h3 className="text-lg font-black text-slate-900 font-mono">
-                  {quote.quoteNumber}
-                </h3>
+                <span className="font-mono text-base font-black text-slate-900">
+                  No. {quote.quoteNumber}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-200 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block font-semibold">Fecha de Emisión:</span>
-                  <span className="font-bold text-slate-800">{quote.date}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block font-semibold">Fecha de Vencimiento:</span>
-                  <span className="font-bold text-amber-700">{quote.validUntil}</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Información del Cliente */}
-          <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Destinatario / Cliente</span>
-              <p className="font-bold text-sm text-slate-900">{quote.clientName}</p>
-              <p className="text-[11px] text-slate-600 font-mono mt-0.5"><strong>RUC / C.I.:</strong> {quote.clientRuc}</p>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Condiciones Comerciales</span>
-              <p className="text-[11px] text-slate-700"><strong>Estado:</strong> {quote.status.toUpperCase()}</p>
-              <p className="text-[11px] text-slate-700"><strong>Vigencia:</strong> 30 días calendario a partir de emisión</p>
+              <div className="space-y-2 text-xs">
+                <div>
+                  <span className="text-slate-600 font-bold block text-[11px]">Cliente:</span>
+                  <span className="font-bold text-slate-900 text-sm block">
+                    {quote.clientName}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-600 font-bold block text-[11px]">CI/RUC:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    {quote.clientRuc || "N/A"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-600 font-bold block text-[11px]">Dirección:</span>
+                  <span className="font-semibold text-slate-800">
+                    {quote.clientAddress || "Ecuador"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-600 font-bold block text-[11px]">Teléfono:</span>
+                  <span className="font-semibold text-slate-800">
+                    {quote.clientPhone || "N/A"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-600 font-bold block text-[11px]">Fecha Emisión:</span>
+                  <span className="font-semibold text-slate-900">
+                    {quote.date ? quote.date.split("-").reverse().join("/") : new Date().toLocaleDateString("es-EC")}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Tabla de Artículos Cotizados */}
-          <div className="rounded-xl border border-slate-200 overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
+          <div className="border border-slate-200 rounded-[6px] overflow-hidden">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f1f5f9] text-slate-800 font-bold border-b border-slate-200">
                 <tr>
-                  <th className="py-2.5 px-3 w-14 text-center">Cant.</th>
-                  <th className="py-2.5 px-4">Descripción del Producto / Servicio</th>
-                  <th className="py-2.5 px-3 text-right w-24">P. Unitario</th>
-                  <th className="py-2.5 px-3 text-right w-24">Subtotal</th>
-                  <th className="py-2.5 px-3 text-right w-24">IVA</th>
-                  <th className="py-2.5 px-4 text-right w-28">Total</th>
+                  <th className="py-2.5 px-3 text-center w-12 border-r border-slate-200">#</th>
+                  <th className="py-2.5 px-4 border-r border-slate-200">Item</th>
+                  <th className="py-2.5 px-4 text-right w-28 border-r border-slate-200">Cantidad</th>
+                  <th className="py-2.5 px-4 text-right w-28 border-r border-slate-200">Precio</th>
+                  <th className="py-2.5 px-4 text-right w-32">Subtotal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {quote.items.map((it, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 text-center font-bold text-slate-800">{it.quantity}</td>
-                    <td className="py-2.5 px-4">
-                      <span className="font-bold text-slate-900 block">{it.name}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">SKU: {it.sku || it.productId}</span>
+              <tbody className="divide-y divide-slate-200 font-medium">
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                      No se han agregado artículos a la cotización.
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono">${it.unitPrice.toFixed(2)}</td>
-                    <td className="py-2.5 px-3 text-right font-mono">${it.subtotal.toFixed(2)}</td>
-                    <td className="py-2.5 px-3 text-right font-mono text-sky-600">${it.ivaAmount.toFixed(2)}</td>
-                    <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-900">${it.total.toFixed(2)}</td>
                   </tr>
-                ))}
+                ) : (
+                  items.map((it, idx) => {
+                    const lineSubtotal = it.subtotal || it.quantity * it.unitPrice;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-700 border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2.5 px-4 border-r border-slate-200">
+                          <span className="font-bold text-slate-900 block">
+                            {it.name || it.description}
+                          </span>
+                          {it.sku && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              SKU: {it.sku}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono text-slate-800 border-r border-slate-200">
+                          {it.quantity.toFixed(2)} {it.unit || "Unid."}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono text-slate-800 border-r border-slate-200">
+                          ${it.unitPrice.toFixed(2)}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-900">
+                          ${lineSubtotal.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Totales y Letras */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-            <div className="md:col-span-7 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-              <span className="text-[10px] text-slate-400 uppercase font-bold block">Importe en Letras:</span>
-              <p className="text-xs font-bold text-slate-800 italic">
-                {numeroALetrasDolares(quote.total)}
-              </p>
-              {quote.notes && (
-                <div className="mt-2 pt-2 border-t border-slate-200">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Notas Adicionales:</span>
-                  <p className="text-[11px] text-slate-700">{quote.notes}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="md:col-span-5 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
-              <div className="flex justify-between py-0.5">
-                <span className="text-slate-600">Subtotal Tarifa 15%:</span>
-                <span className="font-mono font-semibold">${quote.subtotal15.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-0.5">
-                <span className="text-slate-600">Subtotal Tarifa 0%:</span>
-                <span className="font-mono font-semibold">${quote.subtotal0.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-0.5">
-                <span className="text-slate-600">IVA 15%:</span>
-                <span className="font-mono font-semibold text-sky-600">${quote.ivaTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-t border-slate-300 font-bold text-sm text-[#004ac6]">
-                <span>TOTAL A PAGAR:</span>
-                <span className="font-mono text-base">${quote.total.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* NORMATIVAS Y REGLAMENTOS DE LA EMPRESA (Requerimiento Web Fix) */}
-          <div className="p-4 rounded-xl border-2 border-slate-200 bg-slate-50/50 space-y-2.5">
-            <div className="flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
-              <h5 className="font-bold text-xs uppercase tracking-wide text-slate-900">
-                Normativas, Términos y Reglamentos de la Empresa
+          {/* Bloque Inferior: Información Adicional (Izquierda) | Desglose Totales (Derecha) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pt-2">
+            {/* Izquierda: Información Adicional (Caja gris idéntica al formato) */}
+            <div className="md:col-span-7 p-4 bg-[#f1f5f9]/80 rounded-[6px] border border-slate-200 space-y-2 text-xs">
+              <h5 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1.5">
+                Información Adicional
               </h5>
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-slate-700 min-w-[90px]">Descripción:</span>
+                  <span className="text-slate-800 font-medium leading-relaxed">
+                    {quote.notes || "Servicio cotizado sujeto a confirmación técnica de factibilidad."}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700 min-w-[90px]">Usuario:</span>
+                  <span className="font-semibold text-slate-900">
+                    VENTAS 01
+                  </span>
+                </div>
+              </div>
             </div>
-            <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-600 leading-relaxed">
-              <li>
-                <strong>Validez de la Oferta:</strong> La presente proforma técnica y comercial mantiene sus precios y condiciones vigentes por un período de <strong>30 días calendario</strong> contados a partir de su emisión.
-              </li>
-              <li>
-                <strong>Condiciones de Pago:</strong> Para confirmación y despacho de servicios o equipamiento se requiere el <strong>50% de anticipo</strong> y el 50% restante contra entrega e instalación conforme del acta técnica.
-              </li>
-              <li>
-                <strong>Garantía Técnica:</strong> Todos los equipos suministrados (ONT, Enrutadores, Switches y Patchcords) cuentan con garantía de 12 meses por defectos de fabricación bajo condiciones operativas normales.
-              </li>
-              <li>
-                <strong>Cumplimiento Regulatorio ARCOTEL:</strong> La prestación de servicios de telecomunicaciones y acceso a Internet se rige estrictamente bajo el marco de la <em>Ley Orgánica de Telecomunicaciones (LOT)</em> y las disposiciones de la Agencia de Regulación y Control de las Telecomunicaciones (ARCOTEL).
-              </li>
-              <li>
-                <strong>Protección de Datos Personales:</strong> En conformidad con la <em>Ley Orgánica de Protección de Datos Personales (LOPDP)</em> del Ecuador, los datos consignados en esta cotización son confidenciales y serán tratados exclusivamente para fines comerciales y contractuales autorizados.
-              </li>
-            </ol>
-          </div>
 
-          {/* Firmas de Conformidad */}
-          <div className="grid grid-cols-2 gap-12 pt-10 text-center text-xs">
-            <div className="border-t border-slate-400 pt-2">
-              <p className="font-bold text-slate-900">{emisor.razonSocial}</p>
-              <p className="text-[10px] text-slate-500">Departamento Comercial / Emisor Autorizado</p>
-            </div>
-            <div className="border-t border-slate-400 pt-2">
-              <p className="font-bold text-slate-900">{quote.clientName}</p>
-              <p className="text-[10px] text-slate-500">Aceptación y Firma del Cliente / RUC: {quote.clientRuc}</p>
+            {/* Derecha: Desglose completo de impuestos y totales */}
+            <div className="md:col-span-5 bg-white rounded-[6px] border border-slate-200 overflow-hidden text-xs">
+              <div className="divide-y divide-slate-100">
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">Descuento:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${descuento.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">Subtotal 15%:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${subtotal15.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">Subtotal 5%:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${subtotal5.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">Subtotal 0%:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${subtotal0.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">IVA 15%:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${iva15.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2">
+                  <span className="text-slate-600 font-medium">IVA 5%:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    ${iva5.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2.5 bg-slate-50 font-bold border-t border-slate-300">
+                  <span className="text-slate-900">Total:</span>
+                  <span className="font-mono font-bold text-slate-900 text-sm">
+                    ${total.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between px-3.5 py-2.5 bg-slate-50 font-bold border-t border-slate-200">
+                  <span className="text-[#004ac6]">Saldo:</span>
+                  <span className="font-mono font-black text-[#004ac6] text-sm">
+                    ${saldo.toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -20,6 +20,8 @@ import {
   FileText,
   Contact2,
   Settings,
+  Radio,
+  ShieldAlert,
 } from "lucide-react";
 import { SystemUser, UserModulePermissions, UserRole } from "@/types";
 
@@ -90,6 +92,18 @@ export function UserPermissionsModal({
     });
   };
 
+  const handleToggleAction = (
+    actionKey: "canDeleteClients" | "canDeleteFiles" | "canEditInvoices" | "canDeleteInvoices"
+  ) => {
+    setPermissions((prev) => ({
+      ...prev,
+      actions: {
+        ...prev.actions,
+        [actionKey]: !prev.actions?.[actionKey],
+      },
+    }));
+  };
+
   const handleSave = async () => {
     try {
       if (role !== user.role) {
@@ -108,11 +122,11 @@ export function UserPermissionsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div className="bg-white rounded-[6px] shadow-2xl border border-[#e2e8f0] w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#004ac6]/10 text-[#004ac6] rounded-xl">
+            <div className="p-2 bg-[#004ac6]/10 text-[#004ac6] rounded-[6px]">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -126,7 +140,7 @@ export function UserPermissionsModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0] transition-colors"
+            className="p-1.5 rounded-[6px] text-[#737686] hover:bg-[#e2e8f0] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -135,7 +149,7 @@ export function UserPermissionsModal({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Base Role Selector */}
-          <div className="p-4 bg-[#eff4ff] border border-[#bfdbfe] rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 bg-[#eff4ff] border border-[#bfdbfe] rounded-[6px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
               <span className="text-[11px] font-bold text-[#004ac6] uppercase tracking-wider">
                 Rol Base del Sistema
@@ -148,7 +162,7 @@ export function UserPermissionsModal({
             <select
               value={role}
               onChange={(e) => handleRoleChange(e.target.value as UserRole)}
-              className="px-3 py-1.5 bg-white border border-[#004ac6]/30 rounded-lg text-xs font-bold text-[#004ac6] focus:outline-hidden"
+              className="px-3 py-1.5 bg-white border border-[#004ac6]/30 rounded-[6px] text-xs font-bold text-[#004ac6] focus:outline-hidden"
             >
               <option value="superadmin">Superadmin (Acceso Total)</option>
               <option value="admin">Administrador General</option>
@@ -167,7 +181,7 @@ export function UserPermissionsModal({
             </h3>
 
             {/* 1. Módulo Clientes */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-[#004ac6]" />
@@ -189,7 +203,7 @@ export function UserPermissionsModal({
             </div>
 
             {/* 2. Módulo Personas */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Contact2 className="w-4 h-4 text-[#004ac6]" />
@@ -214,7 +228,7 @@ export function UserPermissionsModal({
                   {Object.entries(permissions.personas.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -232,7 +246,7 @@ export function UserPermissionsModal({
             </div>
 
             {/* 3. Módulo Compras */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#004ac6]" />
@@ -254,7 +268,7 @@ export function UserPermissionsModal({
                   {Object.entries(permissions.compras.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -272,7 +286,7 @@ export function UserPermissionsModal({
             </div>
 
             {/* 4. Módulo Finanzas */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-[#004ac6]" />
@@ -294,7 +308,7 @@ export function UserPermissionsModal({
                   {Object.entries(permissions.finanzas.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -311,8 +325,8 @@ export function UserPermissionsModal({
               )}
             </div>
 
-            {/* 4. Módulo Facturación SRI */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            {/* 5. Módulo Facturación SRI */}
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-4 h-4 text-[#004ac6]" />
@@ -334,7 +348,7 @@ export function UserPermissionsModal({
                   {Object.entries(permissions.facturacion.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -351,8 +365,8 @@ export function UserPermissionsModal({
               )}
             </div>
 
-            {/* 5. Módulo Inventarios */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            {/* 6. Módulo Inventarios */}
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Boxes className="w-4 h-4 text-[#004ac6]" />
@@ -374,7 +388,7 @@ export function UserPermissionsModal({
                   {Object.entries(permissions.inventarios.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -405,8 +419,48 @@ export function UserPermissionsModal({
               )}
             </div>
 
-            {/* 6. Módulo Configuración */}
-            <div className="p-4 rounded-xl border border-[#e2e8f0] bg-white space-y-3">
+            {/* 7. Módulo Red */}
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Network className="w-4 h-4 text-[#004ac6]" />
+                  <span className="text-xs font-bold text-[#0b1c30]">Módulo Red (/red)</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.red?.enabled}
+                    onChange={() => handleToggleModule("red")}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-[#e2e8f0] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#cbd5e1] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#004ac6]"></div>
+                </label>
+              </div>
+
+              {permissions.red?.enabled && permissions.red.submodules && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
+                  {Object.entries(permissions.red.submodules).map(([subKey, val]) => (
+                    <label
+                      key={subKey}
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={val}
+                        onChange={() => handleToggleSubmodule("red", subKey)}
+                        className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6]"
+                      />
+                      <span className="capitalize text-[#434655] font-medium text-[11px]">
+                        {subKey === "nodos" ? "Nodos de Red" : subKey === "pools_ip" ? "Pools IP" : subKey.replace(/_/g, " ")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 8. Módulo Configuración */}
+            <div className="p-4 rounded-[6px] border border-[#e2e8f0] bg-white space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4 text-[#004ac6]" />
@@ -424,11 +478,11 @@ export function UserPermissionsModal({
               </div>
 
               {permissions.configuracion?.enabled && permissions.configuracion.submodules && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#f1f5f9] text-xs">
                   {Object.entries(permissions.configuracion.submodules).map(([subKey, val]) => (
                     <label
                       key={subKey}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
+                      className="flex items-center gap-2 p-2 rounded-[6px] bg-[#f8f9ff] hover:bg-[#eff4ff] cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -447,7 +501,7 @@ export function UserPermissionsModal({
 
             {/* Other Standalone Modules */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="p-3 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-between">
+              <div className="p-3 rounded-[6px] border border-[#e2e8f0] bg-white flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#0b1c30]">
                   <Kanban className="w-4 h-4 text-[#004ac6]" />
                   <span>Proyectos</span>
@@ -456,11 +510,11 @@ export function UserPermissionsModal({
                   type="checkbox"
                   checked={!!permissions.proyectos?.enabled}
                   onChange={() => handleToggleModule("proyectos")}
-                  className="rounded text-[#004ac6] focus:ring-[#004ac6]"
+                  className="rounded-[4px] text-[#004ac6] focus:ring-[#004ac6]"
                 />
               </div>
 
-              <div className="p-3 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-between">
+              <div className="p-3 rounded-[6px] border border-[#e2e8f0] bg-white flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#0b1c30]">
                   <Ticket className="w-4 h-4 text-[#004ac6]" />
                   <span>Tickets de Soporte</span>
@@ -469,11 +523,11 @@ export function UserPermissionsModal({
                   type="checkbox"
                   checked={!!permissions.tickets?.enabled}
                   onChange={() => handleToggleModule("tickets")}
-                  className="rounded text-[#004ac6] focus:ring-[#004ac6]"
+                  className="rounded-[4px] text-[#004ac6] focus:ring-[#004ac6]"
                 />
               </div>
 
-              <div className="p-3 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-between">
+              <div className="p-3 rounded-[6px] border border-[#e2e8f0] bg-white flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#0b1c30]">
                   <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
                   <span>ARCOTEL</span>
@@ -482,11 +536,11 @@ export function UserPermissionsModal({
                   type="checkbox"
                   checked={!!permissions.arcotel?.enabled}
                   onChange={() => handleToggleModule("arcotel")}
-                  className="rounded text-[#004ac6] focus:ring-[#004ac6]"
+                  className="rounded-[4px] text-[#004ac6] focus:ring-[#004ac6]"
                 />
               </div>
 
-              <div className="p-3 rounded-xl border border-[#e2e8f0] bg-white flex items-center justify-between">
+              <div className="p-3 rounded-[6px] border border-[#e2e8f0] bg-white flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#0b1c30]">
                   <Lock className="w-4 h-4 text-[#004ac6]" />
                   <span>Bóveda de Credenciales</span>
@@ -495,8 +549,85 @@ export function UserPermissionsModal({
                   type="checkbox"
                   checked={!!permissions.boveda?.enabled}
                   onChange={() => handleToggleModule("boveda")}
-                  className="rounded text-[#004ac6] focus:ring-[#004ac6]"
+                  className="rounded-[4px] text-[#004ac6] focus:ring-[#004ac6]"
                 />
+              </div>
+
+              <div className="p-3 rounded-[6px] border border-[#e2e8f0] bg-white flex items-center justify-between sm:col-span-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#0b1c30]">
+                  <FileText className="w-4 h-4 text-[#004ac6]" />
+                  <span>Plantillas Oficiales</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={!!permissions.plantillas?.enabled}
+                  onChange={() => handleToggleModule("plantillas")}
+                  className="rounded-[4px] text-[#004ac6] focus:ring-[#004ac6]"
+                />
+              </div>
+            </div>
+
+            {/* Acciones Críticas & Restricciones */}
+            <div className="p-4 rounded-[6px] border border-[#fecaca] bg-[#fef2f2] space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#991b1b]">
+                <ShieldAlert className="w-4 h-4 text-[#dc2626]" />
+                <span>Acciones Críticas & Restricciones de Seguridad</span>
+              </div>
+              <p className="text-[11px] text-[#7f1d1d]">
+                Control estricto de eliminación de registros maestros y edición de comprobantes fiscales.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[#fca5a5]/40 text-xs">
+                <label className="flex items-center gap-2 p-2 rounded-[6px] bg-white hover:bg-[#fff5f5] cursor-pointer transition-colors border border-[#fecaca]">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.actions?.canDeleteClients}
+                    onChange={() => handleToggleAction("canDeleteClients")}
+                    className="rounded-[4px] border-[#cbd5e1] text-[#dc2626] focus:ring-[#dc2626]"
+                  />
+                  <div>
+                    <span className="font-semibold text-[#1e293b] text-[11px] block">Eliminar Clientes</span>
+                    <span className="text-[10px] text-[#64748b]">Permite dar de baja o eliminar fichas</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-[6px] bg-white hover:bg-[#fff5f5] cursor-pointer transition-colors border border-[#fecaca]">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.actions?.canDeleteFiles}
+                    onChange={() => handleToggleAction("canDeleteFiles")}
+                    className="rounded-[4px] border-[#cbd5e1] text-[#dc2626] focus:ring-[#dc2626]"
+                  />
+                  <div>
+                    <span className="font-semibold text-[#1e293b] text-[11px] block">Eliminar Archivos ARCOTEL</span>
+                    <span className="text-[10px] text-[#64748b]">Permite borrar expedientes y pólizas</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-[6px] bg-white hover:bg-[#fff5f5] cursor-pointer transition-colors border border-[#fecaca]">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.actions?.canEditInvoices}
+                    onChange={() => handleToggleAction("canEditInvoices")}
+                    className="rounded-[4px] border-[#cbd5e1] text-[#dc2626] focus:ring-[#dc2626]"
+                  />
+                  <div>
+                    <span className="font-semibold text-[#1e293b] text-[11px] block">Editar Facturación</span>
+                    <span className="text-[10px] text-[#64748b]">Permite modificar comprobantes generados</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-[6px] bg-white hover:bg-[#fff5f5] cursor-pointer transition-colors border border-[#fecaca]">
+                  <input
+                    type="checkbox"
+                    checked={!!permissions.actions?.canDeleteInvoices}
+                    onChange={() => handleToggleAction("canDeleteInvoices")}
+                    className="rounded-[4px] border-[#cbd5e1] text-[#dc2626] focus:ring-[#dc2626]"
+                  />
+                  <div>
+                    <span className="font-semibold text-[#1e293b] text-[11px] block">Anular / Eliminar Facturas SRI</span>
+                    <span className="text-[10px] text-[#64748b]">Anulación directa de comprobantes fiscales</span>
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -514,7 +645,7 @@ export function UserPermissionsModal({
           <button
             type="button"
             onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs cursor-pointer"
           >
             <Check className="w-4 h-4" />
             <span>Guardar Permisos & Matriz</span>

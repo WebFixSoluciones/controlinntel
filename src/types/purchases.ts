@@ -244,4 +244,10 @@ export interface UserModulePermissions {
       sri: boolean;
     };
   };
+  actions?: {
+    canDeleteClients?: boolean;
+    canDeleteFiles?: boolean;
+    canEditInvoices?: boolean;
+    canDeleteInvoices?: boolean;
+  };
 }

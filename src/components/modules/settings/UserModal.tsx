@@ -36,6 +36,10 @@ const ALL_PERMISSIONS: { id: SystemPermission; label: string; desc: string }[] =
   { id: "manage_vault", label: "Bóveda de Credenciales", desc: "Módulo Credenciales y pestaña Bóveda en Ficha del Cliente" },
   { id: "manage_users", label: "Gestión de Usuarios & Roles", desc: "Crear, editar, activar y eliminar operadores del sistema" },
   { id: "export_reports", label: "Plantillas & Reportería Oficial", desc: "Descarga de plantillas Word/Excel y exportación de datos" },
+  { id: "delete_clients", label: "Eliminar Clientes", desc: "Permiso para eliminar registros de abonados del sistema" },
+  { id: "delete_files", label: "Eliminar Archivos Regulatorios", desc: "Permiso para borrar documentos y pólizas en ARCOTEL" },
+  { id: "edit_invoices", label: "Modificar / Anular Facturas", desc: "Permiso para editar o anular facturas y cobros emitidos" },
+  { id: "delete_invoices", label: "Eliminar Facturas", desc: "Permiso para remover facturas del historial financiero" },
 ];
 
 export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
@@ -179,11 +183,11 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-4xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-[6px] bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
@@ -194,7 +198,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
+            className="p-1 rounded-[6px] text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -214,7 +218,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
                   placeholder="Ing. Carlos Mendoza"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[6px] pl-9 pr-3 py-2 font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -229,7 +233,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
                   placeholder="operador@inntelcorp.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[6px] pl-9 pr-3 py-2 font-semibold text-slate-900 focus:ring-2 focus:ring-sky-500"
                 />
               </div>
             </div>
@@ -249,7 +253,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-9 py-2 font-mono text-slate-900 focus:ring-2 focus:ring-sky-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[6px] pl-9 pr-9 py-2 font-mono text-slate-900 focus:ring-2 focus:ring-sky-500"
                 />
                 <button
                   type="button"
@@ -266,7 +270,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
               <select
                 value={role}
                 onChange={(e) => handleRoleChange(e.target.value as UserRole)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[6px] px-3 py-2 font-bold text-slate-800 focus:ring-2 focus:ring-sky-500"
               >
                 <option value="superadmin">👑 Super Administrador (Control Total)</option>
                 <option value="admin">🛡️ Administrador General</option>
@@ -286,12 +290,23 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
               <div className="relative">
                 <Building className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
+                  list="dept-options"
                   type="text"
-                  placeholder="Gerencia NOC / Operaciones"
+                  placeholder="Selecciona o escribe el departamento..."
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[6px] pl-9 pr-3 py-2 text-slate-800"
                 />
+                <datalist id="dept-options">
+                  <option value="Ingeniería de Redes & NOC" />
+                  <option value="Operaciones & Cuadrillas Planta Externa" />
+                  <option value="Soporte Técnico Helpdesk" />
+                  <option value="Administración & Finanzas" />
+                  <option value="Facturación & Cobranzas" />
+                  <option value="Ventas & Comercial" />
+                  <option value="Asesoría Jurídica & ARCOTEL" />
+                  <option value="Gerencia General" />
+                </datalist>
               </div>
             </div>
 
@@ -333,14 +348,14 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
               <span className="text-[10px] text-slate-400">Selecciona los módulos autorizados</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-[6px] border border-slate-200">
               {ALL_PERMISSIONS.map((perm) => {
                 const isChecked = permissions.includes("all") || permissions.includes(perm.id);
 
                 return (
                   <label
                     key={perm.id}
-                    className={`flex items-start gap-2 p-2 rounded-xl transition-colors cursor-pointer border ${
+                    className={`flex items-start gap-2 p-2 rounded-[6px] transition-colors cursor-pointer border ${
                       isChecked
                         ? "bg-white border-sky-200 shadow-2xs"
                         : "bg-transparent border-transparent hover:bg-white/60"
@@ -367,13 +382,13 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
+              className="px-4 py-2 rounded-[6px] text-slate-600 hover:bg-slate-100 font-bold cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-[6px] font-bold shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <Check className="w-4 h-4" />
               {userToEdit ? "Guardar Cambios" : "Crear Usuario"}

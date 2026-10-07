@@ -147,10 +147,17 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         return;
       }
 
-      // 4. Validar Teléfono
-      const phoneValidation = validatePhoneEcuador(phone.trim());
-      if (!phoneValidation.isValid) {
-        showWarning("Advertencia de Teléfono", phoneValidation.error || "Ingresa un número telefónico válido (ej. 0989613811).");
+      // 4. Validar Teléfono (permite múltiples números separados por /, -, o comas)
+      const phoneClean = phone.trim();
+      if (phoneClean) {
+        const phoneParts = phoneClean.split(/[\/,;\-]+/).map((p) => p.trim()).filter(Boolean);
+        const hasAtLeastOneValid = phoneParts.some((p) => {
+          const digits = p.replace(/\D/g, "");
+          return digits.length >= 7 && digits.length <= 15;
+        });
+        if (!hasAtLeastOneValid && phoneClean.replace(/\D/g, "").length < 7) {
+          showWarning("Advertencia de Teléfono", "Ingresa al menos un número telefónico válido (ej. 0989613811 o 022456789).");
+        }
       }
 
       // 5. Validar Dirección
@@ -248,11 +255,11 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-4xl bg-white rounded-3xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="w-full max-w-4xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-[6px] bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
@@ -268,7 +275,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-[#737686] hover:text-[#0b1c30] hover:bg-white border border-transparent hover:border-slate-200 cursor-pointer transition-all"
+            className="p-1.5 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-white border border-transparent hover:border-slate-200 cursor-pointer transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -289,7 +296,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={identificationType}
                   onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 >
                   <option value="RUC">RUC (13 Dígitos)</option>
                   <option value="CEDULA">Cédula (10 Dígitos)</option>
@@ -307,7 +314,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder={identificationType === "RUC" ? "0922365861001" : "0922365861"}
                   value={identificationNumber}
                   onChange={(e) => setIdentificationNumber(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
             </div>
@@ -321,7 +328,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="ARTEAGA MUÑOZ DANNY HERNAN"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -332,7 +339,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="Ing. Juan Pérez"
                   value={legalRepresentative}
                   onChange={(e) => setLegalRepresentative(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
             </div>
@@ -346,7 +353,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="mauriciogoncar94@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -358,7 +365,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="0989613811"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
             </div>
@@ -372,7 +379,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="Av. Amazonas y Gaspar de Villarroel"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -383,7 +390,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="Sector / Parroquia"
                   value={sector}
                   onChange={(e) => setSector(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -392,7 +399,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as Client["status"])}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 >
                   <option value="activo">Activo</option>
                   <option value="inactivo">Inactivo</option>
@@ -419,7 +426,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               <button
                 type="button"
                 onClick={handleAddContact}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-xl text-xs font-bold transition border border-[#bfdbfe] cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-[6px] text-xs font-bold transition border border-[#bfdbfe] cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Agregar Contacto</span>
@@ -427,7 +434,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             {contacts.length === 0 ? (
-              <div className="p-5 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <div className="p-5 rounded-[6px] bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
                 <p className="text-xs text-slate-600 font-semibold">
                   No hay personas de contacto registradas aún.
                 </p>
@@ -437,7 +444,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <button
                   type="button"
                   onClick={handleAddContact}
-                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
+                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition cursor-pointer shadow-2xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Agregar Primera Persona de Contacto</span>
@@ -448,7 +455,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 {contacts.map((contact, index) => (
                   <div
                     key={contact.id}
-                    className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3 relative transition hover:border-[#bfdbfe]"
+                    className="p-4 bg-slate-50/90 rounded-[6px] border border-slate-200 space-y-3 relative transition hover:border-[#bfdbfe]"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
                       <div className="flex items-center gap-2">
@@ -459,7 +466,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           {contact.name || `Contacto #${index + 1}`}
                         </span>
                         {contact.role && (
-                          <span className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
+                          <span className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] font-semibold border border-blue-200">
                             {contact.role}
                           </span>
                         )}
@@ -467,7 +474,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       <button
                         type="button"
                         onClick={() => handleRemoveContact(contact.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-[6px] transition cursor-pointer"
                         title="Eliminar este contacto"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -485,7 +492,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Ej: Lic. Carlos Mendoza"
                           value={contact.name}
                           onChange={(e) => handleUpdateContact(contact.id, "name", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] font-semibold focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] font-semibold focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -498,7 +505,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Ej: Administrador, Pagos, Jefe de Sistemas"
                           value={contact.role || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "role", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -514,7 +521,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="0990262239"
                           value={contact.phone}
                           onChange={(e) => handleUpdateContact(contact.id, "phone", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] font-mono focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] font-mono focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -527,7 +534,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="carlos.mendoza@empresa.com"
                           value={contact.email || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "email", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -540,7 +547,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Oficina 402, Torre B"
                           value={contact.address || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "address", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -552,7 +559,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
           {/* SECCIÓN 3: SERVICIO INICIAL & FACTURACIÓN (SOLO AL CREAR NUEVO CLIENTE) */}
           {!clientToEdit && (
-            <div className="p-4 rounded-2xl bg-[#f8f9ff] border border-[#dce9ff] space-y-3">
+            <div className="p-4 rounded-[6px] bg-[#f8f9ff] border border-[#dce9ff] space-y-3">
               <h4 className="font-bold text-[#004ac6] text-xs flex items-center justify-between">
                 <span>3. Asignación Inicial de Servicio Comercial</span>
               </h4>
@@ -567,7 +574,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       setPlanId(e.target.value);
                       if (p) setCustomPrice(p.defaultPrice);
                     }}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                   >
                     {plans.length === 0 ? (
                       <option value="">-- Sin plan asignado --</option>
@@ -590,7 +597,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                     required
                     value={customPrice}
                     onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                   />
                 </div>
 
@@ -599,7 +606,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   <select
                     value={billingType}
                     onChange={(e) => setBillingType(e.target.value as ServiceBillingType)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                   >
                     <option value="pospago">POSPAGO</option>
                     <option value="prepago">PREPAGO</option>
@@ -609,13 +616,13 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
           )}
 
-          <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-[#e2e8f0]">
+          <div className="flex items-center gap-2 p-3 bg-white rounded-[6px] border border-[#e2e8f0]">
             <input
               type="checkbox"
               id="billingSwitch"
               checked={requiresSriBilling}
               onChange={(e) => setRequiresSriBilling(e.target.checked)}
-              className="w-4 h-4 text-[#004ac6] rounded cursor-pointer"
+              className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
             />
             <label htmlFor="billingSwitch" className="text-xs font-semibold text-[#0b1c30] cursor-pointer">
               Generar Orden de Pedido / Pre-Factura automáticamente el día 1 de cada mes
@@ -628,14 +635,14 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="px-4 py-2.5 rounded-xl text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-[6px] text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer transition-all"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+              className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
             >
               <Check className="w-4 h-4" />
               <span>{busy ? "Guardando..." : clientToEdit ? "Guardar Cambios de Ficha" : "Registrar Cliente"}</span>

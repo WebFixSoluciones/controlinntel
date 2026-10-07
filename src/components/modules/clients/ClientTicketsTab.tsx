@@ -144,7 +144,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
   // If a ticket is selected for detail view
   if (selectedTicketId) {
     return (
-      <div className="bg-white rounded-2xl p-2 sm:p-4 border border-slate-200 shadow-xs animate-in fade-in">
+      <div className="bg-white rounded-[6px] p-2 sm:p-4 border border-slate-200 shadow-xs animate-in fade-in">
         <TicketDetail id={selectedTicketId} onBack={() => setSelectedTicketId(null)} />
       </div>
     );
@@ -153,15 +153,15 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
   return (
     <div className="space-y-4 select-none">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-[6px] border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center shadow-xs">
+          <div className="w-10 h-10 rounded-[6px] bg-blue-50 text-[#004ac6] flex items-center justify-center shadow-xs">
             <TicketIcon className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-sm text-slate-900">Tickets de Soporte</h3>
-              <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-50 text-sky-700 border border-sky-200">
+              <span className="text-xs px-2 py-0.5 rounded-[6px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
                 {openTickets.length} Abierto{openTickets.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -173,11 +173,11 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
 
         <div className="flex items-center gap-2">
           {/* Filter selector */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-bold">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-[6px] text-xs font-bold">
             <button
               type="button"
               onClick={() => setFilterMode("abiertos")}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[6px] transition cursor-pointer ${
                 filterMode === "abiertos"
                   ? "bg-white text-slate-900 shadow-2xs"
                   : "text-slate-500 hover:text-slate-700"
@@ -188,7 +188,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
             <button
               type="button"
               onClick={() => setFilterMode("todos")}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              className={`px-3 py-1.5 rounded-[6px] transition cursor-pointer ${
                 filterMode === "todos"
                   ? "bg-white text-slate-900 shadow-2xs"
                   : "text-slate-500 hover:text-slate-700"
@@ -201,7 +201,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo Ticket</span>
@@ -211,7 +211,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
 
       {/* Tickets Table */}
       {displayedTickets.length === 0 ? (
-        <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+        <div className="py-12 text-center bg-white rounded-[6px] border border-dashed border-slate-200">
           <TicketIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
           <p className="font-bold text-slate-700 text-xs">
             {filterMode === "abiertos"
@@ -226,14 +226,14 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Abrir Ticket</span>
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-[6px] border border-slate-200 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50 text-slate-700 uppercase tracking-wider text-[10px] font-bold border-b border-slate-200">
@@ -295,7 +295,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                         <button
                           type="button"
                           onClick={() => setSelectedTicketId(t.id)}
-                          className="p-2 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                          className="p-2 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-[6px] transition cursor-pointer"
                           title="Ver y Gestionar Ticket"
                           aria-label="Ver y Gestionar Ticket"
                         >
@@ -307,7 +307,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                           <button
                             type="button"
                             onClick={() => handleResolveTicket(t)}
-                            className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                            className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-[6px] transition cursor-pointer"
                             title="Marcar Ticket como Resuelto"
                             aria-label="Marcar Ticket como Resuelto"
                           >

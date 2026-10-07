@@ -3,8 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { TicketPriority, TicketDepartment } from "@/types";
-import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck } from "lucide-react";
+import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck, Search, ChevronDown, Check } from "lucide-react";
+import { TicketDepartment, TicketPriority } from "@/types";
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -30,6 +30,8 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
   const { showError, showSuccess } = useToast();
 
   const [clientId, setClientId] = useState(() => initialClientId || clients[0]?.id || "");
+  const [clientSearch, setClientSearch] = useState("");
+  const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState(ISP_FAULT_TOPICS[0].topic);
   const [customTitle, setCustomTitle] = useState("");
   const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
@@ -44,6 +46,17 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
   const availableServices = useMemo(() => clientServices.filter((s) => s.clientId === clientId), [clientServices, clientId]);
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return clients.slice(0, 8);
+    const q = clientSearch.toLowerCase();
+    return clients.filter(
+      (c) =>
+        c.businessName.toLowerCase().includes(q) ||
+        c.identificationNumber.toLowerCase().includes(q) ||
+        (c.phone && c.phone.includes(q))
+    ).slice(0, 10);
+  }, [clients, clientSearch]);
 
   // Sync selected service when client changes
   React.useEffect(() => {
@@ -118,11 +131,11 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
-      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-3xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header WHMCS Style */}
         <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#004ac6] flex items-center justify-center text-white shadow-xs">
+            <div className="w-8 h-8 rounded-[6px] bg-[#004ac6] flex items-center justify-center text-white shadow-xs">
               <Headphones className="w-4 h-4" />
             </div>
             <div>
@@ -130,35 +143,79 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <p className="text-[11px] text-[#737686]">Flujo de mesa de ayuda ISP y atención de clientes</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-200/60 cursor-pointer transition-colors">
+          <button onClick={onClose} className="p-1 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-slate-200/60 cursor-pointer transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
           {/* Cliente & Servicio Contratado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-[6px] border border-slate-200/80">
+            <div className="relative">
               <label className="font-bold text-[#434655] flex items-center gap-1.5 mb-1">
                 <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
                 Cliente Afectado *
               </label>
               {initialClientId ? (
-                <div className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
+                <div className="w-full bg-slate-100 border border-slate-300 rounded-[6px] px-3 py-2 font-bold text-slate-800">
                   {selectedClient?.businessName || "Cliente Asignado"}
                 </div>
               ) : (
-                <select
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
-                >
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.businessName} ({c.identificationNumber})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Buscar cliente por nombre o RUC..."
+                      value={clientSearch || (selectedClient ? `${selectedClient.businessName} (${selectedClient.identificationNumber})` : "")}
+                      onChange={(e) => {
+                        setClientSearch(e.target.value);
+                        setIsClientSearchOpen(true);
+                      }}
+                      onFocus={() => setIsClientSearchOpen(true)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-[6px] pl-8 pr-8 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                    />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                    <button
+                      type="button"
+                      onClick={() => setIsClientSearchOpen(!isClientSearchOpen)}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {isClientSearchOpen && (
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-[#cbd5e1] rounded-[6px] shadow-lg max-h-52 overflow-y-auto">
+                      {filteredClients.length > 0 ? (
+                        filteredClients.map((c) => (
+                          <div
+                            key={c.id}
+                            onClick={() => {
+                              setClientId(c.id);
+                              setClientSearch("");
+                              setIsClientSearchOpen(false);
+                            }}
+                            className={`px-3 py-2 cursor-pointer hover:bg-[#f8f9ff] flex items-center justify-between border-b border-slate-100 last:border-b-0 ${
+                              c.id === clientId ? "bg-blue-50/60 font-bold" : ""
+                            }`}
+                          >
+                            <div>
+                              <div className="text-slate-800 font-medium">{c.businessName}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">
+                                {c.identificationNumber} • {c.phone || "Sin teléfono"}
+                              </div>
+                            </div>
+                            {c.id === clientId && <Check className="w-3.5 h-3.5 text-[#004ac6]" />}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-3 text-center text-slate-400 text-xs italic">
+                          No se encontraron clientes coincidentes
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
               {selectedClient && (
                 <div className="mt-1 text-[11px] text-slate-500 flex gap-2">
@@ -177,7 +234,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={selectedServiceId}
                 onChange={(e) => setSelectedServiceId(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 {availableServices.length > 0 ? (
                   availableServices.map((s) => (
@@ -199,7 +256,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value as TicketDepartment)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 <option value="soporte_tecnico">Soporte Técnico NOC</option>
                 <option value="noc_redes">NOC / Planta Externa</option>
@@ -216,7 +273,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 <option value="baja">Baja (Respuesta 48h)</option>
                 <option value="media">Media (Respuesta 24h)</option>
@@ -233,7 +290,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={assignedToName}
                 onChange={(e) => setAssignedToName(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 {systemUsers.map((u) => (
                   <option key={u.uid} value={u.displayName}>
@@ -250,7 +307,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
             <select
               value={selectedTopic}
               onChange={(e) => handleTopicChange(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
             >
               {ISP_FAULT_TOPICS.map((item) => (
                 <option key={item.topic} value={item.topic}>
@@ -266,7 +323,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                 placeholder="Escribe el motivo técnico específico..."
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
-                className="w-full mt-2 bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full mt-2 bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               />
             )}
           </div>
@@ -280,7 +337,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               placeholder="Detalla la situación reportada por el cliente o detectada por monitoreo (niveles de señal, atenuación en dBm, alarma de corte, etc.)..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-none resize-none"
+              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-none resize-none"
             />
           </div>
 
@@ -289,13 +346,13 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer transition-colors"
+              className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-[6px] font-bold cursor-pointer transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs cursor-pointer transition-colors"
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs cursor-pointer transition-colors"
             >
               Generar Ticket
             </button>

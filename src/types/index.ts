@@ -11,7 +11,11 @@ export type SystemPermission =
   | "manage_tickets"
   | "manage_finance"
   | "manage_policies"
-  | "export_reports";
+  | "export_reports"
+  | "delete_files"
+  | "delete_clients"
+  | "edit_invoices"
+  | "delete_invoices";
 
 export interface UserProfile {
   uid: string;
@@ -147,7 +151,9 @@ export interface NodeSystemService {
   id: string;
   systemName: string;
   linkOrIp: string;
-  credentials: string;
+  credentials?: string;
+  username?: string;
+  password?: string;
   notes?: string;
 }
 
@@ -196,7 +202,8 @@ export interface NodeLocation {
   totalCapacityMbps: number;
   usedCapacityMbps: number;
   mikrotikIp?: string;
-  status: "reportado" | "no_reportado" | "online" | "warning" | "offline";
+  status: "activo" | "suspendido" | "retirado" | "reportado" | "no_reportado" | "online" | "warning" | "offline";
+  isReportedArcotel?: boolean;
   activeClientsCount?: number;
   notes?: string;
   providers?: NodeCarrierProvider[];
