@@ -23,8 +23,6 @@ import {
   Upload,
   AlertTriangle,
   Trash2,
-  FileText,
-  Hash,
 } from "lucide-react";
 import { probarConexionServidoresSri, formatearSecuencialSRI } from "@/lib/sri-service";
 
@@ -88,7 +86,7 @@ export function SriConfigView() {
 
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (ext !== "p12" && ext !== "pfx") {
-      showError("Formato No Válido", "Por favor selecciona un archivo con extensión .p12 o .pfx (estándar PKCS#12 del SRI).");
+      showError("Formato No Válido", "Selecciona un archivo con extensión .p12 o .pfx (estándar PKCS#12 del SRI).");
       return;
     }
 
@@ -109,8 +107,8 @@ export function SriConfigView() {
         certificadoFechaCarga: new Date().toISOString(),
       }));
       showSuccess(
-        "Firma Electrónica Cargada",
-        `Archivo "${file.name}" cargado exitosamente (${(file.size / 1024).toFixed(1)} KB). Por favor ingresa la contraseña para activarlo.`
+        "Firma Cargada",
+        `"${file.name}" cargado (${(file.size / 1024).toFixed(1)} KB). Ingresa la contraseña para validarlo.`
       );
     };
     reader.onerror = () => {
@@ -133,14 +131,13 @@ export function SriConfigView() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    showSuccess("Firma Retirada", "El archivo de firma electrónica ha sido removido. Ahora puedes cargar uno nuevo.");
+    showSuccess("Firma Retirada", "El archivo de firma electrónica ha sido removido.");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Normalizar códigos a 3 dígitos
       const finalEstablecimiento = String(form.establecimiento || "010").replace(/\D/g, "").padStart(3, "0").slice(-3);
       const finalPuntoEmision = String(form.puntoEmision || "001").replace(/\D/g, "").padStart(3, "0").slice(-3);
 
@@ -160,7 +157,7 @@ export function SriConfigView() {
       setForm(payload);
       showSuccess(
         "Configuración SRI Guardada",
-        `Parámetros guardados: Serie ${payload.establecimiento}-${payload.puntoEmision} y secuencias actualizadas.`
+        `Serie ${payload.establecimiento}-${payload.puntoEmision} y secuencias actualizadas con éxito.`
       );
     } catch (err: any) {
       showError(
@@ -190,39 +187,57 @@ export function SriConfigView() {
 
   const handleValidateCert = () => {
     if (!form.certificadoCargado || !form.certificadoNombre) {
-      showError("Sin Firma Cargada", "Por favor primero selecciona y sube tu archivo de firma electrónica (.p12 o .pfx).");
+      showError("Sin Firma Cargada", "Por favor primero sube tu archivo de firma electrónica (.p12 o .pfx).");
       return;
     }
     if (!form.certificadoClave || form.certificadoClave.trim() === "") {
-      showWarning("Contraseña Requerida", "Ingresa la contraseña de la firma electrónica para validarla.");
+      showWarning("Contraseña Requerida", "Ingresa la contraseña de la firma para validarla.");
       return;
     }
     showSuccess(
-      "Firma Digital Verificada",
-      `Archivo "${form.certificadoNombre}" validado con contraseña. Entidad: ${form.certificadoEmisor || "Security Data"}. Listo para firmado XAdES-BES.`
+      "Firma Verificada",
+      `Archivo "${form.certificadoNombre}" validado con contraseña. Listo para firmado XAdES-BES.`
     );
   };
 
+  const serieActual = `${String(form.establecimiento || "010").padStart(3, "0")}-${String(form.puntoEmision || "001").padStart(3, "0")}`;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Barra de Acción Superior */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs select-none">
-        <div className="flex items-center gap-3">
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-[4px] border ${
-              form.ambiente === "2"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                : "bg-amber-50 text-amber-700 border-amber-300"
-            }`}
-          >
-            {form.ambiente === "2" ? "SRI PRODUCCIÓN (Oficial)" : "SRI PRUEBAS (Homologación)"}
-          </span>
-          <span className="text-xs text-slate-500 font-medium hidden md:inline">
-            RUC: <strong className="font-mono text-slate-800">{form.ruc}</strong> • Serie Oficial:{" "}
-            <strong className="font-mono text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">
-              {form.establecimiento || "010"}-{form.puntoEmision || "001"}
-            </strong>
-          </span>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* 1. BARRA SUPERIOR COMPACTA DE ACCIONES & ESTADO */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-[6px] border border-slate-200 shadow-2xs select-none">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Switch rápido de ambiente */}
+          <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-[6px] border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ambiente: "1" })}
+              className={`px-2.5 py-1 text-xs font-bold rounded-[4px] transition cursor-pointer ${
+                form.ambiente === "1"
+                  ? "bg-amber-500 text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Pruebas (1)
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ambiente: "2" })}
+              className={`px-2.5 py-1 text-xs font-bold rounded-[4px] transition cursor-pointer ${
+                form.ambiente === "2"
+                  ? "bg-emerald-600 text-white shadow-2xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Producción (2)
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <span>RUC: <strong className="font-mono text-slate-800">{form.ruc}</strong></span>
+            <span>•</span>
+            <span>Serie: <strong className="font-mono text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">{serieActual}</strong></span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -230,741 +245,545 @@ export function SriConfigView() {
             type="button"
             onClick={handleTestConnection}
             disabled={isTestingConn}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-bold transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-bold transition cursor-pointer"
           >
             <Wifi className={`w-3.5 h-3.5 ${isTestingConn ? "animate-pulse text-[#004ac6]" : ""}`} />
-            <span>{isTestingConn ? "Comprobando SRI..." : "Comprobar Conexión SRI"}</span>
+            <span>{isTestingConn ? "Probando..." : "Comprobar SRI"}</span>
           </button>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
           >
-            <Save className="w-4 h-4" />
-            <span>{isSubmitting ? "Guardando..." : "Guardar Configuración SRI"}</span>
+            <Save className="w-3.5 h-3.5" />
+            <span>{isSubmitting ? "Guardando..." : "Guardar Configuración"}</span>
           </button>
         </div>
       </div>
 
-      {/* Resultado de prueba de conexión si se ejecutó */}
+      {/* Alerta de prueba de conexión compacta */}
       {connTestResult && (
-        <div className="p-4 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <div>
-              <p className="font-bold">
-                Servidores del SRI ({connTestResult.ambiente === "2" ? "Producción" : "Pruebas"}) Operativos
-              </p>
-              <p className="text-[11px] text-emerald-700">
-                Recepción WS: <span className="font-semibold text-emerald-800">ONLINE</span> • Autorización WS:{" "}
-                <span className="font-semibold text-emerald-800">ONLINE</span> • Latencia:{" "}
-                <span className="font-mono font-bold">{connTestResult.latencyMs}ms</span>
-              </p>
-            </div>
+        <div className="p-2.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>SRI {connTestResult.ambiente === "2" ? "Producción" : "Pruebas"} Conectado</strong> (Latencia: {connTestResult.latencyMs}ms • WS Recepción & Autorización ONLINE)
+            </span>
           </div>
-          <span className="text-[10px] text-emerald-600 font-mono hidden sm:inline">
+          <span className="text-[10px] text-emerald-600 font-mono">
             {new Date(connTestResult.checkedAt).toLocaleTimeString("es-EC")}
           </span>
         </div>
       )}
 
-      {/* BLOQUE CENTRAL: 1. FIRMA ELECTRÓNICA Y 2. CONTROL DE SUCURSAL Y SECUENCIAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* ========================================================= */}
-        {/* SECCIÓN 1: FIRMA ELECTRÓNICA (.p12 / .pfx) */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <Key className="w-4 h-4 text-[#004ac6]" />
-              <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Certificado Digital de Firma Electrónica (PKCS#12 / .p12 / .pfx)
-                </h2>
-                <p className="text-[11px] text-slate-500">
-                  Archivo criptográfico exigido por el SRI para el sellado y firmado digital XAdES-BES
-                </p>
-              </div>
-            </div>
-            {form.certificadoCargado && form.certificadoNombre ? (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>FIRMA CARGADA & VINCULADA</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-[4px] bg-amber-50 text-amber-700 border border-amber-300">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span>SIN FIRMA CARGADA</span>
-              </span>
-            )}
+      {/* 2. TARJETA COMPACTA: FIRMA ELECTRÓNICA (.p12 / .pfx) */}
+      <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-[#004ac6]" />
+            <h2 className="text-xs font-bold text-slate-800">
+              Firma Electrónica Digital (.p12 / .pfx)
+            </h2>
           </div>
 
-          {/* Hidden File Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".p12,.pfx"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-          {!form.certificadoCargado || !form.certificadoNombre ? (
-            /* Dropzone / Upload area when no cert loaded */
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                  const fakeEvent = { target: { files: e.dataTransfer.files } } as any;
-                  handleFileChange(fakeEvent);
-                }
-              }}
-              className="p-8 border-2 border-dashed border-[#bfdbfe] hover:border-[#004ac6] bg-[#f8faff] hover:bg-[#eff6ff] rounded-[6px] text-center cursor-pointer transition-all space-y-3"
-            >
-              <div className="w-12 h-12 bg-white text-[#004ac6] border border-[#bfdbfe] rounded-[6px] flex items-center justify-center mx-auto shadow-2xs">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-800">
-                  Haz clic aquí para seleccionar o arrastra tu archivo de Firma Electrónica (.p12 / .pfx)
-                </p>
-                <p className="text-[11px] text-slate-500 mt-1 max-w-lg mx-auto">
-                  Acepta certificados emitidos por Security Data, Banco Central del Ecuador (BCE), ANFAC, Consejo de la Judicatura, Uanataca, etc.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shadow-xs cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Seleccionar Archivo .p12 / .pfx</span>
-              </button>
-            </div>
+          {form.certificadoCargado && form.certificadoNombre ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span>Firma Activa</span>
+            </span>
           ) : (
-            /* Card showing loaded cert details */
-            <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200/80 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white rounded-[6px] border border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-[6px] border border-emerald-200">
-                    <FileCode2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-mono font-bold text-xs text-slate-800 block">
-                      {form.certificadoNombre}
-                    </span>
-                    <span className="text-[10px] text-slate-500">
-                      {form.certificadoTamano ? `${(form.certificadoTamano / 1024).toFixed(1)} KB • ` : ""}
-                      {form.certificadoFechaCarga
-                        ? `Cargado: ${new Date(form.certificadoFechaCarga).toLocaleDateString("es-EC")}`
-                        : "Certificado digital almacenado"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-semibold transition cursor-pointer"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Reemplazar Archivo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemoveCertificate}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-[6px] text-xs font-semibold transition cursor-pointer"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Quitar</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Contraseña de la Firma Electrónica *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showCertPassword ? "text" : "password"}
-                      required
-                      value={form.certificadoClave || ""}
-                      onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
-                      className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 pr-8 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden font-mono"
-                      placeholder="Contraseña del P12"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCertPassword(!showCertPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                    >
-                      {showCertPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Fecha de Vencimiento de la Firma
-                  </label>
-                  <input
-                    type="date"
-                    value={form.certificadoVencimiento || ""}
-                    onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
-                    className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden font-mono font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Entidad Emisora de la Firma
-                  </label>
-                  <input
-                    type="text"
-                    value={form.certificadoEmisor || ""}
-                    onChange={(e) => setForm({ ...form, certificadoEmisor: e.target.value })}
-                    className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                    placeholder="Ej. Security Data, Banco Central, ANFAC"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={handleValidateCert}
-                  className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Validar Certificado & Clave</span>
-                </button>
-              </div>
-            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 border border-amber-200">
+              <AlertTriangle className="w-3 h-3 text-amber-600" />
+              <span>Pendiente de Carga</span>
+            </span>
           )}
         </div>
 
-        {/* ========================================================= */}
-        {/* SECCIÓN 2: ESTABLECIMIENTO, PUNTO DE EMISIÓN & SECUENCIAS */}
-        {/* ========================================================= */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <FileCode2 className="w-4 h-4 text-[#004ac6]" />
+        {/* Input file invisible */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".p12,.pfx"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {!form.certificadoCargado || !form.certificadoNombre ? (
+          /* Dropzone ultracompacto en una sola barra */
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const fakeEvent = { target: { files: e.dataTransfer.files } } as any;
+                handleFileChange(fakeEvent);
+              }
+            }}
+            className="p-3 border border-dashed border-blue-300 hover:border-[#004ac6] bg-[#f8faff] hover:bg-[#eff6ff] rounded-[6px] flex flex-col sm:flex-row items-center justify-between gap-3 cursor-pointer transition-colors"
+          >
+            <div className="flex items-center gap-2.5 text-xs">
+              <div className="p-1.5 bg-blue-100 text-[#004ac6] rounded-[4px]">
+                <Upload className="w-4 h-4" />
+              </div>
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  Establecimiento, Punto de Emisión & Control de Secuencias SRI
-                </h2>
-                <p className="text-[11px] text-slate-500">
-                  Configura la sucursal emisora y el punto de inicio correlativo de cada comprobante electrónico
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] text-slate-400 block font-medium">Serie de Emisión</span>
-              <span className="text-sm font-mono font-bold text-[#004ac6] bg-blue-50 px-2.5 py-1 rounded-[4px] border border-blue-200 inline-block">
-                {String(form.establecimiento || "010").padStart(3, "0")}-{String(form.puntoEmision || "001").padStart(3, "0")}
-              </span>
-            </div>
-          </div>
-
-          {/* Selector de Sucursal y Punto de Emisión con Botones Rápidos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs p-4 bg-slate-50 rounded-[6px] border border-slate-200/80">
-            {/* Establecimiento */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-700">
-                  Establecimiento / Sucursal (3 dígitos) *
-                </label>
-                <span className="text-[10px] text-slate-500 font-mono">Código SRI</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  required
-                  maxLength={3}
-                  value={form.establecimiento}
-                  onChange={(e) => {
-                    const clean = e.target.value.replace(/\D/g, "").slice(0, 3);
-                    setForm({ ...form, establecimiento: clean });
-                  }}
-                  className="w-24 text-sm font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white text-center text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                  placeholder="010"
-                />
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, establecimiento: "010" })}
-                    className={`px-2.5 py-1.5 rounded-[4px] text-[11px] font-bold border transition cursor-pointer ${
-                      form.establecimiento === "010"
-                        ? "bg-[#004ac6] text-white border-[#004ac6]"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                  >
-                    010 (Sucursal 10 - Recomendado)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, establecimiento: "011" })}
-                    className={`px-2.5 py-1.5 rounded-[4px] text-[11px] font-bold border transition cursor-pointer ${
-                      form.establecimiento === "011"
-                        ? "bg-[#004ac6] text-white border-[#004ac6]"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                  >
-                    011 (Sucursal 11)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, establecimiento: "001" })}
-                    className={`px-2.5 py-1.5 rounded-[4px] text-[11px] font-bold border transition cursor-pointer ${
-                      form.establecimiento === "001"
-                        ? "bg-[#004ac6] text-white border-[#004ac6]"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                  >
-                    001 (Matriz)
-                  </button>
-                </div>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                La <strong>Sucursal 10 (`010`)</strong> o <strong>11 (`011`)</strong> se utiliza comúnmente en ISPs para aislar la facturación electrónica recurrente respecto a la matriz física (`001`).
-              </p>
-            </div>
-
-            {/* Punto de Emisión */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-700">
-                  Punto de Emisión (3 dígitos) *
-                </label>
-                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded-[4px] border border-emerald-200">
-                  001 Mejor Opción SRI
+                <span className="font-semibold text-slate-800 block">
+                  Haz clic o arrastra tu archivo de firma (.p12 o .pfx)
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Emitido por Security Data, Banco Central del Ecuador, ANFAC, Uanataca, etc.
                 </span>
               </div>
-              <div className="flex items-center gap-2">
+            </div>
+
+            <button
+              type="button"
+              className="px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shrink-0 cursor-pointer"
+            >
+              Examinar Archivo .p12
+            </button>
+          </div>
+        ) : (
+          /* Fila compacta con datos de la firma cargada */
+          <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-200 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded-[4px] border border-slate-200">
+                  {form.certificadoNombre}
+                </span>
+                {form.certificadoTamano && (
+                  <span className="text-[11px] text-slate-500">
+                    ({(form.certificadoTamano / 1024).toFixed(1)} KB)
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-[4px] text-xs font-semibold text-slate-700 transition cursor-pointer"
+                >
+                  Reemplazar .p12
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemoveCertificate}
+                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-[4px] text-xs font-semibold text-rose-700 transition cursor-pointer"
+                >
+                  Quitar
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+              <div className="relative">
+                <input
+                  type={showCertPassword ? "text" : "password"}
+                  required
+                  value={form.certificadoClave || ""}
+                  onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
+                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2.5 pr-7 bg-white text-xs font-mono"
+                  placeholder="Contraseña del P12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCertPassword(!showCertPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  {showCertPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                </button>
+              </div>
+
+              <div>
+                <input
+                  type="date"
+                  value={form.certificadoVencimiento || ""}
+                  onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
+                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2 bg-white text-xs font-mono"
+                  title="Fecha de Vencimiento de la Firma"
+                />
+              </div>
+
+              <div>
                 <input
                   type="text"
-                  required
-                  maxLength={3}
-                  value={form.puntoEmision}
-                  onChange={(e) => {
-                    const clean = e.target.value.replace(/\D/g, "").slice(0, 3);
-                    setForm({ ...form, puntoEmision: clean });
-                  }}
-                  className="w-24 text-sm font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white text-center text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                  placeholder="001"
+                  value={form.certificadoEmisor || ""}
+                  onChange={(e) => setForm({ ...form, certificadoEmisor: e.target.value })}
+                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2 bg-white text-xs"
+                  placeholder="Entidad Emisora (Security Data / BCE)"
                 />
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, puntoEmision: "001" })}
-                    className={`px-2.5 py-1.5 rounded-[4px] text-[11px] font-bold border transition cursor-pointer ${
-                      form.puntoEmision === "001"
-                        ? "bg-[#004ac6] text-white border-[#004ac6]"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                  >
-                    001 (Punto Principal Oficial)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, puntoEmision: "002" })}
-                    className={`px-2.5 py-1.5 rounded-[4px] text-[11px] font-bold border transition cursor-pointer ${
-                      form.puntoEmision === "002"
-                        ? "bg-[#004ac6] text-white border-[#004ac6]"
-                        : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
-                    }`}
-                  >
-                    002 (Punto Secundario Web)
-                  </button>
-                </div>
               </div>
-              <p className="text-[11px] text-slate-500">
-                <strong>¿Por qué 001 es el mejor punto de emisión?</strong> En el SRI, cada nuevo establecimiento (`010`) tiene por defecto autorizado su Punto de Emisión 1 (`001`). Usar `001` garantiza total compatibilidad sin requerir aperturas adicionales.
-              </p>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={handleValidateCert}
+                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Validar Clave</span>
+                </button>
+              </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Grilla de Secuencias de Documentos */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Secuencias Numéricas de Emisión (Siguiente Comprobante a Generar)
-              </h3>
-              <span className="text-[11px] text-slate-500">
-                Formato SRI de 9 dígitos correlativos
-              </span>
+      {/* 3. TARJETA COMPACTA: SERIE & CONTROL DE SECUENCIAS */}
+      <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-3">
+        {/* Selector de Serie en 1 sola fila */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <FileCode2 className="w-4 h-4 text-[#004ac6]" />
+            <h2 className="text-xs font-bold text-slate-800">
+              Serie & Secuencias de Comprobantes SRI
+            </h2>
+          </div>
+
+          {/* Selector de Sucursal y Punto con botones compactos */}
+          <div className="flex items-center gap-3 text-xs flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Sucursal:</span>
+              <input
+                type="text"
+                maxLength={3}
+                value={form.establecimiento}
+                onChange={(e) => setForm({ ...form, establecimiento: e.target.value.replace(/\D/g, "").slice(0, 3) })}
+                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-slate-300 rounded-[4px] bg-white text-[#004ac6]"
+              />
+              <div className="inline-flex rounded-[4px] border border-slate-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, establecimiento: "010" })}
+                  className={`px-2 py-0.5 text-[11px] font-bold ${form.establecimiento === "010" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                >
+                  010 (ISP)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, establecimiento: "011" })}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.establecimiento === "011" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                >
+                  011
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, establecimiento: "001" })}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.establecimiento === "001" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                >
+                  001
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Punto:</span>
+              <input
+                type="text"
+                maxLength={3}
+                value={form.puntoEmision}
+                onChange={(e) => setForm({ ...form, puntoEmision: e.target.value.replace(/\D/g, "").slice(0, 3) })}
+                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-slate-300 rounded-[4px] bg-white text-[#004ac6]"
+              />
+              <div className="inline-flex rounded-[4px] border border-slate-200 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, puntoEmision: "001" })}
+                  className={`px-2 py-0.5 text-[11px] font-bold ${form.puntoEmision === "001" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                  title="Punto 001 recomendado por SRI"
+                >
+                  001 (Oficial)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, puntoEmision: "002" })}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.puntoEmision === "002" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                >
+                  002
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabla compacta de secuencias numéricas */}
+        <div className="overflow-x-auto rounded-[6px] border border-slate-200">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 select-none">
+              <tr>
+                <th className="py-2 px-3">Comprobante</th>
+                <th className="py-2 px-2 text-center">Código</th>
+                <th className="py-2 px-3">Siguiente Secuencial</th>
+                <th className="py-2 px-3 text-right">Vista Previa Oficial SRI</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-medium">
               {/* Facturas */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Facturas de Venta (01)</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">FAC</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente número correlativo:</label>
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Factura de Venta</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">01</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialFactura ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialFactura: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima Factura:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    {formatearSecuencialSRI(form.secuencialFactura || 1, form.establecimiento || "010", form.puntoEmision || "001")}
-                  </span>
-                </div>
-              </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  {formatearSecuencialSRI(form.secuencialFactura || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
 
               {/* Notas de Crédito */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Notas de Crédito (04)</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">NC</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente número correlativo:</label>
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Crédito</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">04</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialNotaCredito ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialNotaCredito: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima NC:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    {formatearSecuencialSRI(form.secuencialNotaCredito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
-                  </span>
-                </div>
-              </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  {formatearSecuencialSRI(form.secuencialNotaCredito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
 
               {/* Retenciones */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Retenciones (07)</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">RET</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente número correlativo:</label>
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Comprobante de Retención</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">07</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialRetencion ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialRetencion: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima Retención:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    {formatearSecuencialSRI(form.secuencialRetencion || 1, form.establecimiento || "010", form.puntoEmision || "001")}
-                  </span>
-                </div>
-              </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  {formatearSecuencialSRI(form.secuencialRetencion || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
 
               {/* Guías de Remisión */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Guías de Remisión (06)</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">GR</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente número correlativo:</label>
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Guía de Remisión</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">06</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialGuiaRemision ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialGuiaRemision: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima Guía:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    {formatearSecuencialSRI(form.secuencialGuiaRemision || 1, form.establecimiento || "010", form.puntoEmision || "001")}
-                  </span>
-                </div>
-              </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  {formatearSecuencialSRI(form.secuencialGuiaRemision || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
 
               {/* Notas de Débito */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Notas de Débito (05)</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">ND</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente número correlativo:</label>
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Débito</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">05</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialNotaDebito ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialNotaDebito: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima ND:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    {formatearSecuencialSRI(form.secuencialNotaDebito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
-                  </span>
-                </div>
-              </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  {formatearSecuencialSRI(form.secuencialNotaDebito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
 
-              {/* Cotizaciones Comerciales */}
-              <div className="p-3.5 rounded-[6px] border border-slate-200 bg-white space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Cotizaciones Comerciales</span>
-                  <span className="text-[10px] font-mono text-slate-500 font-semibold">COT</span>
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 block mb-1">Siguiente correlativo anual:</label>
+              {/* Cotizaciones */}
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Cotización Comercial</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">COT</td>
+                <td className="py-1.5 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialCotizacion ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialCotizacion: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
                   />
-                </div>
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Próxima Cotización:</span>
-                  <span className="font-mono font-bold text-[#004ac6]">
-                    COT-{new Date().getFullYear()}-{String(form.secuencialCotizacion || 1).padStart(4, "0")}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                  COT-{new Date().getFullYear()}-{String(form.secuencialCotizacion || 1).padStart(4, "0")}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        {/* ========================================================= */}
-        {/* SECCIÓN 3: IDENTIFICACIÓN TRIBUTARIA & RAZÓN SOCIAL */}
-        {/* ========================================================= */}
-        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+      {/* 4. TARJETA COMPACTA: DATOS FISCALES & DOMICILIO DEL EMISOR */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Columna Izquierda: Identificación Fiscal & Régimen */}
+        <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-2.5">
+          <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Identificación Fiscal del Emisor
-            </h2>
+            <h2 className="text-xs font-bold text-slate-800">Identificación Fiscal</h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                R.U.C. del Emisor *
-              </label>
+          <div className="space-y-2 text-xs">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">R.U.C. del Emisor *</label>
               <input
                 type="text"
                 required
                 maxLength={13}
                 value={form.ruc}
                 onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                placeholder="1792458921001"
+                className="w-full text-xs font-mono font-bold rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Razón Social (según Ficha RUC) *
-              </label>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Razón Social *</label>
               <input
                 type="text"
                 required
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-medium rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
               />
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nombre Comercial
-              </label>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Nombre Comercial</label>
               <input
                 type="text"
                 value={form.nombreComercial}
                 onChange={(e) => setForm({ ...form, nombreComercial: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Tipo Contribuyente</label>
+                <select
+                  value={form.tipoContribuyente}
+                  onChange={(e) => setForm({ ...form, tipoContribuyente: e.target.value as any })}
+                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-white font-medium"
+                >
+                  <option value="general">Régimen General</option>
+                  <option value="rimpe_emprendedor">RIMPE Emprendedor</option>
+                  <option value="rimpe_popular">RIMPE Popular</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-4">
+                <input
+                  type="checkbox"
+                  id="obligadoContabilidad"
+                  checked={form.obligadoContabilidad}
+                  onChange={(e) => setForm({ ...form, obligadoContabilidad: e.target.checked })}
+                  className="w-3.5 h-3.5 rounded-[3px] text-[#004ac6] border-slate-300"
+                />
+                <label htmlFor="obligadoContabilidad" className="text-[11px] font-bold text-slate-700 cursor-pointer">
+                  Obligado Contabilidad
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* SECCIÓN 4: AMBIENTE & PARÁMETROS TRIBUTARIOS */}
-        {/* ========================================================= */}
-        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-            <Server className="w-4 h-4 text-[#004ac6]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Ambiente de Facturación & Régimen
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Ambiente de Facturación Electrónica *
-              </label>
-              <select
-                value={form.ambiente}
-                onChange={(e) => setForm({ ...form, ambiente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-              >
-                <option value="1">1 - Pruebas / Homologación SRI (Pruebas del Sistema)</option>
-                <option value="2">2 - Producción Oficial SRI (Validez Tributaria Legal)</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tipo de Contribuyente *
-              </label>
-              <select
-                value={form.tipoContribuyente}
-                onChange={(e) => setForm({ ...form, tipoContribuyente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-              >
-                <option value="general">Régimen General</option>
-                <option value="rimpe_emprendedor">RIMPE Emprendedor</option>
-                <option value="rimpe_popular">RIMPE Negocio Popular</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-2 flex items-center gap-3 pt-2">
-              <input
-                type="checkbox"
-                id="obligadoContabilidad"
-                checked={form.obligadoContabilidad}
-                onChange={(e) => setForm({ ...form, obligadoContabilidad: e.target.checked })}
-                className="w-4 h-4 rounded-[4px] text-[#004ac6] border-slate-300 focus:ring-[#004ac6]"
-              />
-              <label htmlFor="obligadoContabilidad" className="text-xs font-bold text-slate-800 cursor-pointer">
-                Obligado a Llevar Contabilidad
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* SECCIÓN 5: DOMICILIO TRIBUTARIO */}
-        {/* ========================================================= */}
-        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+        {/* Columna Derecha: Domicilio & Notificaciones */}
+        <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-2.5">
+          <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
             <MapPin className="w-4 h-4 text-[#004ac6]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Dirección & Domicilio Tributario
-            </h2>
+            <h2 className="text-xs font-bold text-slate-800">Domicilio & Notificaciones</h2>
           </div>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-2 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Dirección Matriz (como consta en el SRI) *
-              </label>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Dirección Matriz *</label>
               <input
                 type="text"
                 required
                 value={form.direccionMatriz}
                 onChange={(e) => setForm({ ...form, direccionMatriz: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Dirección Sucursal / Establecimiento {form.establecimiento} *
-              </label>
+              <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Dirección Sucursal ({form.establecimiento}) *</label>
               <input
                 type="text"
                 required
                 value={form.direccionEstablecimiento}
                 onChange={(e) => setForm({ ...form, direccionEstablecimiento: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Email Notificaciones RIDE</label>
+                <input
+                  type="email"
+                  value={form.emailNotificaciones || ""}
+                  onChange={(e) => setForm({ ...form, emailNotificaciones: e.target.value })}
+                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  placeholder="facturacion@empresa.com"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Teléfono de Contacto</label>
+                <input
+                  type="text"
+                  value={form.telefonoContacto || ""}
+                  onChange={(e) => setForm({ ...form, telefonoContacto: e.target.value })}
+                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  placeholder="+593 2 000 0000"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Agente de Retención (No. Res.)</label>
+                <input
+                  type="text"
+                  value={form.resolucionAgenteRetencion || ""}
+                  onChange={(e) => setForm({ ...form, resolucionAgenteRetencion: e.target.value })}
+                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  placeholder="Opcional"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-0.5">Contribuyente Especial</label>
+                <input
+                  type="text"
+                  value={form.contribuyenteEspecial || ""}
+                  onChange={(e) => setForm({ ...form, contribuyenteEspecial: e.target.value })}
+                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  placeholder="Opcional"
+                />
+              </div>
             </div>
           </div>
         </div>
-
-        {/* ========================================================= */}
-        {/* SECCIÓN 6: NOTIFICACIONES & RESOLUCIONES */}
-        {/* ========================================================= */}
-        <div className="bg-white p-6 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-            <FileCheck className="w-4 h-4 text-[#004ac6]" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Notificaciones & Resoluciones Especiales
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Email para Envío de RIDE / XML
-              </label>
-              <input
-                type="email"
-                value={form.emailNotificaciones || ""}
-                onChange={(e) => setForm({ ...form, emailNotificaciones: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                placeholder="facturacion@empresa.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Teléfono de Contacto
-              </label>
-              <input
-                type="text"
-                value={form.telefonoContacto || ""}
-                onChange={(e) => setForm({ ...form, telefonoContacto: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                placeholder="+593 2 000 0000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Resolución Agente de Retención
-              </label>
-              <input
-                type="text"
-                value={form.resolucionAgenteRetencion || ""}
-                onChange={(e) => setForm({ ...form, resolucionAgenteRetencion: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                placeholder="Ej. NAC-DNCRASC20-00000001"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Contribuyente Especial (No. Resolución)
-              </label>
-              <input
-                type="text"
-                value={form.contribuyenteEspecial || ""}
-                onChange={(e) => setForm({ ...form, contribuyenteEspecial: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
-                placeholder="Opcional"
-              />
-            </div>
-          </div>
-        </div>
-
       </div>
     </form>
   );
