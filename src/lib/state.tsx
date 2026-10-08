@@ -2201,12 +2201,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const invoiceId = `inv-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
 
+    const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
     const maxSec = billingInvoices.reduce((max, inv) => {
       const parts = (inv.documentNumber || "").split("-");
       const num = parseInt(parts[2] || "0", 10);
       return !isNaN(num) && num > max ? num : max;
     }, 0);
-    const secuencial = data.customSecuencial || (maxSec + 1);
+    const secuencial = data.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
     const documentNumber = formatearSecuencialSRI(
       secuencial,
       sriCompanyConfig.establecimiento,
@@ -2420,12 +2421,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const ncId = `nc-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
 
+    const startFromNC = (sriCompanyConfig.secuencialNotaCredito || 1) - 1;
     const maxSec = billingCreditNotes.reduce((max, nc) => {
       const parts = (nc.documentNumber || "").split("-");
       const num = parseInt(parts[2] || "0", 10);
       return !isNaN(num) && num > max ? num : max;
     }, 0);
-    const secuencial = maxSec + 1;
+    const secuencial = Math.max(maxSec, startFromNC) + 1;
     const documentNumber = formatearSecuencialSRI(
       secuencial,
       sriCompanyConfig.establecimiento,
@@ -2528,12 +2530,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const retId = `ret-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
 
+    const startFromRet = (sriCompanyConfig.secuencialRetencion || 1) - 1;
     const maxSec = billingWithholdings.reduce((max, w) => {
       const parts = (w.documentNumber || "").split("-");
       const num = parseInt(parts[2] || "0", 10);
       return !isNaN(num) && num > max ? num : max;
     }, 0);
-    const secuencial = maxSec + 1;
+    const secuencial = Math.max(maxSec, startFromRet) + 1;
     const documentNumber = formatearSecuencialSRI(
       secuencial,
       sriCompanyConfig.establecimiento,
@@ -2573,12 +2576,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const guideId = `gr-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
 
+    const startFromGuia = (sriCompanyConfig.secuencialGuiaRemision || 1) - 1;
     const maxSec = billingRemissionGuides.reduce((max, g) => {
       const parts = (g.documentNumber || "").split("-");
       const num = parseInt(parts[2] || "0", 10);
       return !isNaN(num) && num > max ? num : max;
     }, 0);
-    const secuencial = maxSec + 1;
+    const secuencial = Math.max(maxSec, startFromGuia) + 1;
     const documentNumber = formatearSecuencialSRI(
       secuencial,
       sriCompanyConfig.establecimiento,

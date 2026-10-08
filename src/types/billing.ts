@@ -35,6 +35,17 @@ export interface SriCompanyConfig {
   certificadoEmisor?: string;
   certificadoClave?: string;
   certificadoCargado?: boolean;
+  certificadoBase64?: string;
+  certificadoTamano?: number;
+  certificadoFechaCarga?: string;
+
+  // Control de Secuencias de Comprobantes SRI
+  secuencialFactura?: number;
+  secuencialNotaCredito?: number;
+  secuencialNotaDebito?: number;
+  secuencialRetencion?: number;
+  secuencialGuiaRemision?: number;
+  secuencialCotizacion?: number;
 }
 
 export interface SriWsResponse {

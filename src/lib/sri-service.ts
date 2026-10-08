@@ -19,18 +19,25 @@ export const DEFAULT_INNTEL_SRI_CONFIG: SriCompanyConfig = {
   nombreComercial: "INNTEL CORP - SOLUCIONES INTEGRALES",
   direccionMatriz: "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito, Ecuador",
   direccionEstablecimiento: "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito, Ecuador",
-  establecimiento: "001",
-  puntoEmision: "001",
+  establecimiento: "010", // Sucursal 10 por defecto
+  puntoEmision: "001",    // Punto de emisión 1 oficial por defecto
   obligadoContabilidad: true,
   tipoContribuyente: "general",
   ambiente: "1", // 1: Pruebas, 2: Producción
   emailNotificaciones: "facturacion@inntelcorp.com",
   telefonoContacto: "+593 2 394 5000",
-  certificadoNombre: "INNTEL_CORP_FIRMA_ELECTRONICA.p12",
-  certificadoVencimiento: "2027-12-31",
+  certificadoNombre: "",
+  certificadoVencimiento: "",
   certificadoEmisor: "Security Data S.A. / Banco Central del Ecuador",
-  certificadoClave: "••••••••",
-  certificadoCargado: true,
+  certificadoClave: "",
+  certificadoCargado: false,
+  certificadoBase64: "",
+  secuencialFactura: 1,
+  secuencialNotaCredito: 1,
+  secuencialNotaDebito: 1,
+  secuencialRetencion: 1,
+  secuencialGuiaRemision: 1,
+  secuencialCotizacion: 1,
 };
 
 /**
