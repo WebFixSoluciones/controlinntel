@@ -4,23 +4,29 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
-  Users,
   ShieldCheck,
   Plus,
-  KeyRound,
   UserCheck,
   UserX,
   Search,
-  Lock,
-  Mail,
-  Building,
   X,
+  Pencil,
+  Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { SystemUser, UserRole } from "@/types";
 import { UserPermissionsModal } from "./UserPermissionsModal";
 
 export function UsersManager() {
-  const { systemUsers, addSystemUser, toggleUserStatus, currentUser } = useApp();
+  const {
+    systemUsers,
+    addSystemUser,
+    updateSystemUser,
+    deleteSystemUser,
+    toggleUserStatus,
+    currentUser,
+  } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,6 +39,84 @@ export function UsersManager() {
   const [newRole, setNewRole] = useState<UserRole>("tecnico");
   const [newDept, setNewDept] = useState("Operaciones & Red");
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Edit User State
+  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<UserRole>("tecnico");
+  const [editDept, setEditDept] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+
+  const handleOpenEdit = (u: SystemUser) => {
+    setEditingUser(u);
+    setEditName(u.displayName);
+    setEditEmail(u.email);
+    setEditRole(u.role);
+    setEditDept(u.department || "");
+    setEditPassword(u.passwordHash || "");
+    setShowEditPassword(false);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    if (!editEmail.trim() || !editEmail.includes("@")) {
+      showError("Email Inválido", "Ingresa un correo corporativo válido.");
+      return;
+    }
+    if (!editName.trim()) {
+      showError("Nombre Requerido", "Ingresa el nombre completo del usuario.");
+      return;
+    }
+    if (editPassword.trim().length > 0 && editPassword.trim().length < 6) {
+      showError("Contraseña Corta", "La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+
+    try {
+      const updates: Partial<SystemUser> = {
+        displayName: editName.trim(),
+        email: editEmail.trim().toLowerCase(),
+        role: editingUser.role === "superadmin" ? "superadmin" : editRole,
+        department: editDept.trim(),
+      };
+      if (editPassword.trim().length >= 6) {
+        updates.passwordHash = editPassword.trim();
+      }
+      await updateSystemUser(editingUser.uid, updates);
+      showSuccess("Usuario Actualizado", `Datos de ${editName.trim()} actualizados correctamente.`);
+      setEditingUser(null);
+    } catch (err: any) {
+      showError("Error al Actualizar", err?.message || "No se pudo actualizar el usuario.");
+    }
+  };
+
+  const handleDeleteUser = (u: SystemUser) => {
+    if (u.uid === currentUser.uid || u.role === "superadmin") {
+      showError("Acción Bloqueada", "No puedes eliminar la cuenta principal de Administrador.");
+      return;
+    }
+
+    showConfirm(
+      "Eliminar Usuario Definitivamente",
+      `¿Estás seguro de eliminar la cuenta de ${u.displayName} (${u.email})? Esta acción la borrará de la base de datos.`,
+      async () => {
+        try {
+          const ok = await deleteSystemUser(u.uid);
+          if (ok) {
+            showSuccess("Usuario Eliminado", `La cuenta de ${u.displayName} ha sido eliminada.`);
+          } else {
+            showError("No Permitido", "No se puede eliminar al único superadministrador del sistema.");
+          }
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message || "No se pudo eliminar el usuario.");
+        }
+      }
+    );
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +236,7 @@ export function UsersManager() {
                           <span>{u.displayName}</span>
                           {u.uid === currentUser.uid && (
                             <span className="text-[10px] px-1.5 py-0.2 bg-[#eff4ff] text-[#004ac6] font-bold rounded">
-                              Tú
+                              Administrador Principal (Tú)
                             </span>
                           )}
                         </div>
@@ -163,7 +247,7 @@ export function UsersManager() {
 
                   <td className="py-3 px-4">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
-                      {u.role}
+                      {u.role === "superadmin" ? "Administrador" : u.role}
                     </span>
                   </td>
 
@@ -184,28 +268,46 @@ export function UsersManager() {
                   </td>
 
                   <td className="py-3 px-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEdit(u)}
+                        className="p-1.5 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                        title="Editar datos y contraseña"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+
                       <button
                         onClick={() => setSelectedUserForPermissions(u)}
-                        className="flex items-center gap-1 px-3 py-1 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                        className="flex items-center gap-1 px-2.5 py-1 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-xs font-bold transition-colors cursor-pointer"
                         title="Modificar permisos y visibilidad de submódulos"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>Permisos & Módulos</span>
                       </button>
 
-                      {u.uid !== currentUser.uid && (
-                        <button
-                          onClick={() => handleToggleStatus(u)}
-                          className={`p-1.5 rounded-lg text-xs transition-colors ${
-                            isActive
-                              ? "text-[#dc2626] hover:bg-[#fef2f2]"
-                              : "text-[#059669] hover:bg-[#ecfdf5]"
-                          }`}
-                          title={isActive ? "Suspender acceso" : "Reactivar acceso"}
-                        >
-                          {isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                        </button>
+                      {u.uid !== currentUser.uid && u.role !== "superadmin" && (
+                        <>
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                              isActive
+                                ? "text-amber-600 hover:bg-amber-50"
+                                : "text-[#059669] hover:bg-[#ecfdf5]"
+                            }`}
+                            title={isActive ? "Suspender acceso" : "Reactivar acceso"}
+                          >
+                            {isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            className="p-1.5 rounded-lg text-[#dc2626] hover:bg-[#fef2f2] transition-colors cursor-pointer"
+                            title="Eliminar usuario definitivamente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -285,15 +387,24 @@ export function UsersManager() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Contraseña Temporal *</label>
-                <input
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg"
-                />
+                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Contraseña de Acceso *</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="w-full pl-3 pr-9 py-2 bg-white border border-[#cbd5e1] rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#737686] hover:text-[#0b1c30]"
+                  >
+                    {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
@@ -302,6 +413,108 @@ export function UsersManager() {
                 </button>
                 <button type="submit" className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl font-bold shadow-xs cursor-pointer">
                   Crear Usuario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Usuario */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
+            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+              <div>
+                <h3 className="text-base font-bold text-[#0b1c30]">Editar Cuenta de Usuario</h3>
+                <p className="text-xs text-[#737686]">Modifica credenciales o perfil de acceso</p>
+              </div>
+              <button onClick={() => setEditingUser(null)} className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateUser} className="p-6 space-y-4 text-xs">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Nombre Completo *</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Correo Electrónico *</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Rol Principal</label>
+                  <select
+                    value={editRole}
+                    disabled={editingUser.role === "superadmin"}
+                    onChange={(e) => setEditRole(e.target.value as UserRole)}
+                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg capitalize font-bold disabled:bg-slate-100 disabled:text-slate-500"
+                  >
+                    {editingUser.role === "superadmin" && (
+                      <option value="superadmin">Administrador General</option>
+                    )}
+                    <option value="admin">Administrador</option>
+                    <option value="tecnico">Técnico NOC</option>
+                    <option value="finanzas">Finanzas</option>
+                    <option value="soporte">Soporte</option>
+                    <option value="legal">Legal</option>
+                    <option value="consulta">Consulta</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Departamento</label>
+                  <input
+                    type="text"
+                    value={editDept}
+                    onChange={(e) => setEditDept(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Contraseña de Acceso *</label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    placeholder="Mínimo 6 caracteres"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    className="w-full pl-3 pr-9 py-2 bg-white border border-[#cbd5e1] rounded-lg font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-[#737686] hover:text-[#0b1c30]"
+                  >
+                    {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
+                <button type="button" onClick={() => setEditingUser(null)} className="px-4 py-2 font-semibold text-[#434655]">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl font-bold shadow-xs cursor-pointer">
+                  Guardar Cambios
                 </button>
               </div>
             </form>

@@ -470,20 +470,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try { localStorage.removeItem(k); } catch (e) {}
       });
 
-      // 1. Check saved users & migrate legacy domains
+      // 1. Check saved users & migrate legacy domains (purging legacy demo users)
+      const LEGACY_DEMO_USER_UIDS = new Set([
+        "usr-admin-01",
+        "usr-fin-02",
+        "usr-tec-03",
+        "usr-sop-04",
+        "usr-leg-05",
+      ]);
       const savedUsers = localStorage.getItem(USERS_KEY);
       let activeUsers = INITIAL_SYSTEM_USERS;
       if (savedUsers) {
         try {
           const parsed = JSON.parse(savedUsers);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const migrated = parsed.map((u: any) => ({
-              ...u,
-              email: u.email ? u.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com") : u.email,
-            }));
-            activeUsers = migrated;
-            setSystemUsers(migrated);
-            localStorage.setItem(USERS_KEY, JSON.stringify(migrated));
+            const migrated = parsed
+              .filter((u: any) => !LEGACY_DEMO_USER_UIDS.has(u.uid))
+              .map((u: any) => ({
+                ...u,
+                email: u.email ? u.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com") : u.email,
+              }));
+            activeUsers = migrated.length > 0 ? migrated : INITIAL_SYSTEM_USERS;
+            setSystemUsers(activeUsers);
+            localStorage.setItem(USERS_KEY, JSON.stringify(activeUsers));
           }
         } catch (e) {}
       }
@@ -601,13 +610,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Sincronización en tiempo real con la colección 'users' de Firestore
   useEffect(() => {
     if (!db) return;
+    const LEGACY_DEMO_USER_UIDS = new Set([
+      "usr-admin-01",
+      "usr-fin-02",
+      "usr-tec-03",
+      "usr-sop-04",
+      "usr-leg-05",
+    ]);
     const unsubscribe = onSnapshot(
       collection(db, "users"),
       (snapshot) => {
         if (!snapshot.empty) {
-          const firestoreUsers = snapshot.docs.map((d) => {
+          const firestoreUsers: SystemUser[] = [];
+          snapshot.docs.forEach((d) => {
+            if (LEGACY_DEMO_USER_UIDS.has(d.id)) {
+              void deleteDoc(doc(db, "users", d.id)).catch(() => {});
+              return;
+            }
             const data = d.data();
-            return {
+            firestoreUsers.push({
               uid: d.id,
               email: data.email,
               displayName: data.displayName,
@@ -620,13 +641,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 INITIAL_SYSTEM_USERS.find((u) => u.uid === d.id)?.passwordHash ||
                 "",
               permissions: data.permissions || ["all"],
+              modulePermissions: data.modulePermissions,
               createdAt: data.createdAt || new Date().toISOString(),
-            } as SystemUser;
+            } as SystemUser);
           });
-          setSystemUsers(firestoreUsers);
-          try {
-            localStorage.setItem(USERS_KEY, JSON.stringify(firestoreUsers));
-          } catch (e) {}
+          if (firestoreUsers.length > 0) {
+            setSystemUsers(firestoreUsers);
+            try {
+              localStorage.setItem(USERS_KEY, JSON.stringify(firestoreUsers));
+            } catch (e) {}
+          }
         }
       },
       (error) => {
@@ -925,12 +949,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
           const snap = await getDocs(collection(db, col.name));
           if (!snap.empty) {
-            col.setter(
-              snap.docs.map((d) => {
-                const { passwordHash: _password, ...data } = d.data();
-                return { ...data, id: d.id, ...(col.name === "users" ? { uid: d.id } : {}) };
-              })
-            );
+            if (col.name === "users") {
+              const LEGACY_DEMO_USER_UIDS = new Set([
+                "usr-admin-01",
+                "usr-fin-02",
+                "usr-tec-03",
+                "usr-sop-04",
+                "usr-leg-05",
+              ]);
+              const cleanUsers = snap.docs
+                .filter((d) => !LEGACY_DEMO_USER_UIDS.has(d.id))
+                .map((d) => {
+                  const data = d.data();
+                  return {
+                    ...data,
+                    id: d.id,
+                    uid: d.id,
+                    passwordHash:
+                      data.passwordHash ||
+                      INITIAL_SYSTEM_USERS.find((u) => u.uid === d.id)?.passwordHash ||
+                      "",
+                  };
+                });
+              if (cleanUsers.length > 0) {
+                col.setter(cleanUsers);
+              }
+            } else {
+              col.setter(
+                snap.docs.map((d) => {
+                  const { passwordHash: _password, ...data } = d.data();
+                  return { ...data, id: d.id };
+                })
+              );
+            }
           } else if (col.initialData && col.initialData.length > 0) {
             // Seed base configuration into Firestore
             col.initialData.forEach((item) => {
@@ -1187,9 +1238,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
     );
     if (currentUser.uid === uid) {
-      setCurrentUser((prev) => ({ ...prev, ...updates }));
+      setCurrentUser((prev) => {
+        const updated = { ...prev, ...updates };
+        try {
+          if (localStorage.getItem(AUTH_KEY)) {
+            const { integritySignature } = signUserProfile(updated);
+            localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
+            localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
+          }
+        } catch (e) {}
+        return updated;
+      });
     }
-    addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(updates));
+    const { passwordHash: _pw, ...safeUpdates } = updates;
+    addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(safeUpdates));
   };
 
   const deleteSystemUser = async (uid: string): Promise<boolean> => {
