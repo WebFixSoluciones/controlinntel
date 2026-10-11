@@ -4,6 +4,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
+import { limpiarIdentificacion } from "@/lib/sri-service";
 import {
   Search,
   SlidersHorizontal,
@@ -59,11 +60,14 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
   const filtered = useMemo(() => {
     return clients.filter((c) => {
       const q = filter.toLowerCase().trim();
+      const qNoSpaces = q.replace(/\s+/g, "");
+      const cleanId = limpiarIdentificacion(c.identificationNumber).toLowerCase();
       const matchesQuery =
         !q ||
         c.businessName.toLowerCase().includes(q) ||
-        c.identificationNumber.includes(q) ||
-        c.email.toLowerCase().includes(q);
+        (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
+        cleanId.includes(qNoSpaces) ||
+        c.email.toLowerCase().includes(qNoSpaces);
 
       const matchesStatus = statusFilter === "todos" || c.status === statusFilter;
 
@@ -86,10 +90,11 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
   // Invoices for selected modal client
   const clientInvoices = useMemo(() => {
     if (!selectedInvoicesClient) return [];
+    const targetCleanId = limpiarIdentificacion(selectedInvoicesClient.identificationNumber);
     return billingInvoices.filter(
       (inv) =>
         inv.clientId === selectedInvoicesClient.id ||
-        (inv.clientRuc && inv.clientRuc === selectedInvoicesClient.identificationNumber)
+        (inv.clientRuc && limpiarIdentificacion(inv.clientRuc) === targetCleanId)
     );
   }, [selectedInvoicesClient, billingInvoices]);
 
@@ -231,10 +236,10 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                         </span>
                       </td>
 
-                      {/* RUC / CI (Solo el número limpio) */}
+                      {/* RUC / CI (Solo el número limpio sin espacios) */}
                       <td className="py-3.5 px-5 font-tnum">
                         <span className="font-mono text-xs font-semibold text-[#0b1c30]">
-                          {client.identificationNumber}
+                          {limpiarIdentificacion(client.identificationNumber)}
                         </span>
                       </td>
 

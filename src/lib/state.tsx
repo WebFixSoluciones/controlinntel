@@ -1437,8 +1437,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     serviceData?: Partial<ClientService>
   ): Promise<Client> => {
     const newId = "cli-" + (clients.length + 1).toString().padStart(3, "0");
+    const cleanIdentification = String(clientData.identificationNumber || "")
+      .replace(/\s+/g, "")
+      .trim();
+    const cleanEmail = String(clientData.email || "")
+      .replace(/\s+/g, "")
+      .trim()
+      .toLowerCase();
     const newClient: Client = {
       ...clientData,
+      identificationNumber: cleanIdentification,
+      email: cleanEmail,
+      businessName: String(clientData.businessName || "").replace(/\s+/g, " ").trim(),
+      address: String(clientData.address || "").replace(/\s+/g, " ").trim(),
       id: newId,
       totalActiveServices: serviceData ? 1 : 0,
       currentBalance: 0,
@@ -1508,10 +1519,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
-    const updated = { ...updates, updatedAt: new Date().toISOString() };
+    const sanitizedUpdates: Partial<Client> = { ...updates };
+    if (sanitizedUpdates.identificationNumber !== undefined) {
+      sanitizedUpdates.identificationNumber = String(sanitizedUpdates.identificationNumber)
+        .replace(/\s+/g, "")
+        .trim();
+    }
+    if (sanitizedUpdates.email !== undefined) {
+      sanitizedUpdates.email = String(sanitizedUpdates.email)
+        .replace(/\s+/g, "")
+        .trim()
+        .toLowerCase();
+    }
+    const updated = { ...sanitizedUpdates, updatedAt: new Date().toISOString() };
     await syncToFirestore("clients", id, updated);
     setClients((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)));
-    addAuditLog("UPDATE_CLIENT", `Cliente ID: ${id}`, JSON.stringify(updates));
+    addAuditLog("UPDATE_CLIENT", `Cliente ID: ${id}`, JSON.stringify(sanitizedUpdates));
   };
 
   const deleteClient = async (id: string) => {
@@ -2301,10 +2324,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const newInvoice: SriInvoice = {
       ...data,
+      clientRuc: String(data.clientRuc || "").replace(/\s+/g, "").trim(),
+      clientEmail: String(data.clientEmail || "").replace(/\s+/g, "").trim().toLowerCase(),
+      clientName: String(data.clientName || "").replace(/\s+/g, " ").trim(),
       documentType: docType,
       id: invoiceId,
-      documentNumber,
-      claveAcceso,
+      documentNumber: String(documentNumber || "").replace(/\s+/g, "").trim(),
+      claveAcceso: String(claveAcceso || "").replace(/\s+/g, "").trim(),
       warehouseId,
       warehouseName,
       kardexRegistered: kardexEntries.length > 0,

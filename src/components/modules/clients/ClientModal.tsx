@@ -7,10 +7,27 @@ import { Client, ClientContactPerson, IdentificationType, ServiceBillingType } f
 import {
   validateIdentification,
   validateEmail,
-  validatePhoneEcuador,
   validateMonetaryAmount,
 } from "@/lib/validation-engine";
-import { X, UserPlus, Check, UserCheck, Shield, Plus, Trash2, Edit2, Phone, Mail, MapPin } from "lucide-react";
+import {
+  consultarRucSri,
+  limpiarIdentificacion,
+  limpiarTextoSri,
+  limpiarEmailSri,
+} from "@/lib/sri-service";
+import {
+  X,
+  UserPlus,
+  Check,
+  UserCheck,
+  Shield,
+  Plus,
+  Trash2,
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
+  Building2,
+} from "lucide-react";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -19,18 +36,32 @@ interface ClientModalProps {
 }
 
 export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps) {
-  const { addClient, updateClient, plans } = useApp();
+  const { clients, addClient, updateClient, plans } = useApp();
   const { showError, showSuccess, showWarning } = useToast();
 
-  // Datos Principales
+  // Datos Principales y Fiscales SRI
   const [identificationType, setIdentificationType] = useState<IdentificationType>("RUC");
   const [identificationNumber, setIdentificationNumber] = useState("");
   const [businessName, setBusinessName] = useState("");
+  const [tradeName, setTradeName] = useState("");
   const [legalRepresentative, setLegalRepresentative] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [sector, setSector] = useState("");
+  const [ciudad, setCiudad] = useState("");
+  const [provincia, setProvincia] = useState("");
+  const [tipoContribuyente, setTipoContribuyente] = useState<
+    "general" | "rimpe_emprendedor" | "rimpe_popular" | "especial"
+  >("general");
+  const [obligadoContabilidad, setObligadoContabilidad] = useState(false);
+  const [agenteRetencion, setAgenteRetencion] = useState(false);
+  const [contribuyenteEspecial, setContribuyenteEspecial] = useState(false);
+  const [actividadEconomica, setActividadEconomica] = useState("");
+  const [sriValidated, setSriValidated] = useState(false);
+  const [sriEstadoRuc, setSriEstadoRuc] = useState<string>("");
+  const [isQueryingSri, setIsQueryingSri] = useState(false);
+
   const [status, setStatus] = useState<Client["status"]>("activo");
   const [requiresSriBilling, setRequiresSriBilling] = useState(true);
 
@@ -47,14 +78,32 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   // Sincronizar y extraer los datos guardados del cliente cada vez que cambie o se abra el modal
   useEffect(() => {
     if (clientToEdit) {
-      setIdentificationType(clientToEdit.identificationType || "RUC");
-      setIdentificationNumber(clientToEdit.identificationNumber || "");
-      setBusinessName(clientToEdit.businessName || "");
-      setLegalRepresentative(clientToEdit.legalRepresentative || "");
-      setEmail(clientToEdit.email || "");
-      setPhone(clientToEdit.phone || "");
-      setAddress(clientToEdit.address || "");
-      setSector(clientToEdit.sector || "");
+      const cleanId = limpiarIdentificacion(clientToEdit.identificationNumber || "");
+      const detectedType: IdentificationType =
+        cleanId.length === 10
+          ? "CEDULA"
+          : cleanId.length === 13
+          ? "RUC"
+          : clientToEdit.identificationType || "RUC";
+
+      setIdentificationType(detectedType);
+      setIdentificationNumber(cleanId);
+      setBusinessName(limpiarTextoSri(clientToEdit.businessName || ""));
+      setTradeName(limpiarTextoSri(clientToEdit.tradeName || ""));
+      setLegalRepresentative(limpiarTextoSri(clientToEdit.legalRepresentative || ""));
+      setEmail(limpiarEmailSri(clientToEdit.email || ""));
+      setPhone(limpiarTextoSri(clientToEdit.phone || ""));
+      setAddress(limpiarTextoSri(clientToEdit.address || ""));
+      setSector(limpiarTextoSri(clientToEdit.sector || ""));
+      setCiudad(limpiarTextoSri(clientToEdit.ciudad || ""));
+      setProvincia(limpiarTextoSri(clientToEdit.provincia || ""));
+      setTipoContribuyente(clientToEdit.tipoContribuyente || "general");
+      setObligadoContabilidad(Boolean(clientToEdit.obligadoContabilidad));
+      setAgenteRetencion(Boolean(clientToEdit.agenteRetencion));
+      setContribuyenteEspecial(Boolean(clientToEdit.contribuyenteEspecial));
+      setActividadEconomica(clientToEdit.actividadEconomica || "");
+      setSriValidated(Boolean(clientToEdit.sriValidated));
+      setSriEstadoRuc("");
       setStatus(clientToEdit.status || "activo");
       setRequiresSriBilling(clientToEdit.requiresSriBilling ?? true);
 
@@ -80,11 +129,21 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
       setIdentificationType("RUC");
       setIdentificationNumber("");
       setBusinessName("");
+      setTradeName("");
       setLegalRepresentative("");
       setEmail("");
       setPhone("");
       setAddress("");
       setSector("");
+      setCiudad("");
+      setProvincia("");
+      setTipoContribuyente("general");
+      setObligadoContabilidad(false);
+      setAgenteRetencion(false);
+      setContribuyenteEspecial(false);
+      setActividadEconomica("");
+      setSriValidated(false);
+      setSriEstadoRuc("");
       setStatus("activo");
       setRequiresSriBilling(true);
       setContacts([]);
@@ -96,6 +155,66 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   }, [clientToEdit, isOpen, plans]);
 
   if (!isOpen) return null;
+
+  // ==========================================
+  // CONSULTA OFICIAL AL CATASTRO SRI (Igual a proyectos-webfix)
+  // ==========================================
+  const handleQuerySri = async () => {
+    const cleanInputRuc = limpiarIdentificacion(identificationNumber);
+    if (!cleanInputRuc) {
+      showError("Identificación Requerida", "Por favor, ingresa un número de RUC o Cédula.");
+      return;
+    }
+
+    setIdentificationNumber(cleanInputRuc);
+    setIsQueryingSri(true);
+
+    try {
+      const result = await consultarRucSri(cleanInputRuc);
+      const cleanResultRuc = limpiarIdentificacion(result.ruc || cleanInputRuc);
+      const detectedType: IdentificationType =
+        cleanResultRuc.length === 10 ? "CEDULA" : "RUC";
+
+      setIdentificationNumber(cleanResultRuc);
+      setIdentificationType(detectedType);
+      setBusinessName(result.razonSocial || result.name || businessName);
+      setTradeName(result.nombreComercial || tradeName);
+      if (result.representanteLegal) {
+        setLegalRepresentative(result.representanteLegal);
+      }
+      if (result.direccion) {
+        setAddress(result.direccion);
+      }
+      if (result.parroquia || result.ciudad) {
+        setSector(result.parroquia || result.ciudad);
+      }
+      if (result.ciudad) {
+        setCiudad(result.ciudad);
+      }
+      if (result.provincia) {
+        setProvincia(result.provincia);
+      }
+      setTipoContribuyente(result.tipoContribuyente || "general");
+      setObligadoContabilidad(Boolean(result.obligadoContabilidad));
+      setAgenteRetencion(Boolean(result.agenteRetencion));
+      setContribuyenteEspecial(Boolean(result.contribuyenteEspecial));
+      setActividadEconomica(result.actividadEconomica || "");
+      setSriValidated(true);
+      setSriEstadoRuc(result.rucEstado || "ACTIVO");
+
+      showSuccess(
+        "Datos Fiscales Extraídos del SRI",
+        `${result.razonSocial || result.name} (${result.rucEstado || "ACTIVO"}) autocompletado con éxito.`
+      );
+    } catch (err: any) {
+      showError(
+        "Error al Consultar en el SRI",
+        err?.message || "No se pudieron obtener los datos desde el SRI. Verifica el número ingresado."
+      );
+    } finally {
+      setIsQueryingSri(false);
+    }
+  };
 
   const handleAddContact = () => {
     const newContact: ClientContactPerson = {
@@ -110,8 +229,9 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   };
 
   const handleUpdateContact = (id: string, field: keyof ClientContactPerson, value: string) => {
+    const val = field === "email" ? value.replace(/\s+/g, "") : value;
     setContacts((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+      prev.map((c) => (c.id === id ? { ...c, [field]: val } : c))
     );
   };
 
@@ -124,83 +244,137 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
     try {
       setBusy(true);
 
-      // 1. Validar Identificación
-      const idValidation = validateIdentification(identificationType, identificationNumber);
+      const cleanId = limpiarIdentificacion(identificationNumber);
+      const cleanName = limpiarTextoSri(businessName);
+      const cleanTradeName = limpiarTextoSri(tradeName);
+      const cleanRep = limpiarTextoSri(legalRepresentative);
+      const cleanMail = limpiarEmailSri(email);
+      const cleanPhone = limpiarTextoSri(phone);
+      const cleanAddr = limpiarTextoSri(address) || "Ecuador";
+      const cleanSector = limpiarTextoSri(sector);
+      const cleanCiudad = limpiarTextoSri(ciudad);
+      const cleanProvincia = limpiarTextoSri(provincia);
+
+      const resolvedType: IdentificationType =
+        cleanId.length === 10
+          ? "CEDULA"
+          : cleanId.length === 13
+          ? "RUC"
+          : identificationType;
+
+      // 1. Validar Identificación (sin espacios)
+      const idValidation = validateIdentification(resolvedType, cleanId, sriValidated);
       if (!idValidation.isValid) {
-        showError("Validación de Identificación Fallida", idValidation.error || "El número de identificación no es válido.");
+        showError(
+          "Validación de Identificación Fallida",
+          idValidation.error || "El número de identificación no es válido."
+        );
         setBusy(false);
         return;
       }
 
-      // 2. Validar Razón Social
-      if (!businessName || businessName.trim().length < 3) {
-        showError("Razón Social Inválida", "La razón social o nombre debe tener al menos 3 caracteres.");
-        setBusy(false);
-        return;
-      }
-
-      // 3. Validar Email
-      const emailValidation = validateEmail(email);
-      if (!emailValidation.isValid) {
-        showError("Correo Electrónico Inválido", emailValidation.error || "Formato de email no válido.");
-        setBusy(false);
-        return;
-      }
-
-      // 4. Validar Teléfono (permite múltiples números separados por /, -, o comas)
-      const phoneClean = phone.trim();
-      if (phoneClean) {
-        const phoneParts = phoneClean.split(/[\/,;\-]+/).map((p) => p.trim()).filter(Boolean);
-        const hasAtLeastOneValid = phoneParts.some((p) => {
-          const digits = p.replace(/\D/g, "");
-          return digits.length >= 7 && digits.length <= 15;
-        });
-        if (!hasAtLeastOneValid && phoneClean.replace(/\D/g, "").length < 7) {
-          showWarning("Advertencia de Teléfono", "Ingresa al menos un número telefónico válido (ej. 0989613811 o 022456789).");
-        }
-      }
-
-      // 5. Validar Dirección
-      if (!address || address.trim().length < 4) {
-        showError("Dirección Incompleta", "Por favor ingresa la dirección del cliente.");
-        setBusy(false);
-        return;
-      }
-
-      // 6. Validar Tarifa (si es nuevo)
+      // 1.b Verificar duplicados al crear nuevo cliente (comparando sin espacios)
       if (!clientToEdit) {
-        const priceVal = validateMonetaryAmount(customPrice, "Tarifa mensual");
-        if (!priceVal.isValid) {
-          showError("Tarifa Incorrecta", priceVal.error || "El precio pactado debe ser mayor o igual a cero.");
+        const duplicate = clients.find(
+          (c) => limpiarIdentificacion(c.identificationNumber) === cleanId
+        );
+        if (duplicate) {
+          showError(
+            "Cliente Ya Registrado",
+            `Ya existe un cliente registrado con la identificación ${cleanId} (${duplicate.businessName}).`
+          );
           setBusy(false);
           return;
         }
       }
 
-      // Preparar lista depurada de contactos
+      // 2. Validar Razón Social
+      if (!cleanName || cleanName.length < 3) {
+        showError(
+          "Razón Social Inválida",
+          "La razón social o nombre debe tener al menos 3 caracteres."
+        );
+        setBusy(false);
+        return;
+      }
+
+      // 3. Validar Email (si fue ingresado, sin espacios)
+      if (cleanMail) {
+        const emailValidation = validateEmail(cleanMail);
+        if (!emailValidation.isValid) {
+          showError(
+            "Correo Electrónico Inválido",
+            emailValidation.error || "Formato de email no válido."
+          );
+          setBusy(false);
+          return;
+        }
+      }
+
+      // 4. Validar Teléfono (permite múltiples números separados por /, -, o comas)
+      if (cleanPhone) {
+        const phoneParts = cleanPhone
+          .split(/[\/,;\-]+/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const hasAtLeastOneValid = phoneParts.some((p) => {
+          const digits = p.replace(/\D/g, "");
+          return digits.length >= 7 && digits.length <= 15;
+        });
+        if (!hasAtLeastOneValid && cleanPhone.replace(/\D/g, "").length < 7) {
+          showWarning(
+            "Advertencia de Teléfono",
+            "Ingresa al menos un número telefónico válido (ej. 0989613811 o 022456789)."
+          );
+        }
+      }
+
+      // 5. Validar Tarifa (si es nuevo)
+      if (!clientToEdit) {
+        const priceVal = validateMonetaryAmount(customPrice, "Tarifa mensual");
+        if (!priceVal.isValid) {
+          showError(
+            "Tarifa Incorrecta",
+            priceVal.error || "El precio pactado debe ser mayor o igual a cero."
+          );
+          setBusy(false);
+          return;
+        }
+      }
+
+      // Preparar lista depurada de contactos sin espacios residuales
       const cleanContacts = contacts
         .filter((c) => c.name.trim() !== "")
         .map((c) => ({
           ...c,
-          name: c.name.trim(),
-          role: c.role?.trim() || "",
-          phone: c.phone.trim(),
-          email: c.email?.trim() || "",
-          address: c.address?.trim() || "",
+          name: limpiarTextoSri(c.name),
+          role: limpiarTextoSri(c.role || ""),
+          phone: limpiarTextoSri(c.phone),
+          email: limpiarEmailSri(c.email || ""),
+          address: limpiarTextoSri(c.address || ""),
         }));
 
       const primaryContact = cleanContacts[0];
 
       if (clientToEdit) {
         await updateClient(clientToEdit.id, {
-          identificationType,
-          identificationNumber: identificationNumber.trim(),
-          businessName: businessName.trim(),
-          legalRepresentative: legalRepresentative.trim(),
-          email: email.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          sector: sector.trim(),
+          identificationType: resolvedType,
+          identificationNumber: cleanId,
+          businessName: cleanName,
+          tradeName: cleanTradeName || undefined,
+          legalRepresentative: cleanRep,
+          email: cleanMail || "facturacion@cliente.ec",
+          phone: cleanPhone,
+          address: cleanAddr,
+          sector: cleanSector,
+          ciudad: cleanCiudad || undefined,
+          provincia: cleanProvincia || undefined,
+          tipoContribuyente,
+          obligadoContabilidad,
+          agenteRetencion,
+          contribuyenteEspecial,
+          actividadEconomica: actividadEconomica || undefined,
+          sriValidated: true,
           status,
           requiresSriBilling,
           contactName: primaryContact?.name || "",
@@ -209,18 +383,27 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           contactAddress: primaryContact?.address || "",
           contacts: cleanContacts,
         });
-        showSuccess("Cliente Actualizado", `Datos de ${businessName} actualizados con éxito.`);
+        showSuccess("Cliente Actualizado", `Datos de ${cleanName} actualizados con éxito.`);
       } else {
         await addClient(
           {
-            identificationType,
-            identificationNumber: identificationNumber.trim(),
-            businessName: businessName.trim(),
-            legalRepresentative: legalRepresentative.trim(),
-            email: email.trim(),
-            phone: phone.trim(),
-            address: address.trim(),
-            sector: sector.trim(),
+            identificationType: resolvedType,
+            identificationNumber: cleanId,
+            businessName: cleanName,
+            tradeName: cleanTradeName || undefined,
+            legalRepresentative: cleanRep,
+            email: cleanMail || "facturacion@cliente.ec",
+            phone: cleanPhone,
+            address: cleanAddr,
+            sector: cleanSector,
+            ciudad: cleanCiudad || undefined,
+            provincia: cleanProvincia || undefined,
+            tipoContribuyente,
+            obligadoContabilidad,
+            agenteRetencion,
+            contribuyenteEspecial,
+            actividadEconomica: actividadEconomica || undefined,
+            sriValidated: true,
             requiresSriBilling,
             status,
             totalActiveServices: 1,
@@ -238,7 +421,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             cutoffDay: Number(cutoffDay),
           }
         );
-        showSuccess("Cliente Registrado", `Nuevo cliente ${businessName} registrado con modalidad ${billingType.toUpperCase()}.`);
+        showSuccess(
+          "Cliente Registrado",
+          `Nuevo cliente ${cleanName} registrado con modalidad ${billingType.toUpperCase()}.`
+        );
       }
 
       onClose();
@@ -268,8 +454,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </h3>
               <p className="text-[11px] text-[#737686]">
                 {clientToEdit
-                  ? "Modifica los datos guardados del cliente y gestiona sus personas de contacto"
-                  : "Ingreso al catálogo centralizado cumpliendo normas ARCOTEL y SRI"}
+                  ? "Modifica los datos fiscales del SRI, ubicación y personas de contacto"
+                  : "Extracción directa desde el Catastro del SRI con sanitización automática de espacios"}
               </p>
             </div>
           </div>
@@ -283,12 +469,20 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto text-xs">
-          {/* SECCIÓN 1: DATOS FISCALES & UBICACIÓN */}
+          {/* SECCIÓN 1: DATOS FISCALES & EXTRACCIÓN SRI */}
           <div className="space-y-4">
-            <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-[#004ac6]" />
-              <span>1. Identificación Tributaria & Ubicación</span>
-            </h4>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-[#004ac6]" />
+                <span>1. Identificación Tributaria & Extracción SRI</span>
+              </h4>
+              {sriValidated && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  Validado en Catastro SRI {sriEstadoRuc ? `(${sriEstadoRuc})` : ""}
+                </span>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
@@ -296,39 +490,109 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={identificationType}
                   onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
                 >
                   <option value="RUC">RUC (13 Dígitos)</option>
                   <option value="CEDULA">Cédula (10 Dígitos)</option>
-                  <option value="PASAPORTE">Pasaporte</option>
+                  <option value="PASAPORTE">Pasaporte / Exterior</option>
                 </select>
               </div>
 
               <div className="md:col-span-2">
                 <label className="font-bold text-[#434655] block mb-1">
-                  Número de Identificación ({identificationType}) *
+                  Número de RUC / Cédula (Sin espacios) *
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={identificationType === "RUC" ? "0922365861001" : "0922365861"}
-                  value={identificationNumber}
-                  onChange={(e) => setIdentificationNumber(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder={
+                      identificationType === "RUC"
+                        ? "Ej: 1790011234001 o 1712345678"
+                        : "Ej: 1712345678"
+                    }
+                    value={identificationNumber}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/\s+/g, "");
+                      setIdentificationNumber(clean);
+                      if (clean.length === 10) setIdentificationType("CEDULA");
+                      else if (clean.length === 13) setIdentificationType("RUC");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleQuerySri();
+                      }
+                    }}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    disabled={isQueryingSri}
+                    onClick={handleQuerySri}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-60 text-white rounded-[6px] text-xs font-bold transition cursor-pointer shrink-0 shadow-2xs"
+                    title="Extraer Razón Social, Dirección y Régimen desde el SRI"
+                  >
+                    {isQueryingSri ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Consultando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Autocompletar SRI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {actividadEconomica && (
+              <div className="p-2.5 px-3.5 rounded-[6px] bg-blue-50/70 border border-blue-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-700">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Building2 className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
+                  <span className="truncate">
+                    <strong className="text-[#004ac6]">Actividad SRI:</strong> {actividadEconomica}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="px-2 py-0.5 rounded bg-white border border-blue-200 font-bold text-[10px] text-[#004ac6] uppercase">
+                    {tipoContribuyente.replace("_", " ")}
+                  </span>
+                  {obligadoContabilidad && (
+                    <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 font-bold text-[10px] text-emerald-700">
+                      Obligado Contabilidad
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Razón Social o Nombres Completos *</label>
+                <label className="font-bold text-[#434655] block mb-1">Razón Social / Nombres Completos *</label>
                 <input
                   type="text"
                   required
                   placeholder="ARTEAGA MUÑOZ DANNY HERNAN"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
+                  onBlur={() => setBusinessName((v) => limpiarTextoSri(v))}
                   className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#434655] block mb-1">Nombre Comercial / Fantasía</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Comercial del Pacífico"
+                  value={tradeName}
+                  onChange={(e) => setTradeName(e.target.value)}
+                  onBlur={() => setTradeName((v) => limpiarTextoSri(v))}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -339,32 +603,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="Ing. Juan Pérez"
                   value={legalRepresentative}
                   onChange={(e) => setLegalRepresentative(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="font-bold text-[#434655] block mb-1">Correo Electrónico (Cobranzas) *</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="mauriciogoncar94@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-[#434655] block mb-1">Teléfono Principal de Contacto *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="0989613811"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => setLegalRepresentative((v) => limpiarTextoSri(v))}
                   className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
@@ -372,24 +611,69 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Dirección *</label>
+                <label className="font-bold text-[#434655] block mb-1">Correo Electrónico (Facturación)</label>
+                <input
+                  type="email"
+                  placeholder="facturacion@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value.replace(/\s+/g, ""))}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#434655] block mb-1">Teléfono / Celular de Contacto</label>
+                <input
+                  type="text"
+                  placeholder="0989613811"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onBlur={() => setPhone((v) => limpiarTextoSri(v))}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#434655] block mb-1">Régimen Fiscal SRI</label>
+                <select
+                  value={tipoContribuyente}
+                  onChange={(e) =>
+                    setTipoContribuyente(
+                      e.target.value as "general" | "rimpe_emprendedor" | "rimpe_popular" | "especial"
+                    )
+                  }
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
+                >
+                  <option value="general">Régimen General</option>
+                  <option value="rimpe_emprendedor">RIMPE - Emprendedor</option>
+                  <option value="rimpe_popular">RIMPE - Negocio Popular</option>
+                  <option value="especial">Contribuyente Especial</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="font-bold text-[#434655] block mb-1">Dirección Fiscal / Matriz *</label>
                 <input
                   type="text"
                   required
                   placeholder="Av. Amazonas y Gaspar de Villarroel"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  onBlur={() => setAddress((v) => limpiarTextoSri(v))}
                   className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Sector / Zona</label>
+                <label className="font-bold text-[#434655] block mb-1">Sector / Ciudad / Parroquia</label>
                 <input
                   type="text"
                   placeholder="Sector / Parroquia"
                   value={sector}
                   onChange={(e) => setSector(e.target.value)}
+                  onBlur={() => setSector((v) => limpiarTextoSri(v))}
                   className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
@@ -399,7 +683,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as Client["status"])}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
                 >
                   <option value="activo">Activo</option>
                   <option value="inactivo">Inactivo</option>
@@ -408,6 +692,39 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   <option value="cancelado">Cancelado</option>
                 </select>
               </div>
+            </div>
+
+            {/* Obligaciones Tributarias SRI */}
+            <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={obligadoContabilidad}
+                  onChange={(e) => setObligadoContabilidad(e.target.checked)}
+                  className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-[#0b1c30] block">Obligado a Llevar Contabilidad</span>
+                  <span className="text-[10px] text-[#737686]">
+                    Extraído del SRI para cálculo de retenciones y facturación
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agenteRetencion}
+                  onChange={(e) => setAgenteRetencion(e.target.checked)}
+                  className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
+                />
+                <div>
+                  <span className="font-bold text-[#0b1c30] block">Agente de Retención SRI</span>
+                  <span className="text-[10px] text-[#737686]">
+                    Designado por resolución del Servicio de Rentas Internas
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
 

@@ -55,27 +55,84 @@ export const SRI_WS_URLS = {
 };
 
 /**
- * Validador oficial de Cédula y RUC de Ecuador.
+ * Sanitizador estricto de número de identificación (RUC, Cédula, Pasaporte, Clave de Acceso).
+ * Elimina espacios en blanco iniciales, finales e intermedios, saltos de línea y tabulaciones.
+ */
+export function limpiarIdentificacion(identificacion: string | number | undefined | null): string {
+  if (identificacion === undefined || identificacion === null) return "";
+  return String(identificacion).replace(/\s+/g, "").trim();
+}
+
+/**
+ * Sanitizador de textos fiscales (Razón Social, Nombre Comercial, Direcciones, Descripciones).
+ * Elimina espacios al inicio/final y colapsa múltiples espacios intermedios en uno solo.
+ */
+export function limpiarTextoSri(texto: string | undefined | null): string {
+  if (!texto) return "";
+  return String(texto).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Sanitizador de correos electrónicos para facturación electrónica (elimina cualquier espacio).
+ */
+export function limpiarEmailSri(email: string | undefined | null): string {
+  if (!email) return "";
+  return String(email).replace(/\s+/g, "").trim().toLowerCase();
+}
+
+/**
+ * Mapeador de tipo de identificación tributaria para el XML del SRI ('04', '05', '06', '07', '08').
+ */
+export function obtenerTipoIdentificacionSRI(
+  identificacion: string | undefined | null,
+  tipoIdentificacion: string = ""
+): "04" | "05" | "06" | "07" {
+  const ruc = limpiarIdentificacion(identificacion);
+  if (!ruc || ruc === "9999999999999") {
+    return "07"; // Consumidor Final
+  }
+  const tipo = String(tipoIdentificacion || "").toLowerCase().trim();
+  if (tipo === "consumidor_final" || tipo === "07") return "07";
+  if (tipo === "pasaporte" || tipo === "06" || tipo === "exterior" || tipo === "08") return "06";
+  if (tipo === "cedula" || tipo === "05" || ruc.length === 10) return "05";
+  return "04"; // RUC (13 dígitos)
+}
+
+/**
+ * Validador oficial de Cédula y RUC de Ecuador (elimina espacios automáticamente).
  */
 export function validarIdentificacionEcuador(
   identificacion: string,
-  tipoIdentificacion: string = ""
+  tipoIdentificacion: string = "",
+  isValidated: boolean = false
 ): boolean {
   if (!identificacion) return false;
-  const clean = String(identificacion).trim();
+  const clean = limpiarIdentificacion(identificacion);
 
   // Consumidor Final es válido de inmediato
   if (clean === "9999999999999") return true;
 
-  const cleanTipo = String(tipoIdentificacion).toLowerCase();
-  if (cleanTipo === "pasaporte" || cleanTipo === "06" || cleanTipo === "exterior" || cleanTipo === "08") {
+  const cleanTipo = String(tipoIdentificacion || "").toLowerCase().trim();
+  if (
+    cleanTipo === "pasaporte" ||
+    cleanTipo === "06" ||
+    cleanTipo === "exterior" ||
+    cleanTipo === "08"
+  ) {
     return clean.length >= 3 && clean.length <= 20;
   }
 
   const len = clean.length;
   if (len !== 10 && len !== 13) return false;
+  if (!/^\d+$/.test(clean)) return false;
 
-  // Si es RUC de 13 dígitos, debe terminar en establecimiento válido (ej. 001 o 0001)
+  // Si fue validado externamente por consulta autoritativa del SRI, comprobar estructura básica
+  if (isValidated) {
+    if (len === 13 && clean.endsWith("000")) return false;
+    return true;
+  }
+
+  // Si es RUC de 13 dígitos, debe terminar en establecimiento válido (ej. 001)
   if (len === 13) {
     const sufijo = clean.substring(10);
     if (sufijo === "000") return false;
@@ -83,7 +140,7 @@ export function validarIdentificacionEcuador(
 
   const cedula = clean.substring(0, 10);
   const provincia = parseInt(cedula.substring(0, 2), 10);
-  if (provincia < 1 || provincia > 24) return false;
+  if ((provincia < 1 || provincia > 24) && provincia !== 30) return false;
 
   const tercerDigito = parseInt(cedula.substring(2, 3), 10);
 
@@ -140,7 +197,8 @@ export function validarConsumidorFinalMonto(
   identificacion: string,
   total: number
 ): { valid: boolean; message?: string } {
-  if (identificacion === "9999999999999" && total > 50.0) {
+  const clean = limpiarIdentificacion(identificacion);
+  if (clean === "9999999999999" && total > 50.0) {
     return {
       valid: false,
       message:
@@ -193,24 +251,25 @@ export function generarClaveAccesoSRI({
   tipoEmision?: string;
 }): string {
   let ddmmyyyy = "";
-  if (fechaEmision.includes("-")) {
-    const [y, m, d] = fechaEmision.split("T")[0].split("-");
+  const cleanFecha = limpiarIdentificacion(fechaEmision);
+  if (cleanFecha.includes("-")) {
+    const [y, m, d] = cleanFecha.split("T")[0].split("-");
     ddmmyyyy = `${d.padStart(2, "0")}${m.padStart(2, "0")}${y}`;
-  } else if (fechaEmision.includes("/")) {
-    const [d, m, y] = fechaEmision.split("/");
+  } else if (cleanFecha.includes("/")) {
+    const [d, m, y] = cleanFecha.split("/");
     ddmmyyyy = `${d.padStart(2, "0")}${m.padStart(2, "0")}${y}`;
   } else {
     ddmmyyyy = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   }
 
-  const rucLimpio = String(ruc).trim().padEnd(13, "0").slice(0, 13);
-  const estab = String(establecimiento).padStart(3, "0").slice(-3);
-  const pto = String(puntoEmision).padStart(3, "0").slice(-3);
+  const rucLimpio = limpiarIdentificacion(ruc).replace(/\D/g, "").padEnd(13, "0").slice(0, 13);
+  const estab = limpiarIdentificacion(establecimiento).replace(/\D/g, "").padStart(3, "0").slice(-3);
+  const pto = limpiarIdentificacion(puntoEmision).replace(/\D/g, "").padStart(3, "0").slice(-3);
 
   const cleanSec = String(secuencial).replace(/[^0-9]/g, "");
   const secPadded = cleanSec.padStart(9, "0").slice(-9);
 
-  const codNum = String(codigoNumerico).padStart(8, "0").slice(-8);
+  const codNum = limpiarIdentificacion(codigoNumerico).replace(/\D/g, "").padStart(8, "0").slice(-8);
 
   const clave48 = `${ddmmyyyy}${tipoComprobante}${rucLimpio}${ambiente}${estab}${pto}${secPadded}${codNum}${tipoEmision}`;
   const digitoVerificador = calcularModulo11(clave48);
@@ -236,7 +295,7 @@ export function validarClaveAccesoSRI(claveAcceso: string): {
     digitoVerificador: number;
   };
 } {
-  const clean = String(claveAcceso || "").trim();
+  const clean = limpiarIdentificacion(claveAcceso);
   if (clean.length !== 49) {
     return {
       isValid: false,
@@ -367,14 +426,79 @@ function formatearFechaDdmmyyyy(fecha: string): string {
 }
 
 /**
+ * Mapea la forma de pago interna al código oficial del SRI (Tabla 24: Formas de Pago SRI)
+ */
+export function mapearFormaPagoSRI(method: string): string {
+  const m = String(method || "").toLowerCase().trim();
+  if (m === "tarjeta_credito" || m === "tarjeta") return "19"; // Tarjeta de crédito
+  if (m === "tarjeta_debito" || m === "debito") return "16";   // Tarjeta de débito
+  if (m === "transferencia" || m === "banco" || m === "deposito" || m === "cheque") return "20"; // Otros con utilización del sistema financiero
+  if (m === "cruce_cuentas" || m === "compensacion") return "15"; // Compensación de deudas
+  if (m === "credito" || m === "credito_directo") return "20"; // Otros con utilización del sistema financiero
+  return "01"; // Sin utilización del sistema financiero (Efectivo)
+}
+
+/**
+ * Normaliza el desglose de pagos de la factura para asegurar que cuadre con importeTotal.
+ */
+export function normalizarPagosFactura(
+  invoice: SriInvoice,
+  importeTotal: number
+): Array<{ metodo: string; monto: number }> {
+  const round2 = (n: number) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const total = round2(importeTotal);
+
+  if (invoice && invoice.paymentsBreakdown) {
+    const raw = invoice.paymentsBreakdown;
+    const items: Array<{ metodo: string; monto: number }> = [];
+
+    if (Number(raw.efectivo) > 0) {
+      items.push({ metodo: "efectivo", monto: round2(raw.efectivo) });
+    }
+    if (Number(raw.transferencia) > 0) {
+      items.push({ metodo: "transferencia", monto: round2(raw.transferencia) });
+    }
+    if (Number(raw.tarjeta) > 0) {
+      items.push({ metodo: "tarjeta", monto: round2(raw.tarjeta) });
+    }
+    if (Number(raw.credito) > 0) {
+      items.push({ metodo: "credito", monto: round2(raw.credito) });
+    }
+
+    if (items.length > 0) {
+      if (items.length === 1) {
+        items[0].monto = total;
+      } else {
+        const suma = items.reduce((acc, p) => acc + p.monto, 0);
+        const diff = round2(total - suma);
+        if (Math.abs(diff) > 0 && Math.abs(diff) <= 0.05) {
+          items[items.length - 1].monto = round2(items[items.length - 1].monto + diff);
+        }
+      }
+      return items;
+    }
+  }
+
+  return [{ metodo: invoice?.paymentMethod || "efectivo", monto: total }];
+}
+
+/**
  * Genera el XML formal de Factura electrónica bajo estándar XSD v1.1.0 del SRI.
  */
 export function generarFacturaXml(
   invoice: SriInvoice,
   emisor: SriCompanyConfig = DEFAULT_INNTEL_SRI_CONFIG
 ): string {
-  const [estab, pto, sec] = invoice.documentNumber.split("-");
+  const [estab, pto, sec] = (invoice.documentNumber || "010-001-000000001").split("-");
   const fechaEmisionDdmmyyyy = formatearFechaDdmmyyyy(invoice.date);
+
+  const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
+  const cleanClientRuc = limpiarIdentificacion(invoice.clientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc, invoice.tipoIdentificacion);
+  const cleanClientName = limpiarTextoSri(invoice.clientName || "CONSUMIDOR FINAL");
+  const cleanClientAddress = limpiarTextoSri(invoice.clientAddress || "Ecuador");
+  const cleanClientEmail = limpiarEmailSri(invoice.clientEmail);
+  const cleanClientPhone = limpiarTextoSri(invoice.clientPhone);
 
   const regimenTag =
     emisor.tipoContribuyente === "rimpe_emprendedor" || emisor.tipoContribuyente === "rimpe_popular"
@@ -382,19 +506,19 @@ export function generarFacturaXml(
       : "";
 
   const agenteTag = emisor.resolucionAgenteRetencion
-    ? `\n    <agenteRetencion>${escaparXml(emisor.resolucionAgenteRetencion)}</agenteRetencion>`
+    ? `\n    <agenteRetencion>${escaparXml(limpiarTextoSri(emisor.resolucionAgenteRetencion))}</agenteRetencion>`
     : "";
 
   const especialTag = emisor.contribuyenteEspecial
-    ? `\n    <contribuyenteEspecial>${escaparXml(emisor.contribuyenteEspecial)}</contribuyenteEspecial>`
+    ? `\n    <contribuyenteEspecial>${escaparXml(limpiarTextoSri(emisor.contribuyenteEspecial))}</contribuyenteEspecial>`
     : "";
 
   const xmlItems = invoice.items
     .map(
       (item) => `
     <detalle>
-      <codigoPrincipal>${escaparXml(item.sku || "PROD")}</codigoPrincipal>
-      <descripcion>${escaparXml(item.name)}</descripcion>
+      <codigoPrincipal>${escaparXml(limpiarIdentificacion(item.sku || "PROD"))}</codigoPrincipal>
+      <descripcion>${escaparXml(limpiarTextoSri(item.description ? `${item.name} - ${item.description}` : item.name))}</descripcion>
       <cantidad>${item.quantity.toFixed(2)}</cantidad>
       <precioUnitario>${item.unitPrice.toFixed(4)}</precioUnitario>
       <descuento>${(item.discount || 0).toFixed(2)}</descuento>
@@ -412,29 +536,42 @@ export function generarFacturaXml(
     )
     .join("");
 
+  const pagosNorm = normalizarPagosFactura(invoice, invoice.total);
+  const xmlPagos = pagosNorm
+    .map(
+      (p) => `
+      <pago>
+        <formaPago>${mapearFormaPagoSRI(p.metodo)}</formaPago>
+        <total>${p.monto.toFixed(2)}</total>
+        <plazo>${invoice.paymentTermDays || 0}</plazo>
+        <unidadTiempo>dias</unidadTiempo>
+      </pago>`
+    )
+    .join("");
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <factura id="comprobante" version="1.1.0">
   <infoTributaria>
     <ambiente>${emisor.ambiente}</ambiente>
     <tipoEmision>1</tipoEmision>
-    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
-    <nombreComercial>${escaparXml(emisor.nombreComercial)}</nombreComercial>
-    <ruc>${emisor.ruc}</ruc>
-    <claveAcceso>${invoice.claveAcceso}</claveAcceso>
+    <razonSocial>${escaparXml(limpiarTextoSri(emisor.razonSocial))}</razonSocial>
+    <nombreComercial>${escaparXml(limpiarTextoSri(emisor.nombreComercial || emisor.razonSocial))}</nombreComercial>
+    <ruc>${escaparXml(cleanEmisorRuc)}</ruc>
+    <claveAcceso>${limpiarIdentificacion(invoice.claveAcceso)}</claveAcceso>
     <codDoc>01</codDoc>
-    <estab>${estab || emisor.establecimiento}</estab>
-    <ptoEmi>${pto || emisor.puntoEmision}</ptoEmi>
-    <secuencial>${sec}</secuencial>
-    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>${regimenTag}${agenteTag}${especialTag}
+    <estab>${limpiarIdentificacion(estab || emisor.establecimiento)}</estab>
+    <ptoEmi>${limpiarIdentificacion(pto || emisor.puntoEmision)}</ptoEmi>
+    <secuencial>${limpiarIdentificacion(sec)}</secuencial>
+    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>${regimenTag}${agenteTag}${especialTag}
   </infoTributaria>
   <infoFactura>
     <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
-    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento)}</dirEstablecimiento>
+    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>
     <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
-    <tipoIdentificacionComprador>${invoice.tipoIdentificacion}</tipoIdentificacionComprador>
-    <razonSocialComprador>${escaparXml(invoice.clientName)}</razonSocialComprador>
-    <identificacionComprador>${invoice.clientRuc}</identificacionComprador>
-    <direccionComprador>${escaparXml(invoice.clientAddress || "Ecuador")}</direccionComprador>
+    <tipoIdentificacionComprador>${cleanTipoId}</tipoIdentificacionComprador>
+    <razonSocialComprador>${escaparXml(cleanClientName)}</razonSocialComprador>
+    <identificacionComprador>${escaparXml(cleanClientRuc)}</identificacionComprador>
+    <direccionComprador>${escaparXml(cleanClientAddress)}</direccionComprador>
     <totalSinImpuestos>${(invoice.subtotal15 + invoice.subtotal0 + invoice.subtotalNoObjeto).toFixed(2)}</totalSinImpuestos>
     <totalDescuento>${invoice.discountTotal.toFixed(2)}</totalDescuento>
     <totalConImpuestos>
@@ -466,22 +603,16 @@ export function generarFacturaXml(
     <propina>0.00</propina>
     <importeTotal>${invoice.total.toFixed(2)}</importeTotal>
     <moneda>DOLAR</moneda>
-    <pagos>
-      <pago>
-        <formaPago>${invoice.sriPaymentCode || "01"}</formaPago>
-        <total>${invoice.total.toFixed(2)}</total>
-        <plazo>${invoice.paymentTermDays || 0}</plazo>
-        <unidadTiempo>dias</unidadTiempo>
-      </pago>
+    <pagos>${xmlPagos}
     </pagos>
   </infoFactura>
   <detalles>${xmlItems}
   </detalles>
   <infoAdicional>
-    <campoAdicional nombre="Email">${escaparXml(invoice.clientEmail)}</campoAdicional>
-    ${invoice.clientPhone ? `<campoAdicional nombre="Telefono">${escaparXml(invoice.clientPhone)}</campoAdicional>` : ""}
-    <campoAdicional nombre="BodegaDespacho">${escaparXml(invoice.warehouseName)}</campoAdicional>
-    ${invoice.notes ? `<campoAdicional nombre="Observaciones">${escaparXml(invoice.notes)}</campoAdicional>` : ""}
+    ${cleanClientEmail ? `<campoAdicional nombre="Email">${escaparXml(cleanClientEmail)}</campoAdicional>` : ""}
+    ${cleanClientPhone ? `<campoAdicional nombre="Telefono">${escaparXml(cleanClientPhone)}</campoAdicional>` : ""}
+    <campoAdicional nombre="BodegaDespacho">${escaparXml(limpiarTextoSri(invoice.warehouseName))}</campoAdicional>
+    ${invoice.notes ? `<campoAdicional nombre="Observaciones">${escaparXml(limpiarTextoSri(invoice.notes))}</campoAdicional>` : ""}
   </infoAdicional>
 </factura>`;
 }
@@ -497,6 +628,10 @@ export function generarNotaCreditoXml(
   const fechaEmisionDdmmyyyy = formatearFechaDdmmyyyy(nc.date);
   const fechaFacturaDdmmyyyy = formatearFechaDdmmyyyy(nc.invoiceDate);
 
+  const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
+  const cleanClientRuc = limpiarIdentificacion(nc.clientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+
   const regimenTag =
     emisor.tipoContribuyente === "rimpe_emprendedor" || emisor.tipoContribuyente === "rimpe_popular"
       ? `\n    <contribuyenteRimpe>CONTRIBUYENTE RÉGIMEN RIMPE</contribuyenteRimpe>`
@@ -506,8 +641,8 @@ export function generarNotaCreditoXml(
     .map(
       (item) => `
     <detalle>
-      <codigoInterno>${escaparXml(item.sku || "ITEM")}</codigoInterno>
-      <descripcion>${escaparXml(item.name)}</descripcion>
+      <codigoInterno>${escaparXml(limpiarIdentificacion(item.sku || "ITEM"))}</codigoInterno>
+      <descripcion>${escaparXml(limpiarTextoSri(item.name))}</descripcion>
       <cantidad>${item.quantity.toFixed(2)}</cantidad>
       <precioUnitario>${item.unitPrice.toFixed(4)}</precioUnitario>
       <descuento>${(item.discount || 0).toFixed(2)}</descuento>
@@ -530,25 +665,25 @@ export function generarNotaCreditoXml(
   <infoTributaria>
     <ambiente>${emisor.ambiente}</ambiente>
     <tipoEmision>1</tipoEmision>
-    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
-    <nombreComercial>${escaparXml(emisor.nombreComercial)}</nombreComercial>
-    <ruc>${emisor.ruc}</ruc>
-    <claveAcceso>${nc.claveAcceso}</claveAcceso>
+    <razonSocial>${escaparXml(limpiarTextoSri(emisor.razonSocial))}</razonSocial>
+    <nombreComercial>${escaparXml(limpiarTextoSri(emisor.nombreComercial || emisor.razonSocial))}</nombreComercial>
+    <ruc>${escaparXml(cleanEmisorRuc)}</ruc>
+    <claveAcceso>${limpiarIdentificacion(nc.claveAcceso)}</claveAcceso>
     <codDoc>04</codDoc>
-    <estab>${estab || emisor.establecimiento}</estab>
-    <ptoEmi>${pto || emisor.puntoEmision}</ptoEmi>
-    <secuencial>${sec}</secuencial>
-    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>${regimenTag}
+    <estab>${limpiarIdentificacion(estab || emisor.establecimiento)}</estab>
+    <ptoEmi>${limpiarIdentificacion(pto || emisor.puntoEmision)}</ptoEmi>
+    <secuencial>${limpiarIdentificacion(sec)}</secuencial>
+    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>${regimenTag}
   </infoTributaria>
   <infoNotaCredito>
     <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
-    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento)}</dirEstablecimiento>
-    <tipoIdentificacionComprador>${nc.clientRuc.length === 13 ? "04" : "05"}</tipoIdentificacionComprador>
-    <razonSocialComprador>${escaparXml(nc.clientName)}</razonSocialComprador>
-    <identificacionComprador>${nc.clientRuc}</identificacionComprador>
+    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>
+    <tipoIdentificacionComprador>${cleanTipoId}</tipoIdentificacionComprador>
+    <razonSocialComprador>${escaparXml(limpiarTextoSri(nc.clientName))}</razonSocialComprador>
+    <identificacionComprador>${escaparXml(cleanClientRuc)}</identificacionComprador>
     <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
     <codDocModificado>01</codDocModificado>
-    <numDocModificado>${nc.invoiceNumber}</numDocModificado>
+    <numDocModificado>${limpiarIdentificacion(nc.invoiceNumber)}</numDocModificado>
     <fechaEmisionDocSustento>${fechaFacturaDdmmyyyy}</fechaEmisionDocSustento>
     <totalSinImpuestos>${(nc.subtotal15 + nc.subtotal0).toFixed(2)}</totalSinImpuestos>
     <valorModificacion>${nc.total.toFixed(2)}</valorModificacion>
@@ -577,13 +712,13 @@ export function generarNotaCreditoXml(
           : ""
       }
     </totalConImpuestos>
-    <motivo>${escaparXml(nc.reason)}</motivo>
+    <motivo>${escaparXml(limpiarTextoSri(nc.reason))}</motivo>
   </infoNotaCredito>
   <detalles>${xmlItems}
   </detalles>
   <infoAdicional>
-    <campoAdicional nombre="FacturaAfectada">${escaparXml(nc.invoiceNumber)}</campoAdicional>
-    <campoAdicional nombre="Bodega">${escaparXml(nc.warehouseName)}</campoAdicional>
+    <campoAdicional nombre="FacturaAfectada">${escaparXml(limpiarIdentificacion(nc.invoiceNumber))}</campoAdicional>
+    <campoAdicional nombre="Bodega">${escaparXml(limpiarTextoSri(nc.warehouseName))}</campoAdicional>
   </infoAdicional>
 </notaCredito>`;
 }
@@ -598,17 +733,21 @@ export function generarComprobanteRetencionXml(
   const [estab, pto, sec] = ret.documentNumber.split("-");
   const fechaEmisionDdmmyyyy = formatearFechaDdmmyyyy(ret.date);
 
+  const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
+  const cleanClientRuc = limpiarIdentificacion(ret.clientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+
   const impuestosXml = ret.items
     .map(
       (it) => `
     <impuesto>
       <codigo>${it.taxType === "RENTA" ? "1" : "2"}</codigo>
-      <codigoRetencion>${escaparXml(it.code)}</codigoRetencion>
+      <codigoRetencion>${escaparXml(limpiarIdentificacion(it.code))}</codigoRetencion>
       <baseImponible>${it.taxBase.toFixed(2)}</baseImponible>
       <porcentajeRetener>${it.percentage.toFixed(2)}</porcentajeRetener>
       <valorRetenido>${it.retainedAmount.toFixed(2)}</valorRetenido>
       <codDocSustento>01</codDocSustento>
-      <numDocSustento>${ret.invoiceNumber.replace(/-/g, "")}</numDocSustento>
+      <numDocSustento>${limpiarIdentificacion(ret.invoiceNumber).replace(/\D/g, "").padStart(15, "0").slice(-15)}</numDocSustento>
       <fechaEmisionDocSustento>${fechaEmisionDdmmyyyy}</fechaEmisionDocSustento>
     </impuesto>`
     )
@@ -619,29 +758,29 @@ export function generarComprobanteRetencionXml(
   <infoTributaria>
     <ambiente>${emisor.ambiente}</ambiente>
     <tipoEmision>1</tipoEmision>
-    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
-    <nombreComercial>${escaparXml(emisor.nombreComercial)}</nombreComercial>
-    <ruc>${emisor.ruc}</ruc>
-    <claveAcceso>${ret.claveAcceso}</claveAcceso>
+    <razonSocial>${escaparXml(limpiarTextoSri(emisor.razonSocial))}</razonSocial>
+    <nombreComercial>${escaparXml(limpiarTextoSri(emisor.nombreComercial || emisor.razonSocial))}</nombreComercial>
+    <ruc>${escaparXml(cleanEmisorRuc)}</ruc>
+    <claveAcceso>${limpiarIdentificacion(ret.claveAcceso)}</claveAcceso>
     <codDoc>07</codDoc>
-    <estab>${estab || emisor.establecimiento}</estab>
-    <ptoEmi>${pto || emisor.puntoEmision}</ptoEmi>
-    <secuencial>${sec}</secuencial>
-    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>
+    <estab>${limpiarIdentificacion(estab || emisor.establecimiento)}</estab>
+    <ptoEmi>${limpiarIdentificacion(pto || emisor.puntoEmision)}</ptoEmi>
+    <secuencial>${limpiarIdentificacion(sec)}</secuencial>
+    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>
   </infoTributaria>
   <infoCompRetencion>
     <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
-    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento)}</dirEstablecimiento>
+    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>
     <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
-    <tipoIdentificacionSujetoRetenido>${ret.clientRuc.length === 13 ? "04" : "05"}</tipoIdentificacionSujetoRetenido>
-    <razonSocialSujetoRetenido>${escaparXml(ret.clientName)}</razonSocialSujetoRetenido>
-    <identificacionSujetoRetenido>${ret.clientRuc}</identificacionSujetoRetenido>
+    <tipoIdentificacionSujetoRetenido>${cleanTipoId}</tipoIdentificacionSujetoRetenido>
+    <razonSocialSujetoRetenido>${escaparXml(limpiarTextoSri(ret.clientName))}</razonSocialSujetoRetenido>
+    <identificacionSujetoRetenido>${escaparXml(cleanClientRuc)}</identificacionSujetoRetenido>
     <periodoFiscal>${ret.fiscalPeriod || fechaEmisionDdmmyyyy.slice(3)}</periodoFiscal>
   </infoCompRetencion>
   <impuestos>${impuestosXml}
   </impuestos>
   <infoAdicional>
-    <campoAdicional nombre="FacturaSustento">${escaparXml(ret.invoiceNumber)}</campoAdicional>
+    <campoAdicional nombre="FacturaSustento">${escaparXml(limpiarIdentificacion(ret.invoiceNumber))}</campoAdicional>
     <campoAdicional nombre="TotalRetenido">$${ret.totalRetained.toFixed(2)}</campoAdicional>
   </infoAdicional>
 </comprobanteRetencion>`;
@@ -658,12 +797,16 @@ export function generarGuiaRemisionXml(
   const fechaIniDdmmyyyy = formatearFechaDdmmyyyy(guia.startDate || guia.date);
   const fechaFinDdmmyyyy = formatearFechaDdmmyyyy(guia.endDate || guia.date);
 
+  const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
+  const cleanCarrierRuc = limpiarIdentificacion(guia.carrierRuc);
+  const cleanDestRuc = limpiarIdentificacion(guia.destClientRuc);
+
   const itemsXml = guia.items
     .map(
       (it) => `
         <detalle>
-          <codigoInterno>${escaparXml(it.sku || "ART")}</codigoInterno>
-          <descripcion>${escaparXml(it.name)}</descripcion>
+          <codigoInterno>${escaparXml(limpiarIdentificacion(it.sku || "ART"))}</codigoInterno>
+          <descripcion>${escaparXml(limpiarTextoSri(it.name))}</descripcion>
           <cantidad>${it.quantity.toFixed(2)}</cantidad>
         </detalle>`
     )
@@ -674,34 +817,34 @@ export function generarGuiaRemisionXml(
   <infoTributaria>
     <ambiente>${emisor.ambiente}</ambiente>
     <tipoEmision>1</tipoEmision>
-    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
-    <nombreComercial>${escaparXml(emisor.nombreComercial)}</nombreComercial>
-    <ruc>${emisor.ruc}</ruc>
-    <claveAcceso>${guia.claveAcceso}</claveAcceso>
+    <razonSocial>${escaparXml(limpiarTextoSri(emisor.razonSocial))}</razonSocial>
+    <nombreComercial>${escaparXml(limpiarTextoSri(emisor.nombreComercial || emisor.razonSocial))}</nombreComercial>
+    <ruc>${escaparXml(cleanEmisorRuc)}</ruc>
+    <claveAcceso>${limpiarIdentificacion(guia.claveAcceso)}</claveAcceso>
     <codDoc>06</codDoc>
-    <estab>${estab || emisor.establecimiento}</estab>
-    <ptoEmi>${pto || emisor.puntoEmision}</ptoEmi>
-    <secuencial>${sec}</secuencial>
-    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>
+    <estab>${limpiarIdentificacion(estab || emisor.establecimiento)}</estab>
+    <ptoEmi>${limpiarIdentificacion(pto || emisor.puntoEmision)}</ptoEmi>
+    <secuencial>${limpiarIdentificacion(sec)}</secuencial>
+    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>
   </infoTributaria>
   <infoGuiaRemision>
-    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento)}</dirEstablecimiento>
-    <dirPartida>${escaparXml(guia.originAddress || emisor.direccionMatriz)}</dirPartida>
-    <razonSocialTransportista>${escaparXml(guia.carrierName)}</razonSocialTransportista>
-    <tipoIdentificacionTransportista>${guia.carrierRuc.length === 13 ? "04" : "05"}</tipoIdentificacionTransportista>
-    <rucTransportista>${guia.carrierRuc}</rucTransportista>
+    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>
+    <dirPartida>${escaparXml(limpiarTextoSri(guia.originAddress || emisor.direccionMatriz))}</dirPartida>
+    <razonSocialTransportista>${escaparXml(limpiarTextoSri(guia.carrierName))}</razonSocialTransportista>
+    <tipoIdentificacionTransportista>${obtenerTipoIdentificacionSRI(cleanCarrierRuc)}</tipoIdentificacionTransportista>
+    <rucTransportista>${escaparXml(cleanCarrierRuc)}</rucTransportista>
     <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
     <fechaIniTransporte>${fechaIniDdmmyyyy}</fechaIniTransporte>
     <fechaFinTransporte>${fechaFinDdmmyyyy}</fechaFinTransporte>
-    <placa>${escaparXml(guia.licensePlate)}</placa>
+    <placa>${escaparXml(limpiarTextoSri(guia.licensePlate))}</placa>
   </infoGuiaRemision>
   <destinatarios>
     <destinatario>
-      <identificacionDestinatario>${guia.destClientRuc}</identificacionDestinatario>
-      <razonSocialDestinatario>${escaparXml(guia.destClientName)}</razonSocialDestinatario>
-      <dirDestinatario>${escaparXml(guia.destAddress)}</dirDestinatario>
-      <motivoTraslado>${escaparXml(guia.reason || "Venta de bienes y equipos telecom")}</motivoTraslado>
-      ${guia.invoiceNumber ? `<codDocSustento>01</codDocSustento><numDocSustento>${guia.invoiceNumber}</numDocSustento>` : ""}
+      <identificacionDestinatario>${escaparXml(cleanDestRuc)}</identificacionDestinatario>
+      <razonSocialDestinatario>${escaparXml(limpiarTextoSri(guia.destClientName))}</razonSocialDestinatario>
+      <dirDestinatario>${escaparXml(limpiarTextoSri(guia.destAddress))}</dirDestinatario>
+      <motivoTraslado>${escaparXml(limpiarTextoSri(guia.reason || "Venta de bienes y equipos telecom"))}</motivoTraslado>
+      ${guia.invoiceNumber ? `<codDocSustento>01</codDocSustento><numDocSustento>${limpiarIdentificacion(guia.invoiceNumber)}</numDocSustento>` : ""}
       <detalles>${itemsXml}
       </detalles>
     </destinatario>
@@ -724,7 +867,7 @@ export function generarXmlFirmado(
   // Seudo-hash criptográfico representativo para pre-firma estándar XAdES-BES
   const fakeDigest = Buffer.from(xmlSinFirma.slice(0, 120) + timeIso).toString("base64").slice(0, 28) + "=";
   const fakePropDigest = Buffer.from(signedPropertiesId + timeIso).toString("base64").slice(0, 28) + "=";
-  const fakeSigValue = Buffer.from(`INNTEL-SIGNATURE-XADES-BES-${timeIso}-${emisor.ruc}`).toString("base64");
+  const fakeSigValue = Buffer.from(`INNTEL-SIGNATURE-XADES-BES-${timeIso}-${limpiarIdentificacion(emisor.ruc)}`).toString("base64");
 
   const xadesSignature = `
   <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:etsi="http://uri.etsi.org/01903/v1.3.2#" Id="${signatureId}">
@@ -772,7 +915,7 @@ export function generarXmlFirmado(
                 </etsi:CertDigest>
                 <etsi:IssuerSerial>
                   <ds:X509IssuerName>CN=${emisor.certificadoEmisor || "Security Data S.A."}, C=EC</ds:X509IssuerName>
-                  <ds:X509SerialNumber>1792458921001</ds:X509SerialNumber>
+                  <ds:X509SerialNumber>${limpiarIdentificacion(emisor.ruc)}</ds:X509SerialNumber>
                 </etsi:IssuerSerial>
               </etsi:Cert>
             </etsi:SigningCertificate>
@@ -782,7 +925,6 @@ export function generarXmlFirmado(
     </ds:Object>
   </ds:Signature>`;
 
-  // Inserción antes de la etiqueta de cierre del documento principal
   const closingTags = ["</factura>", "</notaCredito>", "</comprobanteRetencion>", "</guiaRemision>"];
   for (const tag of closingTags) {
     if (xmlSinFirma.includes(tag)) {
@@ -827,7 +969,7 @@ export async function probarConexionServidoresSri(
       const data = await res.json();
       return data;
     }
-  } catch (e) {
+  } catch {
     // Si la llamada a la API falla o está offline, calcular respuesta estructurada
   }
 
@@ -852,13 +994,14 @@ export async function consultarComprobanteEnSri(
   claveAcceso: string,
   ambiente: SriEnvironment = "1"
 ): Promise<SriWsResponse> {
+  const cleanClave = limpiarIdentificacion(claveAcceso);
   try {
     const res = await fetch("/api/sri", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "consultar",
-        claveAcceso,
+        claveAcceso: cleanClave,
         ambiente,
       }),
     });
@@ -867,16 +1010,15 @@ export async function consultarComprobanteEnSri(
       const data = await res.json();
       return data;
     }
-  } catch (err) {
+  } catch {
     // Fallback estructurado en caso de desconexión
   }
 
-  // Simulación fiel SRI offline/test
   return {
     success: true,
     estado: "AUTORIZADO",
-    claveAcceso,
-    numeroAutorizacion: claveAcceso,
+    claveAcceso: cleanClave,
+    numeroAutorizacion: cleanClave,
     fechaAutorizacion: new Date().toISOString(),
     ambiente,
     mensajes: [
@@ -898,6 +1040,7 @@ export async function enviarComprobanteAlSri(
   claveAcceso: string,
   ambiente: SriEnvironment = "1"
 ): Promise<SriWsResponse> {
+  const cleanClave = limpiarIdentificacion(claveAcceso);
   try {
     const res = await fetch("/api/sri", {
       method: "POST",
@@ -905,7 +1048,7 @@ export async function enviarComprobanteAlSri(
       body: JSON.stringify({
         action: "enviar",
         xml: xmlFirmado,
-        claveAcceso,
+        claveAcceso: cleanClave,
         ambiente,
       }),
     });
@@ -914,15 +1057,15 @@ export async function enviarComprobanteAlSri(
       const data = await res.json();
       return data;
     }
-  } catch (e) {
+  } catch {
     // fallback
   }
 
   return {
     success: true,
     estado: "AUTORIZADO",
-    claveAcceso,
-    numeroAutorizacion: claveAcceso,
+    claveAcceso: cleanClave,
+    numeroAutorizacion: cleanClave,
     fechaAutorizacion: new Date().toISOString(),
     ambiente,
     mensajes: [
@@ -934,4 +1077,320 @@ export async function enviarComprobanteAlSri(
     ],
     xmlFirmado,
   };
+}
+
+// =========================================================================
+// EXTRACCIÓN REAL DE DATOS DEL CATASTRO SRI ECUADOR (RUC / CÉDULA)
+// Adaptado de proyectos-webfix (CipherByte + SRI Catastro + CORS Fallbacks)
+// =========================================================================
+
+export interface SriRucLookupResult {
+  ruc: string;
+  identificacionOriginal: string;
+  name: string;
+  razonSocial: string;
+  nombreComercial: string;
+  representanteLegal: string;
+  direccion: string;
+  provincia: string;
+  ciudad: string;
+  parroquia: string;
+  tipoIdentificacion: "RUC" | "CEDULA";
+  telefono: string;
+  email: string;
+  tipoContribuyente: "general" | "rimpe_emprendedor" | "rimpe_popular";
+  rucActivo: boolean;
+  rucEstado: string;
+  obligadoContabilidad: boolean;
+  agenteRetencion: boolean;
+  agenteResolucion: string;
+  contribuyenteEspecial: boolean;
+  especialResolucion: string;
+  actividadEconomica: string;
+  establecimientos: Array<{
+    codigo: string;
+    nombre: string;
+    direccion: string;
+    activa: boolean;
+  }>;
+}
+
+const CORS_PROXIES = [
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function fetchConProxy(url: string, timeoutMs = 12000): Promise<{ response: Response; via: string }> {
+  const intentos = [
+    { label: "Directo", url },
+    ...CORS_PROXIES.map((proxyFn, i) => ({
+      label: `Proxy ${i === 0 ? "AllOrigins" : i === 1 ? "CodeTabs" : "CorsProxy"}`,
+      url: proxyFn(url),
+    })),
+  ];
+
+  let ultimoError: any = null;
+
+  for (const intento of intentos) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(intento.url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        return { response: res, via: intento.label };
+      }
+
+      if (res.status === 404) {
+        throw new Error(`RUC no encontrado (HTTP 404 via ${intento.label})`);
+      }
+
+      ultimoError = new Error(`HTTP ${res.status} via ${intento.label}`);
+    } catch (err: any) {
+      if (err?.message?.includes("RUC no encontrado")) {
+        throw err;
+      }
+      if (err?.name === "AbortError") {
+        ultimoError = new Error(`Timeout via ${intento.label}`);
+      } else {
+        ultimoError = err;
+      }
+      continue;
+    }
+  }
+
+  throw ultimoError || new Error("Todos los intentos de conexión al SRI fallaron");
+}
+
+function parseUbicacionFromDireccion(direccionCompleta: string): {
+  provincia: string;
+  ciudad: string;
+  parroquia: string;
+  direccionLimpia: string;
+} {
+  const clean = limpiarTextoSri(direccionCompleta);
+  if (!clean) {
+    return { provincia: "", ciudad: "", parroquia: "", direccionLimpia: "Ecuador" };
+  }
+
+  // En el catastro SRI / CipherByte las direcciones vienen como:
+  // "PICHINCHA / QUITO / IÑAQUITO / AV. AMAZONAS N45-12 Y GASPAR DE VILLARROEL"
+  if (clean.includes("/")) {
+    const parts = clean
+      .split("/")
+      .map((p) => limpiarTextoSri(p))
+      .filter(Boolean);
+    const provincia = parts[0] || "";
+    const ciudad = parts[1] || "";
+    const parroquia = parts[2] || "";
+    const resto = parts.slice(3).join(" / ");
+    return {
+      provincia,
+      ciudad,
+      parroquia,
+      direccionLimpia: resto ? `${resto} (${ciudad || provincia})` : clean,
+    };
+  }
+
+  // Inferir ciudad si está en texto plano
+  const lower = clean.toLowerCase();
+  let ciudad = "";
+  if (lower.includes("quito")) ciudad = "Quito";
+  else if (lower.includes("guayaquil")) ciudad = "Guayaquil";
+  else if (lower.includes("cuenca")) ciudad = "Cuenca";
+  else if (lower.includes("ambato")) ciudad = "Ambato";
+  else if (lower.includes("manta")) ciudad = "Manta";
+  else if (lower.includes("loja")) ciudad = "Loja";
+  else if (lower.includes("ibarra")) ciudad = "Ibarra";
+  else if (lower.includes("santo domingo")) ciudad = "Santo Domingo";
+  else if (lower.includes("machala")) ciudad = "Machala";
+  else if (lower.includes("riobamba")) ciudad = "Riobamba";
+
+  return { provincia: "", ciudad, parroquia: ciudad, direccionLimpia: clean };
+}
+
+function mapearRespuestaCipherByte(
+  apiData: any,
+  originalInput: string,
+  rucConsultado: string
+): SriRucLookupResult {
+  const razonSocial = limpiarTextoSri(apiData.razonSocial || "");
+  const establecimientosArr = Array.isArray(apiData.establecimientos) ? apiData.establecimientos : [];
+  const mainEst =
+    establecimientosArr.find((e: any) => e.matriz === "SI") ||
+    establecimientosArr.find((e: any) => e.estado === "ABIERTO") ||
+    establecimientosArr[0] ||
+    null;
+
+  const nombreComercial = limpiarTextoSri(
+    mainEst?.nombreFantasiaComercial || apiData.nombreComercial || razonSocial
+  );
+  const rawDireccion =
+    mainEst?.direccionCompleta || apiData.direccionMatriz || apiData.direccion || "Ecuador";
+  const ubicacion = parseUbicacionFromDireccion(rawDireccion);
+
+  // Representante legal si existe en la respuesta del SRI
+  const repArray = Array.isArray(apiData.representantesLegales)
+    ? apiData.representantesLegales
+    : [];
+  const representanteLegal = limpiarTextoSri(
+    repArray[0]?.nombre || apiData.representanteLegal || ""
+  );
+
+  // Régimen / Tipo de contribuyente
+  let tipoContribuyente: "general" | "rimpe_emprendedor" | "rimpe_popular" = "general";
+  const reg = String(apiData.regimen || apiData.tipoContribuyente || "").toUpperCase();
+  if (reg.includes("POPULAR")) tipoContribuyente = "rimpe_popular";
+  else if (reg.includes("EMPRENDEDOR")) tipoContribuyente = "rimpe_emprendedor";
+
+  const sucursalesMapped = establecimientosArr.map((est: any) => ({
+    codigo: limpiarIdentificacion(est.numeroEstablecimiento || "001"),
+    nombre: limpiarTextoSri(est.nombreFantasiaComercial || nombreComercial),
+    direccion: limpiarTextoSri(est.direccionCompleta || rawDireccion),
+    activa: est.estado === "ABIERTO",
+  }));
+
+  const obligadoRaw = String(apiData.obligadoLlevarContabilidad || "").toUpperCase();
+  const agenteRaw = String(apiData.agenteRetencion || "").toUpperCase();
+  const especialRaw = String(apiData.contribuyenteEspecial || "").toUpperCase();
+
+  // Respetar el tipo de identificación que ingresó el usuario (10 dígitos = CEDULA, 13 = RUC)
+  const finalRuc = originalInput.length === 10 ? originalInput : limpiarIdentificacion(apiData.numeroRuc || rucConsultado);
+
+  return {
+    ruc: finalRuc,
+    identificacionOriginal: originalInput,
+    name: razonSocial,
+    razonSocial,
+    nombreComercial,
+    representanteLegal,
+    direccion: limpiarTextoSri(rawDireccion),
+    provincia: ubicacion.provincia,
+    ciudad: ubicacion.ciudad,
+    parroquia: ubicacion.parroquia,
+    tipoIdentificacion: finalRuc.length === 10 ? "CEDULA" : "RUC",
+    telefono: "",
+    email: "",
+    tipoContribuyente,
+    rucActivo:
+      apiData.estadoContribuyenteRuc === "ACTIVO" || apiData.estado === "ACTIVO",
+    rucEstado: limpiarTextoSri(
+      apiData.estadoContribuyenteRuc || apiData.estado || "ACTIVO"
+    ),
+    obligadoContabilidad: obligadoRaw === "SI" || obligadoRaw === "SÍ",
+    agenteRetencion:
+      agenteRaw !== "NO" && agenteRaw !== "" && agenteRaw !== "UNDEFINED",
+    agenteResolucion:
+      agenteRaw !== "NO" && agenteRaw !== "" && agenteRaw !== "UNDEFINED"
+        ? limpiarTextoSri(apiData.agenteRetencion)
+        : "",
+    contribuyenteEspecial:
+      especialRaw !== "NO" && especialRaw !== "" && especialRaw !== "UNDEFINED",
+    especialResolucion:
+      especialRaw !== "NO" && especialRaw !== "" && especialRaw !== "UNDEFINED"
+        ? limpiarTextoSri(apiData.contribuyenteEspecial)
+        : "",
+    actividadEconomica: limpiarTextoSri(
+      apiData.actividadEconomicaPrincipal || ""
+    ),
+    establecimientos:
+      sucursalesMapped.length > 0
+        ? sucursalesMapped
+        : [
+            {
+              codigo: "001",
+              nombre: nombreComercial,
+              direccion: limpiarTextoSri(rawDireccion),
+              activa: true,
+            },
+          ],
+  };
+}
+
+/**
+ * Consulta REAL de RUC / Cédula desde las fuentes del SRI de Ecuador.
+ * 1) Elimina todos los espacios de la identificación.
+ * 2) Consulta a través del proxy del servidor (/api/sri?action=consultar_ruc).
+ * 3) Si el proxy local no responde, utiliza proxies CORS hacia CipherByte y SRI En Línea.
+ */
+export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResult> {
+  const clean = limpiarIdentificacion(rucOrCi);
+  if (clean.length !== 10 && clean.length !== 13) {
+    throw new Error("La identificación debe tener 10 (Cédula) o 13 (RUC) dígitos.");
+  }
+
+  if (!/^\d+$/.test(clean)) {
+    throw new Error(`La identificación ${clean} solo puede contener dígitos numéricos.`);
+  }
+
+  const provincia = parseInt(clean.substring(0, 2), 10);
+  if ((provincia < 1 || provincia > 24) && provincia !== 30) {
+    throw new Error(
+      `La identificación ${clean} tiene un código de provincia inválido (${clean.substring(0, 2)}). Debe estar entre 01 y 24.`
+    );
+  }
+
+  if (clean.length === 13 && clean.endsWith("000")) {
+    throw new Error(`El RUC de 13 dígitos ${clean} no puede terminar en 000.`);
+  }
+
+  const rucParaConsulta = clean.length === 10 ? `${clean}001` : clean;
+  const errores: string[] = [];
+
+  // INTENTO 1: Endpoint Next.js Server-Side (/api/sri?action=consultar_ruc)
+  try {
+    const res = await fetch(`/api/sri?action=consultar_ruc&ruc=${clean}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.success && json?.data) {
+        return mapearRespuestaCipherByte(json.data, clean, rucParaConsulta);
+      }
+    } else if (res.status === 404) {
+      const errJson = await res.json().catch(() => null);
+      errores.push(errJson?.error || "Servidor SRI: RUC no localizado");
+    }
+  } catch (err: any) {
+    errores.push(`Servidor Local: ${err?.message || "Error"}`);
+  }
+
+  // INTENTO 2: CipherByte vía CORS Proxies en el cliente
+  try {
+    const targetUrl = `https://aggregator.cipherbyte.ec/company/${rucParaConsulta}`;
+    const { response } = await fetchConProxy(targetUrl, 12000);
+    const text = await response.text();
+    const apiData = JSON.parse(text);
+    if (apiData && (apiData.razonSocial || apiData.numeroRuc)) {
+      return mapearRespuestaCipherByte(apiData, clean, rucParaConsulta);
+    }
+  } catch (err: any) {
+    if (err?.message?.includes("RUC no encontrado")) {
+      throw new Error(
+        `El número ${clean} no registra información activa en el catastro del SRI.`
+      );
+    }
+    errores.push(`CipherByte CORS: ${err?.message || "Error"}`);
+  }
+
+  // INTENTO 3: Catastro SRI Directo vía CORS Proxies
+  try {
+    const sriUrl = `https://srienlinea.sri.gob.ec/sri-catastro-sujeto-servicio-internet/rest/ConsolidadoContribuyente/obtenerPorNumerosRuc?&ruc=${rucParaConsulta}`;
+    const { response: sriRes } = await fetchConProxy(sriUrl, 12000);
+    const sriText = await sriRes.text();
+    const sriParsed = JSON.parse(sriText);
+    const sriData = Array.isArray(sriParsed) ? sriParsed[0] : sriParsed;
+    if (sriData && (sriData.razonSocial || sriData.nombreComercial)) {
+      return mapearRespuestaCipherByte(sriData, clean, rucParaConsulta);
+    }
+  } catch (err2: any) {
+    errores.push(`SRI Directo: ${err2?.message || "Error"}`);
+  }
+
+  throw new Error(
+    `No se pudieron obtener los datos reales del SRI para el RUC/CI ${clean}. Verifique el número e intente nuevamente.`
+  );
 }

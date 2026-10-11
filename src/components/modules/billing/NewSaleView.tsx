@@ -50,6 +50,10 @@ import {
   descargarXmlArchivo,
   validarIdentificacionEcuador,
   formatearSecuencialSRI,
+  consultarRucSri,
+  limpiarIdentificacion,
+  limpiarTextoSri,
+  limpiarEmailSri,
 } from "@/lib/sri-service";
 import { RidePreviewModal } from "./RidePreviewModal";
 
@@ -93,6 +97,7 @@ export function NewSaleView({
     clients,
     suppliers,
     addClient,
+    updateClient,
     inventoryProducts,
     addInventoryProduct,
     inventoryCategories,
@@ -231,11 +236,21 @@ export function NewSaleView({
   // Nuevo Cliente Rápido
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [newClientName, setNewClientName] = useState("");
+  const [newClientTradeName, setNewClientTradeName] = useState("");
+  const [newClientLegalRep, setNewClientLegalRep] = useState("");
   const [newClientType, setNewClientType] = useState<"RUC" | "CEDULA" | "PASAPORTE">("RUC");
   const [newClientRuc, setNewClientRuc] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("Quito, Ecuador");
+  const [newClientSector, setNewClientSector] = useState("");
+  const [newClientSriMeta, setNewClientSriMeta] = useState<{
+    tipoContribuyente?: "general" | "rimpe_emprendedor" | "rimpe_popular" | "especial";
+    obligadoContabilidad?: boolean;
+    agenteRetencion?: boolean;
+    actividadEconomica?: string;
+    sriValidated?: boolean;
+  }>({});
   const [isLookingUpSri, setIsLookingUpSri] = useState(false);
 
   // Búsqueda Avanzada de Productos
@@ -301,12 +316,14 @@ export function NewSaleView({
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
+    const qNoSpaces = q.replace(/\s+/g, "");
     if (!q) return clients.slice(0, 8);
     return clients
       .filter(
         (c) =>
           c.businessName.toLowerCase().includes(q) ||
-          c.identificationNumber.includes(q)
+          (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
+          limpiarIdentificacion(c.identificationNumber).toLowerCase().includes(qNoSpaces)
       )
       .slice(0, 8);
   }, [clients, clientSearch]);
@@ -638,49 +655,67 @@ export function NewSaleView({
   // CREACIÓN RÁPIDA DE CLIENTE Y PRODUCTO
   // ==========================================
   const handleLookupClientSri = async () => {
-    const clean = newClientRuc.trim();
+    const clean = limpiarIdentificacion(newClientRuc);
+    setNewClientRuc(clean);
     if (clean.length < 10) {
       showWarning("Identificación incompleta", "Ingresa al menos 10 dígitos para consultar en el SRI.");
       return;
     }
     setIsLookingUpSri(true);
     try {
-      const isValid = validarIdentificacionEcuador(clean);
-      if (!isValid) {
-        showError("Identificación Inválida", "El número de RUC o Cédula no supera la validación algorítmica del SRI.");
-        return;
-      }
-
-      const existingClient = clients.find((c) => c.identificationNumber === clean);
-      const existingSupplier = suppliers.find((s) => s.ruc === clean);
+      const existingClient = clients.find((c) => limpiarIdentificacion(c.identificationNumber) === clean);
+      const existingSupplier = suppliers.find((s) => limpiarIdentificacion(s.ruc) === clean);
 
       if (existingClient) {
         setNewClientName(existingClient.businessName);
+        setNewClientTradeName(existingClient.tradeName || "");
+        setNewClientLegalRep(existingClient.legalRepresentative || "");
         setNewClientAddress(existingClient.address);
-        setNewClientEmail(existingClient.email);
+        setNewClientEmail(limpiarEmailSri(existingClient.email));
         setNewClientPhone(existingClient.phone);
         setNewClientType(clean.length === 13 ? "RUC" : "CEDULA");
-        showSuccess("Datos SRI Recuperados", `Contribuyente localizado: ${existingClient.businessName}`);
-      } else if (existingSupplier) {
+        showSuccess("Cliente ya registrado", `Contribuyente localizado en base local: ${existingClient.businessName}`);
+        return;
+      }
+
+      if (existingSupplier) {
         setNewClientName(existingSupplier.razonSocial);
+        setNewClientTradeName(existingSupplier.nombreComercial || "");
         setNewClientAddress(existingSupplier.address || "Quito, Ecuador");
-        setNewClientEmail(existingSupplier.email || "");
+        setNewClientEmail(limpiarEmailSri(existingSupplier.email || ""));
         setNewClientPhone(existingSupplier.phone || "");
         setNewClientType(clean.length === 13 ? "RUC" : "CEDULA");
-        showSuccess("Datos SRI Recuperados", `Contribuyente localizado: ${existingSupplier.razonSocial}`);
-      } else {
-        setNewClientType(clean.length === 13 ? "RUC" : "CEDULA");
-        if (!newClientName.trim()) {
-          setNewClientName(
-            clean.length === 13
-              ? `CONTRIBUYENTE SRI RUC ${clean}`
-              : `CIUDADANO C.I. ${clean}`
-          );
-        }
-        showSuccess("Identificación Válida en SRI", "RUC/Cédula verificado algorítmicamente con éxito.");
       }
+
+      const d = await consultarRucSri(clean);
+      const cleanDoc = limpiarIdentificacion(d.ruc || clean);
+      setNewClientRuc(cleanDoc);
+      setNewClientType(cleanDoc.length === 13 ? "RUC" : "CEDULA");
+      setNewClientName(limpiarTextoSri(d.razonSocial || d.name).toUpperCase());
+      setNewClientTradeName(limpiarTextoSri(d.nombreComercial || d.razonSocial || d.name).toUpperCase());
+      if (d.representanteLegal) {
+        setNewClientLegalRep(limpiarTextoSri(d.representanteLegal).toUpperCase());
+      }
+      if (d.direccion) {
+        setNewClientAddress(limpiarTextoSri(d.direccion));
+      }
+      const locParts = [d.parroquia, d.ciudad, d.provincia].filter(Boolean);
+      if (locParts.length > 0) {
+        setNewClientSector(locParts.join(" - "));
+      }
+      setNewClientSriMeta({
+        tipoContribuyente: d.tipoContribuyente || "general",
+        obligadoContabilidad: Boolean(d.obligadoContabilidad),
+        agenteRetencion: Boolean(d.agenteRetencion),
+        actividadEconomica: d.actividadEconomica || "",
+        sriValidated: true,
+      });
+      showSuccess(
+        "Datos Extraídos del SRI",
+        `${d.razonSocial || d.name}${d.rucEstado ? ` (${d.rucEstado})` : ""}`
+      );
     } catch (err: any) {
-      showError("Error de Consulta", err?.message || "No se pudo consultar el catastro SRI.");
+      showError("Error de Consulta SRI", err?.message || "No se pudo consultar el catastro SRI.");
     } finally {
       setIsLookingUpSri(false);
     }
@@ -688,17 +723,51 @@ export function NewSaleView({
 
   const handleSaveQuickClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClientName.trim() || !newClientRuc.trim()) {
+    const cleanRuc = limpiarIdentificacion(newClientRuc);
+    const cleanName = limpiarTextoSri(newClientName).toUpperCase();
+    const cleanEmail = limpiarEmailSri(newClientEmail);
+
+    if (!cleanName || !cleanRuc) {
       showError("Campos Requeridos", "Ingresa nombre/razón social y RUC/Cédula.");
       return;
     }
+
+    const docType: "RUC" | "CEDULA" | "PASAPORTE" =
+      cleanRuc.length === 13 ? "RUC" : cleanRuc.length === 10 ? "CEDULA" : newClientType;
+
+    if (docType !== "PASAPORTE" && !validarIdentificacionEcuador(cleanRuc, undefined, newClientSriMeta.sriValidated)) {
+      showError(
+        "Identificación Inválida",
+        `El número ${cleanRuc} no supera la validación tributaria del SRI.`
+      );
+      return;
+    }
+
+    // Si ya existe en base local, seleccionarlo directamente
+    const duplicate = clients.find((c) => limpiarIdentificacion(c.identificationNumber) === cleanRuc);
+    if (duplicate) {
+      setIsConsumidorFinal(false);
+      setSelectedClientId(duplicate.id);
+      setShowNewClientModal(false);
+      showSuccess("Cliente Existente Seleccionado", `${duplicate.businessName} asignado a la venta.`);
+      return;
+    }
+
     const created = await addClient({
-      identificationType: newClientType,
-      identificationNumber: newClientRuc.trim(),
-      businessName: newClientName.trim().toUpperCase(),
-      email: newClientEmail.trim() || "facturacion@cliente.ec",
+      identificationType: docType,
+      identificationNumber: cleanRuc,
+      businessName: cleanName,
+      tradeName: limpiarTextoSri(newClientTradeName || cleanName).toUpperCase(),
+      legalRepresentative: limpiarTextoSri(newClientLegalRep) || undefined,
+      email: cleanEmail || "facturacion@cliente.ec",
       phone: newClientPhone.trim() || "0999999999",
-      address: newClientAddress.trim() || "Quito, Ecuador",
+      address: limpiarTextoSri(newClientAddress) || "Quito, Ecuador",
+      sector: limpiarTextoSri(newClientSector) || undefined,
+      tipoContribuyente: newClientSriMeta.tipoContribuyente || "general",
+      obligadoContabilidad: Boolean(newClientSriMeta.obligadoContabilidad),
+      agenteRetencion: Boolean(newClientSriMeta.agenteRetencion),
+      actividadEconomica: newClientSriMeta.actividadEconomica || undefined,
+      sriValidated: Boolean(newClientSriMeta.sriValidated),
       requiresSriBilling: true,
       status: "activo",
       totalActiveServices: 0,
@@ -708,9 +777,13 @@ export function NewSaleView({
     setSelectedClientId(created.id);
     setShowNewClientModal(false);
     setNewClientName("");
+    setNewClientTradeName("");
+    setNewClientLegalRep("");
     setNewClientRuc("");
     setNewClientEmail("");
     setNewClientPhone("");
+    setNewClientSector("");
+    setNewClientSriMeta({});
     showSuccess("Cliente Registrado", `${created.businessName} seleccionado para la venta.`);
   };
 
@@ -799,10 +872,12 @@ export function NewSaleView({
       return true;
     }
 
+    const cleanSelectedRuc = limpiarIdentificacion(selectedClient.identificationNumber);
+
     // Regla SRI Ecuador: Consumidor Final > $50 SOLO bloquea en Factura Electrónica
     if (
       documentType === "factura" &&
-      (isConsumidorFinal || selectedClient.identificationNumber === "9999999999999") &&
+      (isConsumidorFinal || cleanSelectedRuc === "9999999999999") &&
       calculatedTotals.total > 50
     ) {
       setValidationDialog({
@@ -814,6 +889,30 @@ export function NewSaleView({
         targetSection: "switch_nota_venta",
       });
       return false;
+    }
+
+    // Validar identificación limpia en Factura Electrónica SRI
+    if (
+      documentType === "factura" &&
+      !isConsumidorFinal &&
+      cleanSelectedRuc !== "9999999999999" &&
+      selectedClient.identificationType !== "PASAPORTE"
+    ) {
+      const isValidId = validarIdentificacionEcuador(
+        cleanSelectedRuc,
+        undefined,
+        selectedClient.sriValidated
+      );
+      if (!isValidId) {
+        setValidationDialog({
+          isOpen: true,
+          title: "RUC / Cédula del Cliente Inválido",
+          message: `La identificación "${cleanSelectedRuc}" del cliente ${selectedClient.businessName} no cumple el formato de 10 o 13 dígitos requerido por el SRI. Verifica el número o cambia a Nota de Venta.`,
+          actionLabel: "Cambiar Cliente",
+          targetSection: "client",
+        });
+        return false;
+      }
     }
 
     // Validar que el pago cubra el total
@@ -908,6 +1007,28 @@ export function NewSaleView({
       const wh =
         inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
 
+      // Sanitización estricta de espacios en RUC/Cédula, Email, Nombre y Dirección del receptor
+      const cleanClientRuc = isConsumidorFinal
+        ? "9999999999999"
+        : limpiarIdentificacion(selectedClient.identificationNumber);
+      const cleanClientEmail = limpiarEmailSri(selectedClient.email);
+      const cleanClientName = limpiarTextoSri(selectedClient.businessName) || "CONSUMIDOR FINAL";
+      const cleanClientAddress = limpiarTextoSri(selectedClient.address || "Ecuador") || "Ecuador";
+
+      // Auto-reparación en base de datos si el cliente tenía espacios guardados previamente
+      if (
+        !isConsumidorFinal &&
+        selectedClient.id &&
+        selectedClient.id !== "cf-9999999999999" &&
+        (selectedClient.identificationNumber !== cleanClientRuc ||
+          selectedClient.email !== cleanClientEmail)
+      ) {
+        updateClient(selectedClient.id, {
+          identificationNumber: cleanClientRuc,
+          email: cleanClientEmail,
+        }).catch(() => {});
+      }
+
       // Determinar método principal de pago para compatibilidad con SriInvoice
       let primaryMethod: SriInvoice["paymentMethod"] = "efectivo";
       if (activeMethods.transferencia && paymentSummary.transferencia >= paymentSummary.efectivo) {
@@ -921,11 +1042,11 @@ export function NewSaleView({
       const sriPaymentCode =
         primaryMethod === "efectivo" ? "01" : primaryMethod === "tarjeta" ? "19" : "20";
 
-      const tipoIdentificacion = isConsumidorFinal
+      const tipoIdentificacion = isConsumidorFinal || cleanClientRuc === "9999999999999"
         ? "07"
-        : selectedClient.identificationNumber.length === 13
+        : cleanClientRuc.length === 13
         ? "04"
-        : selectedClient.identificationNumber.length === 10
+        : cleanClientRuc.length === 10
         ? "05"
         : "06";
 
@@ -935,11 +1056,11 @@ export function NewSaleView({
           date: issueDate,
           time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
           clientId: selectedClient.id,
-          clientName: selectedClient.businessName,
-          clientRuc: selectedClient.identificationNumber,
-          clientEmail: selectedClient.email,
+          clientName: cleanClientName,
+          clientRuc: cleanClientRuc,
+          clientEmail: cleanClientEmail,
           clientPhone: selectedClient.phone,
-          clientAddress: selectedClient.address || "Ecuador",
+          clientAddress: cleanClientAddress,
           tipoIdentificacion,
           items: calculatedTotals.items,
           subtotal15: calculatedTotals.subtotal15,
@@ -982,11 +1103,11 @@ export function NewSaleView({
           date: issueDate,
           time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
           clientId: selectedClient.id,
-          clientName: selectedClient.businessName,
-          clientRuc: selectedClient.identificationNumber,
-          clientEmail: selectedClient.email,
+          clientName: cleanClientName,
+          clientRuc: cleanClientRuc,
+          clientEmail: cleanClientEmail,
           clientPhone: selectedClient.phone,
-          clientAddress: selectedClient.address || "Ecuador",
+          clientAddress: cleanClientAddress,
           tipoIdentificacion,
           items: calculatedTotals.items,
           subtotal15: calculatedTotals.subtotal15,
@@ -1029,18 +1150,18 @@ export function NewSaleView({
 
       // FLUJO OFICIAL: FACTURA ELECTRÓNICA SRI
       pushLog("Iniciando motor de facturación electrónica SRI v2.1.0...");
-      pushLog("Validando RUC Emisor y estructura tributaria...");
+      pushLog("Validando RUC Emisor y estructura tributaria sin espacios...");
 
       const newInvoice = await createInvoice({
         documentType: "factura",
         date: issueDate,
         time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
         clientId: selectedClient.id,
-        clientName: selectedClient.businessName,
-        clientRuc: selectedClient.identificationNumber,
-        clientEmail: selectedClient.email,
+        clientName: cleanClientName,
+        clientRuc: cleanClientRuc,
+        clientEmail: cleanClientEmail,
         clientPhone: selectedClient.phone,
-        clientAddress: selectedClient.address || "Ecuador",
+        clientAddress: cleanClientAddress,
         tipoIdentificacion,
         items: calculatedTotals.items,
         subtotal15: calculatedTotals.subtotal15,
@@ -1710,7 +1831,7 @@ export function NewSaleView({
                         {selectedClient.businessName}
                       </div>
                       <div className="text-[10px] font-mono text-slate-500">
-                        {selectedClient.identificationType}: {selectedClient.identificationNumber}
+                        {selectedClient.identificationType}: {limpiarIdentificacion(selectedClient.identificationNumber)}
                       </div>
                     </div>
                     <button
@@ -1759,7 +1880,7 @@ export function NewSaleView({
                                 {c.businessName}
                               </div>
                               <div className="text-[10px] font-mono text-slate-500">
-                                {c.identificationNumber}
+                                {limpiarIdentificacion(c.identificationNumber)}
                               </div>
                             </div>
                             <span className="text-[10px] font-semibold text-[#004ac6] shrink-0">
@@ -1770,13 +1891,17 @@ export function NewSaleView({
                         <button
                           type="button"
                           onClick={() => {
+                            const possibleRuc = limpiarIdentificacion(clientSearch);
+                            if (/^\d{7,13}$/.test(possibleRuc)) {
+                              setNewClientRuc(possibleRuc);
+                            }
                             setShowClientDropdown(false);
                             setShowNewClientModal(true);
                           }}
                           className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 text-[#004ac6] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
-                          <span>+ Crear nuevo cliente</span>
+                          <span>+ Crear nuevo cliente / Consultar en SRI</span>
                         </button>
                       </div>
                     )}
@@ -2959,14 +3084,24 @@ export function NewSaleView({
             <form onSubmit={handleSaveQuickClient} className="p-5 space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                  RUC / Cédula *
+                  RUC / Cédula (Sin espacios) *
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     required
                     value={newClientRuc}
-                    onChange={(e) => setNewClientRuc(e.target.value)}
+                    onChange={(e) => {
+                      const cleanVal = e.target.value.replace(/\s+/g, "");
+                      setNewClientRuc(cleanVal);
+                      setNewClientSriMeta((prev) => ({ ...prev, sriValidated: false }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleLookupClientSri();
+                      }
+                    }}
                     placeholder="Ej. 1790016919001"
                     className="flex-1 text-xs font-mono py-2 px-3 rounded-[6px] border border-slate-300"
                   />
@@ -2981,7 +3116,7 @@ export function NewSaleView({
                     ) : (
                       <Sparkles className="w-3.5 h-3.5" />
                     )}
-                    <span>Consultar SRI</span>
+                    <span>{isLookingUpSri ? "Consultando..." : "Autocompletar SRI"}</span>
                   </button>
                 </div>
               </div>
@@ -2996,9 +3131,21 @@ export function NewSaleView({
                   value={newClientName}
                   onChange={(e) => setNewClientName(e.target.value)}
                   placeholder="NOMBRE O EMPRESA S.A."
-                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300 uppercase"
                 />
               </div>
+
+              {newClientSriMeta.sriValidated && (
+                <div className="p-2.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800 flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Extraído del Catastro SRI
+                  </span>
+                  <span className="font-mono uppercase">
+                    Régimen: {(newClientSriMeta.tipoContribuyente || "general").replace(/_/g, " ")}
+                  </span>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
@@ -3008,7 +3155,7 @@ export function NewSaleView({
                   <input
                     type="email"
                     value={newClientEmail}
-                    onChange={(e) => setNewClientEmail(e.target.value)}
+                    onChange={(e) => setNewClientEmail(e.target.value.replace(/\s+/g, ""))}
                     placeholder="cliente@correo.com"
                     className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
                   />

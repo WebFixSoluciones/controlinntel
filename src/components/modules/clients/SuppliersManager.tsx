@@ -17,18 +17,27 @@ import {
   X,
   Clock,
   Filter,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Supplier, SupplierCategory } from "@/types";
+import {
+  consultarRucSri,
+  limpiarIdentificacion,
+  limpiarTextoSri,
+  limpiarEmailSri,
+} from "@/lib/sri-service";
 
 export function SuppliersManager() {
   const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useApp();
-  const { showSuccess, showError, showConfirm } = useToast();
+  const { showSuccess, showError, showWarning, showConfirm } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("todas");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [isLookingUpSri, setIsLookingUpSri] = useState(false);
 
   // Form State
   const [ruc, setRuc] = useState("");
@@ -46,14 +55,41 @@ export function SuppliersManager() {
   const [bankAccountOwner, setBankAccountOwner] = useState("");
   const [notes, setNotes] = useState("");
 
+  const handleLookupSupplierSri = async () => {
+    const clean = limpiarIdentificacion(ruc);
+    setRuc(clean);
+    if (clean.length < 10) {
+      showWarning("RUC/CI incompleto", "Ingresa al menos 10 dígitos para consultar en el SRI.");
+      return;
+    }
+    setIsLookingUpSri(true);
+    try {
+      const d = await consultarRucSri(clean);
+      const cleanDoc = limpiarIdentificacion(d.ruc || clean);
+      setRuc(cleanDoc);
+      setRazonSocial(limpiarTextoSri(d.razonSocial || d.name).toUpperCase());
+      setNombreComercial(limpiarTextoSri(d.nombreComercial || d.razonSocial || d.name).toUpperCase());
+      if (d.direccion) setAddress(limpiarTextoSri(d.direccion));
+      if (d.ciudad) setCity(limpiarTextoSri(d.ciudad));
+      if (!bankAccountOwner.trim()) {
+        setBankAccountOwner(limpiarTextoSri(d.razonSocial || d.name).toUpperCase());
+      }
+      showSuccess("Datos Extraídos del SRI", `${d.razonSocial || d.name}`);
+    } catch (err: any) {
+      showError("Error de Consulta SRI", err?.message || "No se pudo consultar el catastro SRI.");
+    } finally {
+      setIsLookingUpSri(false);
+    }
+  };
+
   const handleOpenModal = (supplier?: Supplier) => {
     if (supplier) {
       setEditingSupplier(supplier);
-      setRuc(supplier.ruc);
+      setRuc(limpiarIdentificacion(supplier.ruc));
       setRazonSocial(supplier.razonSocial);
       setNombreComercial(supplier.nombreComercial || "");
       setCategory(supplier.category);
-      setEmail(supplier.email);
+      setEmail(limpiarEmailSri(supplier.email));
       setPhone(supplier.phone);
       setAddress(supplier.address);
       setCity(supplier.city || "Quito");
@@ -86,11 +122,15 @@ export function SuppliersManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!ruc.trim() || ruc.trim().length < 10) {
+    const cleanRuc = limpiarIdentificacion(ruc);
+    const cleanEmail = limpiarEmailSri(email);
+    const cleanRazon = limpiarTextoSri(razonSocial).toUpperCase();
+
+    if (!cleanRuc || cleanRuc.length < 10) {
       showError("RUC Inválido", "Ingresa un número de RUC de 13 dígitos o cédula válida.");
       return;
     }
-    if (!razonSocial.trim()) {
+    if (!cleanRazon) {
       showError("Razón Social Requerida", "Ingresa la razón social del proveedor.");
       return;
     }
@@ -98,41 +138,41 @@ export function SuppliersManager() {
     try {
       if (editingSupplier) {
         await updateSupplier(editingSupplier.id, {
-          ruc: ruc.trim(),
-          razonSocial: razonSocial.trim(),
-          nombreComercial: nombreComercial.trim() || undefined,
+          ruc: cleanRuc,
+          razonSocial: cleanRazon,
+          nombreComercial: limpiarTextoSri(nombreComercial).toUpperCase() || undefined,
           category,
-          email: email.trim(),
+          email: cleanEmail,
           phone: phone.trim(),
-          address: address.trim(),
-          city: city.trim(),
+          address: limpiarTextoSri(address),
+          city: limpiarTextoSri(city),
           creditDaysDefault: Number(creditDaysDefault) || 0,
           bankName: bankName.trim() || undefined,
           bankAccountType,
-          bankAccountNumber: bankAccountNumber.trim() || undefined,
-          bankAccountOwner: bankAccountOwner.trim() || undefined,
+          bankAccountNumber: bankAccountNumber.replace(/\s+/g, "").trim() || undefined,
+          bankAccountOwner: limpiarTextoSri(bankAccountOwner) || undefined,
           notes: notes.trim() || undefined,
         });
-        showSuccess("Proveedor Actualizado", `Datos de ${razonSocial} modificados con éxito.`);
+        showSuccess("Proveedor Actualizado", `Datos de ${cleanRazon} modificados con éxito.`);
       } else {
         await addSupplier({
-          ruc: ruc.trim(),
-          razonSocial: razonSocial.trim(),
-          nombreComercial: nombreComercial.trim() || undefined,
+          ruc: cleanRuc,
+          razonSocial: cleanRazon,
+          nombreComercial: limpiarTextoSri(nombreComercial).toUpperCase() || undefined,
           category,
-          email: email.trim(),
+          email: cleanEmail,
           phone: phone.trim(),
-          address: address.trim(),
-          city: city.trim(),
+          address: limpiarTextoSri(address),
+          city: limpiarTextoSri(city),
           creditDaysDefault: Number(creditDaysDefault) || 0,
           bankName: bankName.trim() || undefined,
           bankAccountType,
-          bankAccountNumber: bankAccountNumber.trim() || undefined,
-          bankAccountOwner: bankAccountOwner.trim() || undefined,
+          bankAccountNumber: bankAccountNumber.replace(/\s+/g, "").trim() || undefined,
+          bankAccountOwner: limpiarTextoSri(bankAccountOwner) || undefined,
           notes: notes.trim() || undefined,
           status: "activo",
         });
-        showSuccess("Proveedor Creado", `Proveedor ${razonSocial} incorporado al directorio.`);
+        showSuccess("Proveedor Creado", `Proveedor ${cleanRazon} incorporado al directorio.`);
       }
 
       setIsModalOpen(false);
@@ -157,11 +197,13 @@ export function SuppliersManager() {
   };
 
   const filteredSuppliers = suppliers.filter((s) => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
+    const qNoSpaces = q.replace(/\s+/g, "");
     const matchSearch =
+      !q ||
       s.razonSocial.toLowerCase().includes(q) ||
       (s.nombreComercial && s.nombreComercial.toLowerCase().includes(q)) ||
-      s.ruc.includes(q) ||
+      limpiarIdentificacion(s.ruc).toLowerCase().includes(qNoSpaces) ||
       s.city?.toLowerCase().includes(q);
 
     const matchCat = filterCategory === "todas" || s.category === filterCategory;
@@ -319,16 +361,37 @@ export function SuppliersManager() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    RUC / Identificación Fiscal *
+                    RUC / Identificación Fiscal (Sin espacios) *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="1792189421001"
-                    value={ruc}
-                    onChange={(e) => setRuc(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg font-mono font-medium text-[#0b1c30]"
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="1792189421001"
+                      value={ruc}
+                      onChange={(e) => setRuc(e.target.value.replace(/\s+/g, ""))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleLookupSupplierSri();
+                        }
+                      }}
+                      required
+                      className="flex-1 px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg font-mono font-medium text-[#0b1c30]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleLookupSupplierSri}
+                      disabled={isLookingUpSri}
+                      className="px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      {isLookingUpSri ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      <span>SRI</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -362,7 +425,7 @@ export function SuppliersManager() {
                     value={razonSocial}
                     onChange={(e) => setRazonSocial(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-[#0b1c30] font-medium"
+                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-[#0b1c30] font-medium uppercase"
                   />
                 </div>
 
@@ -375,7 +438,7 @@ export function SuppliersManager() {
                     placeholder="ej. FIBERLUX"
                     value={nombreComercial}
                     onChange={(e) => setNombreComercial(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-[#0b1c30]"
+                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-[#0b1c30] uppercase"
                   />
                 </div>
               </div>
@@ -387,7 +450,7 @@ export function SuppliersManager() {
                     type="email"
                     placeholder="ventas@proveedor.ec"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.replace(/\s+/g, ""))}
                     className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg"
                   />
                 </div>

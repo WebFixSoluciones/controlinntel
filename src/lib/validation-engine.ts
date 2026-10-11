@@ -126,19 +126,35 @@ export function validateRucEcuador(ruc: string): ValidationResult {
 
 /**
  * Validador Integral de Identificación (RUC, Cédula o Pasaporte)
+ * Elimina espacios en blanco automáticamente antes de validar.
  */
-export function validateIdentification(type: "RUC" | "CEDULA" | "PASAPORTE", number: string): ValidationResult {
-  if (!number || !number.trim()) {
+export function validateIdentification(
+  type: "RUC" | "CEDULA" | "PASAPORTE",
+  number: string,
+  isValidated: boolean = false
+): ValidationResult {
+  const clean = String(number || "").replace(/\s+/g, "").trim();
+  if (!clean) {
     return { isValid: false, error: "El número de identificación es obligatorio." };
   }
-  if (type === "CEDULA") return validateCedulaEcuador(number);
-  if (type === "RUC") return validateRucEcuador(number);
+  if (clean === "9999999999999") {
+    return { isValid: true };
+  }
   if (type === "PASAPORTE") {
-    if (number.trim().length < 5 || number.trim().length > 20) {
-      return { isValid: false, error: "El pasaporte debe tener entre 5 y 20 caracteres alfanuméricos." };
+    if (clean.length < 3 || clean.length > 20) {
+      return { isValid: false, error: "El pasaporte debe tener entre 3 y 20 caracteres alfanuméricos." };
     }
     return { isValid: true };
   }
+  // Si fue validado directamente en el catastro del SRI, verificar estructura básica (10 o 13 dígitos numéricos)
+  if (isValidated && /^\d+$/.test(clean) && (clean.length === 10 || (clean.length === 13 && !clean.endsWith("000")))) {
+    return { isValid: true };
+  }
+  // Auto-detectar según longitud real si el usuario ingresó 10 o 13 dígitos
+  if (clean.length === 10) return validateCedulaEcuador(clean);
+  if (clean.length === 13) return validateRucEcuador(clean);
+  if (type === "CEDULA") return validateCedulaEcuador(clean);
+  if (type === "RUC") return validateRucEcuador(clean);
   return { isValid: true };
 }
 
@@ -182,10 +198,10 @@ export function validateIpv4OrCidr(input: string): ValidationResult {
 }
 
 /**
- * Valida Correo Electrónico con formato RFC
+ * Valida Correo Electrónico con formato RFC (eliminando espacios automáticamente)
  */
 export function validateEmail(email: string): ValidationResult {
-  const trimmed = email.trim();
+  const trimmed = String(email || "").replace(/\s+/g, "").trim();
   if (!trimmed) {
     return { isValid: false, error: "El correo electrónico es obligatorio para emisión de comprobantes." };
   }
