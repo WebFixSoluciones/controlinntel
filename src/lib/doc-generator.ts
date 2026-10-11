@@ -1,4 +1,4 @@
-import { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, Packer } from "docx";
+import { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer } from "docx";
 import ExcelJS from "exceljs";
 import { Client, ClientService, ArcotelPolicy } from "@/types";
 
@@ -13,6 +13,36 @@ export function triggerBrowserDownload(blob: Blob, filename: string) {
   document.body.removeChild(a);
 }
 
+async function fetchLogoPngBuffer(): Promise<ArrayBuffer | null> {
+  if (typeof window === "undefined") return null;
+  return new Promise((resolve) => {
+    try {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth || 300;
+          canvas.height = img.naturalHeight || 220;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob((blob) => {
+            if (!blob) return resolve(null);
+            blob.arrayBuffer().then(resolve).catch(() => resolve(null));
+          }, "image/png");
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = "/logo-inntel.webp";
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export async function generateAdhesionContractDocx(client: Client, service?: ClientService): Promise<Blob> {
   const dateStr = new Date().toLocaleDateString("es-EC", {
     year: "numeric",
@@ -20,10 +50,29 @@ export async function generateAdhesionContractDocx(client: Client, service?: Cli
     day: "numeric",
   });
 
+  const logoBuf = await fetchLogoPngBuffer();
+  const headerParagraphs: Paragraph[] = [];
+
+  if (logoBuf) {
+    headerParagraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            data: logoBuf,
+            transformation: { width: 110, height: 80 },
+          }),
+        ],
+        spacing: { after: 100 },
+      })
+    );
+  }
+
   const doc = new Document({
     sections: [
       {
         children: [
+          ...headerParagraphs,
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
@@ -39,7 +88,7 @@ export async function generateAdhesionContractDocx(client: Client, service?: Cli
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
-                text: "RUC: 1793211553001 | Portal Web Oficial: https://www.inntelcorp.com/",
+                text: "RUC: 1792458921001 | Portal Web Oficial: https://www.inntelcorp.com/",
                 italics: true,
                 size: 16,
                 color: "666666",
@@ -143,10 +192,29 @@ export async function generateBillingBatchExcel(charges: any[]): Promise<Blob> {
 export const generateSriBillingBatchExcel = generateBillingBatchExcel;
 
 export async function generateArcotelRenewalLetterDocx(policy: ArcotelPolicy): Promise<Blob> {
+  const logoBuf = await fetchLogoPngBuffer();
+  const headerParagraphs: Paragraph[] = [];
+
+  if (logoBuf) {
+    headerParagraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [
+          new ImageRun({
+            data: logoBuf,
+            transformation: { width: 100, height: 72 },
+          }),
+        ],
+        spacing: { after: 120 },
+      })
+    );
+  }
+
   const doc = new Document({
     sections: [
       {
         children: [
+          ...headerParagraphs,
           new Paragraph({
             alignment: AlignmentType.RIGHT,
             children: [

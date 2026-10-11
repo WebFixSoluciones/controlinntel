@@ -62,9 +62,9 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
         {/* Brand Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-xl border border-slate-200 p-1 flex items-center justify-center shadow-xs">
-              <Image src="/logo-inntel.webp" alt="INNTEL CORP" width={40} height={40} className="object-contain" />
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-16 bg-white rounded-xl border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
+              <img src="/logo-inntel.webp" alt="INNTEL CORP S.A." className="max-h-full max-w-full object-contain" />
             </div>
             <div>
               <h2 className="text-base font-black text-slate-900">INNTEL CORP S.A.</h2>

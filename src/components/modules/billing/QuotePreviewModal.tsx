@@ -116,18 +116,25 @@ export function QuotePreviewModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             {/* Lado Izquierdo */}
             <div className="space-y-4">
-              <div className="flex flex-col items-start gap-1">
-                <Image
-                  src="/logo-inntel.webp"
-                  alt="INNTEL INNOVACION EN TELECOMUNICACIONES"
-                  width={190}
-                  height={65}
-                  className="h-14 w-auto object-contain"
-                  priority
-                />
-                <span className="text-[9px] font-black tracking-widest text-[#004ac6] uppercase mt-0.5">
-                  INNOVACIÓN EN TELECOMUNICACIONES
-                </span>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-16 rounded-[6px] bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
+                  <img
+                    src="/logo-inntel.webp"
+                    alt="INNTEL CORP S.A."
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-lg font-black text-slate-900 tracking-tight">
+                    {companyConfig?.razonSocial || "INNTEL CORP S.A."}
+                  </h1>
+                  <p className="text-[11px] font-semibold text-[#004ac6]">
+                    {companyConfig?.nombreComercial || "INNTEL CORP - SOLUCIONES INTEGRALES"}
+                  </p>
+                  <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase block mt-0.5">
+                    INNOVACIÓN EN TELECOMUNICACIONES
+                  </span>
+                </div>
               </div>
 
               {/* Caja Gris Emisor */}
@@ -135,37 +142,37 @@ export function QuotePreviewModal({
                 <div>
                   <span className="text-slate-600 font-bold">Nombre comercial: </span>
                   <span className="font-semibold text-slate-900">
-                    {companyConfig?.nombreComercial || "INNTEL CORP"}
+                    {companyConfig?.nombreComercial || "INNTEL CORP - SOLUCIONES INTEGRALES"}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600 font-bold">Razón Social: </span>
                   <span className="font-semibold text-slate-900">
-                    {companyConfig?.razonSocial || "VALLE SAMPEDRO ALEXANDRA ANABEL"}
+                    {companyConfig?.razonSocial || "INNTEL CORP S.A."}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600 font-bold">RUC/CI: </span>
                   <span className="font-mono font-semibold text-slate-900">
-                    {companyConfig?.ruc || "1750599340001"}
+                    {companyConfig?.ruc || "1792458921001"}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600 font-bold">Dirección: </span>
                   <span className="font-semibold text-slate-900">
-                    {companyConfig?.direccionMatriz || "Quito"}
+                    {companyConfig?.direccionMatriz || "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito, Ecuador"}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600 font-bold">Correo: </span>
                   <span className="font-semibold text-slate-900">
-                    {companyConfig?.emailNotificaciones || "financiero@inntelcorp.com"}
+                    {companyConfig?.emailNotificaciones || "facturacion@inntelcorp.com"}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-600 font-bold">Teléfono: </span>
                   <span className="font-semibold text-slate-900">
-                    {companyConfig?.telefonoContacto || "0990262239"}
+                    {companyConfig?.telefonoContacto || "+593 2 394 5000"}
                   </span>
                 </div>
               </div>

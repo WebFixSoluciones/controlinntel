@@ -320,6 +320,13 @@ export function RidePreviewModal({
                ===================================================== */
             <div className="w-[310px] mx-auto bg-white p-5 rounded-[6px] shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full">
               <div className="text-center border-b border-dashed border-slate-400 pb-3 mb-3 space-y-0.5">
+                <div className="flex justify-center mb-1.5">
+                  <img
+                    src="/logo-inntel.webp"
+                    alt="INNTEL CORP S.A."
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
                 <p className="text-sm font-black uppercase">{emisor.nombreComercial || emisor.razonSocial}</p>
                 <p className="text-[10px] font-bold">{emisor.razonSocial}</p>
                 <p className="text-[10px]">RUC: {emisor.ruc}</p>
@@ -436,11 +443,15 @@ export function RidePreviewModal({
             <div className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-[6px] shadow-xs border border-slate-200 space-y-6 text-[12px] leading-relaxed print:shadow-none print:border-none print:p-0">
               {/* Cabecera: 2 Columnas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
-                {/* Columna Izquierda: Datos del Emisor */}
+                {/* Columna Izquierda: Logo Oficial + Datos del Emisor */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-[6px] bg-gradient-to-br from-[#004ac6] to-sky-600 flex items-center justify-center text-white shadow-md">
-                      <Building2 className="w-6 h-6" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-16 rounded-[6px] bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
+                      <img
+                        src="/logo-inntel.webp"
+                        alt="INNTEL CORP S.A."
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
                     <div>
                       <h1 className="text-xl font-black text-slate-900 tracking-tight">
@@ -449,6 +460,9 @@ export function RidePreviewModal({
                       <p className="text-[11px] font-semibold text-[#004ac6]">
                         {emisor.nombreComercial}
                       </p>
+                      <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase block mt-0.5">
+                        INNOVACIÓN EN TELECOMUNICACIONES
+                      </span>
                     </div>
                   </div>
 
