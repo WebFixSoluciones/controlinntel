@@ -451,95 +451,125 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-bold text-slate-900 block">
-                          {inv.documentNumber}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 truncate max-w-[140px] block" title={inv.claveAcceso}>
-                          Clave: {inv.claveAcceso.slice(-10)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <Calendar className="w-3 h-3 text-slate-400" />
-                          <span>{inv.date}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{inv.clientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">RUC: {inv.clientRuc}</div>
-                      </td>
-                      <td className="py-3 px-3 text-slate-600">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700">
-                          <Layers className="w-3 h-3 text-slate-400" />
-                          {inv.warehouseName}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700">
-                        ${inv.subtotal15.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
-                        ${inv.ivaTotal.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
-                        ${inv.total.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
-                            inv.status === "autorizada"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                              : inv.status === "emitida"
-                              ? "bg-sky-50 text-sky-700 border-sky-300"
-                              : "bg-slate-100 text-slate-600 border-slate-200"
-                          }`}
-                        >
-                          {inv.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenRide(inv)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
-                            title="Ver / Imprimir RIDE PDF"
+                  filteredInvoices.map((inv) => {
+                    const isNotaVenta = inv.documentType === "nota_venta";
+                    const isDraft = inv.status === "borrador";
+                    return (
+                      <tr key={inv.id} className="hover:bg-slate-50/60 transition">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-slate-900">
+                              {inv.documentNumber}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] uppercase ${
+                                isNotaVenta
+                                  ? "bg-slate-800 text-emerald-300"
+                                  : "bg-blue-50 text-[#004ac6] border border-blue-200"
+                              }`}
+                            >
+                              {isNotaVenta ? "Nota Venta" : "Factura"}
+                            </span>
+                          </div>
+                          <span
+                            className="text-[10px] font-mono text-slate-400 truncate max-w-[160px] block"
+                            title={inv.claveAcceso}
                           >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDownloadXmlDirect(inv)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                            title="Descargar XML SRI Firmado"
+                            {isNotaVenta
+                              ? "Recibo Control Interno"
+                              : isDraft
+                              ? "Borrador Pendiente"
+                              : `Clave: ${(inv.claveAcceso || "").slice(-10)}`}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <span>{inv.date}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-slate-900">{inv.clientName}</div>
+                          <div className="text-[10px] font-mono text-slate-500">RUC: {inv.clientRuc}</div>
+                        </td>
+                        <td className="py-3 px-3 text-slate-600">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700">
+                            <Layers className="w-3 h-3 text-slate-400" />
+                            {inv.warehouseName}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-slate-700">
+                          ${inv.subtotal15.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
+                          ${inv.ivaTotal.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
+                          ${inv.total.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
+                              inv.status === "autorizada" || inv.status === "registrado"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                : inv.status === "anulada"
+                                ? "bg-rose-50 text-rose-700 border-rose-300"
+                                : inv.status === "emitida"
+                                ? "bg-sky-50 text-sky-700 border-sky-300"
+                                : "bg-slate-100 text-slate-600 border-slate-200"
+                            }`}
                           >
-                            <FileCode className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleConsultarSri(inv.claveAcceso, inv.documentNumber)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
-                            title="Consultar Estado en SRI"
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEmitNcFromInvoice(inv)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Emitir Nota de Crédito"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEmitRemissionFromInvoice(inv)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                            title="Emitir Guía de Remisión"
-                          >
-                            <Truck className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            {isNotaVenta && inv.status === "autorizada"
+                              ? "REGISTRADO"
+                              : inv.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenRide(inv)}
+                              className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                              title={isNotaVenta ? "Ver / Imprimir Nota de Venta" : "Ver / Imprimir RIDE PDF"}
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                            {!isNotaVenta && !isDraft && (
+                              <>
+                                <button
+                                  onClick={() => handleDownloadXmlDirect(inv)}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                  title="Descargar XML SRI Firmado"
+                                >
+                                  <FileCode className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleConsultarSri(inv.claveAcceso, inv.documentNumber)}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                                  title="Consultar Estado en SRI"
+                                >
+                                  <ShieldCheck className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEmitNcFromInvoice(inv)}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                  title="Emitir Nota de Crédito"
+                                >
+                                  <RotateCcw className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEmitRemissionFromInvoice(inv)}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                  title="Emitir Guía de Remisión"
+                                >
+                                  <Truck className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

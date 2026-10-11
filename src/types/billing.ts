@@ -41,6 +41,7 @@ export interface SriCompanyConfig {
 
   // Control de Secuencias de Comprobantes SRI
   secuencialFactura?: number;
+  secuencialNotaVenta?: number;
   secuencialNotaCredito?: number;
   secuencialNotaDebito?: number;
   secuencialRetencion?: number;
@@ -87,6 +88,8 @@ export interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   discount: number;      // Valor en dólares de descuento
+  discountType?: "percentage" | "amount" | "no_iva";
+  discountInput?: number;
   ivaRate: number;       // 15, 0, 5
   subtotal: number;      // (unitPrice * quantity) - discount
   ivaAmount: number;     // subtotal * (ivaRate / 100)
@@ -97,8 +100,9 @@ export interface InvoiceItem {
 
 export interface SriInvoice {
   id: string;
+  documentType?: "factura" | "nota_venta";
   documentNumber: string; // ej. "001-001-000000045"
-  claveAcceso: string;    // 49 dígitos oficiales del SRI
+  claveAcceso: string;    // 49 dígitos oficiales del SRI (vacío o "NO_APLICA_SRI" si es nota_venta)
   date: string;           // YYYY-MM-DD
   time?: string;
   clientId: string;
@@ -120,10 +124,21 @@ export interface SriInvoice {
   total: number;
 
   paymentMethod: "efectivo" | "transferencia" | "tarjeta" | "credito";
+  paymentsBreakdown?: {
+    efectivo: number;
+    transferencia: number;
+    tarjeta: number;
+    credito: number;
+  };
+  transferenciaRef?: string;
+  tarjetaRef?: string;
+  bankAccountId?: string;
+  creditDueDate?: string;
+  orderNumber?: string;
   sriPaymentCode?: string; // "01", "19", "20"
   paymentTermDays?: number;
 
-  status: "borrador" | "emitida" | "autorizada" | "anulada";
+  status: "borrador" | "emitida" | "autorizada" | "anulada" | "registrado";
   authorizationDate?: string;
 
   warehouseId: string;

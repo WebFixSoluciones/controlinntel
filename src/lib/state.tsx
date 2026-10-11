@@ -244,7 +244,7 @@ interface AppContextType {
   inventoryTransfers: WarehouseTransfer[];
   inventoryAdjustments: InventoryAdjustment[];
 
-  addInventoryProduct: (product: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  addInventoryProduct: (product: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">) => Promise<InventoryProduct>;
   updateInventoryProduct: (id: string, updates: Partial<InventoryProduct>) => Promise<void>;
   deleteInventoryProduct: (id: string) => Promise<void>;
 
@@ -1838,7 +1838,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // INVENTORY MODULE METHODS
   // ==========================================
 
-  const addInventoryProduct = async (productData: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">) => {
+  const addInventoryProduct = async (productData: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">): Promise<InventoryProduct> => {
     const id = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const now = new Date().toISOString();
     const salePriceConIva = calculatePriceWithTax(productData.salePrice, productData.ivaRate);
@@ -1883,6 +1883,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     addAuditLog("CREATE_EXPENSE", `Producto Creado: ${newProduct.name}`, `SKU: ${newProduct.sku} | Stock: ${newProduct.stock}`);
+    return newProduct;
   };
 
   const updateInventoryProduct = async (id: string, updates: Partial<InventoryProduct>) => {
@@ -2200,30 +2201,53 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const now = new Date().toISOString();
     const invoiceId = `inv-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
+    const docType = data.documentType || "factura";
+    const isDraft = data.status === "borrador";
 
-    const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-    const maxSec = billingInvoices.reduce((max, inv) => {
-      const parts = (inv.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    const secuencial = data.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
-    const documentNumber = formatearSecuencialSRI(
-      secuencial,
-      sriCompanyConfig.establecimiento,
-      sriCompanyConfig.puntoEmision
-    );
+    const estab = sriCompanyConfig.establecimiento || "010";
+    const pto = sriCompanyConfig.puntoEmision || "001";
 
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "01",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: sriCompanyConfig.establecimiento,
-      puntoEmision: sriCompanyConfig.puntoEmision,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-    });
+    let documentNumber = "";
+    let claveAcceso = "";
+
+    if (isDraft) {
+      documentNumber = `BORRADOR-${String(Date.now()).slice(-4)}`;
+      claveAcceso = "BORRADOR_PENDIENTE";
+    } else if (docType === "nota_venta") {
+      const startFromNotaVenta = (sriCompanyConfig.secuencialNotaVenta || 1) - 1;
+      const maxSecNota = billingInvoices
+        .filter((inv) => inv.documentType === "nota_venta" && inv.status !== "borrador")
+        .reduce((max, inv) => {
+          const parts = (inv.documentNumber || "").split("-");
+          const num = parseInt(parts[2] || "0", 10);
+          return !isNaN(num) && num > max ? num : max;
+        }, 0);
+      const secuencial = data.customSecuencial || (Math.max(maxSecNota, startFromNotaVenta) + 1);
+      documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
+      claveAcceso = "";
+    } else {
+      const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
+      const maxSec = billingInvoices
+        .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
+        .reduce((max, inv) => {
+          const parts = (inv.documentNumber || "").split("-");
+          const num = parseInt(parts[2] || "0", 10);
+          return !isNaN(num) && num > max ? num : max;
+        }, 0);
+      const secuencial = data.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
+      documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
+
+      claveAcceso = generarClaveAccesoSRI({
+        fechaEmision: dateStr,
+        tipoComprobante: "01",
+        ruc: sriCompanyConfig.ruc,
+        ambiente: sriCompanyConfig.ambiente,
+        establecimiento: estab,
+        puntoEmision: pto,
+        secuencial,
+        codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+      });
+    }
 
     const wh = inventoryWarehouses.find((w) => w.id === data.warehouseId) || inventoryWarehouses[0];
     const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
@@ -2232,49 +2256,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const kardexEntries: KardexEntry[] = [];
     const updatedProductsMap = new Map<string, InventoryProduct>();
 
-    for (const item of data.items) {
-      if (!item.productId) continue;
-      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-      if (!product || !product.tracksStock) continue;
+    if (!isDraft) {
+      for (const item of data.items) {
+        if (!item.productId) continue;
+        const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+        if (!product || !product.tracksStock) continue;
 
-      const qty = Math.abs(item.quantity);
-      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-      const newWhStock = Math.max(0, currentWhStock - qty);
+        const qty = Math.abs(item.quantity);
+        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+        const newWhStock = Math.max(0, currentWhStock - qty);
 
-      const kdx = buildKardexEntry({
-        product,
-        warehouse: wh || { id: warehouseId, name: warehouseName },
-        type: "SALE",
-        referenceId: invoiceId,
-        referenceDocNumber: documentNumber,
-        concept: `Venta Factura ${documentNumber} - Cliente: ${data.clientName}`,
-        quantity: qty,
-        unitCost: product.baseCost,
-        currentStock: currentWhStock,
-        currentAvgCost: product.baseCost,
-        userName: currentUser.displayName,
-      });
+        const kdx = buildKardexEntry({
+          product,
+          warehouse: wh || { id: warehouseId, name: warehouseName },
+          type: "SALE",
+          referenceId: invoiceId,
+          referenceDocNumber: documentNumber,
+          concept: `Venta ${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${documentNumber} - Cliente: ${data.clientName}`,
+          quantity: qty,
+          unitCost: product.baseCost,
+          currentStock: currentWhStock,
+          currentAvgCost: product.baseCost,
+          userName: currentUser.displayName,
+        });
 
-      kardexEntries.push(kdx);
+        kardexEntries.push(kdx);
 
-      const updatedStockByWh = {
-        ...(product.stockByWarehouse || {}),
-        [warehouseId]: newWhStock,
-      };
-      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+        const updatedStockByWh = {
+          ...(product.stockByWarehouse || {}),
+          [warehouseId]: newWhStock,
+        };
+        const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
 
-      const updatedProd: InventoryProduct = {
-        ...product,
-        stockByWarehouse: updatedStockByWh,
-        stock: totalStock,
-        updatedAt: now,
-      };
+        const updatedProd: InventoryProduct = {
+          ...product,
+          stockByWarehouse: updatedStockByWh,
+          stock: totalStock,
+          updatedAt: now,
+        };
 
-      updatedProductsMap.set(product.id, updatedProd);
+        updatedProductsMap.set(product.id, updatedProd);
+      }
     }
 
     const newInvoice: SriInvoice = {
       ...data,
+      documentType: docType,
       id: invoiceId,
       documentNumber,
       claveAcceso,
@@ -2298,7 +2325,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    addAuditLog("CREATE_CLIENT", `Factura Emitida: ${documentNumber}`, `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`);
+    // Sincronización financiera y cuentas por cobrar cuando no es borrador
+    if (!isDraft) {
+      const breakdown = data.paymentsBreakdown;
+      const paidImmediate = breakdown
+        ? Math.min(
+            data.total,
+            (Number(breakdown.efectivo) || 0) +
+              (Number(breakdown.transferencia) || 0) +
+              (Number(breakdown.tarjeta) || 0)
+          )
+        : data.paymentMethod !== "credito"
+        ? data.total
+        : 0;
+
+      const creditPart = breakdown
+        ? Number(breakdown.credito) || 0
+        : data.paymentMethod === "credito"
+        ? data.total
+        : 0;
+
+      if (paidImmediate > 0) {
+        const targetBank =
+          bankAccounts.find((b) => b.id === data.bankAccountId) || bankAccounts[0];
+        if (targetBank) {
+          const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+          const movement: FinancialMovement = {
+            id: movId,
+            type: "ingreso",
+            date: dateStr,
+            amount: Math.round(paidImmediate * 100) / 100,
+            category: "venta_equipos",
+            description: `Cobro ${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${documentNumber} - ${data.clientName}`,
+            bankAccountId: targetBank.id,
+            bankAccountName: targetBank.bankName,
+            paymentMethod:
+              data.paymentMethod === "credito" ? "efectivo" : data.paymentMethod,
+            referenceNumber: data.transferenciaRef || data.tarjetaRef || documentNumber,
+            relatedEntityId: invoiceId,
+            createdAt: now,
+          };
+          setFinancialMovements((prev) => [movement, ...prev]);
+          syncToFirestore("financialMovements", movId, movement);
+
+          const newBal = Math.round((targetBank.currentBalance + paidImmediate) * 100) / 100;
+          setBankAccounts((prev) =>
+            prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBal } : b))
+          );
+          syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBal });
+        }
+      }
+
+      if (creditPart > 0 && data.clientId && data.clientId !== "cf-9999999999999") {
+        const clientObj = clients.find((c) => c.id === data.clientId);
+        if (clientObj) {
+          const newClientBal = Math.round(((clientObj.currentBalance || 0) + creditPart) * 100) / 100;
+          setClients((prev) =>
+            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newClientBal } : c))
+          );
+          syncToFirestore("clients", clientObj.id, { currentBalance: newClientBal });
+        }
+      }
+    }
+
+    addAuditLog(
+      "CREATE_CLIENT",
+      `${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${isDraft ? "(Borrador)" : "Emitida"}: ${documentNumber}`,
+      `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`
+    );
 
     return newInvoice;
   };
@@ -2311,15 +2405,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const inv = billingInvoices.find((i) => i.id === id);
     if (!inv) return;
 
+    const now = new Date().toISOString();
+
+    // Si pasa a "anulada" y tenía kardex registrado, reversamos el stock
+    if (status === "anulada" && inv.status !== "anulada" && inv.kardexRegistered) {
+      const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
+      const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
+      const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
+      const kardexEntries: KardexEntry[] = [];
+      const updatedProductsMap = new Map<string, InventoryProduct>();
+
+      for (const item of inv.items) {
+        if (!item.productId) continue;
+        const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+        if (!product || !product.tracksStock) continue;
+
+        const qty = Math.abs(item.quantity);
+        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+        const newWhStock = currentWhStock + qty;
+
+        const kdx = buildKardexEntry({
+          product,
+          warehouse: wh || { id: warehouseId, name: warehouseName },
+          type: "CUSTOMER_RETURN",
+          referenceId: inv.id,
+          referenceDocNumber: inv.documentNumber,
+          concept: `Anulación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
+          quantity: qty,
+          unitCost: product.baseCost,
+          currentStock: currentWhStock,
+          currentAvgCost: product.baseCost,
+          userName: currentUser.displayName,
+        });
+
+        kardexEntries.push(kdx);
+
+        const updatedStockByWh = {
+          ...(product.stockByWarehouse || {}),
+          [warehouseId]: newWhStock,
+        };
+        const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+        updatedProductsMap.set(product.id, {
+          ...product,
+          stockByWarehouse: updatedStockByWh,
+          stock: totalStock,
+          updatedAt: now,
+        });
+      }
+
+      if (kardexEntries.length > 0) {
+        await Promise.all([
+          ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+          ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+        ]);
+        setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+        setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
+      }
+    }
+
     const updated: SriInvoice = {
       ...inv,
       status,
-      authorizationDate: authorizationDate || (status === "autorizada" ? new Date().toISOString() : inv.authorizationDate),
+      authorizationDate: authorizationDate || (status === "autorizada" ? now : inv.authorizationDate),
     };
 
     await syncToFirestore("billingInvoices", id, updated);
     setBillingInvoices((prev) => prev.map((i) => (i.id === id ? updated : i)));
-    addAuditLog("UPDATE_CLIENT", `Estado Factura ${inv.documentNumber}`, `Nuevo estado: ${status}`);
+    addAuditLog("UPDATE_CLIENT", `Estado Documento ${inv.documentNumber}`, `Nuevo estado: ${status}`);
   };
 
   const createBillingQuote = async (

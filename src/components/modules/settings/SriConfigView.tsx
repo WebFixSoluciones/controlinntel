@@ -56,6 +56,7 @@ export function SriConfigView() {
     certificadoTamano: sriCompanyConfig?.certificadoTamano,
     certificadoFechaCarga: sriCompanyConfig?.certificadoFechaCarga,
     secuencialFactura: sriCompanyConfig?.secuencialFactura ?? 1,
+    secuencialNotaVenta: sriCompanyConfig?.secuencialNotaVenta ?? 1,
     secuencialNotaCredito: sriCompanyConfig?.secuencialNotaCredito ?? 1,
     secuencialNotaDebito: sriCompanyConfig?.secuencialNotaDebito ?? 1,
     secuencialRetencion: sriCompanyConfig?.secuencialRetencion ?? 1,
@@ -146,6 +147,7 @@ export function SriConfigView() {
         establecimiento: finalEstablecimiento,
         puntoEmision: finalPuntoEmision,
         secuencialFactura: Math.max(1, Number(form.secuencialFactura) || 1),
+        secuencialNotaVenta: Math.max(1, Number(form.secuencialNotaVenta) || 1),
         secuencialNotaCredito: Math.max(1, Number(form.secuencialNotaCredito) || 1),
         secuencialNotaDebito: Math.max(1, Number(form.secuencialNotaDebito) || 1),
         secuencialRetencion: Math.max(1, Number(form.secuencialRetencion) || 1),
@@ -535,6 +537,24 @@ export function SriConfigView() {
                 </td>
                 <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialFactura || 1, form.establecimiento || "010", form.puntoEmision || "001")}
+                </td>
+              </tr>
+
+              {/* Notas de Venta (Recibo Interno) */}
+              <tr className="hover:bg-slate-50/50">
+                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Venta (Recibo Interno)</td>
+                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">NV</td>
+                <td className="py-1.5 px-3">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.secuencialNotaVenta ?? 1}
+                    onChange={(e) => setForm({ ...form, secuencialNotaVenta: Math.max(1, parseInt(e.target.value) || 1) })}
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                  />
+                </td>
+                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-700">
+                  {formatearSecuencialSRI(form.secuencialNotaVenta || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
