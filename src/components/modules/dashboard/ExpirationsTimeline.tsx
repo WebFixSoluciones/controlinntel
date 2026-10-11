@@ -147,10 +147,10 @@ export function ExpirationsTimeline() {
           </Link>
         ) : (
           <Link
-            href="/arcotel"
+            href="/clientes"
             className="text-xs font-bold text-[#004ac6] hover:text-[#2563eb] inline-flex items-center gap-1"
           >
-            <span>Ver todas las pólizas ARCOTEL</span>
+            <span>Gestionar ARCOTEL en Ficha de Clientes</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         )}

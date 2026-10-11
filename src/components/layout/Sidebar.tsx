@@ -112,7 +112,6 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/red", label: "Nodos / Red", icon: Radio, moduleKey: "red" },
-  { href: "/arcotel", label: "ARCOTEL", icon: ShieldCheck, moduleKey: "arcotel" },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },

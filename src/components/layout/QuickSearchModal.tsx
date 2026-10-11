@@ -123,7 +123,7 @@ export function QuickSearchModal() {
                 {filteredPolicies.map((p) => (
                   <Link
                     key={p.id}
-                    href="/arcotel"
+                    href={p.clientId ? `/clientes?id=${p.clientId}` : "/clientes"}
                     onClick={() => setIsSearchOpen(false)}
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
