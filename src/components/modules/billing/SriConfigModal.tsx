@@ -378,7 +378,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
-                <span className="font-bold text-slate-800 block text-[11px]">Facturas (01)</span>
+                <span className="font-bold text-slate-800 block text-[11px]">Facturas</span>
                 <input
                   type="number"
                   min="1"
@@ -392,7 +392,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               </div>
 
               <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
-                <span className="font-bold text-slate-800 block text-[11px]">Notas de Crédito (04)</span>
+                <span className="font-bold text-slate-800 block text-[11px]">Notas de Crédito</span>
                 <input
                   type="number"
                   min="1"
@@ -406,7 +406,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               </div>
 
               <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
-                <span className="font-bold text-slate-800 block text-[11px]">Retenciones (07)</span>
+                <span className="font-bold text-slate-800 block text-[11px]">Retenciones</span>
                 <input
                   type="number"
                   min="1"
@@ -441,8 +441,8 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 onChange={(e) => setForm({ ...form, ambiente: e.target.value as any })}
                 className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
               >
-                <option value="1">1 - Pruebas / Homologación SRI</option>
-                <option value="2">2 - Producción Oficial SRI</option>
+                <option value="1">Pruebas / Homologación SRI</option>
+                <option value="2">Producción Oficial SRI</option>
               </select>
             </div>
 

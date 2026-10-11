@@ -218,7 +218,7 @@ export function SriConfigView() {
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Pruebas (1)
+              Pruebas
             </button>
             <button
               type="button"
@@ -229,7 +229,7 @@ export function SriConfigView() {
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Producción (2)
+              Producción
             </button>
           </div>
 
