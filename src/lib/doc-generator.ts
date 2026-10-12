@@ -1,5 +1,3 @@
-import { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer } from "docx";
-import ExcelJS from "exceljs";
 import { Client, ClientService, ArcotelPolicy } from "@/types";
 
 export function triggerBrowserDownload(blob: Blob, filename: string) {
@@ -44,6 +42,8 @@ async function fetchLogoPngBuffer(): Promise<ArrayBuffer | null> {
 }
 
 export async function generateAdhesionContractDocx(client: Client, service?: ClientService): Promise<Blob> {
+  const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer } = await import("docx");
+
   const dateStr = new Date().toLocaleDateString("es-EC", {
     year: "numeric",
     month: "long",
@@ -51,7 +51,7 @@ export async function generateAdhesionContractDocx(client: Client, service?: Cli
   });
 
   const logoBuf = await fetchLogoPngBuffer();
-  const headerParagraphs: Paragraph[] = [];
+  const headerParagraphs: any[] = [];
 
   if (logoBuf) {
     headerParagraphs.push(
@@ -144,6 +144,7 @@ export async function generateAdhesionContractDocx(client: Client, service?: Cli
 }
 
 export async function generateSaiInfraExcel(nodes: any[]): Promise<Blob> {
+  const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Infraestructura SAI ARCOTEL");
 
@@ -161,6 +162,7 @@ export async function generateSaiInfraExcel(nodes: any[]): Promise<Blob> {
 }
 
 export async function generateBillingBatchExcel(charges: any[]): Promise<Blob> {
+  const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Lote Cobranzas y Pre-Facturas");
 
@@ -192,8 +194,9 @@ export async function generateBillingBatchExcel(charges: any[]): Promise<Blob> {
 export const generateSriBillingBatchExcel = generateBillingBatchExcel;
 
 export async function generateArcotelRenewalLetterDocx(policy: ArcotelPolicy): Promise<Blob> {
+  const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer } = await import("docx");
   const logoBuf = await fetchLogoPngBuffer();
-  const headerParagraphs: Paragraph[] = [];
+  const headerParagraphs: any[] = [];
 
   if (logoBuf) {
     headerParagraphs.push(

@@ -77,6 +77,8 @@ export function ClientNodeModal({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (Object.keys(revealedPasswords).length === 0) return;
+
     const timer = setInterval(() => {
       setRevealedPasswords((prev) => {
         const next: Record<string, number> = {};
@@ -93,7 +95,7 @@ export function ClientNodeModal({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [revealedPasswords]);
 
   const handleRevealPasswordFor20s = (serviceId: string) => {
     setRevealedPasswords((prev) => ({

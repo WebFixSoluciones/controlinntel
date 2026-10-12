@@ -1309,11 +1309,15 @@ function mapearRespuestaCipherByte(
   };
 }
 
+// Caché en memoria para evitar peticiones repetidas al SRI desde el cliente
+const sriRucMemoryCache = new Map<string, SriRucLookupResult>();
+
 /**
  * Consulta REAL de RUC / Cédula desde las fuentes del SRI de Ecuador.
  * 1) Elimina todos los espacios de la identificación.
- * 2) Consulta a través del proxy del servidor (/api/sri?action=consultar_ruc).
- * 3) Si el proxy local no responde, utiliza proxies CORS hacia CipherByte y SRI En Línea.
+ * 2) Retorna de caché en memoria si ya fue consultado.
+ * 3) Consulta a través del proxy del servidor (/api/sri?action=consultar_ruc).
+ * 4) Si el proxy local no responde, utiliza proxies CORS hacia CipherByte y SRI En Línea.
  */
 export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResult> {
   const clean = limpiarIdentificacion(rucOrCi);
@@ -1336,6 +1340,11 @@ export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResu
     throw new Error(`El RUC de 13 dígitos ${clean} no puede terminar en 000.`);
   }
 
+  // Verificar si ya existe en la caché en memoria del cliente
+  if (sriRucMemoryCache.has(clean)) {
+    return sriRucMemoryCache.get(clean)!;
+  }
+
   const rucParaConsulta = clean.length === 10 ? `${clean}001` : clean;
   const errores: string[] = [];
 
@@ -1343,12 +1352,13 @@ export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResu
   try {
     const res = await fetch(`/api/sri?action=consultar_ruc&ruc=${clean}`, {
       method: "GET",
-      cache: "no-store",
     });
     if (res.ok) {
       const json = await res.json();
       if (json?.success && json?.data) {
-        return mapearRespuestaCipherByte(json.data, clean, rucParaConsulta);
+        const result = mapearRespuestaCipherByte(json.data, clean, rucParaConsulta);
+        sriRucMemoryCache.set(clean, result);
+        return result;
       }
     } else if (res.status === 404) {
       const errJson = await res.json().catch(() => null);
@@ -1365,7 +1375,9 @@ export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResu
     const text = await response.text();
     const apiData = JSON.parse(text);
     if (apiData && (apiData.razonSocial || apiData.numeroRuc)) {
-      return mapearRespuestaCipherByte(apiData, clean, rucParaConsulta);
+      const result = mapearRespuestaCipherByte(apiData, clean, rucParaConsulta);
+      sriRucMemoryCache.set(clean, result);
+      return result;
     }
   } catch (err: any) {
     if (err?.message?.includes("RUC no encontrado")) {
@@ -1384,7 +1396,9 @@ export async function consultarRucSri(rucOrCi: string): Promise<SriRucLookupResu
     const sriParsed = JSON.parse(sriText);
     const sriData = Array.isArray(sriParsed) ? sriParsed[0] : sriParsed;
     if (sriData && (sriData.razonSocial || sriData.nombreComercial)) {
-      return mapearRespuestaCipherByte(sriData, clean, rucParaConsulta);
+      const result = mapearRespuestaCipherByte(sriData, clean, rucParaConsulta);
+      sriRucMemoryCache.set(clean, result);
+      return result;
     }
   } catch (err2: any) {
     errores.push(`SRI Directo: ${err2?.message || "Error"}`);

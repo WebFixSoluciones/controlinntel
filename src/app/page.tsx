@@ -6,12 +6,24 @@ import { useApp } from "@/lib/state";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
+import dynamic from "next/dynamic";
 import { MetricsCards } from "@/components/modules/dashboard/MetricsCards";
-import { FinancialChart } from "@/components/modules/dashboard/FinancialChart";
 import { ExpirationsTimeline } from "@/components/modules/dashboard/ExpirationsTimeline";
 import { TicketsRecientesCard } from "@/components/modules/dashboard/RecentActivity";
 import { ClientModal } from "@/components/modules/clients/ClientModal";
 import { Receipt, UserPlus, PackagePlus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+
+const FinancialChart = dynamic(
+  () => import("@/components/modules/dashboard/FinancialChart").then((m) => m.FinancialChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] h-[340px] flex items-center justify-center animate-pulse">
+        <div className="h-6 w-48 bg-slate-100 rounded-md" />
+      </div>
+    ),
+  }
+);
 
 export default function DashboardPage() {
   const { currentUser } = useApp();

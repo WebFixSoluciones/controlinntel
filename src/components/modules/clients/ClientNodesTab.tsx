@@ -38,6 +38,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    if (Object.keys(revealedPasswords).length === 0) return;
+
     const timer = setInterval(() => {
       setRevealedPasswords((prev) => {
         const next: Record<string, number> = {};
@@ -54,7 +56,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [revealedPasswords]);
 
   const handleRevealPasswordFor20s = (serviceId: string) => {
     setRevealedPasswords((prev) => ({

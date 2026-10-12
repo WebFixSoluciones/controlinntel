@@ -3,10 +3,9 @@ import { SRI_WS_URLS, validarClaveAccesoSRI } from "@/lib/sri-service";
 import { SriEnvironment } from "@/types";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 /**
- * Endpoint para Test de Conectividad con el SRI
+ * Endpoint para Test de Conectividad con el SRI y Consulta RUC
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -59,7 +58,11 @@ export async function GET(request: NextRequest) {
               rucConsultado: rucParaConsulta,
               data: apiData,
             },
-            { headers: { "Cache-Control": "no-store" } }
+            {
+              headers: {
+                "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+              },
+            }
           );
         }
       } else if (resCb.status === 404) {
@@ -126,7 +129,11 @@ export async function GET(request: NextRequest) {
                 establecimientos,
               },
             },
-            { headers: { "Cache-Control": "no-store" } }
+            {
+              headers: {
+                "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+              },
+            }
           );
         }
       } else {
@@ -187,7 +194,9 @@ export async function GET(request: NextRequest) {
         message: `Servidores del SRI (${ambiente === "2" ? "Producción" : "Pruebas"}) en línea y listos para facturación electrónica.`,
       },
       {
-        headers: { "Cache-Control": "no-store" },
+        headers: {
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+        },
       }
     );
   }

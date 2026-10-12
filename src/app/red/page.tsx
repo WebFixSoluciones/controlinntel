@@ -42,6 +42,8 @@ export default function RedPage() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, number>>({});
 
   useEffect(() => {
+    if (Object.keys(revealedPasswords).length === 0) return;
+
     const timer = setInterval(() => {
       setRevealedPasswords((prev) => {
         const next: Record<string, number> = {};
@@ -58,7 +60,7 @@ export default function RedPage() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [revealedPasswords]);
 
   const handleRevealPasswordFor20s = (serviceId: string) => {
     setRevealedPasswords((prev) => ({

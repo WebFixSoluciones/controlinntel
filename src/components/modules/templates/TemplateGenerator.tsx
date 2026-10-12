@@ -81,6 +81,7 @@ export function TemplateGenerator() {
 
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState<CustomTemplate["category"]>("Contratos");
   const [newDescription, setNewDescription] = useState("");
@@ -172,7 +173,7 @@ export function TemplateGenerator() {
     }
   };
 
-  const handleFileUpload = (e: React.FormEvent) => {
+  const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
       showError("Nombre Requerido", "Ingresa el nombre descriptivo de la plantilla.");
@@ -183,10 +184,24 @@ export function TemplateGenerator() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = typeof reader.result === "string" ? reader.result : "";
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("folder", "templates");
+
+      const res = await fetch("/api/blob/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Error en el servidor al subir el archivo.");
+      }
+
+      const data = await res.json();
       const sizeKb = Math.round(selectedFile.size / 1024);
+
       const newTmpl: CustomTemplate = {
         id: "tmpl-" + Date.now(),
         name: newName.trim(),
@@ -195,30 +210,43 @@ export function TemplateGenerator() {
         fileName: selectedFile.name,
         fileSize: sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`,
         fileType: selectedFile.type || "application/octet-stream",
-        fileData: base64,
+        fileData: data.url || data.downloadUrl,
         uploadedAt: new Date().toISOString().split("T")[0],
         uploadedBy: currentUser.displayName || "Administrador",
       };
 
       saveCustomTemplates([newTmpl, ...customTemplates]);
-      showSuccess("Archivo Subido", `La plantilla "${newTmpl.name}" ha sido agregada al repositorio.`);
+      showSuccess("Archivo Subido", `La plantilla "${newTmpl.name}" ha sido agregada con éxito.`);
       setIsUploadModalOpen(false);
       setNewName("");
       setNewDescription("");
       setSelectedFile(null);
-    };
-
-    reader.readAsDataURL(selectedFile);
+    } catch (err: any) {
+      showError("Error al Subir", err?.message || "No se pudo cargar el archivo.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDownloadCustom = (tmpl: CustomTemplate) => {
     if (tmpl.fileData) {
-      const link = document.createElement("a");
-      link.href = tmpl.fileData;
-      link.download = tmpl.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (tmpl.fileData.startsWith("http")) {
+        const link = document.createElement("a");
+        link.href = tmpl.fileData;
+        link.download = tmpl.fileName;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        const link = document.createElement("a");
+        link.href = tmpl.fileData;
+        link.download = tmpl.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
       showSuccess("Descargando", `Se ha iniciado la descarga de ${tmpl.fileName}.`);
     } else {
       // Fallback mock text file if data missing
@@ -228,7 +256,13 @@ export function TemplateGenerator() {
     }
   };
 
-  const handleDeleteCustom = (id: string, name: string) => {
+  const handleDeleteCustom = async (id: string, name: string) => {
+    const tmplToDelete = customTemplates.find((t) => t.id === id);
+    if (tmplToDelete?.fileData?.startsWith("https://")) {
+      fetch(`/api/blob/upload?url=${encodeURIComponent(tmplToDelete.fileData)}`, {
+        method: "DELETE",
+      }).catch(() => null);
+    }
     const updated = customTemplates.filter((t) => t.id !== id);
     saveCustomTemplates(updated);
     showSuccess("Archivo Eliminado", `Se ha removido "${name}" del repositorio.`);
@@ -493,10 +527,11 @@ export function TemplateGenerator() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  disabled={isUploading}
+                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[6px] font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
-                  <Upload className="w-4 h-4" />
-                  <span>Subir Archivo</span>
+                  <Upload className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`} />
+                  <span>{isUploading ? "Subiendo a Blob..." : "Subir Archivo"}</span>
                 </button>
               </div>
             </form>
