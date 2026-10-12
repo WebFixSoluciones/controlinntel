@@ -383,98 +383,106 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("concesion")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Título Habilitante & Concesión ARCOTEL"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "concesion"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>Título Habilitante & Concesión</span>
+          <span>Concesión</span>
         </button>
 
         <button
           onClick={() => setActiveTab("sietel")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="SIETEL - Archivos Periódicos ARCOTEL"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "sietel"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
-          <span>SIETEL (Archivos Periódicos)</span>
+          <span>SIETEL</span>
         </button>
 
         <button
           onClick={() => setActiveTab("fodetel")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="FODETEL - Aporte Trimestral"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "fodetel"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>FODETEL (Trimestral)</span>
+          <span>FODETEL</span>
         </button>
 
         <button
           onClick={() => setActiveTab("contingencia")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Plan de Contingencia Anual de Red"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "contingencia"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Plan de Contingencia (Anual)</span>
+          <span>Contingencia</span>
         </button>
 
         <button
           onClick={() => setActiveTab("bdh")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Sistema BDH - Bono de Desarrollo Humano"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "bdh"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <Database className="w-3.5 h-3.5" />
-          <span>Sistema BDH</span>
+          <span>BDH</span>
         </button>
 
         <button
           onClick={() => setActiveTab("infraestructura")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Registro de Infraestructura SAI"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "infraestructura"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>Registro de Infraestructura</span>
+          <span>Infraestructura</span>
         </button>
 
         <button
           onClick={() => setActiveTab("transformador")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Reportería y Transformador de Formatos SIETEL"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "transformador"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reportería & Transformador</span>
+          <span>Transformador</span>
         </button>
 
         <button
           onClick={() => setActiveTab("polizas")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+          title="Pólizas Regulatorias ARCOTEL"
+          className={`flex items-center gap-2 px-3 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === "polizas"
               ? "bg-[#004ac6] text-white shadow-xs"
               : "bg-white text-[#434655] hover:bg-[#f8f9ff] border border-[#e2e8f0]"
           }`}
         >
           <FileCheck className="w-3.5 h-3.5" />
-          <span>Pólizas Regulatorias</span>
+          <span>Pólizas</span>
         </button>
       </div>
 
@@ -672,63 +680,69 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
           <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2 overflow-x-auto">
             <button
               onClick={() => setSietelSubTab("sietel_lopam")}
+              title="LOPAM - Frecuencia Semanal"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_lopam"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              LOPAM (Semanal)
+              LOPAM
             </button>
             <button
               onClick={() => setSietelSubTab("sietel_tarifas")}
+              title="Tarifas - Frecuencia Mensual"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_tarifas"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Tarifas (Mensual)
+              Tarifas
             </button>
             <button
               onClick={() => setSietelSubTab("sietel_usuarios")}
+              title="Usuarios - Frecuencia Mensual"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_usuarios"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Usuarios (Mensual)
+              Usuarios
             </button>
             <button
               onClick={() => setSietelSubTab("sietel_calidad")}
+              title="Calidad QoS - Frecuencia Mensual"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_calidad"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Calidad QoS (Mensual)
+              Calidad QoS
             </button>
             <button
               onClick={() => setSietelSubTab("sietel_encuestas")}
+              title="Encuestas - Frecuencia Semestral"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_encuestas"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Encuestas (Semestral)
+              Encuestas
             </button>
             <button
               onClick={() => setSietelSubTab("sietel_capacidades")}
+              title="Capacidades - Frecuencia Mensual"
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 sietelSubTab === "sietel_capacidades"
                   ? "bg-[#004ac6] text-white shadow-2xs"
                   : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
               }`}
             >
-              Capacidades (Mensual)
+              Capacidades
             </button>
           </div>
 
