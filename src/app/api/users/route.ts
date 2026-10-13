@@ -3,6 +3,7 @@ import {z} from "zod";
 import {actor,requirePermission,HttpError,audit} from "@/lib/server/security";
 import {adminServices} from "@/lib/server/admin";
 export const runtime="nodejs";
+export const dynamic="force-dynamic";
 const roles=z.enum(["superadmin","admin","finanzas","tecnico","soporte","legal","consulta"]);
 const permissions=z.array(z.enum(["all","manage_users","manage_vault","manage_clients","manage_network","manage_tickets","manage_finance","manage_policies","export_reports"]));
 const profile=z.object({email:z.string().email(),displayName:z.string().min(3).max(150),role:roles,status:z.enum(["activo","inactivo"]),permissions,department:z.string().max(200).optional(),phone:z.string().max(50).optional()});

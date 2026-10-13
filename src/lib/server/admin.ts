@@ -7,11 +7,16 @@ export function adminServices() {
   if (!app) {
     const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     try {
-      app = initializeApp({
-        credential: json ? cert(JSON.parse(json)) : applicationDefault(),
+      const options: any = {
         projectId: process.env.FIREBASE_PROJECT_ID || "inntelcorp-45c89",
         storageBucket: "inntelcorp-45c89.firebasestorage.app",
-      }, "inntel-server");
+      };
+      if (json) {
+        options.credential = cert(JSON.parse(json));
+      } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        options.credential = applicationDefault();
+      }
+      app = initializeApp(options, "inntel-server");
     } catch {
       app = initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID || "inntelcorp-45c89",

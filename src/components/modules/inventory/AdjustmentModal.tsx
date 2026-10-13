@@ -12,6 +12,7 @@ import {
   MinusCircle,
   AlertCircle,
   CheckCircle,
+  ArrowLeft,
 } from "lucide-react";
 
 interface AdjustmentModalProps {
@@ -19,6 +20,7 @@ interface AdjustmentModalProps {
   onClose: () => void;
   defaultWarehouseId?: string;
   defaultProductId?: string;
+  embedded?: boolean;
 }
 
 export function AdjustmentModal({
@@ -26,6 +28,7 @@ export function AdjustmentModal({
   onClose,
   defaultWarehouseId,
   defaultProductId,
+  embedded = false,
 }: AdjustmentModalProps) {
   const { inventoryProducts, inventoryWarehouses, executeAdjustment } = useApp();
   const { showSuccess, showError } = useToast();
@@ -124,69 +127,119 @@ export function AdjustmentModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">
-                Ajuste Manual de Inventario
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Corrección de diferencias por toma física, sobrantes o mermas
-              </p>
+  const headerNode = embedded ? (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e2e8f0] mb-6">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
+          title="Volver al Listado de Ajustes"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div>
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
+            <span>Inventarios</span>
+            <span>/</span>
+            <span>Ajustes de Inventario</span>
+            <span>/</span>
+            <span className="text-[#004ac6] font-bold">Nuevo Ajuste Manual</span>
+          </div>
+          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+            <SlidersHorizontal className="w-5 h-5 text-amber-600" />
+            Ajuste Manual de Inventario
+          </h2>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="px-4 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          form="adjustment-form-element"
+          disabled={isSubmitting || isEgresoExceeding}
+          className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            type === "manual_ingreso"
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-rose-600 hover:bg-rose-700"
+          }`}
+        >
+          <CheckCircle className="w-4 h-4" />
+          {isSubmitting ? "Registrando..." : "Confirmar Ajuste"}
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700">
+          <SlidersHorizontal className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">
+            Ajuste Manual de Inventario
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Corrección de diferencias por toma física, sobrantes o mermas
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
+  const formContent = (
+    <div className={embedded ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-4xl mx-auto" : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"}>
+      {!embedded && headerNode}
+      <form id="adjustment-form-element" onSubmit={handleSubmit}>
+        <div className="p-6 md:p-8 space-y-5 text-xs">
+          {/* Tipo de Ajuste Tabs */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+              Sentido del Ajuste *
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setType("manual_ingreso")}
+                className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                  type === "manual_ingreso"
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs ring-2 ring-emerald-500/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <PlusCircle className="w-4 h-4 text-emerald-600" />
+                Ingreso (+ Sobrante)
+              </button>
+              <button
+                type="button"
+                onClick={() => setType("manual_egreso")}
+                className={`py-2.5 px-4 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all cursor-pointer ${
+                  type === "manual_egreso"
+                    ? "bg-rose-50 border-rose-300 text-rose-800 shadow-2xs ring-2 ring-rose-500/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <MinusCircle className="w-4 h-4 text-rose-600" />
+                Egreso (- Faltante / Daño)
+              </button>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4 text-xs">
-            {/* Tipo de Ajuste Tabs */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                Sentido del Ajuste *
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setType("manual_ingreso")}
-                  className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all ${
-                    type === "manual_ingreso"
-                      ? "bg-emerald-50 border-emerald-300 text-emerald-800 shadow-2xs"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <PlusCircle className="w-4 h-4 text-emerald-600" />
-                  Ingreso (+ Sobrante)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setType("manual_egreso")}
-                  className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-xs transition-all ${
-                    type === "manual_egreso"
-                      ? "bg-rose-50 border-rose-300 text-rose-800 shadow-2xs"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <MinusCircle className="w-4 h-4 text-rose-600" />
-                  Egreso (- Faltante / Daño)
-                </button>
-              </div>
-            </div>
-
-            {/* Bodega */}
+          {/* Bodega y Producto en 2 columnas en pantalla grande */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
                 <Building2 className="w-3.5 h-3.5 text-slate-400" />
@@ -195,7 +248,7 @@ export function AdjustmentModal({
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryWarehouses
                   .filter((w) => w.status === "activo")
@@ -207,7 +260,6 @@ export function AdjustmentModal({
               </select>
             </div>
 
-            {/* Producto */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
                 <Package className="w-3.5 h-3.5 text-slate-400" />
@@ -216,121 +268,136 @@ export function AdjustmentModal({
               <select
                 value={productId}
                 onChange={(e) => handleProductChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryProducts
                   .filter((p) => p.tracksStock && p.status === "activo")
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      [{p.sku}] {p.name} - (Stock Bodega: {p.stockByWarehouse?.[warehouseId] || 0} {p.unit})
+                      [{p.sku}] {p.name} - (Stock: {p.stockByWarehouse?.[warehouseId] || 0} {p.unit})
                     </option>
                   ))}
               </select>
             </div>
+          </div>
 
-            {/* Cantidad y Costo Unitario */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Cantidad a Ajustar ({selectedProduct?.unit || "u"}) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {type === "manual_ingreso" ? "Costo Unitario de Entrada ($)" : "Costo Valorado ($)"}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  disabled={type === "manual_egreso"}
-                  value={type === "manual_ingreso" ? unitCost : selectedProduct?.baseCost || 0}
-                  onChange={(e) => setUnitCost(Number(e.target.value))}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] disabled:bg-slate-100 disabled:text-slate-500"
-                />
-              </div>
-            </div>
-
-            {/* Resumen del Saldo Resultante */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-[11px] text-slate-500 block">Saldo Actual en Bodega:</span>
-                <span className="font-bold text-slate-700">
-                  {currentWhStock} {selectedProduct?.unit || "u"}
-                </span>
-              </div>
-
-              <div className="text-center font-bold text-slate-400">
-                {type === "manual_ingreso" ? "+" : "-"} {quantity}
-              </div>
-
-              <div className="text-right">
-                <span className="text-[11px] text-slate-500 block">Saldo Resultante:</span>
-                <span
-                  className={`font-black text-sm ${
-                    isEgresoExceeding ? "text-rose-600" : "text-emerald-700"
-                  }`}
-                >
-                  {newCalculatedStock} {selectedProduct?.unit || "u"}
-                </span>
-              </div>
-            </div>
-
-            {isEgresoExceeding && (
-              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-                <span>No puedes egresar más unidades de las disponibles en esta bodega.</span>
-              </div>
-            )}
-
-            {/* Concepto / Motivo */}
+          {/* Cantidad y Costo Unitario */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Motivo / Justificación del Ajuste *
+                Cantidad a Ajustar ({selectedProduct?.unit || "u"}) *
               </label>
-              <textarea
-                rows={2}
-                required
-                value={concept}
-                onChange={(e) => setConcept(e.target.value)}
-                placeholder="Ej. Diferencia detectada en conteo físico de cuadrilla de técnicos..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] resize-none"
+              <input
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                {type === "manual_ingreso" ? "Costo Unitario de Entrada ($)" : "Costo Valorado Promedio ($)"}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                disabled={type === "manual_egreso"}
+                value={type === "manual_ingreso" ? unitCost : selectedProduct?.baseCost || 0}
+                onChange={(e) => setUnitCost(Number(e.target.value))}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || isEgresoExceeding}
-              className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                type === "manual_ingreso"
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-rose-600 hover:bg-rose-700"
-              }`}
-            >
-              <CheckCircle className="w-4 h-4" />
-              {isSubmitting ? "Registrando..." : "Confirmar Ajuste"}
-            </button>
+          {/* Resumen del Saldo Resultante */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+            <div>
+              <span className="text-[11px] text-slate-500 block">Saldo Actual en Bodega:</span>
+              <span className="font-bold text-slate-700">
+                {currentWhStock} {selectedProduct?.unit || "u"}
+              </span>
+            </div>
+
+            <div className="text-center font-bold text-slate-400">
+              {type === "manual_ingreso" ? "+" : "-"} {quantity}
+            </div>
+
+            <div className="text-right">
+              <span className="text-[11px] text-slate-500 block">Saldo Resultante:</span>
+              <span
+                className={`font-black text-sm ${
+                  isEgresoExceeding ? "text-rose-600" : "text-emerald-700"
+                }`}
+              >
+                {newCalculatedStock} {selectedProduct?.unit || "u"}
+              </span>
+            </div>
           </div>
-        </form>
+
+          {isEgresoExceeding && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+              <span>No puedes egresar más unidades de las disponibles en esta bodega.</span>
+            </div>
+          )}
+
+          {/* Concepto / Motivo */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              Motivo / Justificación del Ajuste *
+            </label>
+            <textarea
+              rows={3}
+              required
+              value={concept}
+              onChange={(e) => setConcept(e.target.value)}
+              placeholder="Ej. Diferencia detectada en conteo físico de cuadrilla de técnicos..."
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 md:px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || isEgresoExceeding}
+            className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              type === "manual_ingreso"
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "bg-rose-600 hover:bg-rose-700"
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            {isSubmitting ? "Registrando..." : "Confirmar Ajuste"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="w-full animate-in fade-in duration-200">
+        {headerNode}
+        {formContent}
       </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      {formContent}
     </div>
   );
 }

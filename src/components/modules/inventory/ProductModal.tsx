@@ -28,6 +28,7 @@ import {
   Plus,
   AlertCircle,
   Hash,
+  ArrowLeft,
 } from "lucide-react";
 
 interface ProductModalProps {
@@ -35,6 +36,7 @@ interface ProductModalProps {
   onClose: () => void;
   productToEdit?: InventoryProduct | null;
   defaultType?: InventoryItemType;
+  embedded?: boolean;
 }
 
 export function ProductModal({
@@ -42,6 +44,7 @@ export function ProductModal({
   onClose,
   productToEdit,
   defaultType = "producto",
+  embedded = false,
 }: ProductModalProps) {
   const {
     inventoryProducts,
@@ -225,39 +228,92 @@ export function ProductModal({
     }
   };
 
-  return (
-    <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-                {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-800">
-                  {productToEdit
-                    ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}`
-                    : `Registrar Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  {type === "servicio"
-                    ? "Mano de obra, enlaces y servicios sin control de existencias"
-                    : "Equipos de telecomunicaciones, pasivos y control de stock"}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
+  const headerNode = embedded ? (
+    <div className="px-6 py-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-4 bg-white">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Volver al Listado</span>
+        </button>
+        <div className="h-6 w-px bg-slate-200" />
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+            {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
           </div>
+          <div>
+            <div className="text-[11px] font-semibold text-[#737686] flex items-center gap-1.5">
+              <span>Inventarios</span>
+              <span>/</span>
+              <span>{type === "servicio" ? "Servicios" : "Productos"}</span>
+              <span>/</span>
+              <span className="text-[#004ac6] font-bold">
+                {productToEdit ? `Editar ${productToEdit.sku}` : "Nuevo Registro"}
+              </span>
+            </div>
+            <h2 className="text-base font-bold text-[#0b1c30]">
+              {productToEdit
+                ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}: ${productToEdit.name}`
+                : `Registrar Nuevo ${type === "servicio" ? "Servicio Técnico" : "Producto de Telecomunicaciones"}`}
+            </h2>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#737686] hover:bg-slate-50 cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          form="product-form-element"
+          disabled={isSubmitting}
+          className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+        >
+          <CheckCircle className="w-4 h-4" />
+          <span>{isSubmitting ? "Guardando..." : productToEdit ? "Guardar Cambios" : "Guardar Ítem"}</span>
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+          {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">
+            {productToEdit
+              ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}`
+              : `Registrar Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            {type === "servicio"
+              ? "Mano de obra, enlaces y servicios sin control de existencias"
+              : "Equipos de telecomunicaciones, pasivos y control de stock"}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
-          {/* Form Body */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+  const content = (
+    <div className={embedded ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full" : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]"}>
+      {headerNode}
+      {/* Form Body */}
+      <form id="product-form-element" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
             <div className="p-6 space-y-5 text-xs">
               {/* Type Switcher */}
               {!productToEdit && (
@@ -672,7 +728,26 @@ export function ProductModal({
               </button>
             </div>
           </form>
-        </div>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {content}
+        <CategoryBrandModal
+          isOpen={isCatBrandOpen}
+          onClose={() => setIsCatBrandOpen(false)}
+          mode={catBrandMode}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        {content}
       </div>
 
       {/* Submodal para Crear Categoría o Marca al Vuelo */}

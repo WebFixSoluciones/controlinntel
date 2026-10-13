@@ -4,18 +4,20 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Warehouse } from "@/types";
-import { X, Building2, MapPin, Phone, User, CheckCircle, ShieldCheck } from "lucide-react";
+import { X, Building2, MapPin, Phone, User, CheckCircle, ShieldCheck, ArrowLeft } from "lucide-react";
 
 interface WarehouseModalProps {
   isOpen: boolean;
   onClose: () => void;
   warehouseToEdit?: Warehouse | null;
+  embedded?: boolean;
 }
 
 export function WarehouseModal({
   isOpen,
   onClose,
   warehouseToEdit,
+  embedded = false,
 }: WarehouseModalProps) {
   const { addWarehouse, updateWarehouse } = useApp();
   const { showSuccess, showError } = useToast();
@@ -96,34 +98,82 @@ export function WarehouseModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">
-                {warehouseToEdit ? "Editar Bodega / Almacén" : "Nueva Bodega / Almacén"}
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Gestión de centros de almacenamiento, nodos y unidades móviles
-              </p>
-            </div>
+  const headerNode = embedded ? (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e2e8f0] mb-6">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
+          title="Volver a Bodegas"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div>
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
+            <span>Inventarios</span>
+            <span>/</span>
+            <span>Bodegas</span>
+            <span>/</span>
+            <span className="text-[#004ac6] font-bold">
+              {warehouseToEdit ? `Editar Bodega: ${warehouseToEdit.code}` : "Nueva Bodega / Almacén"}
+            </span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[#004ac6]" />
+            {warehouseToEdit ? `Editar Bodega: ${warehouseToEdit.name}` : "Nueva Bodega o Centro de Acopio"}
+          </h2>
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="px-4 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          form="warehouse-form-element"
+          disabled={isSubmitting}
+          className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+        >
+          <CheckCircle className="w-4 h-4" />
+          {isSubmitting ? "Guardando..." : warehouseToEdit ? "Actualizar Bodega" : "Guardar Bodega"}
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+          <Building2 className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">
+            {warehouseToEdit ? "Editar Bodega / Almacén" : "Nueva Bodega / Almacén"}
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Gestión de centros de almacenamiento, nodos y unidades móviles
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit}>
+  const formBody = (
+    <div className={embedded ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-4xl mx-auto" : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"}>
+      {!embedded && headerNode}
+      {/* Form Body */}
+      <form id="warehouse-form-element" onSubmit={handleSubmit}>
           <div className="p-6 space-y-4 text-xs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -244,27 +294,41 @@ export function WarehouseModal({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
-            >
-              <CheckCircle className="w-4 h-4" />
-              {isSubmitting ? "Guardando..." : warehouseToEdit ? "Actualizar Bodega" : "Guardar Bodega"}
-            </button>
-          </div>
-        </form>
+        {/* Footer */}
+        <div className="px-6 md:px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <CheckCircle className="w-4 h-4" />
+            {isSubmitting ? "Guardando..." : warehouseToEdit ? "Actualizar Bodega" : "Guardar Bodega"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="w-full animate-in fade-in duration-200">
+        {headerNode}
+        {formBody}
       </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      {formBody}
     </div>
   );
 }

@@ -3,13 +3,14 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { X, Tag, Award, CheckCircle } from "lucide-react";
+import { X, Tag, Award, CheckCircle, ArrowLeft } from "lucide-react";
 
 interface CategoryBrandModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: "categoria" | "marca";
   onCreated?: (id: string, name: string) => void;
+  embedded?: boolean;
 }
 
 export function CategoryBrandModal({
@@ -17,6 +18,7 @@ export function CategoryBrandModal({
   onClose,
   mode,
   onCreated,
+  embedded = false,
 }: CategoryBrandModalProps) {
   const { addCategory, addBrand } = useApp();
   const { showSuccess, showError } = useToast();
@@ -66,36 +68,88 @@ export function CategoryBrandModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-              {mode === "categoria" ? <Tag className="w-4 h-4" /> : <Award className="w-4 h-4" />}
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">
-                {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca / Fabricante"}
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                {mode === "categoria"
-                  ? "Clasificación para productos o servicios"
-                  : "Fabricante o marca de equipamiento ISP"}
-              </p>
-            </div>
+  const headerNode = embedded ? (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e2e8f0] mb-6">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
+          title="Volver a Categorías y Marcas"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div>
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
+            <span>Inventarios</span>
+            <span>/</span>
+            <span>Categorías y Marcas</span>
+            <span>/</span>
+            <span className="text-[#004ac6] font-bold">
+              {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca / Fabricante"}
+            </span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+            {mode === "categoria" ? (
+              <Tag className="w-5 h-5 text-[#004ac6]" />
+            ) : (
+              <Award className="w-5 h-5 text-[#004ac6]" />
+            )}
+            {mode === "categoria" ? "Registrar Categoría de Catálogo" : "Registrar Marca o Fabricante"}
+          </h2>
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="px-4 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          form="category-brand-form-element"
+          disabled={isSubmitting}
+          className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+        >
+          <CheckCircle className="w-4 h-4" />
+          {isSubmitting ? "Guardando..." : "Guardar Registro"}
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+      <div className="flex items-center gap-2.5">
+        <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+          {mode === "categoria" ? <Tag className="w-4 h-4" /> : <Award className="w-4 h-4" />}
+        </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">
+            {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca / Fabricante"}
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            {mode === "categoria"
+              ? "Clasificación para productos o servicios"
+              : "Fabricante o marca de equipamiento ISP"}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit}>
+  const formBody = (
+    <div className={embedded ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-2xl mx-auto" : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95"}>
+      {!embedded && headerNode}
+      {/* Form Body */}
+      <form id="category-brand-form-element" onSubmit={handleSubmit}>
           <div className="p-5 space-y-4 text-xs">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-1">
@@ -162,27 +216,41 @@ export function CategoryBrandModal({
             )}
           </div>
 
-          {/* Footer */}
-          <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-1.5 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              {isSubmitting ? "Guardando..." : "Guardar Registro"}
-            </button>
-          </div>
-        </form>
+        {/* Footer */}
+        <div className="px-6 md:px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <CheckCircle className="w-4 h-4" />
+            {isSubmitting ? "Guardando..." : "Guardar Registro"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="w-full animate-in fade-in duration-200">
+        {headerNode}
+        {formBody}
       </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      {formBody}
     </div>
   );
 }

@@ -138,6 +138,27 @@ export function InventoryManager() {
   const [isCatBrandOpen, setIsCatBrandOpen] = useState(false);
   const [catBrandMode, setCatBrandMode] = useState<"categoria" | "marca">("categoria");
 
+  const actionParam = searchParams.get("action");
+  useEffect(() => {
+    if (actionParam === "new") {
+      if (activeTab === "productos") {
+        setProductModalDefaultType("producto");
+        setIsProductModalOpen(true);
+      } else if (activeTab === "servicios") {
+        setProductModalDefaultType("servicio");
+        setIsProductModalOpen(true);
+      } else if (activeTab === "bodegas") {
+        setIsWarehouseModalOpen(true);
+      } else if (activeTab === "transferencias") {
+        setIsTransferModalOpen(true);
+      } else if (activeTab === "ajustes") {
+        setIsAdjustmentModalOpen(true);
+      } else if (activeTab === "categorias") {
+        setIsCatBrandOpen(true);
+      }
+    }
+  }, [actionParam, activeTab]);
+
   // Check sub-module permission
   const hasAccess = canAccessSubmodule(currentUser, "inventarios", activeTab);
 
@@ -484,6 +505,87 @@ export function InventoryManager() {
         <p className="text-xs text-[#737686] mt-1 max-w-md mx-auto">
           No tienes permisos para visualizar este submódulo de Inventarios. Contacta con el administrador si necesitas acceso.
         </p>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // PANTALLAS PROPIAS (EMBEDDED) - SIN POPUPS NI MODALES
+  // =========================================================
+  if (isProductModalOpen) {
+    return (
+      <div className="select-none animate-in fade-in duration-200">
+        <ProductModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => {
+            setIsProductModalOpen(false);
+            setProductToEdit(null);
+          }}
+          productToEdit={productToEdit}
+          defaultType={productModalDefaultType}
+        />
+      </div>
+    );
+  }
+
+  if (isWarehouseModalOpen) {
+    return (
+      <div className="select-none animate-in fade-in duration-200">
+        <WarehouseModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => {
+            setIsWarehouseModalOpen(false);
+            setWarehouseToEdit(null);
+          }}
+          warehouseToEdit={warehouseToEdit}
+        />
+      </div>
+    );
+  }
+
+  if (isTransferModalOpen) {
+    return (
+      <div className="select-none animate-in fade-in duration-200">
+        <TransferModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => {
+            setIsTransferModalOpen(false);
+          }}
+          defaultProductId={transferDefaultProduct}
+          defaultOriginWarehouseId={transferDefaultWarehouse}
+        />
+      </div>
+    );
+  }
+
+  if (isAdjustmentModalOpen) {
+    return (
+      <div className="select-none animate-in fade-in duration-200">
+        <AdjustmentModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => {
+            setIsAdjustmentModalOpen(false);
+          }}
+          defaultProductId={adjustmentDefaultProduct}
+          defaultWarehouseId={adjustmentDefaultWarehouse}
+        />
+      </div>
+    );
+  }
+
+  if (isCatBrandOpen) {
+    return (
+      <div className="select-none animate-in fade-in duration-200">
+        <CategoryBrandModal
+          isOpen={true}
+          embedded={true}
+          onClose={() => setIsCatBrandOpen(false)}
+          mode={catBrandMode}
+        />
       </div>
     );
   }
@@ -1632,42 +1734,6 @@ export function InventoryManager() {
           </div>
         </div>
       )}
-
-      {/* ========================================================= */}
-      {/* MODALES OPERATIVOS                                        */}
-      {/* ========================================================= */}
-      <ProductModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        productToEdit={productToEdit}
-        defaultType={productModalDefaultType}
-      />
-
-      <WarehouseModal
-        isOpen={isWarehouseModalOpen}
-        onClose={() => setIsWarehouseModalOpen(false)}
-        warehouseToEdit={warehouseToEdit}
-      />
-
-      <TransferModal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        defaultProductId={transferDefaultProduct}
-        defaultOriginWarehouseId={transferDefaultWarehouse}
-      />
-
-      <AdjustmentModal
-        isOpen={isAdjustmentModalOpen}
-        onClose={() => setIsAdjustmentModalOpen(false)}
-        defaultProductId={adjustmentDefaultProduct}
-        defaultWarehouseId={adjustmentDefaultWarehouse}
-      />
-
-      <CategoryBrandModal
-        isOpen={isCatBrandOpen}
-        onClose={() => setIsCatBrandOpen(false)}
-        mode={catBrandMode}
-      />
     </div>
   );
 }

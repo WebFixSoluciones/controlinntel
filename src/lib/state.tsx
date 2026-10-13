@@ -2536,6 +2536,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         updatedProductsMap.set(product.id, {
           ...product,
+          baseCost: kdx.balanceAverageCost,
           stockByWarehouse: updatedStockByWh,
           stock: totalStock,
           updatedAt: now,
@@ -2726,6 +2727,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const updatedProd: InventoryProduct = {
         ...product,
+        baseCost: kdx.balanceAverageCost,
         stockByWarehouse: updatedStockByWh,
         stock: totalStock,
         updatedAt: now,
@@ -3069,6 +3071,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const product = updatedProducts[prodIndex];
           if (product.tracksStock) {
             const currentStock = Number(product.stock) || 0;
+            const currentWhStock = Number(product.stockByWarehouse?.[warehouse.id] || 0);
             const qty = Number(item.quantity) || 0;
             const kdx = buildKardexEntry({
               product,
@@ -3079,7 +3082,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               concept: `Salida por devolución a proveedor (Nota Crédito ${note.documentNumber})`,
               quantity: qty,
               unitCost: item.unitCost || product.baseCost,
-              currentStock,
+              currentStock: currentWhStock,
               currentAvgCost: product.baseCost,
               userName: currentUser.displayName,
             });
