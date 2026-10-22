@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Search,
   User,
+  Plus,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { ClientQuote, InvoiceItem } from "@/types";
@@ -20,6 +21,7 @@ interface BillingQuoteModalProps {
   onClose: () => void;
   quoteToEdit?: ClientQuote | null;
   onSuccess?: (quote: ClientQuote) => void;
+  initialClientId?: string;
 }
 
 export function BillingQuoteModal({
@@ -27,6 +29,7 @@ export function BillingQuoteModal({
   onClose,
   quoteToEdit,
   onSuccess,
+  initialClientId,
 }: BillingQuoteModalProps) {
   const { clients, inventoryProducts, createBillingQuote, updateBillingQuote } = useApp();
 
@@ -56,14 +59,14 @@ export function BillingQuoteModal({
           .slice(0, 10);
         setDate(today);
         setValidUntil(thirtyDaysLater);
-        setClientId(clients[0]?.id || "");
+        setClientId(initialClientId || clients[0]?.id || "");
         setItems([]);
         setNotes("Validez de la oferta: 30 días calendario. Precios no incluyen impuestos adicionales no descritos.");
         setStatus("enviada");
       }
       setErrorMsg("");
     }
-  }, [isOpen, quoteToEdit, clients]);
+  }, [isOpen, quoteToEdit, clients, initialClientId]);
 
   if (!isOpen) return null;
 
@@ -343,6 +346,33 @@ export function BillingQuoteModal({
                         </span>
                       </div>
                     ))}
+                    {filteredProducts.length === 0 && searchProductTerm.trim() && (
+                      <div
+                        onClick={() => {
+                          const customItem: InvoiceItem = {
+                            id: `item-${Date.now()}`,
+                            productId: `custom-${Date.now()}`,
+                            sku: "SRV-GEN",
+                            name: searchProductTerm.trim(),
+                            description: searchProductTerm.trim(),
+                            unit: "servicio",
+                            quantity: 1,
+                            unitPrice: 25,
+                            discount: 0,
+                            ivaRate: 15,
+                            subtotal: 25,
+                            ivaAmount: 3.75,
+                            total: 28.75,
+                          };
+                          setItems((prev) => [...prev, customItem]);
+                          setSearchProductTerm("");
+                        }}
+                        className="p-3 text-center text-xs text-[#004ac6] hover:bg-blue-50 cursor-pointer font-bold flex items-center justify-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Agregar &quot;{searchProductTerm}&quot; como ítem personalizado</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
