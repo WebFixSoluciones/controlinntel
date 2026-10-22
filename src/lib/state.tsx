@@ -1944,11 +1944,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInventoryProducts((prev) => [newProduct, ...prev]);
 
     if (newProduct.tracksStock && totalStock > 0) {
-      const defaultWhId = newProduct.defaultWarehouseId || Object.keys(stockByWarehouse)[0] || inventoryWarehouses[0]?.id;
-      const wh = inventoryWarehouses.find((w) => w.id === defaultWhId) || inventoryWarehouses[0];
-      if (wh) {
+      const positiveWhEntries = Object.entries(stockByWarehouse).filter(([, qty]) => Number(qty) > 0);
+      const initialKardexEntries: KardexEntry[] = [];
+
+      if (positiveWhEntries.length > 0) {
+        positiveWhEntries.forEach(([whId, qtyVal], idx) => {
+          const qty = Number(qtyVal) || 0;
+          const wh = inventoryWarehouses.find((w) => w.id === whId) || { id: whId, name: "Bodega Principal" } as Warehouse;
+          const kardexDocNum = generateInventoryDocNumber("KDX", inventoryKardex.length + idx);
+          const entry = buildKardexEntry({
+            product: newProduct,
+            warehouse: wh,
+            type: "POSITIVE_ADJUSTMENT",
+            referenceId: id,
+            referenceDocNumber: kardexDocNum,
+            concept: `Stock inicial en ${wh.name}: ${newProduct.name}`,
+            quantity: qty,
+            unitCost: newProduct.baseCost,
+            currentStock: 0,
+            currentAvgCost: newProduct.baseCost,
+            userName: currentUser.displayName,
+          });
+          initialKardexEntries.push(entry);
+        });
+      } else {
+        const defaultWhId = newProduct.defaultWarehouseId || inventoryWarehouses[0]?.id || "wh-central";
+        const wh = inventoryWarehouses.find((w) => w.id === defaultWhId) || inventoryWarehouses[0] || ({ id: defaultWhId, name: "Bodega Principal" } as Warehouse);
         const kardexDocNum = generateInventoryDocNumber("KDX", inventoryKardex.length);
-        const kardexEntry = buildKardexEntry({
+        const entry = buildKardexEntry({
           product: newProduct,
           warehouse: wh,
           type: "POSITIVE_ADJUSTMENT",
@@ -1961,10 +1984,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           currentAvgCost: newProduct.baseCost,
           userName: currentUser.displayName,
         });
-
-        await syncToFirestore("inventoryKardex", kardexEntry.id, kardexEntry);
-        setInventoryKardex((prev) => [kardexEntry, ...prev]);
+        initialKardexEntries.push(entry);
       }
+
+      for (const entry of initialKardexEntries) {
+        await syncToFirestore("inventoryKardex", entry.id, entry);
+      }
+      setInventoryKardex((prev) => [...initialKardexEntries, ...prev]);
     }
 
     addAuditLog("CREATE_EXPENSE", `Producto Creado: ${newProduct.name}`, `SKU: ${newProduct.sku} | Stock: ${newProduct.stock}`);
@@ -2119,9 +2145,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       [originWarehouseId]: Math.max(0, currentOriginStock - qty),
       [destWarehouseId]: currentDestStock + qty,
     };
+    const totalConsolidatedStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
     const updatedProduct: InventoryProduct = {
       ...product,
       stockByWarehouse: updatedStockByWh,
+      stock: totalConsolidatedStock,
       updatedAt: now,
     };
 
@@ -2201,6 +2229,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const isIngreso = item.type === "ingreso";
       const newWhStock = isIngreso ? currentWhStock + qty : Math.max(0, currentWhStock - qty);
       const kdxType = isIngreso ? "POSITIVE_ADJUSTMENT" : "NEGATIVE_ADJUSTMENT";
+      const currentGlobalStock = Number(product.stock) || 0;
+      const unitCost = item.unitCost || product.baseCost;
+      const newGlobalAvgCost = isIngreso
+        ? calculateWeightedAverageCost(currentGlobalStock, product.baseCost, qty, unitCost)
+        : product.baseCost;
 
       const kdx = buildKardexEntry({
         product,
@@ -2210,11 +2243,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         referenceDocNumber: adjustmentDocNumber,
         concept: `${concept} (${adjustmentDocNumber})`,
         quantity: qty,
-        unitCost: item.unitCost || product.baseCost,
+        unitCost,
         currentStock: currentWhStock,
         currentAvgCost: product.baseCost,
         userName: currentUser.displayName,
       });
+
+      kdx.balanceAverageCost = newGlobalAvgCost;
+      kdx.balanceQuantity = newWhStock;
+      kdx.balanceTotalCost = Math.round(newWhStock * newGlobalAvgCost * 100) / 100;
 
       kardexEntries.push(kdx);
 
@@ -2228,7 +2265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...product,
         stockByWarehouse: updatedStockByWh,
         stock: totalStock,
-        baseCost: isIngreso ? kdx.balanceAverageCost : product.baseCost,
+        baseCost: newGlobalAvgCost,
         updatedAt: now,
       };
 
@@ -2939,10 +2976,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (prodIndex >= 0) {
           const product = updatedProducts[prodIndex];
           if (product.tracksStock) {
-            const currentStock = Number(product.stock) || 0;
+            const currentGlobalStock = Number(product.stock) || 0;
             const currentAvgCost = Number(product.baseCost) || 0;
             const qty = Number(item.quantity) || 0;
             const unitCost = Number(item.unitCost) || 0;
+            const currentWhStock = Number(product.stockByWarehouse?.[targetWarehouse.id] || 0);
+
+            const newGlobalStock = currentGlobalStock + qty;
+            const newGlobalAvg = calculateWeightedAverageCost(currentGlobalStock, currentAvgCost, qty, unitCost);
+            const newWhStock = currentWhStock + qty;
 
             const kardex = buildKardexEntry({
               product,
@@ -2953,24 +2995,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               concept: `Entrada por compra Factura ${data.documentNumber} (${data.supplierName})`,
               quantity: qty,
               unitCost,
-              currentStock,
-              currentAvgCost,
+              currentStock: currentWhStock,
+              currentAvgCost: currentAvgCost,
               userName: currentUser.displayName,
             });
 
-            newKardexEntries.push(kardex);
+            kardex.balanceAverageCost = newGlobalAvg;
+            kardex.balanceQuantity = newWhStock;
+            kardex.balanceTotalCost = Math.round(newWhStock * newGlobalAvg * 100) / 100;
 
-            const newStock = currentStock + qty;
-            const newAvg = calculateWeightedAverageCost(currentStock, currentAvgCost, qty, unitCost);
-            const whStock = (product.stockByWarehouse?.[targetWarehouse.id] || 0) + qty;
+            newKardexEntries.push(kardex);
 
             updatedProducts[prodIndex] = {
               ...product,
-              stock: newStock,
-              baseCost: newAvg,
+              stock: newGlobalStock,
+              baseCost: newGlobalAvg,
               stockByWarehouse: {
                 ...(product.stockByWarehouse || {}),
-                [targetWarehouse.id]: whStock,
+                [targetWarehouse.id]: newWhStock,
               },
             };
           }

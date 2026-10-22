@@ -10,6 +10,7 @@ import {
   Warehouse,
   ProductCategory,
   ProductBrand,
+  KardexMovementType,
 } from "@/types";
 import { ProductModal } from "./ProductModal";
 import { WarehouseModal } from "./WarehouseModal";
@@ -32,6 +33,7 @@ import {
   Eye,
   ShieldAlert,
   Award,
+  DollarSign,
 } from "lucide-react";
 
 export type InventoryTab =
@@ -42,6 +44,66 @@ export type InventoryTab =
   | "transferencias"
   | "bodegas"
   | "ajustes";
+
+export function getKardexBadge(type: KardexMovementType | string) {
+  switch (type) {
+    case "PURCHASE_RECEIPT":
+      return {
+        label: "Factura de Compra (+)",
+        className: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+      };
+    case "SALE":
+      return {
+        label: "Venta Factura / Nota (-)",
+        className: "bg-rose-100 text-rose-800 border border-rose-200",
+      };
+    case "CUSTOMER_RETURN":
+      return {
+        label: "Devolución Cliente (+)",
+        className: "bg-teal-100 text-teal-800 border border-teal-200",
+      };
+    case "SUPPLIER_RETURN":
+      return {
+        label: "Devolución Proveedor (-)",
+        className: "bg-amber-100 text-amber-800 border border-amber-200",
+      };
+    case "TRANSFER_IN":
+      return {
+        label: "Traslado Entrada (+)",
+        className: "bg-sky-100 text-sky-800 border border-sky-200",
+      };
+    case "TRANSFER_OUT":
+      return {
+        label: "Traslado Salida (-)",
+        className: "bg-indigo-100 text-indigo-800 border border-indigo-200",
+      };
+    case "POSITIVE_ADJUSTMENT":
+      return {
+        label: "Ajuste Sobrante (+)",
+        className: "bg-emerald-50 text-emerald-700 border border-emerald-300",
+      };
+    case "NEGATIVE_ADJUSTMENT":
+      return {
+        label: "Ajuste Faltante (-)",
+        className: "bg-orange-100 text-orange-800 border border-orange-200",
+      };
+    case "SHRINKAGE":
+      return {
+        label: "Merma / Pérdida (-)",
+        className: "bg-red-100 text-red-800 border border-red-200",
+      };
+    case "MASSIVE_ZERO":
+      return {
+        label: "Encerado de Stock",
+        className: "bg-slate-100 text-slate-800 border border-slate-300",
+      };
+    default:
+      return {
+        label: type,
+        className: "bg-slate-100 text-slate-700 border border-slate-200",
+      };
+  }
+}
 
 export function InventoryManager() {
   const {
@@ -244,21 +306,125 @@ export function InventoryManager() {
   // Filtered Kardex
   // ==========================================
   const filteredKardex = useMemo(() => {
-    return inventoryKardex.filter((k) => {
-      const matchesSearch =
-        k.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        k.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (k.referenceDocNumber && k.referenceDocNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    return inventoryKardex
+      .filter((k) => {
+        const matchesSearch =
+          k.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          k.concept.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (k.referenceDocNumber && k.referenceDocNumber.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchesProduct =
-        kardexProductFilter === "all" || k.productId === kardexProductFilter;
+        const matchesProduct =
+          kardexProductFilter === "all" || k.productId === kardexProductFilter;
 
-      const matchesWarehouse =
-        kardexWarehouseFilter === "all" || k.warehouseId === kardexWarehouseFilter;
+        const matchesWarehouse =
+          kardexWarehouseFilter === "all" || k.warehouseId === kardexWarehouseFilter;
 
-      return matchesSearch && matchesProduct && matchesWarehouse;
-    });
+        return matchesSearch && matchesProduct && matchesWarehouse;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [inventoryKardex, searchTerm, kardexProductFilter, kardexWarehouseFilter]);
+
+  const kardexSummary = useMemo(() => {
+    let totalInQty = 0;
+    let totalInCost = 0;
+    let totalOutQty = 0;
+    let totalOutCost = 0;
+
+    for (const k of filteredKardex) {
+      if (k.entryQuantity) {
+        totalInQty += Number(k.entryQuantity) || 0;
+        totalInCost += Number(k.entryTotalCost) || 0;
+      }
+      if (k.exitQuantity) {
+        totalOutQty += Number(k.exitQuantity) || 0;
+        totalOutCost += Number(k.exitTotalCost) || 0;
+      }
+    }
+
+    return {
+      totalInQty,
+      totalInCost: Math.round(totalInCost * 100) / 100,
+      totalOutQty,
+      totalOutCost: Math.round(totalOutCost * 100) / 100,
+      movementCount: filteredKardex.length,
+    };
+  }, [filteredKardex]);
+
+  const inventoryStats = useMemo(() => {
+    let totalValue = 0;
+    let totalUnits = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+
+    for (const p of inventoryProducts) {
+      if (p.type === "producto" && p.tracksStock) {
+        const units = Number(p.stock) || 0;
+        const cost = Number(p.baseCost) || 0;
+        totalUnits += units;
+        totalValue += units * cost;
+
+        if (units === 0) {
+          outOfStockCount++;
+        } else if (p.minStock && units <= p.minStock) {
+          lowStockCount++;
+        }
+      }
+    }
+
+    const activeWarehouses = inventoryWarehouses.filter((w) => w.status !== "inactivo").length;
+
+    return {
+      totalValue: Math.round(totalValue * 100) / 100,
+      totalUnits,
+      criticalStockCount: lowStockCount + outOfStockCount,
+      activeWarehouses,
+    };
+  }, [inventoryProducts, inventoryWarehouses]);
+
+  const tabsConfig = useMemo(() => [
+    {
+      id: "productos" as InventoryTab,
+      label: "Productos",
+      icon: Package,
+      count: inventoryProducts.filter((p) => p.type === "producto").length,
+    },
+    {
+      id: "servicios" as InventoryTab,
+      label: "Servicios",
+      icon: Wrench,
+      count: inventoryProducts.filter((p) => p.type === "servicio").length,
+    },
+    {
+      id: "categorias" as InventoryTab,
+      label: "Categorías & Marcas",
+      icon: Tags,
+      count: inventoryCategories.length + inventoryBrands.length,
+    },
+    {
+      id: "kardex" as InventoryTab,
+      label: "Kardex Valorado",
+      icon: BookOpen,
+      count: inventoryKardex.length,
+    },
+    {
+      id: "transferencias" as InventoryTab,
+      label: "Transferencias",
+      icon: ArrowRightLeft,
+      count: inventoryTransfers.length,
+    },
+    {
+      id: "bodegas" as InventoryTab,
+      label: "Bodegas",
+      icon: Building2,
+      count: inventoryWarehouses.length,
+    },
+    {
+      id: "ajustes" as InventoryTab,
+      label: "Ajustes de Stock",
+      icon: SlidersHorizontal,
+      count: inventoryAdjustments.length,
+    },
+  ], [inventoryProducts, inventoryCategories, inventoryBrands, inventoryKardex, inventoryTransfers, inventoryWarehouses, inventoryAdjustments]);
 
   // ==========================================
   // Filtered Transfers
@@ -592,6 +758,100 @@ export function InventoryManager() {
 
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
+      {/* ========================================================= */}
+      {/* HEADER: KPIS CONSOLIDADOS & CONTROL DE INVENTARIO         */}
+      {/* ========================================================= */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
+          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-[#737686] block">
+              Valor Total en Inventario
+            </span>
+            <span className="text-lg font-black text-[#0b1c30]">
+              ${inventoryStats.totalValue.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
+          <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
+            <Package className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-[#737686] block">
+              Unidades en Existencia
+            </span>
+            <span className="text-lg font-black text-[#0b1c30]">
+              {inventoryStats.totalUnits.toLocaleString("es-EC")} un.
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
+          <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
+            <ShieldAlert className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-[#737686] block">
+              Stock Crítico / Agotado
+            </span>
+            <span className="text-lg font-black text-[#0b1c30]">
+              {inventoryStats.criticalStockCount} ítems
+            </span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
+          <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-[#737686] block">
+              Bodegas Operativas
+            </span>
+            <span className="text-lg font-black text-[#0b1c30]">
+              {inventoryStats.activeWarehouses} bodegas
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* BARRA DE PESTAÑAS INSTITUCIONALES (SUBMÓDULOS)           */}
+      {/* ========================================================= */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-white border border-[#e2e8f0] rounded-2xl shadow-2xs overflow-x-auto scrollbar-none">
+        {tabsConfig.map((t) => {
+          const Icon = t.icon;
+          const isActive = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => {
+                setActiveTab(t.id);
+                router.push(`/inventarios?sub=${t.id}`);
+              }}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                isActive
+                  ? "bg-[#004ac6] text-white shadow-xs"
+                  : "text-[#434655] hover:text-[#0b1c30] hover:bg-slate-50"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{t.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
       {/* ========================================================= */}
       {/* 1. PRODUCTOS                                              */}
       {/* ========================================================= */}
@@ -1237,6 +1497,43 @@ export function InventoryManager() {
             </div>
           </div>
 
+          {/* Kardex Quick Summary Banner */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col shadow-2xs">
+              <span className="text-[11px] font-bold text-emerald-800">Total Entradas</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-base font-black text-emerald-950">+{kardexSummary.totalInQty} un.</span>
+                <span className="text-xs font-bold text-emerald-700">(${kardexSummary.totalInCost.toFixed(2)})</span>
+              </div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-rose-50/60 border border-rose-200/80 flex flex-col shadow-2xs">
+              <span className="text-[11px] font-bold text-rose-800">Total Salidas</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-base font-black text-rose-950">-{kardexSummary.totalOutQty} un.</span>
+                <span className="text-xs font-bold text-rose-700">(${kardexSummary.totalOutCost.toFixed(2)})</span>
+              </div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 flex flex-col shadow-2xs">
+              <span className="text-[11px] font-bold text-blue-800">Flujo Neto Valorado</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-base font-black text-blue-950">
+                  ${(kardexSummary.totalInCost - kardexSummary.totalOutCost).toFixed(2)}
+                </span>
+                <span className="text-xs font-bold text-blue-700">
+                  {kardexSummary.totalInQty - kardexSummary.totalOutQty >= 0 ? "+" : ""}
+                  {kardexSummary.totalInQty - kardexSummary.totalOutQty} un.
+                </span>
+              </div>
+            </div>
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-700">Asientos Contables</span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-base font-black text-slate-900">{kardexSummary.movementCount}</span>
+                <span className="text-xs text-slate-500 font-medium">movimientos auditados</span>
+              </div>
+            </div>
+          </div>
+
           {/* Table */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
@@ -1287,16 +1584,17 @@ export function InventoryManager() {
                         </td>
                         <td className="py-2.5 px-3 text-[#434655] font-medium whitespace-nowrap">{k.warehouseName}</td>
                         <td className="py-2.5 px-3">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              k.type.includes("PURCHASE") || k.type.includes("POSITIVE") || k.type === "TRANSFER_IN"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-rose-100 text-rose-800"
-                            }`}
-                          >
-                            {k.type}
-                          </span>
-                          <div className="text-[10px] text-[#737686] line-clamp-1">{k.concept}</div>
+                          {(() => {
+                            const badge = getKardexBadge(k.type);
+                            return (
+                              <span
+                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.className}`}
+                              >
+                                {badge.label}
+                              </span>
+                            );
+                          })()}
+                          <div className="text-[10px] text-[#737686] line-clamp-1 mt-0.5">{k.concept}</div>
                         </td>
                         <td className="py-2.5 px-3 font-mono text-[11px] text-[#434655]">
                           {k.referenceDocNumber || k.referenceId}
