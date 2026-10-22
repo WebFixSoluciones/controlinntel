@@ -205,24 +205,18 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
               <tr>
                 <th className="py-3.5 px-5">Cliente / Razón Social</th>
                 <th className="py-3.5 px-5">RUC / CI</th>
-                <th className="py-3.5 px-5">Servicio Contratado</th>
-                <th className="py-3.5 px-5 text-right">Saldos</th>
-                <th className="py-3.5 px-5 text-center">Estado</th>
                 <th className="py-3.5 px-5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {paginatedClients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-[#737686] italic">
+                  <td colSpan={3} className="py-10 text-center text-[#737686] italic">
                     No se encontraron clientes con el filtro aplicado.
                   </td>
                 </tr>
               ) : (
                 paginatedClients.map((client) => {
-                  const srv = clientServices.find((s) => s.clientId === client.id && s.status === "activo");
-                  const pendingBalance = getClientPendingBalance(client);
-
                   return (
                     <tr
                       key={client.id}
@@ -241,60 +235,6 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                         <span className="font-mono text-xs font-semibold text-[#0b1c30]">
                           {limpiarIdentificacion(client.identificationNumber)}
                         </span>
-                      </td>
-
-                      {/* Servicio Contratado */}
-                      <td className="py-3.5 px-5">
-                        {srv ? (
-                          <span className="font-semibold text-[#0b1c30] block">
-                            {srv.planName}
-                          </span>
-                        ) : (
-                          <span className="text-[#737686] italic">Sin servicio activo</span>
-                        )}
-                      </td>
-
-                      {/* Saldos (Saldo pendiente del cliente) */}
-                      <td className="py-3.5 px-5 text-right font-tnum">
-                        {pendingBalance > 0 ? (
-                          <span className="inline-flex items-center gap-1 font-mono font-bold text-xs text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-md border border-rose-200">
-                            ${pendingBalance.toFixed(2)}
-                          </span>
-                        ) : (
-                          <span className="font-mono font-semibold text-xs text-slate-500">
-                            $0.00
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Estado */}
-                      <td className="py-3.5 px-5 text-center">
-                        {client.status === "activo" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] border border-[#a7f3d0]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
-                            ACTIVO
-                          </span>
-                        ) : client.status === "inactivo" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#475569] border border-[#cbd5e1]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#64748b]"></span>
-                            INACTIVO
-                          </span>
-                        ) : client.status === "suspendido" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fffbeb] text-[#92400e] border border-[#fde68a]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]"></span>
-                            SUSPENDIDO
-                          </span>
-                        ) : client.status === "retirado" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fff7ed] text-[#9a3412] border border-[#fed7aa]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]"></span>
-                            RETIRADO
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef2f2] text-[#991b1b] border border-[#fecaca]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#ef4444]"></span>
-                            CANCELADO
-                          </span>
-                        )}
                       </td>
 
                       {/* Acciones: Ver Cliente, Ver Facturas, Eliminar */}
