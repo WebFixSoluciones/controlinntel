@@ -756,16 +756,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   No hay personas de contacto registradas aún.
                 </p>
                 <p className="text-[11px] text-slate-400 max-w-md mx-auto">
-                  Agrega una o más personas de contacto para mantener actualizados los responsables de administración, pagos y soporte técnico.
+                  Agrega una o más personas de contacto usando el botón superior &quot;+ Agregar Contacto&quot; para mantener actualizados los responsables de administración, pagos y soporte técnico.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleAddContact}
-                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition cursor-pointer shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Agregar Primera Persona de Contacto</span>
-                </button>
               </div>
             ) : (
               <div className="space-y-3">

@@ -626,18 +626,8 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
                 {searchQuery || priorityFilter !== "todas" || statusFilter !== "todas" || assigneeFilter !== "todos"
                   ? "No hay tareas que coincidan con los filtros aplicados."
-                  : "Este cliente aún no tiene tareas en el gestor de proyectos. Haz clic en 'Nueva Tarea' para crear una orden de trabajo."}
+                  : "Este cliente aún no tiene tareas en el gestor de proyectos. Usa el botón superior 'Nueva Tarea' para crear una orden de trabajo."}
               </p>
-              <button
-                onClick={() => {
-                  setTaskToEdit(null);
-                  setIsModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-2 bg-[#004ac6] text-white rounded-xl text-xs font-bold cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Registrar Primera Tarea</span>
-              </button>
             </div>
           ) : (
             filteredTasks.map((task) => {

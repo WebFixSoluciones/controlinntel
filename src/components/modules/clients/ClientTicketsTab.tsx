@@ -221,16 +221,8 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
           <p className="text-[11px] text-slate-400 mt-0.5">
             {filterMode === "abiertos"
               ? "Todas las incidencias técnicas y requerimientos han sido atendidos y resueltos."
-              : "Puedes registrar un nuevo ticket de soporte en caso de requerimiento técnico."}
+              : "Puedes registrar un nuevo ticket de soporte usando el botón superior."}
           </p>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Abrir Ticket</span>
-          </button>
         </div>
       ) : (
         <div className="bg-white rounded-[6px] border border-slate-200 shadow-2xs overflow-hidden">

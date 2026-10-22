@@ -176,13 +176,6 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
               Registra las sedes, enlaces portadores y credenciales de acceso para este cliente.
             </p>
           </div>
-          <button
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#004ac6] text-white rounded-[6px] text-xs font-bold shadow-sm hover:bg-[#003ca0] transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Registrar Primera Sede</span>
-          </button>
         </div>
       ) : (
         <div className="bg-white rounded-[6px] border border-slate-200 shadow-2xs overflow-hidden">

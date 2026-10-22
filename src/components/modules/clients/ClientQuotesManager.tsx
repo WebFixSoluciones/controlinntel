@@ -390,14 +390,6 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
           <p className="text-[11px] text-slate-400 mt-0.5">
             No existen cotizaciones asignadas para este cliente.
           </p>
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Nueva Cotización</span>
-          </button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
