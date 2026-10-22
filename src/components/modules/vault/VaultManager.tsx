@@ -21,6 +21,19 @@ export function VaultManager() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    const handleReset = (event: any) => {
+      const detail = event?.detail;
+      if (detail?.href === "/boveda") {
+        setSelectedClientId(null);
+      }
+    };
+    window.addEventListener("inntel:reset-submodule-view", handleReset);
+    return () => {
+      window.removeEventListener("inntel:reset-submodule-view", handleReset);
+    };
+  }, []);
+
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   const getClientVaultItems = (id: string) => clientVaultItems.filter((v) => v.clientId === id);

@@ -227,7 +227,13 @@ function SidebarContent() {
                     if (item.href === "/clientes" || item.href === "/abonados") {
                       window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
                       router.push("/clientes");
-                    } else if (!isCurrentRoute && accessibleSubmodules[0]) {
+                    } else if (isCurrentRoute) {
+                      // Si el usuario ya está en este módulo principal y hace clic en la cabecera, resetear vistas secundarias
+                      window.dispatchEvent(new CustomEvent("inntel:reset-submodule-view", { detail: { href: item.href } }));
+                      if (accessibleSubmodules[0]) {
+                        router.push(accessibleSubmodules[0].href);
+                      }
+                    } else if (accessibleSubmodules[0]) {
                       router.push(accessibleSubmodules[0].href);
                     }
                   }}
@@ -270,6 +276,11 @@ function SidebarContent() {
                     if (item.href === "/clientes" || item.href === "/abonados") {
                       window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
                     }
+                    window.dispatchEvent(
+                      new CustomEvent("inntel:reset-submodule-view", {
+                        detail: { href: item.href },
+                      })
+                    );
                   }}
                   className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group border-l-4 ${
                     isCurrentRoute
@@ -304,6 +315,11 @@ function SidebarContent() {
                           if (sub.href === "/clientes" || sub.href.startsWith("/clientes") || sub.href.startsWith("/abonados")) {
                             window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
                           }
+                          window.dispatchEvent(
+                            new CustomEvent("inntel:reset-submodule-view", {
+                              detail: { href: sub.href, key: sub.key },
+                            })
+                          );
                         }}
                         className={`block px-3 py-1.5 rounded-lg text-xs transition-all ${
                           isSubActive

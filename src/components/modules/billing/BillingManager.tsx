@@ -94,6 +94,28 @@ export function BillingManager() {
     }
   }, [subParam, router]);
 
+  useEffect(() => {
+    const handleReset = (event: any) => {
+      const detail = event?.detail;
+      if (detail?.href?.startsWith("/facturacion") || detail?.key) {
+        setQuoteToConvert(null);
+        setQuoteToPreview(null);
+        setIsQuoteModalOpen(false);
+        setIsCreditNoteModalOpen(false);
+        setIsRemissionModalOpen(false);
+        if (detail?.key && detail.key !== "configuracion_sri") {
+          setActiveTab(detail.key);
+        } else {
+          setActiveTab("facturas");
+        }
+      }
+    };
+    window.addEventListener("inntel:reset-submodule-view", handleReset);
+    return () => {
+      window.removeEventListener("inntel:reset-submodule-view", handleReset);
+    };
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 

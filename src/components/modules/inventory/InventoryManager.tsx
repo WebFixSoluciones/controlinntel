@@ -145,11 +145,42 @@ export function InventoryManager() {
 
   const [activeTab, setActiveTab] = useState<InventoryTab>(() => normalizeTab(subParam));
 
+  const closeAllEmbeddedScreens = () => {
+    setIsProductModalOpen(false);
+    setProductToEdit(null);
+    setIsWarehouseModalOpen(false);
+    setWarehouseToEdit(null);
+    setIsTransferModalOpen(false);
+    setTransferDefaultProduct(undefined);
+    setTransferDefaultWarehouse(undefined);
+    setIsAdjustmentModalOpen(false);
+    setAdjustmentDefaultProduct(undefined);
+    setAdjustmentDefaultWarehouse(undefined);
+    setIsCatBrandOpen(false);
+  };
+
   useEffect(() => {
     if (subParam) {
       setActiveTab(normalizeTab(subParam));
+      closeAllEmbeddedScreens();
     }
   }, [subParam]);
+
+  // Escuchar navegación desde el Sidebar para desarmar cualquier pantalla embebida y navegar inmediatamente
+  useEffect(() => {
+    const handleReset = (event: any) => {
+      const detail = event?.detail;
+      closeAllEmbeddedScreens();
+      if (detail?.key) {
+        setActiveTab(normalizeTab(detail.key));
+      }
+    };
+
+    window.addEventListener("inntel:reset-submodule-view", handleReset);
+    return () => {
+      window.removeEventListener("inntel:reset-submodule-view", handleReset);
+    };
+  }, []);
 
   // Global search input for current view
   const [searchTerm, setSearchTerm] = useState("");
@@ -830,6 +861,7 @@ export function InventoryManager() {
             <button
               key={t.id}
               onClick={() => {
+                closeAllEmbeddedScreens();
                 setActiveTab(t.id);
                 router.push(`/inventarios?sub=${t.id}`);
               }}

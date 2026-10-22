@@ -253,9 +253,23 @@ export function ProductModal({
           </div>
           <div>
             <div className="text-[11px] font-semibold text-[#737686] flex items-center gap-1.5">
-              <span>Inventarios</span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
+                title="Volver a Inventarios"
+              >
+                Inventarios
+              </button>
               <span>/</span>
-              <span>{type === "servicio" ? "Servicios" : "Productos"}</span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
+                title={`Volver a ${type === "servicio" ? "Servicios" : "Productos"}`}
+              >
+                {type === "servicio" ? "Servicios" : "Productos"}
+              </button>
               <span>/</span>
               <span className="text-[#004ac6] font-bold">
                 {productToEdit ? `Editar ${productToEdit.sku}` : "Nuevo Registro"}

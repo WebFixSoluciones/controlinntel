@@ -34,6 +34,23 @@ export function PurchasesManager() {
     }
   }, [subParam]);
 
+  useEffect(() => {
+    const handleReset = (event: any) => {
+      const detail = event?.detail;
+      if (detail?.href?.startsWith("/compras") || detail?.key) {
+        if (detail?.key) {
+          setActiveTab(detail.key);
+        } else {
+          setActiveTab("historial_compras");
+        }
+      }
+    };
+    window.addEventListener("inntel:reset-submodule-view", handleReset);
+    return () => {
+      window.removeEventListener("inntel:reset-submodule-view", handleReset);
+    };
+  }, []);
+
   // Submodule permission guards
   const canHistorial = canAccessSubmodule(currentUser, "compras", "historial_compras");
   const canNC = canAccessSubmodule(currentUser, "compras", "notas_credito");

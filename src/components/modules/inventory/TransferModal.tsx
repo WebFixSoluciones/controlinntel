@@ -130,9 +130,23 @@ export function TransferModal({
         </button>
         <div>
           <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
-            <span>Inventarios</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
+              title="Volver a Inventarios"
+            >
+              Inventarios
+            </button>
             <span>/</span>
-            <span>Transferencias</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
+              title="Volver a Transferencias"
+            >
+              Transferencias
+            </button>
             <span>/</span>
             <span className="text-[#004ac6] font-bold">Registrar Traslado Inter-Bodegas</span>
           </div>
