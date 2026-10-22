@@ -4,7 +4,6 @@ import React, { useState, useMemo } from "react";
 import { Client, ClientDocumentFile, SriInvoice, ClientService } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { generateAdhesionContractDocx, triggerBrowserDownload } from "@/lib/doc-generator";
 import { NewSaleView } from "../billing/NewSaleView";
 import {
   Download,
@@ -137,17 +136,6 @@ export function ClientContractTab({ client }: { client: Client }) {
         it.homologation.toLowerCase().includes(q)
     );
   }, [clientInvoices, activeServices, contracts, client.createdAt, searchQuery]);
-
-  const handleDownloadWordContract = async (serviceName?: string) => {
-    try {
-      const srv = activeServices.find((s) => s.planName === serviceName) || activeServices[0];
-      const blob = await generateAdhesionContractDocx(client, srv);
-      triggerBrowserDownload(blob, `Contrato_Adhesion_${client.identificationNumber}.docx`);
-      showSuccess("Descarga Exitosa", `Contrato de Adhesión para ${client.businessName} descargado.`);
-    } catch {
-      showError("Error", "No se pudo generar el contrato Word.");
-    }
-  };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,13 +306,12 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <th className="py-3 px-5">Fecha Alta / Vigencia</th>
                 <th className="py-3 px-5 text-center">Estado</th>
                 <th className="py-3 px-5 text-right">Tarifa</th>
-                <th className="py-3 px-5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
               {contractedServices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-[#737686]">
+                  <td colSpan={6} className="py-12 text-center text-xs text-[#737686]">
                     <Receipt className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                     <p className="font-bold text-slate-600">No hay servicios contratados aún para este cliente.</p>
                     <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
@@ -347,9 +334,21 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <td className="py-3.5 px-5 font-tnum">
                       <div className="flex items-center gap-1.5">
                         <Receipt className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                        <span className="font-mono font-bold text-slate-900 text-xs">
-                          {svc.invoiceNumber}
-                        </span>
+                        {svc.rawInvoice ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedInvoiceView(svc.rawInvoice!)}
+                            className="font-mono font-bold text-[#004ac6] hover:underline text-xs text-left cursor-pointer flex items-center gap-1"
+                            title="Ver Comprobante de Venta"
+                          >
+                            <span>{svc.invoiceNumber}</span>
+                            <Eye className="w-3.5 h-3.5 text-[#737686]" />
+                          </button>
+                        ) : (
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            {svc.invoiceNumber}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">
                         {svc.invoiceType}
@@ -380,34 +379,6 @@ export function ClientContractTab({ client }: { client: Client }) {
                     {/* Tarifa */}
                     <td className="py-3.5 px-5 text-right font-mono font-bold text-emerald-700 text-xs">
                       ${svc.price.toFixed(2)} USD
-                    </td>
-
-                    {/* Acciones */}
-                    <td className="py-3.5 px-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Descargar Word del Contrato */}
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadWordContract(svc.name)}
-                          className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:text-[#004ac6] hover:bg-[#eff4ff] border border-slate-200 rounded-lg transition cursor-pointer"
-                          title="Descargar Contrato de Adhesión Word"
-                        >
-                          <Download className="w-3.5 h-3.5 text-[#004ac6]" />
-                          <span>Word</span>
-                        </button>
-
-                        {/* Ver Comprobante si existe */}
-                        {svc.rawInvoice && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedInvoiceView(svc.rawInvoice!)}
-                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                            title="Ver Comprobante de Venta"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
                     </td>
                   </tr>
                 ))
@@ -507,30 +478,6 @@ export function ClientContractTab({ client }: { client: Client }) {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 3. CARD MINIMALISTA: MODELO DE CONTRATO WORD ARCOTEL                     */}
-      {/* ========================================================================= */}
-      <div className="p-3.5 px-5 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center">
-            <FileText className="w-4 h-4" />
-          </div>
-          <div>
-            <h4 className="font-bold text-[#0b1c30]">Plantilla de Contrato de Adhesión ARCOTEL (.docx)</h4>
-            <span className="text-[11px] text-slate-500">Formato prellenado con datos legales y vigencia</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => handleDownloadWordContract()}
-          className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-300 hover:border-[#004ac6] hover:text-[#004ac6] text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer"
-        >
-          <Download className="w-3.5 h-3.5 text-[#004ac6]" />
-          <span>Descargar Word</span>
-        </button>
       </div>
 
       {/* ========================================================================= */}
