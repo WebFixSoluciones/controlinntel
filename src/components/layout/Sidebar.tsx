@@ -23,7 +23,6 @@ import {
   LogOut,
   Settings,
   Contact2,
-  Radio,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -111,7 +110,6 @@ const NAV_ITEMS: NavItem[] = [
       { key: "reportes", label: "Reportes", href: "/finanzas?sub=reportes", submoduleKey: "reportes" },
     ],
   },
-  { href: "/red", label: "Nodos / Red", icon: Radio, moduleKey: "red" },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
   { href: "/boveda", label: "Credenciales", icon: KeyRound },

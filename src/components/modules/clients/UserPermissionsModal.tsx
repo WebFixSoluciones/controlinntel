@@ -424,7 +424,7 @@ export function UserPermissionsModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Network className="w-4 h-4 text-[#004ac6]" />
-                  <span className="text-xs font-bold text-[#0b1c30]">Módulo Red (/red)</span>
+                  <span className="text-xs font-bold text-[#0b1c30]">Nodos & Conectividad de Red</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input

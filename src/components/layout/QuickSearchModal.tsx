@@ -97,7 +97,7 @@ export function QuickSearchModal() {
                 {filteredNodes.map((n) => (
                   <Link
                     key={n.id}
-                    href="/red"
+                    href={n.clientId ? `/clientes?id=${n.clientId}` : "/clientes"}
                     onClick={() => setIsSearchOpen(false)}
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
