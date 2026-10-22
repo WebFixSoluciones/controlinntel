@@ -147,7 +147,7 @@ export function NodesList() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Nuevo Nodo / POP</h3>
+              <h3 className="font-bold text-[#0b1c30] text-sm">Nuevo Nodo</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
                 <X className="w-4 h-4" />
               </button>

@@ -164,7 +164,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-3">
             <h3 className="font-bold text-xs text-[#0b1c30] flex items-center gap-2">
               <Lock className="w-4 h-4 text-[#004ac6]" />
-              {editingId ? "Modificar Credencial Cifrada" : "Registrar Nuevo Acceso Seguro"}
+              {editingId ? "Editar Credencial" : "Nueva Credencial"}
             </h3>
             <button
               type="button"

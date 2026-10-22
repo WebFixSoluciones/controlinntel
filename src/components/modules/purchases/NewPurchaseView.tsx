@@ -325,12 +325,12 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
           </button>
           <div>
             <h2 className="text-sm font-bold text-slate-900">
-              Registrar Compra de Proveedor
+              Nueva Compra
             </h2>
             <p className="text-[11px] text-slate-500">
               {mode === "xml"
-                ? "Carga de comprobante mediante archivo XML autorizado por el SRI"
-                : "Registro manual de factura de adquisición y recepción de mercadería"}
+                ? "Carga de comprobante XML autorizado por el SRI"
+                : "Registro manual de factura de adquisición"}
             </p>
           </div>
         </div>

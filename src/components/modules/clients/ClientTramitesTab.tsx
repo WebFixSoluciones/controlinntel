@@ -236,7 +236,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
           className="w-full md:w-auto px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Registrar Nuevo Trámite</span>
+          <span>Nuevo Trámite</span>
         </button>
       </div>
 

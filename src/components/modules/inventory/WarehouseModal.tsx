@@ -105,38 +105,18 @@ export function WarehouseModal({
           type="button"
           onClick={onClose}
           className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
-          title="Volver a Bodegas"
+          title="Volver"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Inventarios"
-            >
-              Inventarios
-            </button>
-            <span>/</span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Bodegas"
-            >
-              Bodegas
-            </button>
-            <span>/</span>
-            <span className="text-[#004ac6] font-bold">
-              {warehouseToEdit ? `Editar Bodega: ${warehouseToEdit.code}` : "Nueva Bodega / Almacén"}
-            </span>
-          </div>
-          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
             <Building2 className="w-5 h-5 text-[#004ac6]" />
-            {warehouseToEdit ? `Editar Bodega: ${warehouseToEdit.name}` : "Nueva Bodega o Centro de Acopio"}
+            {warehouseToEdit ? `Editar Bodega: ${warehouseToEdit.name}` : "Nueva Bodega"}
           </h2>
+          <p className="text-xs text-[#737686]">
+            Gestión de ubicaciones y control de almacenamiento
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -167,10 +147,10 @@ export function WarehouseModal({
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800">
-            {warehouseToEdit ? "Editar Bodega / Almacén" : "Nueva Bodega / Almacén"}
+            {warehouseToEdit ? "Editar Bodega" : "Nueva Bodega"}
           </h3>
           <p className="text-[11px] text-slate-500">
-            Gestión de centros de almacenamiento, nodos y unidades móviles
+            Gestión de ubicaciones y control de almacenamiento
           </p>
         </div>
       </div>

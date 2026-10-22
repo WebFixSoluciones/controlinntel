@@ -1756,10 +1756,10 @@ export function NewSaleView({
           </button>
           <div>
             <h1 className="text-base font-black text-slate-900 tracking-tight">
-              Registrar Venta
+              Nueva Venta
             </h1>
             <p className="text-[11px] text-slate-500">
-              Emisión electrónica SRI y notas de venta con control de stock en tiempo real
+              Emisión electrónica SRI y notas de venta
             </p>
           </div>
         </div>

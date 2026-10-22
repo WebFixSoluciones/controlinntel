@@ -28,6 +28,10 @@ const FinancialChart = dynamic(
 export default function DashboardPage() {
   const { currentUser } = useApp();
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const cleanUserName = (currentUser?.displayName || "Administrador")
+    .replace(/\s*General\s*INNTEL\s*CORP/gi, "")
+    .replace(/\s*INNTEL\s*CORP/gi, "")
+    .trim() || "Administrador";
 
   return (
     <div className="flex min-h-screen bg-[#f8f9ff] text-[#0b1c30]">
@@ -39,10 +43,10 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-4 select-none pb-1 border-b border-[#e2e8f0]/60">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-[#0b1c30] tracking-tight">
-                Bienvenido, {currentUser.displayName}
+                Bienvenido, {cleanUserName}
               </h1>
               <p className="text-xs text-[#737686] mt-0.5">
-                Panel central de control y gestión operativa
+                Panel de control y gestión operativa
               </p>
             </div>
 

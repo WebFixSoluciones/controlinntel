@@ -53,9 +53,9 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
   {
     uid: "usr-superadmin-00",
     email: "superadmin@inntelcorp.com",
-    displayName: "Administrador General INNTEL CORP",
+    displayName: "Administrador",
     role: "superadmin",
-    department: "Administración General & NOC Central",
+    department: "Administración General",
     phone: "+593 99 876 5432",
     status: "activo",
     passwordHash: "SuperAdmin2026*",

@@ -150,11 +150,8 @@ export function CreditNoteModal({
               <RotateCcw className="w-5 h-5 text-rose-400" />
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Ajustes Tributarios SRI
-              </span>
               <h2 className="text-lg font-black text-white">
-                Emitir Nota de Crédito Electrónica
+                Nueva Nota de Crédito
               </h2>
             </div>
           </div>

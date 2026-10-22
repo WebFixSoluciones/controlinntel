@@ -167,11 +167,8 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               <Settings className="w-5 h-5 text-sky-400" />
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Parámetros Tributarios
-              </span>
               <h2 className="text-base font-black text-white">
-                Configuración del Emisor SRI & Secuencias
+                Configuración SRI
               </h2>
             </div>
           </div>

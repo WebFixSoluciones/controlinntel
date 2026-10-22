@@ -346,7 +346,7 @@ export function SuppliersManager() {
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div>
                 <h3 className="text-base font-bold text-[#0b1c30]">
-                  {editingSupplier ? "Editar Proveedor" : "Registrar Nuevo Proveedor"}
+                  {editingSupplier ? `Editar Proveedor: ${editingSupplier.name}` : "Nuevo Proveedor"}
                 </h3>
                 <p className="text-xs text-[#737686]">
                   Información fiscal, contactos y datos bancarios para pagos

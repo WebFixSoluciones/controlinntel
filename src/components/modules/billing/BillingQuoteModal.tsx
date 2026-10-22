@@ -246,11 +246,8 @@ export function BillingQuoteModal({
               <FileText className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Propuestas Comerciales
-              </span>
               <h2 className="text-lg font-black text-white">
-                {quoteToEdit ? `Editar Cotización ${quoteToEdit.quoteNumber}` : "Nueva Cotización Formal"}
+                {quoteToEdit ? `Editar Cotización ${quoteToEdit.quoteNumber}` : "Nueva Cotización"}
               </h2>
             </div>
           </div>

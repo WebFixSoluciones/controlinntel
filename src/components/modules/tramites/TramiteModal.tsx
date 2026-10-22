@@ -247,10 +247,10 @@ export function TramiteModal({
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-sm">
-                {tramiteToEdit ? `Modificar Trámite: ${tramiteToEdit.code}` : "Registrar Nuevo Trámite"}
+                {tramiteToEdit ? `Editar Trámite: ${tramiteToEdit.code}` : "Nuevo Trámite"}
               </h3>
               <p className="text-[11px] text-[#737686]">
-                Seguimiento regulatorio e institucional con estados dinámicos
+                Seguimiento de trámites regulatorios e institucionales
               </p>
             </div>
           </div>

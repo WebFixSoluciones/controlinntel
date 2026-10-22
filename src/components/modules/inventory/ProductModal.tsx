@@ -244,7 +244,7 @@ export function ProductModal({
           className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Volver al Listado</span>
+          <span>Volver</span>
         </button>
         <div className="h-6 w-px bg-slate-200" />
         <div className="flex items-center gap-3">
@@ -252,34 +252,14 @@ export function ProductModal({
             {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-[#737686] flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={onClose}
-                className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-                title="Volver a Inventarios"
-              >
-                Inventarios
-              </button>
-              <span>/</span>
-              <button
-                type="button"
-                onClick={onClose}
-                className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-                title={`Volver a ${type === "servicio" ? "Servicios" : "Productos"}`}
-              >
-                {type === "servicio" ? "Servicios" : "Productos"}
-              </button>
-              <span>/</span>
-              <span className="text-[#004ac6] font-bold">
-                {productToEdit ? `Editar ${productToEdit.sku}` : "Nuevo Registro"}
-              </span>
-            </div>
             <h2 className="text-base font-bold text-[#0b1c30]">
               {productToEdit
                 ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}: ${productToEdit.name}`
-                : `Registrar Nuevo ${type === "servicio" ? "Servicio Técnico" : "Producto de Telecomunicaciones"}`}
+                : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
             </h2>
+            <p className="text-xs text-[#737686]">
+              {type === "servicio" ? "Catálogo y tarifas de servicios" : "Catálogo y control de stock"}
+            </p>
           </div>
         </div>
       </div>
@@ -312,12 +292,12 @@ export function ProductModal({
           <h3 className="text-sm font-bold text-slate-800">
             {productToEdit
               ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}`
-              : `Registrar Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
+              : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
           </h3>
           <p className="text-[11px] text-slate-500">
             {type === "servicio"
               ? "Mano de obra, enlaces y servicios sin control de existencias"
-              : "Equipos de telecomunicaciones, pasivos y control de stock"}
+              : "Catálogo de productos y control de stock"}
           </p>
         </div>
       </div>

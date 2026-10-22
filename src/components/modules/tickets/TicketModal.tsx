@@ -139,8 +139,8 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <Headphones className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0b1c30] text-sm">Abrir Ticket de Soporte Técnico</h3>
-              <p className="text-[11px] text-[#737686]">Flujo de mesa de ayuda ISP y atención de clientes</p>
+              <h3 className="font-bold text-[#0b1c30] text-sm">Nuevo Ticket</h3>
+              <p className="text-[11px] text-[#737686]">Registro de soporte técnico e incidencias</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-slate-200/60 cursor-pointer transition-colors">

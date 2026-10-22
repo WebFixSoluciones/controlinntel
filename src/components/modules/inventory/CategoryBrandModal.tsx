@@ -75,42 +75,24 @@ export function CategoryBrandModal({
           type="button"
           onClick={onClose}
           className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
-          title="Volver a Categorías y Marcas"
+          title="Volver"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Inventarios"
-            >
-              Inventarios
-            </button>
-            <span>/</span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Categorías"
-            >
-              Categorías y Marcas
-            </button>
-            <span>/</span>
-            <span className="text-[#004ac6] font-bold">
-              {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca / Fabricante"}
-            </span>
-          </div>
-          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
             {mode === "categoria" ? (
               <Tag className="w-5 h-5 text-[#004ac6]" />
             ) : (
               <Award className="w-5 h-5 text-[#004ac6]" />
             )}
-            {mode === "categoria" ? "Registrar Categoría de Catálogo" : "Registrar Marca o Fabricante"}
+            {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca"}
           </h2>
+          <p className="text-xs text-[#737686]">
+            {mode === "categoria"
+              ? "Clasificación para productos o servicios"
+              : "Registro de marca comercial"}
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -141,12 +123,12 @@ export function CategoryBrandModal({
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800">
-            {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca / Fabricante"}
+            {mode === "categoria" ? "Nueva Categoría" : "Nueva Marca"}
           </h3>
           <p className="text-[11px] text-slate-500">
             {mode === "categoria"
               ? "Clasificación para productos o servicios"
-              : "Fabricante o marca de equipamiento ISP"}
+              : "Registro de marca comercial"}
           </p>
         </div>
       </div>

@@ -126,6 +126,11 @@ function HeaderContent() {
   const { currentUser, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout } = useApp();
   const { showConfirm, showInfo, showSuccess } = useToast();
 
+  const cleanUserName = (currentUser?.displayName || "Administrador")
+    .replace(/\s*General\s*INNTEL\s*CORP/gi, "")
+    .replace(/\s*INNTEL\s*CORP/gi, "")
+    .trim() || "Administrador";
+
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -222,10 +227,10 @@ function HeaderContent() {
             title="Opciones de cuenta y perfil"
           >
             <div className="w-8 h-8 rounded-full bg-[#004ac6] group-hover:bg-[#003ca3] text-white font-bold text-xs flex items-center justify-center shadow-xs transition-colors">
-              {currentUser.displayName.charAt(0).toUpperCase()}
+              {cleanUserName.charAt(0).toUpperCase()}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-xs font-bold text-[#0b1c30] leading-tight truncate">{currentUser.displayName}</p>
+              <p className="text-xs font-bold text-[#0b1c30] leading-tight truncate">{cleanUserName}</p>
               <p className="text-[10px] text-[#737686] leading-none capitalize">{currentUser.role}</p>
             </div>
             <ChevronDown
@@ -241,10 +246,10 @@ function HeaderContent() {
               {/* User Identity Header */}
               <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <div className="w-10 h-10 rounded-full bg-[#004ac6] text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0">
-                  {currentUser.displayName.charAt(0).toUpperCase()}
+                  {cleanUserName.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-900 truncate">{currentUser.displayName}</p>
+                  <p className="text-xs font-bold text-slate-900 truncate">{cleanUserName}</p>
                   <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
                   <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
                     <Shield className="w-2.5 h-2.5" />

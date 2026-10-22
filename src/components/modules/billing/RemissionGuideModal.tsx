@@ -163,11 +163,8 @@ export function RemissionGuideModal({
               <Truck className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Logística & Despacho SRI
-              </span>
               <h2 className="text-lg font-black text-white">
-                Emitir Guía de Remisión Electrónica
+                Nueva Guía de Remisión
               </h2>
             </div>
           </div>

@@ -124,36 +124,18 @@ export function TransferModal({
           type="button"
           onClick={onClose}
           className="p-2 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 text-[#434655] transition-colors cursor-pointer shadow-2xs"
-          title="Volver a Transferencias"
+          title="Volver"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-[#737686] mb-0.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Inventarios"
-            >
-              Inventarios
-            </button>
-            <span>/</span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="hover:text-[#004ac6] hover:underline cursor-pointer transition-colors"
-              title="Volver a Transferencias"
-            >
-              Transferencias
-            </button>
-            <span>/</span>
-            <span className="text-[#004ac6] font-bold">Registrar Traslado Inter-Bodegas</span>
-          </div>
-          <h2 className="text-lg font-black text-[#0b1c30] flex items-center gap-2">
+          <h2 className="text-base font-bold text-[#0b1c30] flex items-center gap-2">
             <ArrowRightLeft className="w-5 h-5 text-[#004ac6]" />
-            Transferencia Inter-Bodegas
+            Nueva Transferencia
           </h2>
+          <p className="text-xs text-[#737686]">
+            Traslado de productos entre bodegas
+          </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -184,10 +166,10 @@ export function TransferModal({
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800">
-            Transferencia Inter-Bodegas
+            Nueva Transferencia
           </h3>
           <p className="text-[11px] text-slate-500">
-            Traslado físico y contable de materiales y equipos entre almacenes
+            Traslado de productos entre bodegas
           </p>
         </div>
       </div>

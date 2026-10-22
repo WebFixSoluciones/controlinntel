@@ -941,7 +941,7 @@ export function ClientNodesManager() {
               <div className="flex items-center gap-2.5">
                 <Radio className="w-5 h-5 text-[#004ac6]" />
                 <h3 className="font-bold text-[#0b1c30] text-sm">
-                  {editingNode ? `Editar Nodo: ${editingNode.name}` : "Registrar Nuevo Nodo / POP Multi-Carrier"}
+                  {editingNode ? `Editar Nodo: ${editingNode.name}` : "Nuevo Nodo"}
                 </h3>
               </div>
               <button

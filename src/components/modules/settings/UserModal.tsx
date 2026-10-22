@@ -192,7 +192,7 @@ export function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
-                {userToEdit ? "Editar Operador & Permisos" : "Registrar Nuevo Usuario / Operador"}
+                {userToEdit ? `Editar Usuario: ${userToEdit.displayName}` : "Nuevo Usuario"}
               </h3>
             </div>
           </div>

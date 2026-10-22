@@ -450,12 +450,12 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-sm md:text-base">
-                {clientToEdit ? `Editar Ficha de Cliente: ${clientToEdit.businessName}` : "Registrar Nuevo Cliente"}
+                {clientToEdit ? `Editar Cliente: ${clientToEdit.businessName}` : "Nuevo Cliente"}
               </h3>
               <p className="text-[11px] text-[#737686]">
                 {clientToEdit
-                  ? "Modifica los datos fiscales del SRI, ubicación y personas de contacto"
-                  : "Extracción directa desde el Catastro del SRI con sanitización automática de espacios"}
+                  ? "Modifica los datos fiscales, ubicación y personas de contacto"
+                  : "Ingreso de datos fiscales y personas de contacto"}
               </p>
             </div>
           </div>

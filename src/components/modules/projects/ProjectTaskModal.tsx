@@ -1010,7 +1010,7 @@ export function ProjectTaskModal({
                   className="px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>+ Registrar Nuevo Trámite</span>
+                  <span>Nuevo Trámite</span>
                 </button>
               </div>
 

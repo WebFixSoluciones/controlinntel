@@ -489,6 +489,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               .map((u: any) => ({
                 ...u,
                 email: u.email ? u.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com") : u.email,
+                displayName:
+                  u.displayName === "Administrador General INNTEL CORP"
+                    ? "Administrador"
+                    : u.displayName,
               }));
             activeUsers = migrated.length > 0 ? migrated : INITIAL_SYSTEM_USERS;
             setSystemUsers(activeUsers);
@@ -505,6 +509,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const user = JSON.parse(savedAuth);
           if (user && user.email) {
             user.email = user.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com");
+            if (user.displayName === "Administrador General INNTEL CORP") {
+              user.displayName = "Administrador";
+            }
 
             // Si hay firma, verificar que el rol/email no hayan sido adulterados
             if (savedSig) {

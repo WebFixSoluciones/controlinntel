@@ -315,10 +315,10 @@ export function RegisterPurchaseModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#0b1c30]">
-                Registrar Factura de Compra
+                Nueva Compra
               </h2>
               <p className="text-xs text-[#737686]">
-                Carga un XML electrónico del SRI o ingresa la información manualmente
+                Carga de archivo XML o registro manual de factura
               </p>
             </div>
           </div>
