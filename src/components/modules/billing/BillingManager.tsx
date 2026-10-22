@@ -1172,6 +1172,11 @@ export function BillingManager() {
       <QuotePreviewModal
         quote={quoteToPreview}
         onClose={() => setQuoteToPreview(null)}
+        companyConfig={sriCompanyConfig}
+        onConvertToInvoice={(q) => {
+          setQuoteToPreview(null);
+          setQuoteToConvert(q);
+        }}
       />
     </div>
   );
