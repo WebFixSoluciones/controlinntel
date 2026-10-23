@@ -19,6 +19,7 @@ import {
   EyeOff,
   ShieldCheck,
   Search,
+  ExternalLink,
 } from "lucide-react";
 
 interface ClientNodesTabProps {
@@ -243,6 +244,20 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                             <p className="text-[11px] text-slate-500 pl-4 leading-snug max-w-[220px]">
                               {node.detailedAddress || node.address}
                             </p>
+                          )}
+                          {node.coordinates && (
+                            <div className="pl-4 pt-0.5">
+                              <a
+                                href={`https://www.google.com/maps?q=${node.coordinates.lat},${node.coordinates.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] text-[#004ac6] hover:underline font-mono bg-blue-50/70 border border-blue-200/60 px-1.5 py-0.5 rounded-[4px] font-semibold"
+                                title="Abrir ubicación en Google Maps"
+                              >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                                <span>{node.coordinates.lat.toFixed(5)}, {node.coordinates.lng.toFixed(5)}</span>
+                              </a>
+                            </div>
                           )}
                         </div>
                       </td>

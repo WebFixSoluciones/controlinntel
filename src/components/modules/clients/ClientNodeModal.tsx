@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -25,7 +26,22 @@ import {
   Copy,
   Check,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
+import type { DetectedLocationData } from "./NodeLocationMapPicker";
+
+const NodeLocationMapPicker = dynamic(
+  () => import("./NodeLocationMapPicker"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[250px] bg-slate-100 rounded-[6px] border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+        <div className="w-5 h-5 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold">Cargando mapa interactivo...</span>
+      </div>
+    ),
+  }
+);
 
 interface ClientNodeModalProps {
   isOpen: boolean;
@@ -51,11 +67,12 @@ export function ClientNodeModal({
   const [isReportedArcotel, setIsReportedArcotel] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // Estructura Geográfica de Ecuador
+  // Estructura Geográfica de Ecuador & Coordenadas GPS
   const [province, setProvince] = useState<string>("Pichincha");
   const [canton, setCanton] = useState("");
   const [parish, setParish] = useState("");
   const [detailedAddress, setDetailedAddress] = useState("");
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   // Enlaces Multi-Carrier del Nodo
   const [providers, setProviders] = useState<NodeCarrierProvider[]>([]);
@@ -127,6 +144,7 @@ export function ClientNodeModal({
       setCanton(nodeToEdit.canton || "");
       setParish(nodeToEdit.parish || "");
       setDetailedAddress(nodeToEdit.detailedAddress || "");
+      setCoordinates(nodeToEdit.coordinates || null);
 
       setProviders(nodeToEdit.providers ? [...nodeToEdit.providers] : []);
       setServices(
@@ -155,6 +173,7 @@ export function ClientNodeModal({
       setCanton("");
       setParish("");
       setDetailedAddress("");
+      setCoordinates(null);
 
       setProviders([]);
       setServices([]);
@@ -169,6 +188,23 @@ export function ClientNodeModal({
   }, [isOpen, nodeToEdit]);
 
   if (!isOpen) return null;
+
+  // Manejador de sincronización de ubicación desde el mapa interactivo
+  const handleAddressDetected = (data: DetectedLocationData) => {
+    if (data.address) {
+      setDetailedAddress(data.address);
+    }
+    if (data.canton) {
+      setCanton(data.canton);
+    }
+    if (data.parish) {
+      setParish(data.parish);
+    }
+    if (data.province && (ECUADOR_PROVINCES as readonly string[]).includes(data.province)) {
+      setProvince(data.province);
+    }
+    showSuccess("Ubicación Sincronizada", "Campos actualizados según el punto del mapa.");
+  };
 
   // Manejador de campos IPv4 dinámicos
   const handleAddIpv4Field = () => {
@@ -327,6 +363,7 @@ export function ClientNodeModal({
         parish: parish.trim(),
         detailedAddress: detailedAddress.trim(),
         address: fullAddress,
+        coordinates: coordinates ? { lat: Number(coordinates.lat), lng: Number(coordinates.lng) } : undefined,
         status: status as any,
         isReportedArcotel,
         totalCapacityMbps: totalCapacity,
@@ -480,11 +517,18 @@ export function ClientNodeModal({
 
               {/* SECCIÓN GEOGRÁFICA DE ECUADOR */}
               <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200/80 space-y-3.5">
-                <div className="flex items-center gap-2 border-b border-slate-200/70 pb-2">
-                  <MapPin className="w-4 h-4 text-[#004ac6]" />
-                  <span className="text-xs font-bold text-slate-800">
-                    Ubicación Geográfica en Ecuador
-                  </span>
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#004ac6]" />
+                    <span className="text-xs font-bold text-slate-800">
+                      Ubicación Geográfica en Ecuador & Coordenadas
+                    </span>
+                  </div>
+                  {coordinates && (
+                    <span className="text-[10px] font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">
+                      GPS: {coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -544,6 +588,28 @@ export function ClientNodeModal({
                     className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
+
+                {/* MAPA INTERACTIVO (GOOGLE MAPS / SATÉLITE / CALLES) */}
+                <div className="pt-2 border-t border-slate-200/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-[#004ac6]" />
+                      <span>Mapa Interactivo de Ubicación Exacta</span>
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      Haz clic en el mapa para capturar las coordenadas exactas
+                    </span>
+                  </div>
+
+                  <NodeLocationMapPicker
+                    coordinates={coordinates}
+                    onChangeCoordinates={(coords) => setCoordinates(coords)}
+                    onAddressDetected={handleAddressDetected}
+                    province={province}
+                    canton={canton}
+                    detailedAddress={detailedAddress}
+                  />
+                </div>
               </div>
 
               {/* Observación */}
@@ -552,7 +618,7 @@ export function ClientNodeModal({
                   Observación
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   placeholder="Observaciones de acceso, contactos de guardia en garita, horarios de mantenimiento..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
