@@ -12,7 +12,6 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { MoreVertical } from "lucide-react";
 
 export function FinancialChart() {
   const { monthlyCharges, expenses, clientServices } = useApp();
@@ -30,17 +29,24 @@ export function FinancialChart() {
   ];
 
   return (
-    <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
       <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
-        <h3 className="font-bold text-sm text-[#0b1c30]">Ingresos vs Egresos</h3>
-        <button className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#f8f9ff] cursor-pointer">
-          <MoreVertical className="w-4 h-4" />
-        </button>
+        <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30]">
+          Ingresos vs Egresos
+        </h3>
+        <div className="flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#2563eb]"></span> Ingresos
+          </span>
+          <span className="flex items-center gap-1.5 font-semibold text-slate-700">
+            <span className="w-2.5 h-2.5 rounded-sm bg-[#f87171]"></span> Egresos
+          </span>
+        </div>
       </div>
 
-      <div className="h-64 mt-4 w-full relative">
+      <div className="h-56 mt-4 w-full relative">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="mes" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "#737686" }} />
             <YAxis
@@ -67,20 +73,6 @@ export function FinancialChart() {
             <Line type="monotone" dataKey="comparativo" name="Comparativo" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, fill: "#2563eb" }} />
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-[#f1f5f9] flex items-center justify-between text-[11px] font-semibold text-[#737686]">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 text-[#0b1c30]">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#2563eb]"></span> Ingresos
-          </span>
-          <span className="flex items-center gap-1.5 text-[#0b1c30]">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#f87171]"></span> Egresos
-          </span>
-        </div>
-        <span className="text-[10px] text-[#004ac6] bg-[#eff4ff] px-2 py-0.5 rounded font-bold">
-          Gráfico Comparativo
-        </span>
       </div>
     </div>
   );

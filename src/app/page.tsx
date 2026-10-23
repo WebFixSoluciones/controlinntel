@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import dynamic from "next/dynamic";
 import { MetricsCards } from "@/components/modules/dashboard/MetricsCards";
+import { RecentSalesCard } from "@/components/modules/dashboard/RecentSalesCard";
 import { ExpirationsTimeline } from "@/components/modules/dashboard/ExpirationsTimeline";
 import { TicketsRecientesCard } from "@/components/modules/dashboard/RecentActivity";
 import { ClientModal } from "@/components/modules/clients/ClientModal";
@@ -40,25 +41,22 @@ export default function DashboardPage() {
         <Header />
         <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
           {/* Header con Bienvenida y Accesos Directos Minimalistas */}
-          <div className="flex flex-wrap items-center justify-between gap-4 select-none pb-1 border-b border-[#e2e8f0]/60">
+          <div className="flex flex-wrap items-center justify-between gap-3 select-none pb-1 border-b border-[#e2e8f0]/60">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-[#0b1c30] tracking-tight">
+              <h1 className="text-lg md:text-xl font-bold text-[#0b1c30] tracking-tight">
                 Bienvenido, {cleanUserName}
               </h1>
-              <p className="text-xs text-[#737686] mt-0.5">
-                Panel de control y gestión operativa
-              </p>
             </div>
 
             {/* Accesos directos super minimalistas */}
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href="/facturacion?sub=ventas&action=nueva_venta"
+                href="/facturacion?sub=nueva_venta"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Generar nueva venta en Facturación"
+                title="Nueva Venta"
               >
                 <Receipt className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
-                <span>Generar Venta</span>
+                <span>Venta</span>
               </Link>
 
               <button
@@ -68,34 +66,34 @@ export default function DashboardPage() {
                 title="Registrar nuevo cliente"
               >
                 <UserPlus className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
-                <span>Nuevo Cliente</span>
+                <span>Cliente</span>
               </button>
 
               <Link
                 href="/inventarios?sub=productos&action=nuevo"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Crear nuevo producto en Inventarios"
+                title="Nuevo producto"
               >
                 <PackagePlus className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
-                <span>Nuevo Producto</span>
+                <span>Producto</span>
               </Link>
 
               <Link
-                href="/finanzas?sub=cxc"
+                href="/finanzas?sub=cuentas_por_cobrar"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Cuentas por Cobrar (Finanzas)"
+                title="Cuentas por Cobrar"
               >
                 <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                <span>Cuentas CXC</span>
+                <span>Por Cobrar</span>
               </Link>
 
               <Link
-                href="/finanzas?sub=cxp"
+                href="/finanzas?sub=cuentas_por_pagar"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Cuentas por Pagar (Finanzas)"
+                title="Cuentas por Pagar"
               >
                 <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
-                <span>Cuentas CXP</span>
+                <span>Por Pagar</span>
               </Link>
             </div>
           </div>
@@ -103,12 +101,13 @@ export default function DashboardPage() {
           {/* Metrics Row (4 Cards) */}
           <MetricsCards />
 
-          {/* Middle Section (Grid 12 Cols: FinancialChart 8 Cols, Alertas & Tickets 4 Cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8">
+          {/* Middle Section (Grid 12 Cols: FinancialChart & RecentSales 8 Cols, Alertas & Tickets 4 Cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-8 space-y-5">
               <FinancialChart />
+              <RecentSalesCard />
             </div>
-            <div className="lg:col-span-4 space-y-6">
+            <div className="lg:col-span-4 space-y-5">
               <ExpirationsTimeline />
               <TicketsRecientesCard />
             </div>

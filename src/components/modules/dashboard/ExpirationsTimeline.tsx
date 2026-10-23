@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
-import { AlertTriangle, ArrowRight, Globe, ShieldCheck, Clock, Server } from "lucide-react";
+import { ArrowRight, Globe, ShieldCheck, Clock, Server } from "lucide-react";
 
 export function ExpirationsTimeline() {
   const { policies, hostingDomains } = useApp();
@@ -14,13 +14,13 @@ export function ExpirationsTimeline() {
   ).length;
 
   return (
-    <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
       <div>
-        <div className="flex items-center justify-between pb-2 border-b border-[#f1f5f9]">
+        <div className="flex items-center justify-between pb-2.5 border-b border-[#f1f5f9]">
           <div className="flex items-center gap-1.5 bg-[#f1f5f9] p-0.5 rounded-lg text-xs font-bold">
             <button
               onClick={() => setActiveTab("hosting")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                 activeTab === "hosting"
                   ? "bg-white text-[#004ac6] shadow-xs"
                   : "text-[#737686] hover:text-[#0b1c30]"
@@ -34,23 +34,23 @@ export function ExpirationsTimeline() {
             </button>
             <button
               onClick={() => setActiveTab("arcotel")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                 activeTab === "arcotel"
                   ? "bg-white text-[#004ac6] shadow-xs"
                   : "text-[#737686] hover:text-[#0b1c30]"
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Pólizas ARCOTEL</span>
+              <span>Pólizas</span>
             </button>
           </div>
         </div>
 
         {activeTab === "hosting" ? (
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-3 space-y-2">
             {hostingDomains.length === 0 ? (
               <p className="text-xs text-[#737686] italic py-4 text-center">
-                No hay servicios de hosting o dominios registrados.
+                Sin servicios de hosting o dominios por vencer.
               </p>
             ) : (
               hostingDomains.slice(0, 3).map((item) => {
@@ -74,7 +74,7 @@ export function ExpirationsTimeline() {
                         </span>
                       </div>
                       <div className="text-[10px] text-[#737686] truncate mt-0.5">
-                        {item.clientName} • {item.provider}
+                        {item.clientName}
                       </div>
                     </div>
 
@@ -89,10 +89,7 @@ export function ExpirationsTimeline() {
                         }`}
                       >
                         <Clock className="w-2.5 h-2.5" />
-                        <span>En {item.daysUntilExpiration}d</span>
-                      </span>
-                      <span className="block text-[9px] text-[#737686] font-mono mt-0.5">
-                        {item.expirationDate}
+                        <span>{item.daysUntilExpiration}d</span>
                       </span>
                     </div>
                   </div>
@@ -101,10 +98,10 @@ export function ExpirationsTimeline() {
             )}
           </div>
         ) : (
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-3 space-y-2">
             {policies.length === 0 ? (
               <p className="text-xs text-[#737686] italic py-4 text-center">
-                No hay alertas de pólizas vigentes.
+                Sin pólizas pendientes.
               </p>
             ) : (
               policies.slice(0, 2).map((p, index) => {
@@ -126,7 +123,7 @@ export function ExpirationsTimeline() {
                           : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                       }`}
                     >
-                      {isWarning ? "POR VENCER (20d)" : "VIGENTE (45d)"}
+                      {isWarning ? "Por Vencer" : "Vigente"}
                     </span>
                   </div>
                 );
@@ -136,24 +133,14 @@ export function ExpirationsTimeline() {
         )}
       </div>
 
-      <div className="pt-3 border-t border-[#f1f5f9] text-center mt-3">
-        {activeTab === "hosting" ? (
-          <Link
-            href="/inventarios?sub=servicios"
-            className="text-xs font-bold text-[#004ac6] hover:text-[#2563eb] inline-flex items-center gap-1"
-          >
-            <span>Ver catálogo de servicios web</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        ) : (
-          <Link
-            href="/clientes"
-            className="text-xs font-bold text-[#004ac6] hover:text-[#2563eb] inline-flex items-center gap-1"
-          >
-            <span>Gestionar ARCOTEL en Ficha de Clientes</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        )}
+      <div className="pt-2.5 border-t border-[#f1f5f9] text-center mt-2.5">
+        <Link
+          href={activeTab === "hosting" ? "/inventarios?sub=servicios" : "/clientes"}
+          className="text-xs font-bold text-[#004ac6] hover:underline inline-flex items-center gap-1"
+        >
+          <span>Ver todos</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );

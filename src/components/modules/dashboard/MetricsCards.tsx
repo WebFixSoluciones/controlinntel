@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useApp } from "@/lib/state";
-import { Users, Banknote, Receipt, CreditCard, TrendingUp, TrendingDown } from "lucide-react";
+import { Users, Banknote, Receipt, CreditCard, TrendingUp } from "lucide-react";
 
 export function MetricsCards() {
   const { clients, clientServices, expenses } = useApp();
@@ -15,19 +15,19 @@ export function MetricsCards() {
   const isNetNegative = netUtility < 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 select-none">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
       {/* 1. Clientes Activos */}
-      <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
+      <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            CLIENTES ACTIVOS
+            Clientes Activos
           </span>
-          <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
         </div>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span className="text-3xl font-black text-[#0b1c30] tracking-tight font-tnum">
+        <div className="mt-2 flex items-baseline gap-2.5">
+          <span className="text-2xl font-black text-[#0b1c30] tracking-tight font-tnum">
             {activeClients}
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
@@ -37,17 +37,17 @@ export function MetricsCards() {
       </div>
 
       {/* 2. Ingresos Mensuales */}
-      <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
+      <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            INGRESOS MENSUALES
+            Ingresos Mensuales
           </span>
-          <div className="w-9 h-9 rounded-full bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
             <Banknote className="w-4 h-4" />
           </div>
         </div>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span className="text-3xl font-black text-[#0b1c30] tracking-tight font-tnum">
+        <div className="mt-2 flex items-baseline gap-2.5">
+          <span className="text-2xl font-black text-[#0b1c30] tracking-tight font-tnum">
             ${mrr.toLocaleString("es-EC", { minimumFractionDigits: 2 })}
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
@@ -57,36 +57,36 @@ export function MetricsCards() {
       </div>
 
       {/* 3. Gastos */}
-      <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
+      <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            GASTOS
+            Gastos
           </span>
-          <div className="w-9 h-9 rounded-full bg-[#fef2f2] text-[#ef4444] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#fef2f2] text-[#ef4444] flex items-center justify-center">
             <Receipt className="w-4 h-4" />
           </div>
         </div>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span className="text-3xl font-black text-[#0b1c30] tracking-tight font-tnum">
+        <div className="mt-2 flex items-baseline gap-2.5">
+          <span className="text-2xl font-black text-[#0b1c30] tracking-tight font-tnum">
             ${totalExpenses.toLocaleString("es-EC", { minimumFractionDigits: 2 })}
           </span>
         </div>
       </div>
 
       {/* 4. Utilidad Neta */}
-      <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
+      <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            UTILIDAD NETA
+            Utilidad Neta
           </span>
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
             isNetNegative ? "bg-[#fef2f2] text-[#ef4444]" : "bg-[#ecfdf5] text-[#10B981]"
           }`}>
             <CreditCard className="w-4 h-4" />
           </div>
         </div>
-        <div className="mt-2 flex items-baseline gap-3">
-          <span className={`text-3xl font-black tracking-tight font-tnum ${
+        <div className="mt-2 flex items-baseline gap-2.5">
+          <span className={`text-2xl font-black tracking-tight font-tnum ${
             isNetNegative ? "text-[#ef4444]" : "text-[#10B981]"
           }`}>
             {isNetNegative ? "-" : ""}${Math.abs(netUtility).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
@@ -96,7 +96,7 @@ export function MetricsCards() {
               ? "bg-[#fef2f2] text-[#991b1b] border-[#fecaca]"
               : "bg-[#ecfdf5] text-[#065f46] border-[#a7f3d0]"
           }`}>
-            {isNetNegative ? "Negativa" : "+ Positiva"}
+            {isNetNegative ? "Negativa" : "Positiva"}
           </span>
         </div>
       </div>

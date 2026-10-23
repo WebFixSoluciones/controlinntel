@@ -24,20 +24,20 @@ export function TicketsRecientesCard() {
   };
 
   return (
-    <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
       <div>
-        <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
-          <h3 className="font-bold text-sm text-[#0b1c30] flex items-center gap-2">
+        <div className="flex items-center justify-between pb-2.5 border-b border-[#f1f5f9]">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-2">
             <TicketIcon className="w-4 h-4 text-[#004ac6]" />
-            Tickets Recientes de Soporte
+            Soporte
           </h3>
-          <Link href="/tickets" className="text-xs font-bold text-[#004ac6] hover:text-[#2563eb] flex items-center gap-1">
+          <Link href="/tickets" className="text-xs font-bold text-[#004ac6] hover:underline flex items-center gap-1">
             <span>Ver todos</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-3 space-y-2">
           {displayTickets.length === 0 ? (
             <p className="text-xs text-slate-400 italic py-4 text-center">No hay tickets recientes.</p>
           ) : (
