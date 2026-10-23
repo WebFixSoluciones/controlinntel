@@ -174,11 +174,6 @@ export function recordFailedAttempt(identifier: string): { isLocked: boolean; re
 
   const cleanId = identifier.trim().toLowerCase();
 
-  // Exención de bloqueo para cuentas maestras de administración (evitar auto-bloqueo)
-  if (cleanId.includes("superadmin") || cleanId === "admin" || cleanId.startsWith("admin@")) {
-    return { isLocked: false, remainingAttempts: 5, remainingSeconds: 0 };
-  }
-
   const current = getLockoutState(cleanId);
   const now = Date.now();
 

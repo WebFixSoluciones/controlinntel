@@ -11,7 +11,6 @@ import {
   EyeOff,
   ArrowRight,
   ShieldCheck,
-  KeyRound,
 } from "lucide-react";
 import {
   detectSecurityThreat,
@@ -36,26 +35,6 @@ export function LoginScreen() {
     clearFailedAttempts("superadmin@inntelcorp.com");
     clearFailedAttempts("global");
   }, []);
-
-  const handleQuickAdminLogin = async () => {
-    setIsLoading(true);
-    setEmail("superadmin@inntelcorp.com");
-    setPassword("Inntel2026*");
-    clearFailedAttempts("superadmin@inntelcorp.com");
-    clearFailedAttempts("global");
-    try {
-      const ok = await login("superadmin@inntelcorp.com", "Inntel2026*", true);
-      setIsLoading(false);
-      if (ok) {
-        showSuccess("Acceso Concedido", "Bienvenido al panel central de INNTEL CORP.");
-      } else {
-        showError("Error de Acceso", "No se pudo validar la sesión maestra.");
-      }
-    } catch {
-      setIsLoading(false);
-      showError("Error", "Error al procesar el inicio de sesión.");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,20 +61,17 @@ export function LoginScreen() {
       return;
     }
 
-    // 2. CAPA 2: Escudo Anti-Fuerza Bruta (Excluye cuentas maestras)
-    const isMaster = cleanEmail.includes("superadmin") || cleanEmail === "admin" || cleanEmail.startsWith("admin@");
-    if (!isMaster) {
-      const lockoutState = getLockoutState(cleanEmail);
-      if (lockoutState.isLocked) {
-        const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
-        const minutesLeft = Math.ceil(secondsLeft / 60);
-        triggerSecurityExplosion(lockoutState.reason);
-        showError(
-          "Cuenta Temporalmente Bloqueada",
-          `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
-        );
-        return;
-      }
+    // 2. CAPA 2: Escudo Anti-Fuerza Bruta
+    const lockoutState = getLockoutState(cleanEmail);
+    if (lockoutState.isLocked) {
+      const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
+      const minutesLeft = Math.ceil(secondsLeft / 60);
+      triggerSecurityExplosion(lockoutState.reason);
+      showError(
+        "Cuenta Temporalmente Bloqueada",
+        `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
+      );
+      return;
     }
 
     if (!cleanEmail) {
@@ -128,7 +104,7 @@ export function LoginScreen() {
         } else {
           showWarning(
             "Credenciales Inválidas",
-            `Usuario o contraseña erróneos. Usa superadmin@inntelcorp.com con Inntel2026* o SuperAdmin2026*.`
+            `Usuario o contraseña erróneos. Te quedan ${attempt.remainingAttempts} intento(s) antes del bloqueo de seguridad.`
           );
         }
       }
@@ -242,22 +218,6 @@ export function LoginScreen() {
               </>
             )}
           </button>
-
-          {/* Botón de Acceso Rápido SuperAdmin */}
-          <div className="pt-3 border-t border-[#f1f5f9] space-y-2">
-            <button
-              type="button"
-              onClick={handleQuickAdminLogin}
-              disabled={isLoading}
-              className="w-full py-2 px-3 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] font-bold text-xs rounded-lg border border-[#bfdbfe] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Ingresar como Administrador (1 Clic)</span>
-            </button>
-            <p className="text-[10px] text-center text-[#737686]">
-              Credenciales: <strong className="text-slate-800">superadmin@inntelcorp.com</strong> • Clave: <strong className="text-slate-800">Inntel2026*</strong> o <strong className="text-slate-800">SuperAdmin2026*</strong>
-            </p>
-          </div>
         </form>
       </div>
 
