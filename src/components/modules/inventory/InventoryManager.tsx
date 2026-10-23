@@ -33,7 +33,6 @@ import {
   Eye,
   ShieldAlert,
   Award,
-  DollarSign,
 } from "lucide-react";
 
 export type InventoryTab =
@@ -381,82 +380,6 @@ export function InventoryManager() {
     };
   }, [filteredKardex]);
 
-  const inventoryStats = useMemo(() => {
-    let totalValue = 0;
-    let totalUnits = 0;
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-
-    for (const p of inventoryProducts) {
-      if (p.type === "producto" && p.tracksStock) {
-        const units = Number(p.stock) || 0;
-        const cost = Number(p.baseCost) || 0;
-        totalUnits += units;
-        totalValue += units * cost;
-
-        if (units === 0) {
-          outOfStockCount++;
-        } else if (p.minStock && units <= p.minStock) {
-          lowStockCount++;
-        }
-      }
-    }
-
-    const activeWarehouses = inventoryWarehouses.filter((w) => w.status !== "inactivo").length;
-
-    return {
-      totalValue: Math.round(totalValue * 100) / 100,
-      totalUnits,
-      criticalStockCount: lowStockCount + outOfStockCount,
-      activeWarehouses,
-    };
-  }, [inventoryProducts, inventoryWarehouses]);
-
-  const tabsConfig = useMemo(() => [
-    {
-      id: "productos" as InventoryTab,
-      label: "Productos",
-      icon: Package,
-      count: inventoryProducts.filter((p) => p.type === "producto").length,
-    },
-    {
-      id: "servicios" as InventoryTab,
-      label: "Servicios",
-      icon: Wrench,
-      count: inventoryProducts.filter((p) => p.type === "servicio").length,
-    },
-    {
-      id: "categorias" as InventoryTab,
-      label: "Categorías & Marcas",
-      icon: Tags,
-      count: inventoryCategories.length + inventoryBrands.length,
-    },
-    {
-      id: "kardex" as InventoryTab,
-      label: "Kardex Valorado",
-      icon: BookOpen,
-      count: inventoryKardex.length,
-    },
-    {
-      id: "transferencias" as InventoryTab,
-      label: "Transferencias",
-      icon: ArrowRightLeft,
-      count: inventoryTransfers.length,
-    },
-    {
-      id: "bodegas" as InventoryTab,
-      label: "Bodegas",
-      icon: Building2,
-      count: inventoryWarehouses.length,
-    },
-    {
-      id: "ajustes" as InventoryTab,
-      label: "Ajustes de Stock",
-      icon: SlidersHorizontal,
-      count: inventoryAdjustments.length,
-    },
-  ], [inventoryProducts, inventoryCategories, inventoryBrands, inventoryKardex, inventoryTransfers, inventoryWarehouses, inventoryAdjustments]);
-
   // ==========================================
   // Filtered Transfers
   // ==========================================
@@ -789,101 +712,6 @@ export function InventoryManager() {
 
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
-      {/* ========================================================= */}
-      {/* HEADER: KPIS CONSOLIDADOS & CONTROL DE INVENTARIO         */}
-      {/* ========================================================= */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold text-[#737686] block">
-              Valor Total en Inventario
-            </span>
-            <span className="text-lg font-black text-[#0b1c30]">
-              ${inventoryStats.totalValue.toLocaleString("es-EC", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-blue-50 text-blue-600">
-            <Package className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold text-[#737686] block">
-              Unidades en Existencia
-            </span>
-            <span className="text-lg font-black text-[#0b1c30]">
-              {inventoryStats.totalUnits.toLocaleString("es-EC")} un.
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-amber-50 text-amber-600">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold text-[#737686] block">
-              Stock Crítico / Agotado
-            </span>
-            <span className="text-lg font-black text-[#0b1c30]">
-              {inventoryStats.criticalStockCount} ítems
-            </span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold text-[#737686] block">
-              Bodegas Operativas
-            </span>
-            <span className="text-lg font-black text-[#0b1c30]">
-              {inventoryStats.activeWarehouses} bodegas
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* BARRA DE PESTAÑAS INSTITUCIONALES (SUBMÓDULOS)           */}
-      {/* ========================================================= */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-white border border-[#e2e8f0] rounded-2xl shadow-2xs overflow-x-auto scrollbar-none">
-        {tabsConfig.map((t) => {
-          const Icon = t.icon;
-          const isActive = activeTab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => {
-                closeAllEmbeddedScreens();
-                setActiveTab(t.id);
-                router.push(`/inventarios?sub=${t.id}`);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:text-[#0b1c30] hover:bg-slate-50"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{t.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                }`}
-              >
-                {t.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
       {/* ========================================================= */}
       {/* 1. PRODUCTOS                                              */}
       {/* ========================================================= */}
