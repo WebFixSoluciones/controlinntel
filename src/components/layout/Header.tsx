@@ -24,47 +24,51 @@ function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/compras") {
     switch (subParam) {
       case "registrar_compra":
-        return "Registrar Compra";
+        return "Nueva Compra";
       case "notas_credito":
-        return "Notas de Crédito Recibidas";
+        return "Notas de Crédito";
       case "notas_debito":
-        return "Notas de Débito Recibidas";
+        return "Notas de Débito";
       case "retenciones":
-        return "Retenciones de Compras";
+        return "Retenciones";
       default:
-        return "Historial de Compras";
+        return "Compras";
     }
   }
 
   if (pathname === "/facturacion") {
     switch (subParam) {
       case "nueva_venta":
-        return "Registrar Venta";
+        return "Nueva Venta";
+      case "recurrentes":
+        return "Recurrentes";
       case "cotizaciones":
         return "Cotizaciones";
       case "notas_credito":
         return "Notas de Crédito";
       case "retenciones":
-        return "Retenciones de Venta";
+        return "Retenciones";
       case "guias_remision":
-        return "Guías de Remisión";
+        return "Guías";
       default:
-        return "Historial de Ventas";
+        return "Facturas";
     }
   }
 
   if (pathname === "/finanzas") {
     switch (subParam) {
       case "bancos":
-        return "Bancos & Cajas";
+        return "Bancos";
       case "cuentas_por_cobrar":
-        return "Cuentas por Cobrar";
+        return "Por Cobrar";
       case "cuentas_por_pagar":
-        return "Cuentas por Pagar";
+        return "Por Pagar";
       case "reportes":
-        return "Reportes Financieros";
+        return "Reportes";
+      case "cobranzas_opex":
+        return "Cobranzas";
       default:
-        return "Movimientos de Tesorería";
+        return "Movimientos";
     }
   }
 
@@ -92,7 +96,7 @@ function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/personas") {
     switch (subParam) {
       case "usuarios_equipo":
-        return "Usuarios / Equipo";
+        return "Usuarios";
       default:
         return "Proveedores";
     }
@@ -101,9 +105,9 @@ function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/configuracion") {
     switch (subParam) {
       case "sri":
-        return "Configuración SRI";
+        return "SRI";
       default:
-        return "Configuración General";
+        return "Configuración";
     }
   }
 

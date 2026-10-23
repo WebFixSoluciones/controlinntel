@@ -354,13 +354,7 @@ export function BillingManager() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder={
-              activeTab === "facturas"
-                ? "Buscar por cliente, RUC, secuencial 001-001... o clave de acceso"
-                : activeTab === "cotizaciones"
-                ? "Buscar por cotización COT-2026-..., cliente o RUC..."
-                : "Buscar comprobante..."
-            }
+            placeholder="Buscar cliente, RUC o comprobante..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full text-xs pl-9 pr-3 py-2 rounded-[6px] border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
@@ -374,7 +368,7 @@ export function BillingManager() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
             >
-              <option value="all">Todos los Estados</option>
+              <option value="all">Estado</option>
               <option value="autorizada">Autorizadas</option>
               <option value="emitida">Emitidas</option>
               <option value="borrador">Borradores</option>
@@ -387,7 +381,7 @@ export function BillingManager() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
             >
-              <option value="all">Todos los Estados</option>
+              <option value="all">Estado</option>
               <option value="enviada">Enviadas</option>
               <option value="aprobada">Aprobadas</option>
               <option value="facturada">Facturadas</option>
@@ -404,7 +398,7 @@ export function BillingManager() {
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-blue-50 text-[#004ac6] border border-blue-200 rounded-[6px] text-xs font-bold transition cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Facturación Recurrente</span>
+                <span>Recurrentes</span>
               </button>
 
               <button
@@ -415,7 +409,7 @@ export function BillingManager() {
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Registrar Venta</span>
+                <span>Nueva Venta</span>
               </button>
             </>
           )}
@@ -429,7 +423,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Crear Cotización</span>
+              <span>Nueva Cotización</span>
             </button>
           )}
 
@@ -442,7 +436,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Emitir Nota de Crédito</span>
+              <span>Nueva Nota</span>
             </button>
           )}
 
@@ -455,7 +449,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Emitir Guía de Remisión</span>
+              <span>Nueva Guía</span>
             </button>
           )}
         </div>
@@ -476,14 +470,14 @@ export function BillingManager() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Factura</th>
+                  <th className="py-3 px-4">Factura</th>
                   <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Cliente / RUC</th>
-                  <th className="py-3 px-3">Bodega Despacho</th>
-                  <th className="py-3 px-3 text-right">Subtotal 15%</th>
-                  <th className="py-3 px-3 text-right">IVA 15%</th>
-                  <th className="py-3 px-4 text-right font-black">Total ($)</th>
-                  <th className="py-3 px-3 text-center">Estado SRI</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-3">Bodega</th>
+                  <th className="py-3 px-3 text-right">Subtotal</th>
+                  <th className="py-3 px-3 text-right">IVA</th>
+                  <th className="py-3 px-4 text-right font-black">Total</th>
+                  <th className="py-3 px-3 text-center">Estado</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>

@@ -51,7 +51,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: Users,
     moduleKey: "abonados",
     submodules: [
-      { key: "listado", label: "Listado de Clientes", href: "/clientes", submoduleKey: "listado" },
+      { key: "listado", label: "Directorio", href: "/clientes", submoduleKey: "listado" },
     ],
   },
   {
@@ -60,13 +60,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: Receipt,
     moduleKey: "facturacion",
     submodules: [
-      { key: "facturas", label: "Historial de Ventas", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
-      { key: "nueva_venta", label: "Registrar Venta", href: "/facturacion?sub=nueva_venta", submoduleKey: "facturas" },
-      { key: "recurrentes", label: "Facturación Recurrente", href: "/facturacion?sub=recurrentes", submoduleKey: "facturas" },
+      { key: "facturas", label: "Facturas", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
+      { key: "nueva_venta", label: "Nueva Venta", href: "/facturacion?sub=nueva_venta", submoduleKey: "facturas" },
+      { key: "recurrentes", label: "Recurrentes", href: "/facturacion?sub=recurrentes", submoduleKey: "facturas" },
       { key: "cotizaciones", label: "Cotizaciones", href: "/facturacion?sub=cotizaciones", submoduleKey: "cotizaciones" },
       { key: "notas_credito", label: "Notas de Crédito", href: "/facturacion?sub=notas_credito", submoduleKey: "notas_credito" },
-      { key: "retenciones", label: "Retenciones de Venta", href: "/facturacion?sub=retenciones", submoduleKey: "retenciones" },
-      { key: "guias_remision", label: "Guías de Remisión", href: "/facturacion?sub=guias_remision", submoduleKey: "guias_remision" },
+      { key: "retenciones", label: "Retenciones", href: "/facturacion?sub=retenciones", submoduleKey: "retenciones" },
+      { key: "guias_remision", label: "Guías", href: "/facturacion?sub=guias_remision", submoduleKey: "guias_remision" },
     ],
   },
   {
@@ -75,11 +75,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: ShoppingBag,
     moduleKey: "compras",
     submodules: [
-      { key: "historial_compras", label: "Historial de Compras", href: "/compras?sub=historial_compras", submoduleKey: "historial_compras" },
-      { key: "registrar_compra", label: "Registrar Compra", href: "/compras?sub=registrar_compra", submoduleKey: "registrar_compra" },
-      { key: "notas_credito", label: "Notas de Crédito Recibidas", href: "/compras?sub=notas_credito", submoduleKey: "notas_credito" },
-      { key: "notas_debito", label: "Notas de Débito Recibidas", href: "/compras?sub=notas_debito", submoduleKey: "notas_debito" },
-      { key: "retenciones", label: "Retenciones de Compras", href: "/compras?sub=retenciones", submoduleKey: "retenciones" },
+      { key: "historial_compras", label: "Facturas", href: "/compras?sub=historial_compras", submoduleKey: "historial_compras" },
+      { key: "registrar_compra", label: "Nueva Compra", href: "/compras?sub=registrar_compra", submoduleKey: "registrar_compra" },
+      { key: "notas_credito", label: "Notas de Crédito", href: "/compras?sub=notas_credito", submoduleKey: "notas_credito" },
+      { key: "notas_debito", label: "Notas de Débito", href: "/compras?sub=notas_debito", submoduleKey: "notas_debito" },
+      { key: "retenciones", label: "Retenciones", href: "/compras?sub=retenciones", submoduleKey: "retenciones" },
     ],
   },
   {
@@ -103,11 +103,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: DollarSign,
     moduleKey: "finanzas",
     submodules: [
-      { key: "cobranzas_opex", label: "Cobranzas & OPEX", href: "/finanzas?sub=cobranzas_opex", submoduleKey: "movimientos" },
+      { key: "cobranzas_opex", label: "Cobranzas", href: "/finanzas?sub=cobranzas_opex", submoduleKey: "movimientos" },
       { key: "movimientos", label: "Movimientos", href: "/finanzas?sub=movimientos", submoduleKey: "movimientos" },
       { key: "bancos", label: "Bancos", href: "/finanzas?sub=bancos", submoduleKey: "bancos" },
-      { key: "cuentas_por_cobrar", label: "Cuentas por Cobrar", href: "/finanzas?sub=cuentas_por_cobrar", submoduleKey: "cuentas_por_cobrar" },
-      { key: "cuentas_por_pagar", label: "Cuentas por Pagar", href: "/finanzas?sub=cuentas_por_pagar", submoduleKey: "cuentas_por_pagar" },
+      { key: "cuentas_por_cobrar", label: "Por Cobrar", href: "/finanzas?sub=cuentas_por_cobrar", submoduleKey: "cuentas_por_cobrar" },
+      { key: "cuentas_por_pagar", label: "Por Pagar", href: "/finanzas?sub=cuentas_por_pagar", submoduleKey: "cuentas_por_pagar" },
       { key: "reportes", label: "Reportes", href: "/finanzas?sub=reportes", submoduleKey: "reportes" },
     ],
   },
@@ -122,7 +122,7 @@ const NAV_ITEMS: NavItem[] = [
     moduleKey: "personas",
     submodules: [
       { key: "proveedores", label: "Proveedores", href: "/personas?sub=proveedores", submoduleKey: "proveedores" },
-      { key: "usuarios_equipo", label: "Usuarios / Equipo", href: "/personas?sub=usuarios_equipo", submoduleKey: "usuarios_equipo" },
+      { key: "usuarios_equipo", label: "Usuarios", href: "/personas?sub=usuarios_equipo", submoduleKey: "usuarios_equipo" },
     ],
   },
   {
@@ -132,7 +132,7 @@ const NAV_ITEMS: NavItem[] = [
     moduleKey: "configuracion",
     submodules: [
       { key: "general", label: "General", href: "/configuracion?sub=general", submoduleKey: "general" },
-      { key: "sri", label: "Configuración SRI", href: "/configuracion?sub=sri", submoduleKey: "sri" },
+      { key: "sri", label: "SRI", href: "/configuracion?sub=sri", submoduleKey: "sri" },
     ],
   },
 ];

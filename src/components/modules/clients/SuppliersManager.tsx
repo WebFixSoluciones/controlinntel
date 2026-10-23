@@ -232,13 +232,13 @@ export function SuppliersManager() {
             onChange={(e) => setFilterCategory(e.target.value)}
             className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
           >
-            <option value="todas">Todas las Categorías</option>
-            <option value="fibra_optica">Fibra Óptica & Pasivos</option>
-            <option value="equipos_networking">Equipos Networking & ONTs</option>
-            <option value="transito_ip">Tránsito IP & Upstream</option>
-            <option value="ferreteria_infraestructura">Ferretería & Postería</option>
-            <option value="servicios_profesionales">Servicios Profesionales</option>
-            <option value="general">General / Varios</option>
+            <option value="todas">Categoría</option>
+            <option value="fibra_optica">Fibra Óptica</option>
+            <option value="equipos_networking">Networking</option>
+            <option value="transito_ip">Tránsito IP</option>
+            <option value="ferreteria_infraestructura">Ferretería</option>
+            <option value="servicios_profesionales">Servicios</option>
+            <option value="general">General</option>
           </select>
 
           <button
@@ -246,7 +246,7 @@ export function SuppliersManager() {
             className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Añadir Proveedor</span>
+            <span>Nuevo Proveedor</span>
           </button>
         </div>
       </div>
@@ -258,11 +258,11 @@ export function SuppliersManager() {
             <caption className="sr-only">Directorio de Proveedores</caption>
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th scope="col" className="py-3.5 px-5">Proveedor / Razón Social</th>
+                <th scope="col" className="py-3.5 px-5">Proveedor</th>
                 <th scope="col" className="py-3.5 px-5">Categoría</th>
-                <th scope="col" className="py-3.5 px-5">Contacto & Ubicación</th>
-                <th scope="col" className="py-3.5 px-5 text-center">Condición Comercial</th>
-                <th scope="col" className="py-3.5 px-5">Datos Bancarios</th>
+                <th scope="col" className="py-3.5 px-5">Contacto</th>
+                <th scope="col" className="py-3.5 px-5 text-center">Crédito</th>
+                <th scope="col" className="py-3.5 px-5">Banco</th>
                 <th scope="col" className="py-3.5 px-5 text-right">Acciones</th>
               </tr>
             </thead>

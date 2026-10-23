@@ -188,7 +188,7 @@ export function UsersManager() {
           className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Añadir Colaborador</span>
+          <span>Nuevo Usuario</span>
         </button>
       </div>
 
@@ -199,9 +199,9 @@ export function UsersManager() {
             <caption className="sr-only">Directorio de Colaboradores y Usuarios</caption>
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th scope="col" className="py-3.5 px-5">Colaborador / Usuario</th>
-                <th scope="col" className="py-3.5 px-5">Rol Principal</th>
-                <th scope="col" className="py-3.5 px-5">Departamento</th>
+                <th scope="col" className="py-3.5 px-5">Usuario</th>
+                <th scope="col" className="py-3.5 px-5">Rol</th>
+                <th scope="col" className="py-3.5 px-5">Área</th>
                 <th scope="col" className="py-3.5 px-5 text-center">Estado</th>
                 <th scope="col" className="py-3.5 px-5 text-right">Acciones</th>
               </tr>
@@ -241,7 +241,7 @@ export function UsersManager() {
 
                       <td className="py-4 px-5">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
-                          {u.role === "superadmin" ? "Administrador General" : u.role}
+                          {u.role === "superadmin" ? "Superadmin" : u.role}
                         </span>
                       </td>
 
@@ -269,7 +269,7 @@ export function UsersManager() {
                             title="Editar usuario y matriz de permisos"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Permisos & Datos</span>
+                            <span>Permisos</span>
                           </button>
 
                           {u.uid !== currentUser?.uid && u.role !== "superadmin" && (

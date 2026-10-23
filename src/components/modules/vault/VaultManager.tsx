@@ -65,7 +65,7 @@ export function VaultManager() {
           }`}
         >
           <Users className="w-3.5 h-3.5" />
-          <span>Credenciales de Clientes</span>
+          <span>Clientes</span>
         </button>
 
         <button
@@ -80,7 +80,7 @@ export function VaultManager() {
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Accesos Internos del Sistema</span>
+          <span>Sistema</span>
         </button>
       </div>
 
@@ -143,10 +143,10 @@ export function VaultManager() {
                     <caption className="sr-only">Bóveda de credenciales agrupadas por cliente</caption>
                     <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
                       <tr>
-                        <th className="py-3.5 px-5">Cliente / Razón Social</th>
-                        <th className="py-3.5 px-5 text-center">Credenciales Almacenadas</th>
-                        <th className="py-3.5 px-5">Servicios & Destinos</th>
-                        <th className="py-3.5 px-5 text-center">Protección Criptográfica</th>
+                        <th className="py-3.5 px-5">Cliente</th>
+                        <th className="py-3.5 px-5 text-center">Claves</th>
+                        <th className="py-3.5 px-5">Servicios</th>
+                        <th className="py-3.5 px-5 text-center">Seguridad</th>
                         <th className="py-3.5 px-5 text-right">Acciones</th>
                       </tr>
                     </thead>
@@ -211,7 +211,7 @@ export function VaultManager() {
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
                                 >
                                   <KeyRound className="w-3.5 h-3.5" />
-                                  <span>Administrar Bóveda</span>
+                                  <span>Abrir</span>
                                 </button>
                               </td>
                             </tr>

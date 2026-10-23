@@ -234,17 +234,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
             className="flex items-center gap-2 px-3 py-1.5 bg-[#f8f9ff] hover:bg-[#e2e8f0] text-[#434655] border border-[#e2e8f0] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
           >
             <ArrowLeft className="w-4 h-4 text-[#737686]" />
-            <span>Volver a Colaboradores</span>
+            <span>Volver</span>
           </button>
           <div className="h-5 w-px bg-[#e2e8f0]" />
-          <div>
-            <h2 className="text-sm font-bold text-[#0b1c30]">
-              {user ? `Editar Colaborador: ${user.displayName}` : "Nuevo Colaborador"}
-            </h2>
-            <p className="text-[11px] text-[#737686]">
-              {user ? "Actualiza datos personales y matriz de permisos granulares" : "Crea la cuenta del colaborador y define sus accesos operacionales"}
-            </p>
-          </div>
+          <h2 className="text-sm font-bold text-[#0b1c30]">
+            {user ? user.displayName : "Nuevo Usuario"}
+          </h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -270,7 +265,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Guardar Colaborador</span>
+                <span>Guardar</span>
               </>
             )}
           </button>
@@ -443,16 +438,11 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
         {/* Right Column (65%): Granular Permissions Matrix */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
-                Matriz de Permisos & Acciones Operativas
-              </h3>
-              <p className="text-[11px] text-[#737686]">
-                Controla por módulo, submódulo y acciones internas de alto impacto
-              </p>
-            </div>
+          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 px-5 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
+              Permisos
+            </h3>
 
             <div className="flex items-center gap-2">
               <button
@@ -460,33 +450,30 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                 onClick={handleEnableAllModules}
                 className="px-2.5 py-1 bg-blue-50 text-[#004ac6] hover:bg-blue-100 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               >
-                Habilitar Todos
+                Todos
               </button>
               <button
                 type="button"
                 onClick={handleDisableAllModules}
                 className="px-2.5 py-1 bg-slate-100 text-[#737686] hover:bg-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               >
-                Restringir Todo
+                Ninguno
               </button>
             </div>
           </div>
 
           {/* Module 1: INVENTARIOS */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Boxes className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#0b1c30]">Módulo de Inventarios</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.inventarios?.enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
-                      {permissions.inventarios?.enabled ? "Habilitado" : "Restringido"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#737686]">Productos, servicios, kardex físico, bodegas y transferencias</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-[#0b1c30]">Inventarios</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.inventarios?.enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
+                    {permissions.inventarios?.enabled ? "Activo" : "Inactivo"}
+                  </span>
                 </div>
               </div>
 
@@ -598,19 +585,16 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
           {/* Module 2: FACTURACIÓN & VENTAS */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Receipt className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#0b1c30]">Módulo de Facturación & Ventas</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.facturacion?.enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
-                      {permissions.facturacion?.enabled ? "Habilitado" : "Restringido"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#737686]">Facturas electrónicas SRI, cotizaciones, notas de crédito y guías</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-[#0b1c30]">Ventas</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.facturacion?.enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
+                    {permissions.facturacion?.enabled ? "Activo" : "Inactivo"}
+                  </span>
                 </div>
               </div>
 
@@ -718,19 +702,16 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
           {/* Module 3: CLIENTES */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#0b1c30]">Módulo de Clientes & Servicios</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.abonados?.enabled !== false ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
-                      {permissions.abonados?.enabled !== false ? "Habilitado" : "Restringido"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#737686]">Directorio de clientes, ficha 360°, servicios y contratos</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs text-[#0b1c30]">Clientes</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.abonados?.enabled !== false ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
+                    {permissions.abonados?.enabled !== false ? "Activo" : "Inactivo"}
+                  </span>
                 </div>
               </div>
 
@@ -801,17 +782,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
           {/* Module 4: COMPRAS & FINANZAS (Accordion conjunto) */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <DollarSign className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#0b1c30]">Módulos de Compras & Finanzas</span>
-                  </div>
-                  <p className="text-[11px] text-[#737686]">Facturas de proveedores, tesorería, cuentas por pagar y cuentas por cobrar</p>
-                </div>
+                <span className="font-bold text-xs text-[#0b1c30]">Compras & Finanzas</span>
               </div>
 
               <button
@@ -920,17 +896,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
           {/* Module 5: BÓVEDA & REDES */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Lock className="w-4 h-4" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-[#0b1c30]">Bóveda de Credenciales & Infraestructura NOC</span>
-                  </div>
-                  <p className="text-[11px] text-[#737686]">Claves de acceso de clientes, routers Mikrotik y servidores centrales</p>
-                </div>
+                <span className="font-bold text-xs text-[#0b1c30]">Credenciales</span>
               </div>
 
               <button
@@ -992,15 +963,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
           {/* Module 6: OTROS MÓDULOS */}
           <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <div className="p-4 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
+            <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Settings className="w-4 h-4" />
                 </div>
-                <div>
-                  <span className="font-bold text-xs text-[#0b1c30]">Otros Módulos del Sistema</span>
-                  <p className="text-[11px] text-[#737686]">Tickets de soporte, proyectos, plantillas y configuración</p>
-                </div>
+                <span className="font-bold text-xs text-[#0b1c30]">Otros Módulos</span>
               </div>
 
               <button

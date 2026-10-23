@@ -362,7 +362,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>Facturación Recurrente por Cliente</span>
+            <span>Facturación</span>
           </button>
 
           <button
@@ -375,7 +375,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
             }`}
           >
             <BellRing className="w-3.5 h-3.5" />
-            <span>Seguimiento de Servicios & Renovaciones</span>
+            <span>Renovaciones</span>
             {summaryStats.dueSoonCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
                 {summaryStats.dueSoonCount}
@@ -417,9 +417,9 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
             onChange={(e) => setFrequencyFilter(e.target.value as any)}
             className="bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 cursor-pointer"
           >
-            <option value="todos">Todas las Frecuencias</option>
-            <option value="mensual">Solo Mensuales</option>
-            <option value="anual">Solo Anuales</option>
+            <option value="todos">Frecuencia</option>
+            <option value="mensual">Mensual</option>
+            <option value="anual">Anual</option>
           </select>
 
           {subView === "lote" && (
@@ -430,11 +430,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>
-                {emittingBatch
-                  ? "Emitiendo Lote..."
-                  : `Facturar Pendientes ($${summaryStats.totalPendingAmount.toFixed(2)})`}
-              </span>
+              <span>{emittingBatch ? "Emitiendo..." : "Facturar Lote"}</span>
             </button>
           )}
         </div>
@@ -444,7 +440,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-            Clientes Recurrentes
+            Clientes
           </span>
           <span className="text-lg font-black text-slate-900 font-mono">
             {summaryStats.totalClients}
@@ -453,7 +449,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         <div className="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
-            Servicios Activos (A Facturar)
+            Activos
           </span>
           <span className="text-lg font-black text-emerald-700 font-mono">
             {summaryStats.totalBillableServices}
@@ -462,7 +458,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         <div className="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/30">
           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">
-            Servicios No Facturados / Pausados
+            Pausados
           </span>
           <span className="text-lg font-black text-amber-700 font-mono">
             {summaryStats.totalNonBillableServices}
@@ -471,7 +467,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         <div className="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/30">
           <span className="text-[10px] font-bold uppercase tracking-wider text-[#004ac6] block">
-            Total Pendiente ({selectedMonth})
+            Por Facturar
           </span>
           <span className="text-lg font-black text-[#004ac6] font-mono">
             ${summaryStats.totalPendingAmount.toFixed(2)}
@@ -485,7 +481,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Buscar por cliente, RUC o nombre del servicio..."
+            placeholder="Buscar cliente, RUC o servicio..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#004ac6]"
@@ -496,10 +492,10 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           <div className="flex flex-wrap items-center gap-1.5">
             {(
               [
-                { id: "todos", label: "Todos los Servicios" },
-                { id: "por_renovar", label: "Por Renovar / Vencidos (≤ 15d)" },
-                { id: "no_facturados", label: "No Facturados Este Ciclo" },
-                { id: "inactivos", label: "Inactivos / Suspendidos" },
+                { id: "todos", label: "Todos" },
+                { id: "por_renovar", label: "Por Renovar" },
+                { id: "no_facturados", label: "No Facturados" },
+                { id: "inactivos", label: "Inactivos" },
               ] as const
             ).map((f) => (
               <button
@@ -528,14 +524,14 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="py-3 px-4">Cliente / RUC</th>
-                  <th className="py-3 px-3">Frecuencia</th>
-                  <th className="py-3 px-3 text-center">Servicios Facturables</th>
-                  <th className="py-3 px-3 text-center">No Facturados</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-3">Ciclo</th>
+                  <th className="py-3 px-3 text-center">Activos</th>
+                  <th className="py-3 px-3 text-center">Pausados</th>
                   <th className="py-3 px-3 text-right">Subtotal</th>
-                  <th className="py-3 px-3 text-right">IVA 15%</th>
-                  <th className="py-3 px-4 text-right font-black">Total Ciclo ($)</th>
-                  <th className="py-3 px-3 text-center">Estado ({selectedMonth})</th>
+                  <th className="py-3 px-3 text-right">IVA</th>
+                  <th className="py-3 px-4 text-right font-black">Total</th>
+                  <th className="py-3 px-3 text-center">Estado</th>
                   <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
@@ -654,23 +650,15 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                           <tr className="bg-slate-50/90">
                             <td colSpan={9} className="p-4 px-6 border-b border-slate-200">
                               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[11px]">
-                                  <span className="font-bold text-slate-700">
-                                    Servicios contratados de {row.client.businessName} — Marca como &quot;No Facturado&quot; los que no contrató este mes:
-                                  </span>
-                                  <span className="text-slate-500 font-mono">
-                                    Facturables: {row.billableServices.length} de {row.services.length}
-                                  </span>
-                                </div>
                                 <table className="w-full text-left text-xs">
-                                  <thead className="text-[10px] uppercase text-slate-400 border-b border-slate-100">
+                                  <thead className="text-[10px] uppercase text-slate-400 bg-slate-50 border-b border-slate-100">
                                     <tr>
                                       <th className="py-2 px-4">Servicio</th>
-                                      <th className="py-2 px-3">Periodicidad</th>
-                                      <th className="py-2 px-3">Próxima Renovación</th>
-                                      <th className="py-2 px-3 text-center">Estado Operativo</th>
-                                      <th className="py-2 px-3 text-center">Incluir en Factura</th>
-                                      <th className="py-2 px-4 text-right">Tarifa ($ sin IVA)</th>
+                                      <th className="py-2 px-3">Ciclo</th>
+                                      <th className="py-2 px-3">Renovación</th>
+                                      <th className="py-2 px-3 text-center">Estado</th>
+                                      <th className="py-2 px-3 text-center">Facturar</th>
+                                      <th className="py-2 px-4 text-right">Tarifa</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
@@ -718,7 +706,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                                   : "bg-amber-50 text-amber-800 border-amber-200"
                                               }`}
                                             >
-                                              {billable ? "Facturable" : "No Facturado"}
+                                              {billable ? "Sí" : "No"}
                                             </button>
                                           </td>
                                           <td className="py-2.5 px-4 text-right font-mono font-bold">
@@ -753,13 +741,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
                 <tr>
                   <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Servicio Contratado</th>
-                  <th className="py-3 px-3">Frecuencia</th>
-                  <th className="py-3 px-3">Vencimiento / Renovación</th>
-                  <th className="py-3 px-3 text-center">Estado Servicio</th>
-                  <th className="py-3 px-3 text-center">Ciclo Actual</th>
+                  <th className="py-3 px-4">Servicio</th>
+                  <th className="py-3 px-3">Ciclo</th>
+                  <th className="py-3 px-3">Renovación</th>
+                  <th className="py-3 px-3 text-center">Estado</th>
+                  <th className="py-3 px-3 text-center">Facturar</th>
                   <th className="py-3 px-3 text-right">Tarifa</th>
-                  <th className="py-3 px-4 text-right">Notificar / Renovar</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

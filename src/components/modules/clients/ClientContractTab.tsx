@@ -423,18 +423,13 @@ export function ClientContractTab({ client }: { client: Client }) {
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         {/* Header principal limpio */}
         <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100">
-              <ShieldCheck className="w-5 h-5" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100">
+              <ShieldCheck className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider">
-                Seguimiento de Servicios Contratados & Recurrencia
-              </h3>
-              <p className="text-[11px] text-[#737686]">
-                Control individual por servicio: activa/inactiva servicios, excluye del ciclo actual (No Facturado) y notifica renovaciones
-              </p>
-            </div>
+            <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider">
+              Servicios
+            </h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -444,7 +439,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-xl text-xs font-bold transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{isAddingService ? "Cerrar Formulario" : "Añadir Servicio Recurrente"}</span>
+              <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
             </button>
 
             <button
@@ -453,7 +448,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
             >
               <Receipt className="w-3.5 h-3.5" />
-              <span>Emitir Venta Libre</span>
+              <span>Nueva Venta</span>
             </button>
 
             {serviceMetrics.billableCount > 0 && (
@@ -464,11 +459,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>
-                  {emittingRecurring
-                    ? "Facturando..."
-                    : `Facturar ${serviceMetrics.billableCount} Activo(s) ($${serviceMetrics.totalWithTax.toFixed(2)})`}
-                </span>
+                <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
               </button>
             )}
           </div>
@@ -478,18 +469,18 @@ export function ClientContractTab({ client }: { client: Client }) {
         <div className="px-6 py-3 bg-slate-50/70 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-slate-600">
-              Servicios registrados: <strong className="text-slate-900">{serviceMetrics.total}</strong>
+              Total: <strong className="text-slate-900">{serviceMetrics.total}</strong>
             </span>
             <span className="text-emerald-700 font-semibold">
-              Facturables este ciclo: <strong>{serviceMetrics.billableCount}</strong>
+              Activos: <strong>{serviceMetrics.billableCount}</strong>
             </span>
             <span className="text-amber-700 font-semibold">
-              No Facturados / Pausados: <strong>{serviceMetrics.nonBillableCount}</strong>
+              Pausados: <strong>{serviceMetrics.nonBillableCount}</strong>
             </span>
           </div>
           <div className="font-mono text-xs">
-            <span className="text-slate-500">Total ciclo activo (IVA incl.): </span>
-            <strong className="text-[#004ac6] text-sm">${serviceMetrics.totalWithTax.toFixed(2)} USD</strong>
+            <span className="text-slate-500">Total (IVA incl.): </span>
+            <strong className="text-[#004ac6] text-sm">${serviceMetrics.totalWithTax.toFixed(2)}</strong>
           </div>
         </div>
 
@@ -587,9 +578,9 @@ export function ClientContractTab({ client }: { client: Client }) {
             {(
               [
                 { id: "todos", label: "Todos" },
-                { id: "facturables", label: "Facturables" },
-                { id: "no_facturados", label: "No Facturados" },
-                { id: "por_renovar", label: "Por Renovar / Vencidos" },
+                { id: "facturables", label: "Activos" },
+                { id: "no_facturados", label: "Pausados" },
+                { id: "por_renovar", label: "Por Renovar" },
               ] as const
             ).map((tab) => (
               <button
@@ -613,13 +604,13 @@ export function ClientContractTab({ client }: { client: Client }) {
           <table className="w-full text-left text-xs min-w-[920px]">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5">Servicio Contratado</th>
-                <th className="py-3 px-4">Frecuencia</th>
-                <th className="py-3 px-4">Próxima Renovación</th>
-                <th className="py-3 px-4 text-center">Estado del Servicio</th>
-                <th className="py-3 px-4 text-center">Ciclo Actual</th>
-                <th className="py-3 px-4 text-right">Tarifa Base</th>
-                <th className="py-3 px-5 text-right">Notificar / Renovar</th>
+                <th className="py-3 px-5">Servicio</th>
+                <th className="py-3 px-4">Ciclo</th>
+                <th className="py-3 px-4">Renovación</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-center">Facturar</th>
+                <th className="py-3 px-4 text-right">Tarifa</th>
+                <th className="py-3 px-5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -816,15 +807,10 @@ export function ClientContractTab({ client }: { client: Client }) {
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-[#004ac6]" />
-              Expediente Digital
-            </h3>
-            <p className="text-[11px] text-[#737686]">
-              Archivos, contratos firmados, comprobantes e imágenes del cliente
-            </p>
-          </div>
+          <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider flex items-center gap-2">
+            <FileCheck className="w-4 h-4 text-[#004ac6]" />
+            Documentos
+          </h3>
 
           <button
             type="button"
@@ -836,7 +822,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Subir Archivo</span>
+            <span>Subir</span>
           </button>
         </div>
 
