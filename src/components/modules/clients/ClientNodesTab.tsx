@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, NodeLocation } from "@/types";
@@ -20,7 +21,22 @@ import {
   ShieldCheck,
   Search,
   ExternalLink,
+  Table,
+  Map,
 } from "lucide-react";
+
+const ClientNodesOverviewMap = dynamic(
+  () => import("./ClientNodesOverviewMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] bg-slate-100 rounded-[6px] border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+        <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-semibold">Cargando mapa de sedes...</span>
+      </div>
+    ),
+  }
+);
 
 interface ClientNodesTabProps {
   client: Client;
@@ -34,6 +50,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
   const [nodeToEdit, setNodeToEdit] = useState<NodeLocation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "map">("table");
 
   // Revelación temporal de 20s para credenciales
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, number>>({});
@@ -141,6 +158,37 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
 
         <div className="flex items-center gap-2.5">
           {clientNodes.length > 0 && (
+            <div className="inline-flex rounded-[6px] border border-slate-200 bg-white p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-[#004ac6] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Vista de tabla"
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Tabla</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("map")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
+                  viewMode === "map"
+                    ? "bg-[#004ac6] text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Vista en mapa de sedes"
+              >
+                <Map className="w-3.5 h-3.5" />
+                <span>Mapa</span>
+              </button>
+            </div>
+          )}
+
+          {viewMode === "table" && clientNodes.length > 0 && (
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
               <input
@@ -163,9 +211,19 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
         </div>
       </div>
 
-      {/* Lista de Nodos */}
-      {filteredNodes.length === 0 ? (
-        <div className="py-14 text-center bg-white rounded-[6px] border border-dashed border-slate-200 p-6 space-y-3">
+      {/* VISTA MAPA GENERAL DE SEDES */}
+      {viewMode === "map" && (
+        <ClientNodesOverviewMap
+          nodes={clientNodes}
+          onEditNode={handleOpenEdit}
+        />
+      )}
+
+      {/* VISTA TABLA */}
+      {viewMode === "table" && (
+        <>
+          {filteredNodes.length === 0 ? (
+            <div className="py-14 text-center bg-white rounded-[6px] border border-dashed border-slate-200 p-6 space-y-3">
           <div className="w-12 h-12 rounded-[6px] bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Radio className="w-6 h-6" />
           </div>
@@ -488,6 +546,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
           </div>
         </div>
       )}
+    </>
+  )}
 
       {/* Modal de Sede / Nodo */}
       <ClientNodeModal
