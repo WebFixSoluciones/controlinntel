@@ -184,7 +184,8 @@ export const DEMO_NODE: NodeLocation = {
       providerName: "Telconet Latam",
       capacityMbps: 5000,
       circuitId: "TCO-UIO-9921",
-      ipv4Subnet: "181.198.112.112/30",
+      ipv4Subnet: "181.198.112.112/30, 181.198.112.113/30, 181.198.112.114/30",
+      ipv4Subnets: ["181.198.112.112/30", "181.198.112.113/30", "181.198.112.114/30"],
       ipv6Prefix: "2800:3f0:4000::/48",
     },
     {

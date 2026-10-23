@@ -298,14 +298,30 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                     </span>
                                   )}
                                 </div>
-                                {(p.circuitId || p.ipv4Subnet || p.ipv6Prefix) && (
-                                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[10px] font-mono text-slate-500 pl-5">
+                                {(p.circuitId || p.ipv4Subnet || p.ipv4Subnets?.length || p.ipv6Prefix) && (
+                                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-mono text-slate-500 pl-5">
                                     {p.circuitId && (
                                       <span>ID: <strong className="text-slate-700">{p.circuitId}</strong></span>
                                     )}
-                                    {p.ipv4Subnet && (
-                                      <span>IPv4: <strong className="text-slate-700">{p.ipv4Subnet}</strong></span>
-                                    )}
+                                    {p.ipv4Subnets && p.ipv4Subnets.length > 0 ? (
+                                      <span className="flex items-center gap-1 flex-wrap">
+                                        <span>IPv4:</span>
+                                        {p.ipv4Subnets.map((ip, i) => (
+                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[9.5px]">
+                                            {ip}
+                                          </strong>
+                                        ))}
+                                      </span>
+                                    ) : p.ipv4Subnet ? (
+                                      <span className="flex items-center gap-1 flex-wrap">
+                                        <span>IPv4:</span>
+                                        {p.ipv4Subnet.split(",").map((ip, i) => (
+                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[9.5px]">
+                                            {ip.trim()}
+                                          </strong>
+                                        ))}
+                                      </span>
+                                    ) : null}
                                     {p.ipv6Prefix && (
                                       <span>IPv6: <strong className="text-slate-700">{p.ipv6Prefix}</strong></span>
                                     )}

@@ -18,6 +18,7 @@ import {
   Layers,
   Plus,
   Trash2,
+  Pencil,
   Eye,
   EyeOff,
   Building2,
@@ -61,8 +62,9 @@ export function ClientNodeModal({
   const [newProvName, setNewProvName] = useState("");
   const [newProvCapacity, setNewProvCapacity] = useState<number | "">("");
   const [newProvCircuit, setNewProvCircuit] = useState("");
-  const [newProvIpv4, setNewProvIpv4] = useState("");
+  const [newProvIpv4List, setNewProvIpv4List] = useState<string[]>([""]);
   const [newProvIpv6, setNewProvIpv6] = useState("");
+  const [editingProvId, setEditingProvId] = useState<string | null>(null);
 
   // Servicios y Credenciales del Sistema (Separación de Usuario y Clave con temporizador de 20s)
   const [services, setServices] = useState<NodeSystemService[]>([]);
@@ -157,10 +159,48 @@ export function ClientNodeModal({
       setProviders([]);
       setServices([]);
     }
+    setEditingProvId(null);
+    setNewProvName("");
+    setNewProvCapacity("");
+    setNewProvCircuit("");
+    setNewProvIpv4List([""]);
+    setNewProvIpv6("");
     setActiveTab("general");
   }, [isOpen, nodeToEdit]);
 
   if (!isOpen) return null;
+
+  // Manejador de campos IPv4 dinámicos
+  const handleAddIpv4Field = () => {
+    setNewProvIpv4List((prev) => [...prev, ""]);
+  };
+
+  const handleRemoveIpv4Field = (index: number) => {
+    setNewProvIpv4List((prev) => {
+      if (prev.length <= 1) return [""];
+      return prev.filter((_, idx) => idx !== index);
+    });
+  };
+
+  const handleIpv4Change = (index: number, value: string) => {
+    // Si el usuario pega múltiples IPs separadas por coma
+    if (value.includes(",")) {
+      const parts = value.split(",").map((p) => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        setNewProvIpv4List((prev) => {
+          const copy = [...prev];
+          copy.splice(index, 1, ...parts);
+          return copy;
+        });
+        return;
+      }
+    }
+    setNewProvIpv4List((prev) => {
+      const copy = [...prev];
+      copy[index] = value;
+      return copy;
+    });
+  };
 
   // Manejador de portadores
   const handleAddProvider = () => {
@@ -168,23 +208,71 @@ export function ClientNodeModal({
       showError("Proveedor Requerido", "Ingresa el nombre del proveedor portador.");
       return;
     }
-    const newProv: NodeCarrierProvider = {
-      id: "prov-" + Date.now(),
-      providerName: newProvName.trim(),
-      capacityMbps: Number(newProvCapacity) || 0,
-      circuitId: newProvCircuit.trim() || undefined,
-      ipv4Subnet: newProvIpv4.trim() || undefined,
-      ipv6Prefix: newProvIpv6.trim() || undefined,
-    };
-    setProviders([...providers, newProv]);
+
+    const validIps = newProvIpv4List.map((ip) => ip.trim()).filter(Boolean);
+
+    if (editingProvId) {
+      setProviders(
+        providers.map((p) =>
+          p.id === editingProvId
+            ? {
+                ...p,
+                providerName: newProvName.trim(),
+                capacityMbps: Number(newProvCapacity) || 0,
+                circuitId: newProvCircuit.trim() || undefined,
+                ipv4Subnet: validIps.length > 0 ? validIps.join(", ") : undefined,
+                ipv4Subnets: validIps.length > 0 ? validIps : undefined,
+                ipv6Prefix: newProvIpv6.trim() || undefined,
+              }
+            : p
+        )
+      );
+      setEditingProvId(null);
+    } else {
+      const newProv: NodeCarrierProvider = {
+        id: "prov-" + Date.now(),
+        providerName: newProvName.trim(),
+        capacityMbps: Number(newProvCapacity) || 0,
+        circuitId: newProvCircuit.trim() || undefined,
+        ipv4Subnet: validIps.length > 0 ? validIps.join(", ") : undefined,
+        ipv4Subnets: validIps.length > 0 ? validIps : undefined,
+        ipv6Prefix: newProvIpv6.trim() || undefined,
+      };
+      setProviders([...providers, newProv]);
+    }
+
     setNewProvName("");
     setNewProvCapacity("");
     setNewProvCircuit("");
-    setNewProvIpv4("");
+    setNewProvIpv4List([""]);
+    setNewProvIpv6("");
+  };
+
+  const handleStartEditProvider = (p: NodeCarrierProvider) => {
+    setEditingProvId(p.id);
+    setNewProvName(p.providerName);
+    setNewProvCapacity(p.capacityMbps || "");
+    setNewProvCircuit(p.circuitId || "");
+    const ips = p.ipv4Subnets && p.ipv4Subnets.length > 0
+      ? p.ipv4Subnets
+      : (p.ipv4Subnet ? p.ipv4Subnet.split(",").map((s) => s.trim()).filter(Boolean) : [""]);
+    setNewProvIpv4List(ips.length > 0 ? ips : [""]);
+    setNewProvIpv6(p.ipv6Prefix || "");
+  };
+
+  const handleCancelEditProvider = () => {
+    setEditingProvId(null);
+    setNewProvName("");
+    setNewProvCapacity("");
+    setNewProvCircuit("");
+    setNewProvIpv4List([""]);
     setNewProvIpv6("");
   };
 
   const handleRemoveProvider = (id: string) => {
+    if (editingProvId === id) {
+      handleCancelEditProvider();
+    }
     setProviders(providers.filter((p) => p.id !== id));
   };
 
@@ -478,10 +566,21 @@ export function ClientNodeModal({
           {activeTab === "portadores" && (
             <div className="space-y-4">
               <div className="p-3.5 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
-                <span className="text-xs font-bold text-slate-800 block">
-                  Añadir Proveedor Portador (Multi-Carrier)
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-800">
+                    {editingProvId ? "Modificar Proveedor Portador" : "Añadir Proveedor Portador (Multi-Carrier)"}
+                  </span>
+                  {editingProvId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditProvider}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                      Cancelar edición
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-start">
                   <div>
                     <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Proveedor *</label>
                     <input
@@ -489,7 +588,7 @@ export function ClientNodeModal({
                       placeholder="Telconet, Lumen, Ufinet..."
                       value={newProvName}
                       onChange={(e) => setNewProvName(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white"
+                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -499,7 +598,7 @@ export function ClientNodeModal({
                       placeholder="Ej: 500"
                       value={newProvCapacity}
                       onChange={(e) => setNewProvCapacity(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white"
+                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -509,18 +608,56 @@ export function ClientNodeModal({
                       placeholder="TCO-9921"
                       value={newProvCircuit}
                       onChange={(e) => setNewProvCircuit(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono"
+                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">IPv4</label>
-                    <input
-                      type="text"
-                      placeholder="181.198.112.112/30"
-                      value={newProvIpv4}
-                      onChange={(e) => setNewProvIpv4(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono"
-                    />
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="text-[10px] font-bold text-slate-600">
+                        IPv4 {newProvIpv4List.length > 1 && `(${newProvIpv4List.length})`}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddIpv4Field}
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#004ac6] hover:text-[#003da6] bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-[4px] cursor-pointer transition-colors"
+                        title="Agregar otro campo IPv4"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                        <span>IP</span>
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {newProvIpv4List.map((ip, idx) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            placeholder={idx === 0 ? "181.198.112.112/30" : `IPv4 #${idx + 1}`}
+                            value={ip}
+                            onChange={(e) => handleIpv4Change(idx, e.target.value)}
+                            className="w-full text-xs px-2.5 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
+                          />
+                          {idx === 0 ? (
+                            <button
+                              type="button"
+                              onClick={handleAddIpv4Field}
+                              className="p-1.5 rounded-[6px] bg-blue-50 text-[#004ac6] hover:bg-[#004ac6] hover:text-white transition-colors cursor-pointer shrink-0 border border-blue-200"
+                              title="Añadir otra IP v4"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveIpv4Field(idx)}
+                              className="p-1.5 rounded-[6px] bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer shrink-0 border border-rose-200"
+                              title="Quitar esta IP"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-600 block mb-0.5">IPv6</label>
@@ -529,19 +666,28 @@ export function ClientNodeModal({
                       placeholder="2800:3f0::/48"
                       value={newProvIpv6}
                       onChange={(e) => setNewProvIpv6(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono"
+                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-1">
+                <div className="flex justify-end gap-2 pt-1">
+                  {editingProvId && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEditProvider}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={handleAddProvider}
-                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Agregar Proveedor</span>
+                    <span>{editingProvId ? "Guardar Cambios" : "Agregar Proveedor"}</span>
                   </button>
                 </div>
               </div>
@@ -556,41 +702,66 @@ export function ClientNodeModal({
                     No hay proveedores portadores registrados para este nodo. Usa el formulario superior para añadir proveedores (Proveedor 1, 2, 3...).
                   </div>
                 ) : (
-                  providers.map((p, index) => (
-                    <div
-                      key={p.id}
-                      className="p-3 bg-white rounded-[6px] border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-[6px] bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-xs">{p.providerName}</span>
-                            {p.capacityMbps > 0 && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-[6px]">
-                                {p.capacityMbps} Mbps
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex flex-wrap gap-x-3">
-                            {p.circuitId && <span>ID: <strong className="text-slate-700">{p.circuitId}</strong></span>}
-                            {p.ipv4Subnet && <span>IPv4: <strong className="text-slate-700">{p.ipv4Subnet}</strong></span>}
-                            {p.ipv6Prefix && <span>IPv6: <strong className="text-slate-700">{p.ipv6Prefix}</strong></span>}
+                  providers.map((p, index) => {
+                    const ips = p.ipv4Subnets && p.ipv4Subnets.length > 0
+                      ? p.ipv4Subnets
+                      : (p.ipv4Subnet ? p.ipv4Subnet.split(",").map((s) => s.trim()).filter(Boolean) : []);
+
+                    return (
+                      <div
+                        key={p.id}
+                        className="p-3 bg-white rounded-[6px] border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-[6px] bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 text-xs">{p.providerName}</span>
+                              {p.capacityMbps > 0 && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-[6px]">
+                                  {p.capacityMbps} Mbps
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center">
+                              {p.circuitId && <span>ID: <strong className="text-slate-700">{p.circuitId}</strong></span>}
+                              {ips.length > 0 && (
+                                <span className="flex items-center gap-1 flex-wrap">
+                                  <span>IPv4:</span>
+                                  {ips.map((ip, i) => (
+                                    <strong key={i} className="text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200 text-[10px]">
+                                      {ip}
+                                    </strong>
+                                  ))}
+                                </span>
+                              )}
+                              {p.ipv6Prefix && <span>IPv6: <strong className="text-slate-700">{p.ipv6Prefix}</strong></span>}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditProvider(p)}
+                            className="text-slate-400 hover:text-[#004ac6] p-1.5 rounded-[6px] hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Editar proveedor"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveProvider(p.id)}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-[6px] hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Eliminar proveedor"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveProvider(p.id)}
-                        className="text-slate-400 hover:text-rose-600 p-1.5 rounded-[6px] hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Eliminar proveedor"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

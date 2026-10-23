@@ -170,6 +170,7 @@ export interface NodeCarrierProvider {
   capacityMbps: number;
   circuitId?: string;
   ipv4Subnet?: string;
+  ipv4Subnets?: string[];
   ipv6Prefix?: string;
 }
 
