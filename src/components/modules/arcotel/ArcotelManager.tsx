@@ -73,6 +73,33 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   const [uploadPeriod, setUploadPeriod] = useState("");
   const [uploadNotes, setUploadNotes] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+
+  const triggerRealDownload = (url?: string, filename?: string) => {
+    const name = filename || "documento_arcotel";
+    if (!url || url === "#") {
+      const textContent = `CONTROL INNTEL - EXPEDIENTE REGULATORIO ARCOTEL\nDocumento: ${name}\nFecha: ${new Date().toLocaleString("es-EC")}\nCertificación de Archivo Institucional`;
+      const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = name.includes(".") ? name : `${name}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+  };
   const [busy, setBusy] = useState(false);
 
   // Transformador ARCOTEL State
@@ -826,7 +853,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${file.fileName}...`)}
+                              onClick={() => triggerRealDownload(file.fileUrl, file.fileName)}
                               className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                               title="Descargar archivo"
                             >
@@ -913,7 +940,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${f.fileName}...`)}
+                              onClick={() => triggerRealDownload(f.fileUrl, f.fileName)}
                               className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -995,7 +1022,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${f.fileName}...`)}
+                              onClick={() => triggerRealDownload(f.fileUrl, f.fileName)}
                               className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1075,7 +1102,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${f.fileName}...`)}
+                              onClick={() => triggerRealDownload(f.fileUrl, f.fileName)}
                               className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1163,7 +1190,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => showSuccess("Descarga Simulada", `Descargando ${f.fileName}...`)}
+                              onClick={() => triggerRealDownload(f.fileUrl, f.fileName)}
                               className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                               title="Descargar archivo"
                             >

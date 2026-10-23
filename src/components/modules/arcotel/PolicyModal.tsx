@@ -5,6 +5,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { ArcotelPolicy } from "@/types";
 import { validateDateRange, validateMonetaryAmount } from "@/lib/validation-engine";
+import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 import { X, ShieldPlus, Check } from "lucide-react";
 
 interface PolicyModalProps {
@@ -20,7 +21,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
   const [insuranceCompany, setInsuranceCompany] = useState("");
   const [policyType, setPolicyType] = useState<ArcotelPolicy["policyType"]>("fiel_cumplimiento");
   const [titleGrantCode, setTitleGrantCode] = useState("");
-  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(getEcuadorDate());
   const [expirationDate, setExpirationDate] = useState("");
   const [insuredAmount, setInsuredAmount] = useState<number | "">("");
   const [notes, setNotes] = useState("");
@@ -54,10 +55,8 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
         return;
       }
 
-      const exp = new Date(expirationDate);
-      const now = new Date();
-      const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const status = days < 0 ? "vencida" : days <= 45 ? "por_vencer" : "vigente";
+      const days = diffInCalendarDays(getEcuadorDate(), expirationDate);
+      const status = days < 0 ? "vencida" : days <= 30 ? "por_vencer" : "vigente";
 
       await addPolicy({
         policyNumber: policyNumber.trim(),

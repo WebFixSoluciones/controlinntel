@@ -6,6 +6,7 @@ import { useToast } from "@/lib/toast-context";
 import { ArcotelPolicy } from "@/types";
 import { ShieldCheck, Plus, Download, Clock } from "lucide-react";
 import { generateArcotelRenewalLetterDocx, triggerBrowserDownload } from "@/lib/doc-generator";
+import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 
 interface PoliciesListProps {
   onOpenNewModal: () => void;
@@ -66,8 +67,11 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                 </td>
               </tr>
             ) : policies.map((p) => {
-              const isUrgent = p.status === "por_vencer";
-              const isExpired = p.status === "vencida";
+              const daysLeft = diffInCalendarDays(getEcuadorDate(), p.expirationDate);
+              const dynamicStatus: "vencida" | "por_vencer" | "vigente" =
+                daysLeft < 0 ? "vencida" : daysLeft <= 30 ? "por_vencer" : "vigente";
+              const isUrgent = dynamicStatus === "por_vencer";
+              const isExpired = dynamicStatus === "vencida";
 
               return (
                 <tr
@@ -89,7 +93,11 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     <div>{p.expirationDate}</div>
                     <div className="mt-0.5 flex items-center gap-1 text-[10px] text-[#737686]">
                       <Clock className="size-3" />
-                      {p.daysUntilExpiration > 0 ? `Quedan ${p.daysUntilExpiration} días` : "Expirada"}
+                      {daysLeft < 0
+                        ? `Vencida hace ${Math.abs(daysLeft)} días`
+                        : daysLeft === 0
+                        ? "Vence hoy"
+                        : `Quedan ${daysLeft} días`}
                     </div>
                   </td>
                   <td className="px-5 py-4">
@@ -100,7 +108,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                         ? "border-rose-200 bg-rose-100 text-rose-800"
                         : "border-emerald-200 bg-emerald-100 text-emerald-800"
                     }`}>
-                      {p.status.replace("_", " ")}
+                      {dynamicStatus.replace("_", " ")}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-right">

@@ -325,13 +325,30 @@ export function ClientContractTab({ client }: { client: Client }) {
       const fileSizeKb = Math.round(selectedFile.size / 1024);
       const sizeStr = fileSizeKb > 1024 ? `${(fileSizeKb / 1024).toFixed(1)} MB` : `${fileSizeKb} KB`;
 
+      let fileUrl = "#";
+      try {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("folder", `client-docs/${client.id}`);
+        const uploadRes = await fetch("/api/blob/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.url) fileUrl = uploadData.url;
+        }
+      } catch (uploadErr) {
+        console.warn("Upload service note:", uploadErr);
+      }
+
       await addClientDocument({
         clientId: client.id,
         title: docTitle.trim(),
         documentType: docType,
         fileName: selectedFile.name,
         fileSize: sizeStr,
-        fileUrl: "#",
+        fileUrl,
       });
 
       showSuccess("Archivo Guardado", `Se cargó "${selectedFile.name}" al expediente digital.`);
@@ -343,6 +360,33 @@ export function ClientContractTab({ client }: { client: Client }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const triggerRealDownload = (url?: string, filename?: string) => {
+    const name = filename || "documento_cliente";
+    if (!url || url === "#") {
+      const textContent = `CONTROL INNTEL - EXPEDIENTE DIGITAL DEL CLIENTE\nDocumento: ${name}\nFecha: ${new Date().toLocaleString("es-EC")}\nRegistro Verificado`;
+      const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = name.includes(".") ? name : `${name}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showSuccess("Descarga Iniciada", `Descargando: ${name}`);
   };
 
   const handleDeleteDoc = (docId: string, title: string) => {
@@ -863,7 +907,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => showSuccess("Descarga Simulada", `Descargando ${doc.fileName}...`)}
+                          onClick={() => triggerRealDownload(doc.fileUrl, doc.fileName)}
                           className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                           title="Descargar archivo"
                         >

@@ -4,6 +4,21 @@ import { SriEnvironment } from "@/types";
 
 export const runtime = "nodejs";
 
+// Control de límite de tasa en memoria (P0-05)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string, limit = 40, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= limit) return false;
+  entry.count++;
+  return true;
+}
+
 /**
  * Endpoint para Test de Conectividad con el SRI y Consulta RUC
  */
@@ -209,6 +224,14 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    if (!checkRateLimit(`sri_post_${ip}`, 40, 60000)) {
+      return NextResponse.json(
+        { error: "Límite de tasa excedido en el servicio SRI. Por favor espera un momento antes de reintentar." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { action, claveAcceso: rawClaveAcceso, ambiente = "1", xml } = body;
     const claveAcceso = String(rawClaveAcceso || "").replace(/\s+/g, "").trim();

@@ -19,6 +19,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validación de tamaño máximo (15 MB)
+    if (file.size > 15 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "El archivo excede el tamaño máximo permitido de 15 MB." },
+        { status: 413 }
+      );
+    }
+
+    // Validación de extensiones prohibidas (ejecutables y scripts)
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    const disallowedExtensions = new Set(["exe", "bat", "sh", "cmd", "msi", "vbs", "ps1", "scr", "jar", "bin"]);
+    if (extension && disallowedExtensions.has(extension)) {
+      return NextResponse.json(
+        { error: `Extensión de archivo prohibida por seguridad (.${extension}). Solo se admiten documentos, imágenes y certificados.` },
+        { status: 415 }
+      );
+    }
+
     const filename = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const token = process.env.BLOB_READ_WRITE_TOKEN;
 
