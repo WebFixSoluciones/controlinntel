@@ -1,6 +1,15 @@
 import type { UserModulePermissions } from "./purchases";
 
-export type UserRole = "superadmin" | "admin" | "finanzas" | "tecnico" | "soporte" | "legal" | "consulta";
+export type UserRole =
+  | "superadmin"
+  | "admin"
+  | "ventas"
+  | "finanzas"
+  | "tecnico"
+  | "soporte"
+  | "bodega"
+  | "legal"
+  | "consulta";
 
 export type SystemPermission =
   | "all"

@@ -173,6 +173,66 @@ export interface SupplierPaymentRecord {
   createdAt: string;
 }
 
+export interface InventoryActions {
+  canCreateProduct: boolean;
+  canCreateService: boolean;
+  canEditProduct: boolean;
+  canChangePrices: boolean;       // 🔒 Modificar precios de venta
+  canViewCosts: boolean;          // 🔒 Ver costos de compra / margen
+  canAdjustStock: boolean;        // 🔒 Ajustes de stock / mermas
+  canTransferWarehouses: boolean; // Transferencias entre bodegas
+  canDeleteItems: boolean;        // 🔒 Eliminar productos o servicios
+}
+
+export interface BillingActions {
+  canCreateInvoice: boolean;
+  canEditPrices: boolean;         // 🔒 Modificar precio unitario en venta
+  canApplyDiscounts: boolean;     // 🔒 Descuentos manuales
+  canAuthorizeSri: boolean;       // Firmar / emitir ante el SRI
+  canCancelInvoices: boolean;     // 🔒 Notas de crédito / anular facturas
+  canCreateQuotes: boolean;
+  canApproveQuotes: boolean;
+  canViewSalesReports: boolean;
+}
+
+export interface ClientActions {
+  canCreateClient: boolean;
+  canEditClient: boolean;
+  canEditServicePrices: boolean;  // 🔒 Editar tarifa mensual de servicio
+  canUploadContracts: boolean;
+  canDeleteContracts: boolean;    // 🔒 Eliminar contratos
+  canDeleteClient: boolean;       // 🔒 Eliminar cliente
+}
+
+export interface PurchaseActions {
+  canCreateSupplier: boolean;
+  canRegisterPurchase: boolean;
+  canApprovePayments: boolean;    // 🔒 Autorizar pagos a proveedores
+  canEmitWithholding: boolean;    // Emitir retenciones
+  canViewSupplierBank: boolean;   // Ver datos bancarios
+}
+
+export interface FinanceActions {
+  canViewBankBalances: boolean;   // 🔒 Ver saldos de cuentas bancarias
+  canRegisterReceipts: boolean;   // Registrar cobros y abonos
+  canRegisterExpenses: boolean;   // Registrar gastos
+  canCancelPayments: boolean;     // 🔒 Anular movimientos financieros
+  canExportReports: boolean;      // Exportar balances contables
+}
+
+export interface NetworkActions {
+  canManageNodes: boolean;
+  canAssignIps: boolean;
+  canEditRouterCredentials: boolean; // 🔒 Credenciales router NOC
+}
+
+export interface VaultActions {
+  canViewClientVault: boolean;
+  canViewInternalVault: boolean;  // 🔒 Credenciales NOC
+  canRevealPasswords: boolean;    // 🔒 Revelar y descifrar contraseñas
+  canDeleteCredentials: boolean;  // 🔒 Eliminar credenciales
+}
+
 export interface UserModulePermissions {
   abonados?: { enabled: boolean };
   personas?: {
@@ -181,6 +241,10 @@ export interface UserModulePermissions {
       proveedores: boolean;
       usuarios_equipo: boolean;
     };
+  };
+  clientes?: {
+    enabled: boolean;
+    actions?: ClientActions;
   };
   compras?: {
     enabled: boolean;
@@ -191,6 +255,7 @@ export interface UserModulePermissions {
       notas_debito: boolean;
       retenciones: boolean;
     };
+    actions?: PurchaseActions;
   };
   finanzas?: {
     enabled: boolean;
@@ -201,8 +266,8 @@ export interface UserModulePermissions {
       cuentas_por_pagar: boolean;
       reportes: boolean;
     };
+    actions?: FinanceActions;
   };
-
   facturacion?: {
     enabled: boolean;
     submodules: {
@@ -212,6 +277,7 @@ export interface UserModulePermissions {
       retenciones: boolean;
       guias_remision: boolean;
     };
+    actions?: BillingActions;
   };
   inventarios?: {
     enabled: boolean;
@@ -224,6 +290,7 @@ export interface UserModulePermissions {
       bodegas: boolean;
       ajustes: boolean;
     };
+    actions?: InventoryActions;
   };
   red?: {
     enabled: boolean;
@@ -231,11 +298,15 @@ export interface UserModulePermissions {
       nodos: boolean;
       pools_ip: boolean;
     };
+    actions?: NetworkActions;
   };
   proyectos?: { enabled: boolean };
   tickets?: { enabled: boolean };
   arcotel?: { enabled: boolean };
-  boveda?: { enabled: boolean };
+  boveda?: {
+    enabled: boolean;
+    actions?: VaultActions;
+  };
   plantillas?: { enabled: boolean };
   configuracion?: {
     enabled: boolean;

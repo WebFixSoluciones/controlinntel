@@ -1,4 +1,15 @@
-import type { UserProfile, UserModulePermissions, UserRole } from "@/types";
+import type {
+  UserProfile,
+  UserModulePermissions,
+  UserRole,
+  InventoryActions,
+  BillingActions,
+  ClientActions,
+  PurchaseActions,
+  FinanceActions,
+  NetworkActions,
+  VaultActions,
+} from "@/types";
 
 export const collectionPermissions = {
   clients: "manage_clients", clientServices: "manage_clients", plans: "manage_clients",
@@ -33,6 +44,66 @@ export function can(user: UserProfile, permission: string) {
   return !!user.permissions?.some(p => p === "all" || p === permission);
 }
 
+export const DEFAULT_INVENTORY_ACTIONS: InventoryActions = {
+  canCreateProduct: true,
+  canCreateService: true,
+  canEditProduct: true,
+  canChangePrices: true,
+  canViewCosts: true,
+  canAdjustStock: true,
+  canTransferWarehouses: true,
+  canDeleteItems: true,
+};
+
+export const DEFAULT_BILLING_ACTIONS: BillingActions = {
+  canCreateInvoice: true,
+  canEditPrices: true,
+  canApplyDiscounts: true,
+  canAuthorizeSri: true,
+  canCancelInvoices: true,
+  canCreateQuotes: true,
+  canApproveQuotes: true,
+  canViewSalesReports: true,
+};
+
+export const DEFAULT_CLIENT_ACTIONS: ClientActions = {
+  canCreateClient: true,
+  canEditClient: true,
+  canEditServicePrices: true,
+  canUploadContracts: true,
+  canDeleteContracts: true,
+  canDeleteClient: true,
+};
+
+export const DEFAULT_PURCHASE_ACTIONS: PurchaseActions = {
+  canCreateSupplier: true,
+  canRegisterPurchase: true,
+  canApprovePayments: true,
+  canEmitWithholding: true,
+  canViewSupplierBank: true,
+};
+
+export const DEFAULT_FINANCE_ACTIONS: FinanceActions = {
+  canViewBankBalances: true,
+  canRegisterReceipts: true,
+  canRegisterExpenses: true,
+  canCancelPayments: true,
+  canExportReports: true,
+};
+
+export const DEFAULT_NETWORK_ACTIONS: NetworkActions = {
+  canManageNodes: true,
+  canAssignIps: true,
+  canEditRouterCredentials: true,
+};
+
+export const DEFAULT_VAULT_ACTIONS: VaultActions = {
+  canViewClientVault: true,
+  canViewInternalVault: true,
+  canRevealPasswords: true,
+  canDeleteCredentials: true,
+};
+
 /**
  * Plantilla predeterminada de permisos granulares según el Rol del usuario.
  */
@@ -40,107 +111,199 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
   superadmin: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: true } },
-    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
-    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true } },
-    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: true } },
-    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    clientes: { enabled: true, actions: { ...DEFAULT_CLIENT_ACTIONS } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true }, actions: { ...DEFAULT_PURCHASE_ACTIONS } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { ...DEFAULT_FINANCE_ACTIONS } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true }, actions: { ...DEFAULT_BILLING_ACTIONS } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: true }, actions: { ...DEFAULT_INVENTORY_ACTIONS } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true }, actions: { ...DEFAULT_NETWORK_ACTIONS } },
     proyectos: { enabled: true },
     tickets: { enabled: true },
     arcotel: { enabled: true },
-    boveda: { enabled: true },
+    boveda: { enabled: true, actions: { ...DEFAULT_VAULT_ACTIONS } },
     plantillas: { enabled: true },
     configuracion: { enabled: true, submodules: { general: true, sri: true } },
+    actions: { canDeleteClients: true, canDeleteFiles: true, canEditInvoices: true, canDeleteInvoices: true },
   },
   admin: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: true } },
-    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
-    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true } },
-    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: true } },
-    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    clientes: { enabled: true, actions: { ...DEFAULT_CLIENT_ACTIONS, canDeleteClient: false } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true }, actions: { ...DEFAULT_PURCHASE_ACTIONS } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { ...DEFAULT_FINANCE_ACTIONS } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true }, actions: { ...DEFAULT_BILLING_ACTIONS, canCancelInvoices: false } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: true }, actions: { ...DEFAULT_INVENTORY_ACTIONS, canDeleteItems: false } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true }, actions: { ...DEFAULT_NETWORK_ACTIONS } },
     proyectos: { enabled: true },
     tickets: { enabled: true },
     arcotel: { enabled: true },
-    boveda: { enabled: false }, // restringido por defecto a superadmin
+    boveda: { enabled: false, actions: { ...DEFAULT_VAULT_ACTIONS, canViewInternalVault: false } },
     plantillas: { enabled: true },
     configuracion: { enabled: true, submodules: { general: true, sri: true } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: true, canDeleteInvoices: false },
+  },
+  ventas: {
+    abonados: { enabled: true },
+    personas: { enabled: true, submodules: { proveedores: false, usuarios_equipo: false } },
+    clientes: {
+      enabled: true,
+      actions: {
+        canCreateClient: true,
+        canEditClient: true,
+        canEditServicePrices: false,
+        canUploadContracts: true,
+        canDeleteContracts: false,
+        canDeleteClient: false,
+      },
+    },
+    compras: {
+      enabled: false,
+      submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false },
+      actions: { canCreateSupplier: false, canRegisterPurchase: false, canApprovePayments: false, canEmitWithholding: false, canViewSupplierBank: false },
+    },
+    finanzas: {
+      enabled: true,
+      submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: false, reportes: false },
+      actions: { canViewBankBalances: false, canRegisterReceipts: true, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false },
+    },
+    facturacion: {
+      enabled: true,
+      submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: true },
+      actions: {
+        canCreateInvoice: true,
+        canEditPrices: false,
+        canApplyDiscounts: false,
+        canAuthorizeSri: true,
+        canCancelInvoices: false,
+        canCreateQuotes: true,
+        canApproveQuotes: true,
+        canViewSalesReports: true,
+      },
+    },
+    inventarios: {
+      enabled: true,
+      submodules: { productos: true, servicios: true, categorias: true, kardex: false, transferencias: false, bodegas: true, ajustes: false },
+      actions: {
+        canCreateProduct: false,
+        canCreateService: false,
+        canEditProduct: false,
+        canChangePrices: false,
+        canViewCosts: false,
+        canAdjustStock: false,
+        canTransferWarehouses: false,
+        canDeleteItems: false,
+      },
+    },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
+    proyectos: { enabled: true },
+    tickets: { enabled: true },
+    arcotel: { enabled: false },
+    boveda: { enabled: true, actions: { canViewClientVault: true, canViewInternalVault: false, canRevealPasswords: true, canDeleteCredentials: false } },
+    plantillas: { enabled: true },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
   },
   finanzas: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
-    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true } },
-    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true } },
-    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: false, bodegas: true, ajustes: true } },
-    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    clientes: { enabled: true, actions: { ...DEFAULT_CLIENT_ACTIONS, canDeleteClient: false } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: true, notas_debito: true, retenciones: true }, actions: { ...DEFAULT_PURCHASE_ACTIONS } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { ...DEFAULT_FINANCE_ACTIONS } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: true, retenciones: true, guias_remision: true }, actions: { ...DEFAULT_BILLING_ACTIONS } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: false, bodegas: true, ajustes: true }, actions: { ...DEFAULT_INVENTORY_ACTIONS, canAdjustStock: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
     proyectos: { enabled: true },
     tickets: { enabled: false },
     arcotel: { enabled: false },
-    boveda: { enabled: false },
+    boveda: { enabled: false, actions: { ...DEFAULT_VAULT_ACTIONS, canViewInternalVault: false } },
     plantillas: { enabled: true },
     configuracion: { enabled: true, submodules: { general: false, sri: true } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: true, canDeleteInvoices: false },
   },
   tecnico: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
-    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: false, notas_debito: false, retenciones: false } },
-    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: true } },
-    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: false } },
-    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    clientes: { enabled: true, actions: { canCreateClient: true, canEditClient: true, canEditServicePrices: false, canUploadContracts: true, canDeleteContracts: false, canDeleteClient: false } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: false, notas_debito: false, retenciones: false }, actions: { ...DEFAULT_PURCHASE_ACTIONS, canApprovePayments: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: true }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: false }, actions: { ...DEFAULT_INVENTORY_ACTIONS, canChangePrices: false, canViewCosts: false, canAdjustStock: false } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true }, actions: { ...DEFAULT_NETWORK_ACTIONS } },
     proyectos: { enabled: true },
     tickets: { enabled: true },
     arcotel: { enabled: false },
-    boveda: { enabled: true },
+    boveda: { enabled: true, actions: { canViewClientVault: true, canViewInternalVault: false, canRevealPasswords: true, canDeleteCredentials: false } },
     plantillas: { enabled: false },
     configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
+  },
+  bodega: {
+    abonados: { enabled: false },
+    personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
+    clientes: { enabled: false, actions: { canCreateClient: false, canEditClient: false, canEditServicePrices: false, canUploadContracts: false, canDeleteContracts: false, canDeleteClient: false } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: true, notas_credito: false, notas_debito: false, retenciones: false }, actions: { ...DEFAULT_PURCHASE_ACTIONS, canApprovePayments: false, canViewSupplierBank: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: true }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: false, categorias: true, kardex: true, transferencias: true, bodegas: true, ajustes: true }, actions: { canCreateProduct: true, canCreateService: false, canEditProduct: true, canChangePrices: false, canViewCosts: false, canAdjustStock: true, canTransferWarehouses: true, canDeleteItems: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
+    proyectos: { enabled: false },
+    tickets: { enabled: false },
+    arcotel: { enabled: false },
+    boveda: { enabled: false, actions: { canViewClientVault: false, canViewInternalVault: false, canRevealPasswords: false, canDeleteCredentials: false } },
+    plantillas: { enabled: false },
+    configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
   },
   soporte: {
     abonados: { enabled: true },
     personas: { enabled: false, submodules: { proveedores: false, usuarios_equipo: false } },
-    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
-    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false } },
-    inventarios: { enabled: false, submodules: { productos: false, servicios: false, categorias: false, kardex: false, transferencias: false, bodegas: false, ajustes: false } },
-    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    clientes: { enabled: true, actions: { canCreateClient: false, canEditClient: false, canEditServicePrices: false, canUploadContracts: false, canDeleteContracts: false, canDeleteClient: false } },
+    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false }, actions: { canCreateSupplier: false, canRegisterPurchase: false, canApprovePayments: false, canEmitWithholding: false, canViewSupplierBank: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false } },
+    inventarios: { enabled: false, submodules: { productos: false, servicios: false, categorias: false, kardex: false, transferencias: false, bodegas: false, ajustes: false }, actions: { canCreateProduct: false, canCreateService: false, canEditProduct: false, canChangePrices: false, canViewCosts: false, canAdjustStock: false, canTransferWarehouses: false, canDeleteItems: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
     proyectos: { enabled: false },
     tickets: { enabled: true },
     arcotel: { enabled: false },
-    boveda: { enabled: true },
+    boveda: { enabled: true, actions: { canViewClientVault: true, canViewInternalVault: false, canRevealPasswords: true, canDeleteCredentials: false } },
     plantillas: { enabled: false },
     configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
   },
   legal: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
-    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
-    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false } },
-    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false } },
-    inventarios: { enabled: false, submodules: { productos: false, servicios: false, categorias: false, kardex: false, transferencias: false, bodegas: false, ajustes: false } },
-    red: { enabled: false, submodules: { nodos: false, pools_ip: false } },
+    clientes: { enabled: true, actions: { canCreateClient: false, canEditClient: false, canEditServicePrices: false, canUploadContracts: true, canDeleteContracts: false, canDeleteClient: false } },
+    compras: { enabled: false, submodules: { historial_compras: false, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false }, actions: { canCreateSupplier: false, canRegisterPurchase: false, canApprovePayments: false, canEmitWithholding: false, canViewSupplierBank: false } },
+    finanzas: { enabled: false, submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: false, cuentas_por_pagar: false, reportes: false }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    facturacion: { enabled: false, submodules: { facturas: false, cotizaciones: false, notas_credito: false, retenciones: false, guias_remision: false }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false } },
+    inventarios: { enabled: false, submodules: { productos: false, servicios: false, categorias: false, kardex: false, transferencias: false, bodegas: false, ajustes: false }, actions: { canCreateProduct: false, canCreateService: false, canEditProduct: false, canChangePrices: false, canViewCosts: false, canAdjustStock: false, canTransferWarehouses: false, canDeleteItems: false } },
+    red: { enabled: false, submodules: { nodos: false, pools_ip: false }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
     proyectos: { enabled: false },
     tickets: { enabled: false },
     arcotel: { enabled: true },
-    boveda: { enabled: false },
+    boveda: { enabled: false, actions: { canViewClientVault: false, canViewInternalVault: false, canRevealPasswords: false, canDeleteCredentials: false } },
     plantillas: { enabled: true },
     configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
   },
   consulta: {
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
-    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false } },
-    finanzas: { enabled: true, submodules: { movimientos: true, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true } },
-    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: false } },
-    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: false, bodegas: true, ajustes: false } },
-    red: { enabled: true, submodules: { nodos: true, pools_ip: true } },
+    clientes: { enabled: true, actions: { canCreateClient: false, canEditClient: false, canEditServicePrices: false, canUploadContracts: false, canDeleteContracts: false, canDeleteClient: false } },
+    compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false }, actions: { canCreateSupplier: false, canRegisterPurchase: false, canApprovePayments: false, canEmitWithholding: false, canViewSupplierBank: false } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: false }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false, canEditPrices: false, canApplyDiscounts: false } },
+    inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: false, bodegas: true, ajustes: false }, actions: { canCreateProduct: false, canCreateService: false, canEditProduct: false, canChangePrices: false, canViewCosts: false, canAdjustStock: false, canTransferWarehouses: false, canDeleteItems: false } },
+    red: { enabled: true, submodules: { nodos: true, pools_ip: true }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
     proyectos: { enabled: true },
     tickets: { enabled: true },
     arcotel: { enabled: true },
-    boveda: { enabled: false },
+    boveda: { enabled: false, actions: { canViewClientVault: false, canViewInternalVault: false, canRevealPasswords: false, canDeleteCredentials: false } },
     plantillas: { enabled: true },
     configuracion: { enabled: false, submodules: { general: false, sri: false } },
+    actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: false, canDeleteInvoices: false },
   },
 };
 
@@ -255,3 +418,33 @@ export const tabPermissions: Record<string, string> = {
   dossier: "manage_clients",
   inventario: "manage_network",
 };
+
+/**
+ * Verifica si un usuario tiene acceso a una acción granular específica dentro de un módulo.
+ * Si no se pasa actionKey, verifica si tiene acceso al módulo general.
+ */
+export function canUser(
+  user: UserProfile | undefined | null,
+  moduleKey: keyof UserModulePermissions,
+  actionKey?: string
+): boolean {
+  if (!user || user.status === "inactivo") return false;
+  if (user.role === "superadmin") return true;
+
+  if (!canAccessModule(user, moduleKey)) return false;
+  if (!actionKey) return true;
+
+  // 1. Revisar override específico en user.modulePermissions
+  const userModule = user.modulePermissions?.[moduleKey] as any;
+  if (userModule?.actions && typeof userModule.actions[actionKey] === "boolean") {
+    return userModule.actions[actionKey];
+  }
+
+  // 2. Revisar preset predeterminado del rol
+  const roleDefault = (DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role] as any)?.[moduleKey];
+  if (roleDefault?.actions && typeof roleDefault.actions[actionKey] === "boolean") {
+    return roleDefault.actions[actionKey];
+  }
+
+  return true;
+}
