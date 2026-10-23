@@ -161,10 +161,10 @@ export function TramitesManager() {
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-[#004ac6]" />
-            <span>Módulo de Seguimiento de Trámites</span>
+            <span>Trámites</span>
           </h1>
           <p className="text-xs text-[#737686] mt-0.5">
-            Control de oficios, providencias, solicitudes regulatorias y estados dinámicos
+            Oficios, resoluciones y requerimientos regulatorios
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export function TramitesManager() {
         <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
-              Total de Trámites
+              Total
             </span>
             <span className="text-2xl font-bold text-[#0b1c30] mt-1 block">
               {totalCount}

@@ -3,11 +3,31 @@ import { put, del } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+function checkRateLimit(key: string, limit = 30, windowMs = 60000): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (entry.count >= limit) return false;
+  entry.count++;
+  return true;
+}
+
 /**
  * Handler POST para subida de archivos a Vercel Blob con fallback elegante para desarrollo local
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    if (!checkRateLimit(`blob-upload-${ip}`, 30)) {
+      return NextResponse.json(
+        { error: "Demasiadas subidas de archivo en poco tiempo. Espera un momento." },
+        { status: 429 }
+      );
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const folder = (formData.get("folder") as string) || "templates";

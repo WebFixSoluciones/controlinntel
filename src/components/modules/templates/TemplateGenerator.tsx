@@ -538,16 +538,16 @@ export function TemplateGenerator() {
       </div>
 
       {/* ========================================================= */}
-      {/* TABLA 1: PLANTILLAS OFICIALES GENERADAS DINÁMICAMENTE     */}
+      {/* TABLA 1: PLANTILLAS OFICIALES                             */}
       {/* ========================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
             <h2 className="text-sm font-bold text-[#0b1c30]">
-              Plantillas Oficiales Generadas Dinámicamente
+              Plantillas del Sistema
             </h2>
             <p className="text-xs text-[#737686]">
-              Documentos generados en tiempo real con datos de clientes, infraestructura y facturación
+              Documentos generados automáticamente con datos del sistema
             </p>
           </div>
           <span className="text-xs font-bold text-[#737686] bg-white px-2.5 py-1 rounded-lg border border-[#e2e8f0]">
@@ -626,17 +626,17 @@ export function TemplateGenerator() {
       </div>
 
       {/* ========================================================= */}
-      {/* TABLA 2: REPOSITORIO DE PLANTILLAS & ARCHIVOS EDITABLES   */}
+      {/* TABLA 2: PLANTILLAS INSTITUCIONALES                       */}
       {/* ========================================================= */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
           <div>
             <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-2">
               <FileCheck className="w-4 h-4 text-[#004ac6]" />
-              Repositorio Institucional de Documentos & Plantillas
+              Plantillas Institucionales
             </h2>
             <p className="text-xs text-[#737686]">
-              Formatos Word, Excel y PDF subidos y editables con soporte para actualización de archivos
+              Archivos descargables y editables (Word, Excel y PDF)
             </p>
           </div>
           <span className="text-xs font-bold text-[#737686] bg-white px-2.5 py-1 rounded-lg border border-[#e2e8f0]">

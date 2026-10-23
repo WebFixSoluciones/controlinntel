@@ -31,6 +31,9 @@ import {
   EyeOff,
   Shield,
   Info,
+  MapPin,
+  Navigation,
+  Map,
 } from "lucide-react";
 
 export function ClientNodesManager() {
@@ -53,6 +56,11 @@ export function ClientNodesManager() {
   // Node basic form states
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [tempLat, setTempLat] = useState("");
+  const [tempLng, setTempLng] = useState("");
+  const [isLocatingGps, setIsLocatingGps] = useState(false);
   const [mikrotikIp, setMikrotikIp] = useState("10.50.1.1");
   const [status, setStatus] = useState<NodeLocation["status"]>("online");
   const [notes, setNotes] = useState("");
@@ -66,6 +74,7 @@ export function ClientNodesManager() {
       capacityMbps: 3000,
       circuitId: "TCO-UIO-9921",
       ipv4Subnet: "181.198.112.112/30",
+      ipv4Subnets: ["181.198.112.112/30"],
       ipv6Prefix: "2800:3f0:4000::/48",
     },
   ]);
@@ -97,6 +106,10 @@ export function ClientNodesManager() {
     setEditingNode(null);
     setName("");
     setAddress("");
+    setCoordinates(undefined);
+    setTempLat("");
+    setTempLng("");
+    setIsMapPickerOpen(false);
     setMikrotikIp(`10.50.${nodes.length + 1}.1`);
     setStatus("online");
     setNotes("");
@@ -108,6 +121,7 @@ export function ClientNodesManager() {
         capacityMbps: 3000,
         circuitId: "",
         ipv4Subnet: "",
+        ipv4Subnets: [""],
         ipv6Prefix: "",
       },
     ]);
@@ -128,24 +142,33 @@ export function ClientNodesManager() {
     setEditingNode(node);
     setName(node.name);
     setAddress(node.address);
+    setCoordinates(node.coordinates);
+    setTempLat(node.coordinates?.lat !== undefined ? String(node.coordinates.lat) : "");
+    setTempLng(node.coordinates?.lng !== undefined ? String(node.coordinates.lng) : "");
+    setIsMapPickerOpen(false);
     setMikrotikIp(node.mikrotikIp || "");
     setStatus(node.status);
     setNotes(node.notes || "");
     setUsedCapacityMbps(node.usedCapacityMbps || 0);
-    setProviders(
-      node.providers && node.providers.length > 0
-        ? JSON.parse(JSON.stringify(node.providers))
-        : [
-            {
-              id: "prov-" + Date.now(),
-              providerName: node.upstreamProvider || "Telconet Latam",
-              capacityMbps: node.totalCapacityMbps || 1000,
-              circuitId: "",
-              ipv4Subnet: "",
-              ipv6Prefix: "",
-            },
-          ]
-    );
+    const parsedProviders = (node.providers && node.providers.length > 0
+      ? JSON.parse(JSON.stringify(node.providers))
+      : [
+          {
+            id: "prov-" + Date.now(),
+            providerName: node.upstreamProvider || "Telconet Latam",
+            capacityMbps: node.totalCapacityMbps || 1000,
+            circuitId: "",
+            ipv4Subnet: "",
+            ipv6Prefix: "",
+          },
+        ]
+    ).map((p: NodeCarrierProvider) => {
+      const subs = p.ipv4Subnets && p.ipv4Subnets.length > 0
+        ? p.ipv4Subnets
+        : [p.ipv4Subnet || ""];
+      return { ...p, ipv4Subnets: subs, ipv4Subnet: subs[0] || "" };
+    });
+    setProviders(parsedProviders);
     setServices(
       node.services && node.services.length > 0
         ? JSON.parse(JSON.stringify(node.services))
@@ -161,6 +184,89 @@ export function ClientNodesManager() {
     );
     setFormError("");
     setIsModalOpen(true);
+  };
+
+  // GPS / Map functions
+  const handleGetCurrentLocationGps = () => {
+    if (!navigator.geolocation) {
+      showError("Geolocalización no disponible", "Tu navegador no soporta detección de GPS.");
+      return;
+    }
+    setIsLocatingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+        setCoordinates({ lat, lng });
+        setTempLat(String(lat));
+        setTempLng(String(lng));
+        setIsLocatingGps(false);
+        showSuccess("Ubicación GPS Obtenida", `Lat: ${lat}, Lng: ${lng}`);
+      },
+      (err) => {
+        setIsLocatingGps(false);
+        showError("Error GPS", err.message || "No se pudo obtener la ubicación GPS.");
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleApplyCoordinates = () => {
+    const lat = parseFloat(tempLat);
+    const lng = parseFloat(tempLng);
+    if (isNaN(lat) || isNaN(lng)) {
+      showError("Coordenadas Inválidas", "Ingresa números válidos para latitud y longitud.");
+      return;
+    }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      showError("Rango Inválido", "Latitud debe estar entre -90 y 90, Longitud entre -180 y 180.");
+      return;
+    }
+    setCoordinates({ lat, lng });
+    setIsMapPickerOpen(false);
+    showSuccess("Coordenadas Asignadas", `Lat: ${lat}, Lng: ${lng}`);
+  };
+
+  // Provider IPv4 dynamic list actions
+  const handleAddIpv4ToProvider = (provId: string) => {
+    setProviders((prev) =>
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const currentList = p.ipv4Subnets && p.ipv4Subnets.length > 0
+          ? [...p.ipv4Subnets]
+          : [p.ipv4Subnet || ""];
+        const updated = [...currentList, ""];
+        return { ...p, ipv4Subnets: updated, ipv4Subnet: updated[0] };
+      })
+    );
+  };
+
+  const handleUpdateIpv4InProvider = (provId: string, index: number, value: string) => {
+    setProviders((prev) =>
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const currentList = p.ipv4Subnets && p.ipv4Subnets.length > 0
+          ? [...p.ipv4Subnets]
+          : [p.ipv4Subnet || ""];
+        const updated = [...currentList];
+        updated[index] = value;
+        return { ...p, ipv4Subnets: updated, ipv4Subnet: updated[0] };
+      })
+    );
+  };
+
+  const handleRemoveIpv4FromProvider = (provId: string, index: number) => {
+    setProviders((prev) =>
+      prev.map((p) => {
+        if (p.id !== provId) return p;
+        const currentList = p.ipv4Subnets && p.ipv4Subnets.length > 0
+          ? [...p.ipv4Subnets]
+          : [p.ipv4Subnet || ""];
+        if (currentList.length <= 1) return p;
+        const updated = currentList.filter((_, idx) => idx !== index);
+        return { ...p, ipv4Subnets: updated, ipv4Subnet: updated[0] || "" };
+      })
+    );
   };
 
   // Provider list actions
@@ -271,6 +377,7 @@ export function ClientNodesManager() {
         await updateNode(editingNode.id, {
           name: name.trim(),
           address: address.trim(),
+          coordinates,
           upstreamProvider: upstreamProviderSummary,
           totalCapacityMbps: finalTotalCapacity,
           usedCapacityMbps: Math.min(Number(usedCapacityMbps), finalTotalCapacity),
@@ -285,6 +392,7 @@ export function ClientNodesManager() {
         await addNode({
           name: name.trim(),
           address: address.trim(),
+          coordinates,
           upstreamProvider: upstreamProviderSummary,
           totalCapacityMbps: finalTotalCapacity,
           usedCapacityMbps: Math.min(Number(usedCapacityMbps), finalTotalCapacity),
@@ -295,7 +403,7 @@ export function ClientNodesManager() {
           providers,
           services,
         });
-        showSuccess("Nodo Incorporado", `POP ${name} añadido a la infraestructura multi-carrier.`);
+        showSuccess("Nodo Guardado", `POP ${name} incorporado con éxito.`);
       }
 
       setIsModalOpen(false);
@@ -370,7 +478,7 @@ export function ClientNodesManager() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight">
-              Infraestructura Multi-Nodo & Carrier Transit
+              Nodos de Red
             </h1>
           </div>
         </div>
@@ -380,7 +488,7 @@ export function ClientNodesManager() {
           className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Nuevo Nodo / POP Multi-Carrier</span>
+          <span>Nuevo Nodo</span>
         </button>
       </div>
 
@@ -395,7 +503,7 @@ export function ClientNodesManager() {
           }`}
         >
           <Server className="w-3.5 h-3.5" />
-          <span>Infraestructura Multi-Carrier</span>
+          <span>Nodos</span>
         </button>
 
         <button
@@ -419,7 +527,7 @@ export function ClientNodesManager() {
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Pools IP & Subredes IPv4</span>
+          <span>Pools IP</span>
         </button>
       </div>
 
@@ -506,6 +614,21 @@ export function ClientNodesManager() {
                               {n.name}
                             </div>
                             <div className="text-[11px] text-[#737686] mt-0.5">{n.address}</div>
+                            {n.coordinates && (
+                              <div className="mt-0.5">
+                                <a
+                                  href={`https://www.google.com/maps?q=${n.coordinates.lat},${n.coordinates.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#004ac6] hover:underline"
+                                  title="Abrir ubicación en Google Maps"
+                                >
+                                  <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                                  <span>Google Maps ({n.coordinates.lat.toFixed(4)}, {n.coordinates.lng.toFixed(4)})</span>
+                                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                </a>
+                              </div>
+                            )}
                             {n.mikrotikIp && (
                               <div className="mt-1">
                                 <span className="font-mono text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
@@ -517,27 +640,39 @@ export function ClientNodesManager() {
                           <td className="py-4 px-5">
                             {carrierList.length > 0 ? (
                               <div className="space-y-1.5 max-w-sm">
-                                {carrierList.map((p, pIdx) => (
-                                  <div
-                                    key={p.id || pIdx}
-                                    className="p-1.5 px-2 bg-slate-50 rounded-lg border border-slate-200/80 text-[11px]"
-                                  >
-                                    <div className="flex items-center justify-between font-bold text-[#0b1c30]">
-                                      <span className="flex items-center gap-1 text-[#004ac6]">
-                                        <Globe className="w-3 h-3" />
-                                        {p.providerName || "Proveedor " + (pIdx + 1)}
-                                      </span>
-                                      <span className="font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200">
-                                        {p.capacityMbps} Mbps
-                                      </span>
+                                {carrierList.map((p, pIdx) => {
+                                  const allIps = (p.ipv4Subnets && p.ipv4Subnets.length > 0 ? p.ipv4Subnets : [p.ipv4Subnet]).filter(Boolean);
+                                  return (
+                                    <div
+                                      key={p.id || pIdx}
+                                      className="p-1.5 px-2 bg-slate-50 rounded-lg border border-slate-200/80 text-[11px]"
+                                    >
+                                      <div className="flex items-center justify-between font-bold text-[#0b1c30]">
+                                        <span className="flex items-center gap-1 text-[#004ac6]">
+                                          <Globe className="w-3 h-3" />
+                                          {p.providerName || "Proveedor " + (pIdx + 1)}
+                                        </span>
+                                        <span className="font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                                          {p.capacityMbps} Mbps
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#737686] mt-0.5">
+                                        {p.circuitId && <span>ID: <strong className="text-slate-700 font-mono">{p.circuitId}</strong></span>}
+                                        {allIps.length > 0 && (
+                                          <span className="flex items-center gap-1">
+                                            IPv4:{" "}
+                                            {allIps.map((ip, i) => (
+                                              <strong key={i} className="text-slate-700 font-mono bg-white px-1 py-0.2 rounded border border-slate-200">
+                                                {ip}
+                                              </strong>
+                                            ))}
+                                          </span>
+                                        )}
+                                        {p.ipv6Prefix && <span>IPv6: <strong className="text-slate-700 font-mono">{p.ipv6Prefix}</strong></span>}
+                                      </div>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#737686] mt-0.5">
-                                      {p.circuitId && <span>ID: <strong className="text-slate-700 font-mono">{p.circuitId}</strong></span>}
-                                      {p.ipv4Subnet && <span>IPv4: <strong className="text-slate-700 font-mono">{p.ipv4Subnet}</strong></span>}
-                                      {p.ipv6Prefix && <span>IPv6: <strong className="text-slate-700 font-mono">{p.ipv6Prefix}</strong></span>}
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <span className="font-semibold text-[#004ac6]">{n.upstreamProvider}</span>
@@ -813,6 +948,28 @@ export function ClientNodesManager() {
                 </div>
               </div>
 
+              {/* Ubicación y Coordenadas */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold block uppercase">Ubicación Física</span>
+                  <span className="font-medium text-slate-800 text-xs">{detailNode.address}</span>
+                </div>
+                {detailNode.coordinates ? (
+                  <a
+                    href={`https://www.google.com/maps?q=${detailNode.coordinates.lat},${detailNode.coordinates.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#bfdbfe] text-[#004ac6] rounded-lg font-bold text-xs hover:bg-[#eff4ff] transition-all shadow-2xs"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-red-500" />
+                    <span>Ver en Google Maps ({detailNode.coordinates.lat.toFixed(4)}, {detailNode.coordinates.lng.toFixed(4)})</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-slate-400 italic">Sin coordenadas GPS</span>
+                )}
+              </div>
+
               {/* Proveedores Upstream */}
               <div className="space-y-2">
                 <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-1">
@@ -827,20 +984,35 @@ export function ClientNodesManager() {
                           <th className="p-2.5 px-3">Proveedor</th>
                           <th className="p-2.5 px-3">Capacidad</th>
                           <th className="p-2.5 px-3">ID Circuito</th>
-                          <th className="p-2.5 px-3">IPv4 Subnet</th>
+                          <th className="p-2.5 px-3">IPv4 Subnet(s)</th>
                           <th className="p-2.5 px-3">IPv6 Prefix</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium">
-                        {detailNode.providers.map((p, idx) => (
-                          <tr key={p.id || idx}>
-                            <td className="p-2.5 px-3 font-bold text-[#0b1c30]">{p.providerName}</td>
-                            <td className="p-2.5 px-3 font-mono font-bold text-slate-800">{p.capacityMbps} Mbps</td>
-                            <td className="p-2.5 px-3 font-mono text-slate-600">{p.circuitId || "—"}</td>
-                            <td className="p-2.5 px-3 font-mono text-[#004ac6]">{p.ipv4Subnet || "—"}</td>
-                            <td className="p-2.5 px-3 font-mono text-indigo-700">{p.ipv6Prefix || "—"}</td>
-                          </tr>
-                        ))}
+                        {detailNode.providers.map((p, idx) => {
+                          const allIps = (p.ipv4Subnets && p.ipv4Subnets.length > 0 ? p.ipv4Subnets : [p.ipv4Subnet]).filter(Boolean);
+                          return (
+                            <tr key={p.id || idx}>
+                              <td className="p-2.5 px-3 font-bold text-[#0b1c30]">{p.providerName}</td>
+                              <td className="p-2.5 px-3 font-mono font-bold text-slate-800">{p.capacityMbps} Mbps</td>
+                              <td className="p-2.5 px-3 font-mono text-slate-600">{p.circuitId || "—"}</td>
+                              <td className="p-2.5 px-3 font-mono text-[#004ac6]">
+                                {allIps.length > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    {allIps.map((ip, i) => (
+                                      <span key={i} className="inline-block bg-blue-50 px-1.5 py-0.5 rounded text-[11px] border border-blue-100 font-mono">
+                                        {ip}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+                              <td className="p-2.5 px-3 font-mono text-indigo-700">{p.ipv6Prefix || "—"}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -968,8 +1140,38 @@ export function ClientNodesManager() {
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="font-bold text-[#434655] block mb-1">Ubicación Física / Dirección *</label>
+                  <div className="md:col-span-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-[#434655] block">Ubicación Física / Dirección *</label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (coordinates) {
+                              setTempLat(String(coordinates.lat));
+                              setTempLng(String(coordinates.lng));
+                            }
+                            setIsMapPickerOpen(!isMapPickerOpen);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-[11px] font-bold border border-[#bfdbfe] transition-all cursor-pointer"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-red-500" />
+                          <span>{coordinates ? "Editar en Mapa" : "Asignar Mapa / Coordenadas"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleGetCurrentLocationGps}
+                          disabled={isLocatingGps}
+                          title="Detectar ubicación GPS actual"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-[11px] font-semibold border border-slate-300 transition-all cursor-pointer"
+                        >
+                          <Navigation className={`w-3 h-3 text-[#004ac6] ${isLocatingGps ? "animate-spin" : ""}`} />
+                          <span>GPS</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <input
                       required
                       type="text"
@@ -978,6 +1180,130 @@ export function ClientNodesManager() {
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     />
+
+                    {/* Coordenadas badge */}
+                    {coordinates && (
+                      <div className="flex items-center justify-between p-2 px-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="font-bold text-emerald-900">Coordenadas Asignadas:</span>
+                          <span className="font-mono text-emerald-700">
+                            Lat {coordinates.lat}, Lng {coordinates.lng}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`https://www.google.com/maps?q=${coordinates.lat},${coordinates.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#004ac6] font-bold hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>Ver en Google Maps</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCoordinates(undefined);
+                              setTempLat("");
+                              setTempLng("");
+                            }}
+                            className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
+                            title="Quitar coordenadas"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Desplegable de Mapa interactivo / Entrada de coordenadas */}
+                    {isMapPickerOpen && (
+                      <div className="p-3 bg-white border border-[#bfdbfe] rounded-2xl shadow-sm space-y-3 animate-in fade-in duration-150">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <span className="font-bold text-xs text-[#004ac6] flex items-center gap-1.5">
+                            <Map className="w-4 h-4" />
+                            Capturar Ubicación Exacta con Google Maps
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsMapPickerOpen(false)}
+                            className="text-slate-400 hover:text-slate-600 p-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Latitud (ej: -0.180653)</label>
+                            <input
+                              type="text"
+                              placeholder="-0.180653"
+                              value={tempLat}
+                              onChange={(e) => setTempLat(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Longitud (ej: -78.467834)</label>
+                            <input
+                              type="text"
+                              placeholder="-78.467834"
+                              value={tempLng}
+                              onChange={(e) => setTempLng(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Vista previa embebida si hay coordenadas numéricas */}
+                        {Boolean(tempLat && tempLng && !isNaN(parseFloat(tempLat)) && !isNaN(parseFloat(tempLng))) && (
+                          <div className="rounded-xl overflow-hidden border border-slate-200 h-44 bg-slate-100 relative">
+                            <iframe
+                              title="Mapa de Ubicación del Nodo"
+                              className="w-full h-full border-0"
+                              src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(tempLng) - 0.005}%2C${parseFloat(tempLat) - 0.005}%2C${parseFloat(tempLng) + 0.005}%2C${parseFloat(tempLat) + 0.005}&layer=mapnik&marker=${tempLat}%2C${tempLng}`}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-1">
+                          <a
+                            href={
+                              tempLat && tempLng
+                                ? `https://www.google.com/maps?q=${tempLat},${tempLng}`
+                                : address
+                                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+                                : "https://www.google.com/maps"
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-bold text-[#004ac6] hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>Abrir Google Maps en ventana nueva</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsMapPickerOpen(false)}
+                              className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleApplyCoordinates}
+                              className="px-3.5 py-1.5 text-xs font-bold bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg transition-all cursor-pointer shadow-2xs"
+                            >
+                              Aplicar Coordenadas
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1088,15 +1414,45 @@ export function ClientNodesManager() {
                             />
                           </div>
 
-                          <div>
-                            <label className="text-[10px] text-[#737686] font-bold block mb-0.5">IPv4 / Subnet</label>
-                            <input
-                              type="text"
-                              placeholder="181.198.112.112/30"
-                              value={prov.ipv4Subnet || ""}
-                              onChange={(e) => handleUpdateProvider(prov.id, "ipv4Subnet", e.target.value)}
-                              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1.5 text-xs font-mono text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                            />
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] text-[#737686] font-bold block">
+                                IPv4 / Subnet ({((prov.ipv4Subnets && prov.ipv4Subnets.length > 0) ? prov.ipv4Subnets : [prov.ipv4Subnet || ""]).length})
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => handleAddIpv4ToProvider(prov.id)}
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#004ac6] hover:text-[#2563eb] bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1 py-0.5 rounded cursor-pointer transition-all"
+                                title="Agregar otra IPv4 al proveedor"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                                <span>IPv4</span>
+                              </button>
+                            </div>
+
+                            <div className="space-y-1">
+                              {((prov.ipv4Subnets && prov.ipv4Subnets.length > 0) ? prov.ipv4Subnets : [prov.ipv4Subnet || ""]).map((ipVal, ipIdx, arr) => (
+                                <div key={ipIdx} className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder="181.198.112.112/30"
+                                    value={ipVal}
+                                    onChange={(e) => handleUpdateIpv4InProvider(prov.id, ipIdx, e.target.value)}
+                                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2 py-1 text-xs font-mono text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                                  />
+                                  {arr.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveIpv4FromProvider(prov.id, ipIdx)}
+                                      className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer shrink-0"
+                                      title="Quitar esta IPv4"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 

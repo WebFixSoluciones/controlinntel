@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
+import React, { useState } from "react";
+import { AlertTriangle, CheckCircle2, XCircle, Info, Loader2 } from "lucide-react";
 
 export interface AlertModalState {
   isOpen: boolean;
@@ -10,7 +10,7 @@ export interface AlertModalState {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm?: () => void;
+  onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
 }
 
@@ -20,14 +20,32 @@ interface AlertModalProps {
 }
 
 export function AlertModal({ modal, onClose }: AlertModalProps) {
+  const [loading, setLoading] = useState(false);
+
   if (!modal.isOpen) return null;
 
-  const handleConfirm = () => {
-    if (modal.onConfirm) modal.onConfirm();
-    onClose();
+  const handleConfirm = async () => {
+    if (loading) return;
+    if (modal.onConfirm) {
+      try {
+        setLoading(true);
+        const result = modal.onConfirm();
+        if (result && typeof (result as Promise<unknown>).then === "function") {
+          await result;
+        }
+        onClose();
+      } catch (err) {
+        console.error("Error executing modal confirm action:", err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      onClose();
+    }
   };
 
   const handleCancel = () => {
+    if (loading) return;
     if (modal.onCancel) modal.onCancel();
     onClose();
   };
@@ -74,7 +92,8 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
           {(modal.type === "confirm" || modal.cancelText) && (
             <button
               onClick={handleCancel}
-              className="px-4 py-2 rounded-lg text-xs font-bold text-[#737686] hover:bg-[#e5eeff] transition-colors cursor-pointer"
+              disabled={loading}
+              className="px-4 py-2 rounded-lg text-xs font-bold text-[#737686] hover:bg-[#e5eeff] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {modal.cancelText || "Cancelar"}
             </button>
@@ -82,7 +101,8 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
 
           <button
             onClick={handleConfirm}
-            className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer ${
+            disabled={loading}
+            className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
               modal.type === "error"
                 ? "bg-[#ef4444] hover:bg-rose-700"
                 : modal.type === "warning"
@@ -90,6 +110,7 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
                 : "bg-[#004ac6] hover:bg-[#2563eb]"
             }`}
           >
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {modal.confirmText || "Entendido"}
           </button>
         </div>
