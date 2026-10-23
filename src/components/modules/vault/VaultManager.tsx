@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { SecureVault } from "./SecureVault";
 import {
@@ -11,12 +11,10 @@ import {
   Lock,
   ArrowLeft,
   RotateCcw,
-  ExternalLink,
-  ShieldAlert,
 } from "lucide-react";
 
 export function VaultManager() {
-  const { clients, clientVaultItems, vault } = useApp();
+  const { clients = [], clientVaultItems = [] } = useApp() || {};
   const [activeTab, setActiveTab] = useState<"clientes" | "sistema">("clientes");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -34,14 +32,19 @@ export function VaultManager() {
     };
   }, []);
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId);
+  const safeClients = Array.isArray(clients) ? clients.filter(Boolean) : [];
+  const safeVaultItems = Array.isArray(clientVaultItems) ? clientVaultItems.filter(Boolean) : [];
 
-  const getClientVaultItems = (id: string) => clientVaultItems.filter((v) => v.clientId === id);
+  const selectedClient = safeClients.find((c) => c && c.id === selectedClientId);
 
-  const filteredClients = clients.filter((c) => {
+  const getClientVaultItems = (id: string) =>
+    safeVaultItems.filter((v) => v && v.clientId === id);
+
+  const filteredClients = safeClients.filter((c) => {
+    if (!c || !c.id) return false;
     const items = getClientVaultItems(c.id);
-    const servicesText = items.map((i) => `${i.serviceName} ${i.notes || ""}`).join(" ");
-    const searchTarget = `${c.businessName} ${c.identificationNumber} ${servicesText}`.toLowerCase();
+    const servicesText = items.map((i) => `${i?.serviceName || ""} ${i?.notes || ""}`).join(" ");
+    const searchTarget = `${c.businessName || ""} ${c.identificationNumber || ""} ${servicesText}`.toLowerCase();
     return !query.trim() || searchTarget.includes(query.trim().toLowerCase());
   });
 
@@ -163,9 +166,9 @@ export function VaultManager() {
                           return (
                             <tr key={client.id} className="hover:bg-[#f8f9ff] transition-colors">
                               <td className="py-4 px-5">
-                                <div className="font-bold text-[#0b1c30] text-sm">{client.businessName}</div>
+                                <div className="font-bold text-[#0b1c30] text-sm">{client.businessName || "Sin Razón Social"}</div>
                                 <div className="text-[10px] text-[#737686] font-mono mt-0.5">
-                                  {client.identificationType}: {client.identificationNumber}
+                                  {client.identificationType || "RUC"}: {client.identificationNumber || "—"}
                                 </div>
                               </td>
                               <td className="py-4 px-5 text-center">
@@ -188,7 +191,7 @@ export function VaultManager() {
                                         key={item.id}
                                         className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200"
                                       >
-                                        {item.serviceName}
+                                        {item.serviceName || "Servicio"}
                                       </span>
                                     ))}
                                   </div>
@@ -221,7 +224,7 @@ export function VaultManager() {
 
                 <div className="p-3 px-5 border-t border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between text-xs text-[#737686]">
                   <span>
-                    Clientes con claves gestionadas: <strong className="text-[#0b1c30]">{clients.length}</strong>
+                    Clientes con claves gestionadas: <strong className="text-[#0b1c30]">{safeClients.length}</strong>
                   </span>
                 </div>
               </div>

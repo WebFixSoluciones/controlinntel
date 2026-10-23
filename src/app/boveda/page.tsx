@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { VaultManager } from "@/components/modules/vault/VaultManager";
+import { Loader2 } from "lucide-react";
 
 export default function BovedaPage() {
   return (
@@ -13,7 +14,16 @@ export default function BovedaPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
         <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
-          <VaultManager />
+          <Suspense
+            fallback={
+              <div className="p-12 text-center text-xs text-[#737686] flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-[#004ac6]" />
+                <span>Cargando bóveda de credenciales...</span>
+              </div>
+            }
+          >
+            <VaultManager />
+          </Suspense>
         </main>
 
         {/* Institutional Footer */}

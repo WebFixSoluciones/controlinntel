@@ -32,11 +32,14 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   const [error, setError] = useState("");
 
   const entity = clientId ? "clientVaultItems" : "vault";
-  const items = clientId ? app.clientVaultItems.filter((v) => v.clientId === clientId) : app.vault;
+  const rawItems = clientId
+    ? (app?.clientVaultItems || []).filter((v) => v && v.clientId === clientId)
+    : (app?.vault || []);
+  const items = Array.isArray(rawItems) ? rawItems.filter(Boolean) : [];
 
-  const edited = items.find((v) => v.id === editingId);
+  const edited = items.find((v) => v && v.id === editingId);
   const filtered = items.filter((v) =>
-    `${v.serviceName} ${v.username} ${v.notes || ""}`.toLowerCase().includes(query.trim().toLowerCase())
+    v && `${v.serviceName || ""} ${v.username || ""} ${v.notes || ""}`.toLowerCase().includes(query.trim().toLowerCase())
   );
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -97,7 +100,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       } else if (clientId) {
         await app.addClientVaultItem({ ...data, clientId, category: "otro" });
       } else {
-        await app.addVaultCredential({ ...data, serviceType: "otro", allowedRoles: [app.currentUser.role] });
+        await app.addVaultCredential({ ...data, serviceType: "otro", allowedRoles: [app?.currentUser?.role || "superadmin"] });
       }
       form.reset();
       setEditing(false);
