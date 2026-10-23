@@ -35,9 +35,41 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
 
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [recurrenceFilter, setRecurrenceFilter] = useState<"todos" | "recurrentes" | "mensual" | "anual" | "ocasional">("todos");
   const [balanceFilter, setBalanceFilter] = useState<"todos" | "con_saldo" | "al_dia">("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Helper: get recurrence info for a client
+  const getClientRecurrenceInfo = useCallback((client: Client) => {
+    const services = clientServices.filter((s) => s.clientId === client.id && s.status !== "retirado");
+    const totalServices = services.length;
+    const billableServices = services.filter(
+      (s) => s.status === "activo" && s.isBillableInCurrentCycle !== false
+    ).length;
+    const hasMonthly =
+      services.some((s) => (s.billingFrequency || "mensual") === "mensual") ||
+      client.billingRecurrence === "mensual";
+    const hasAnnual =
+      services.some((s) => s.billingFrequency === "anual") ||
+      client.billingRecurrence === "anual";
+    const isRecurrent = totalServices > 0 || client.billingRecurrence === "mensual" || client.billingRecurrence === "anual";
+
+    return {
+      totalServices,
+      billableServices,
+      hasMonthly,
+      hasAnnual,
+      isRecurrent,
+      label: hasMonthly && hasAnnual
+        ? "Mensual / Anual"
+        : hasAnnual
+        ? "Anual"
+        : isRecurrent
+        ? "Mensual"
+        : "Ocasional",
+    };
+  }, [clientServices]);
 
   // Modals state
   const [selectedInvoicesClient, setSelectedInvoicesClient] = useState<Client | null>(null);
@@ -77,9 +109,17 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
         (balanceFilter === "con_saldo" && pendingBal > 0) ||
         (balanceFilter === "al_dia" && pendingBal === 0);
 
-      return matchesQuery && matchesStatus && matchesBalance;
+      const rec = getClientRecurrenceInfo(c);
+      const matchesRecurrence =
+        recurrenceFilter === "todos" ||
+        (recurrenceFilter === "recurrentes" && rec.isRecurrent) ||
+        (recurrenceFilter === "mensual" && rec.hasMonthly) ||
+        (recurrenceFilter === "anual" && rec.hasAnnual) ||
+        (recurrenceFilter === "ocasional" && !rec.isRecurrent);
+
+      return matchesQuery && matchesStatus && matchesBalance && matchesRecurrence;
     });
-  }, [clients, filter, statusFilter, balanceFilter, getClientPendingBalance]);
+  }, [clients, filter, statusFilter, balanceFilter, recurrenceFilter, getClientPendingBalance, getClientRecurrenceInfo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -164,6 +204,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
               onClick={() => {
                 setFilter("");
                 setStatusFilter("todos");
+                setRecurrenceFilter("todos");
                 setBalanceFilter("todos");
               }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer"
@@ -173,7 +214,19 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={recurrenceFilter}
+              onChange={(e) => setRecurrenceFilter(e.target.value as any)}
+              className="bg-white text-xs font-semibold text-[#004ac6] rounded-lg px-3 py-2 border border-blue-200 focus:outline-hidden cursor-pointer"
+            >
+              <option value="todos">Todos los Clientes (Recurrencia)</option>
+              <option value="recurrentes">Todos los Recurrentes</option>
+              <option value="mensual">Recurrentes Mensuales</option>
+              <option value="anual">Recurrentes Anuales</option>
+              <option value="ocasional">Ocasionales (Sin Recurrencia)</option>
+            </select>
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -217,17 +270,34 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 </tr>
               ) : (
                 paginatedClients.map((client) => {
+                  const rec = getClientRecurrenceInfo(client);
                   return (
                     <tr
                       key={client.id}
                       onClick={() => onSelectClient(client)}
                       className="hover:bg-[#f8f9ff] transition-colors cursor-pointer group"
                     >
-                      {/* Cliente / Razón Social (Limpio sin iconos ni textos pequeños grises) */}
+                      {/* Cliente / Razón Social */}
                       <td className="py-3.5 px-5">
-                        <span className="font-bold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors block">
-                          {client.businessName}
-                        </span>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="font-bold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors">
+                            {client.businessName}
+                          </span>
+                          {rec.isRecurrent ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                              <span>{rec.label}</span>
+                              {rec.totalServices > 0 && (
+                                <span className="text-[#434655] font-mono">
+                                  • {rec.billableServices}/{rec.totalServices} facturables
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                              Ocasional
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* RUC / CI (Solo el número limpio sin espacios) */}

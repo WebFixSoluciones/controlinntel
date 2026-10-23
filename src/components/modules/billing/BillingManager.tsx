@@ -15,6 +15,7 @@ import {
 import { RidePreviewModal } from "./RidePreviewModal";
 import { QuotePreviewModal } from "./QuotePreviewModal";
 import { NewSaleView } from "./NewSaleView";
+import { RecurringBillingView } from "./RecurringBillingView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
@@ -59,6 +60,7 @@ import {
 type BillingTab =
   | "facturas"
   | "nueva_venta"
+  | "recurrentes"
   | "cotizaciones"
   | "notas_credito"
   | "retenciones"
@@ -345,7 +347,8 @@ export function BillingManager() {
 
   return (
     <div className="space-y-6">
-      {/* Barra de Filtros */}
+      {/* Barra de Filtros (Oculta en vista Recurrentes porque tiene su propia barra de periodo/filtros) */}
+      {activeTab !== "recurrentes" && (
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -392,16 +395,29 @@ export function BillingManager() {
           )}
 
           {activeTab === "facturas" && (
-            <button
-              onClick={() => {
-                setActiveTab("nueva_venta");
-                router.push("/facturacion?sub=nueva_venta");
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Registrar Venta</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setActiveTab("recurrentes");
+                  router.push("/facturacion?sub=recurrentes");
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-blue-50 text-[#004ac6] border border-blue-200 rounded-[6px] text-xs font-bold transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Facturación Recurrente</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveTab("nueva_venta");
+                  router.push("/facturacion?sub=nueva_venta");
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Registrar Venta</span>
+              </button>
+            </>
           )}
 
           {activeTab === "cotizaciones" && (
@@ -444,8 +460,14 @@ export function BillingManager() {
           )}
         </div>
       </div>
+      )}
 
       {/* Contenido de Cada Pestaña */}
+
+      {/* 0. Facturación Recurrente & Renovaciones */}
+      {activeTab === "recurrentes" && (
+        <RecurringBillingView onOpenInvoiceRide={handleOpenRide} />
+      )}
 
       {/* 1. Facturas */}
       {activeTab === "facturas" && (

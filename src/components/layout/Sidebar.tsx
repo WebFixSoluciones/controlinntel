@@ -62,6 +62,7 @@ const NAV_ITEMS: NavItem[] = [
     submodules: [
       { key: "facturas", label: "Historial de Ventas", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
       { key: "nueva_venta", label: "Registrar Venta", href: "/facturacion?sub=nueva_venta", submoduleKey: "facturas" },
+      { key: "recurrentes", label: "Facturación Recurrente", href: "/facturacion?sub=recurrentes", submoduleKey: "facturas" },
       { key: "cotizaciones", label: "Cotizaciones", href: "/facturacion?sub=cotizaciones", submoduleKey: "cotizaciones" },
       { key: "notas_credito", label: "Notas de Crédito", href: "/facturacion?sub=notas_credito", submoduleKey: "notas_credito" },
       { key: "retenciones", label: "Retenciones de Venta", href: "/facturacion?sub=retenciones", submoduleKey: "retenciones" },

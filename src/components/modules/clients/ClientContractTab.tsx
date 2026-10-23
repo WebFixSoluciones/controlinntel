@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Client, ClientDocumentFile, SriInvoice, ClientService } from "@/types";
+import { Client, ClientDocumentFile, SriInvoice, ClientService, ServiceStatus, ServiceBillingFrequency } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { NewSaleView } from "../billing/NewSaleView";
@@ -13,24 +13,29 @@ import {
   Trash2,
   FileCheck,
   ShieldCheck,
-  File,
   X,
   Receipt,
   Eye,
   CheckCircle2,
   Calendar,
-  DollarSign,
   Search,
-  ExternalLink,
-  Zap,
+  RefreshCw,
+  MessageCircle,
+  Mail,
+  Ban,
+  AlertTriangle,
 } from "lucide-react";
 
 export function ClientContractTab({ client }: { client: Client }) {
   const {
     clientServices,
-    clientContracts,
     clientDocuments,
     billingInvoices,
+    addClientService,
+    updateClientService,
+    deleteClientService,
+    renewClientService,
+    emitRecurringInvoiceForClient,
     addClientDocument,
     deleteClientDocument,
   } = useApp();
@@ -40,15 +45,29 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
   const [selectedInvoiceView, setSelectedInvoiceView] = useState<SriInvoice | null>(null);
 
+  // Quick inline form to add a recurring service to this client
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [newSvcName, setNewSvcName] = useState("");
+  const [newSvcPrice, setNewSvcPrice] = useState("");
+  const [newSvcFreq, setNewSvcFreq] = useState<ServiceBillingFrequency>("mensual");
+  const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().split("T")[0];
+  });
+  const [savingService, setSavingService] = useState(false);
+
   // File upload state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [docTitle, setDocTitle] = useState("");
   const [docType, setDocType] = useState<ClientDocumentFile["documentType"]>("contrato_adhesion");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [emittingRecurring, setEmittingRecurring] = useState(false);
 
   // Filter
   const [searchQuery, setSearchQuery] = useState("");
+  const [serviceFilter, setServiceFilter] = useState<"todos" | "facturables" | "no_facturados" | "por_renovar">("todos");
 
   const docs = clientDocuments.filter((d) => d.clientId === client.id);
 
@@ -61,81 +80,234 @@ export function ClientContractTab({ client }: { client: Client }) {
     );
   }, [billingInvoices, client.id, client.identificationNumber]);
 
-  // Active services from clientServices
-  const activeServices = useMemo(() => {
-    return clientServices.filter((s) => s.clientId === client.id);
+  // Client recurring services from clientServices
+  const servicesForClient = useMemo(() => {
+    return clientServices.filter((s) => s.clientId === client.id && s.status !== "retirado");
   }, [clientServices, client.id]);
 
-  // Contracts for this client
-  const contracts = useMemo(() => {
-    return clientContracts.filter((c) => c.clientId === client.id);
-  }, [clientContracts, client.id]);
+  // Helper: calculate days until renewal
+  const getRenewalStatus = (nextDate?: string) => {
+    if (!nextDate) {
+      return { label: "Sin fecha", tone: "slate", daysLeft: 999 };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(`${nextDate}T00:00:00`);
+    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Contracted Services List derived from sales invoices & active services
-  const contractedServices = useMemo(() => {
-    const list: Array<{
-      id: string;
-      name: string;
-      description: string;
-      invoiceNumber: string;
-      invoiceType: string;
-      date: string;
-      price: number;
-      homologation: string;
-      status: string;
-      rawInvoice?: SriInvoice;
-      rawService?: ClientService;
-    }> = [];
+    if (diffDays < 0) {
+      return { label: `Vencido (${Math.abs(diffDays)}d)`, tone: "rose", daysLeft: diffDays };
+    }
+    if (diffDays <= 15) {
+      return { label: `Por renovar (${diffDays}d)`, tone: "amber", daysLeft: diffDays };
+    }
+    return { label: `Al día (${diffDays}d)`, tone: "emerald", daysLeft: diffDays };
+  };
 
-    // 1. Services originated from Sales Invoices (Facturas SRI / Notas de Venta)
-    clientInvoices.forEach((inv) => {
-      inv.items.forEach((it) => {
-        list.push({
-          id: `inv-svc-${inv.id}-${it.id}`,
-          name: it.name,
-          description: it.description || "Servicio contratado mediante emisión de venta",
-          invoiceNumber: inv.documentNumber,
-          invoiceType: inv.paymentMethod === "credito" ? "Venta a Crédito" : "Factura Electrónica SRI",
-          date: inv.date,
-          price: it.unitPrice,
-          homologation: "ARCOTEL-SAI-2026",
-          status: inv.status === "anulada" ? "anulado" : "activo",
-          rawInvoice: inv,
-        });
-      });
+  // Filtered recurring services
+  const filteredServices = useMemo(() => {
+    return servicesForClient.filter((s) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesQuery =
+        !q ||
+        s.planName.toLowerCase().includes(q) ||
+        (s.notes && s.notes.toLowerCase().includes(q));
+
+      const isBillable = s.status === "activo" && s.isBillableInCurrentCycle !== false;
+      const renewal = getRenewalStatus(s.nextRenewalDate);
+      const isDueSoon = renewal.daysLeft <= 15 || s.status === "por_renovar";
+
+      const matchesFilter =
+        serviceFilter === "todos" ||
+        (serviceFilter === "facturables" && isBillable) ||
+        (serviceFilter === "no_facturados" && !isBillable) ||
+        (serviceFilter === "por_renovar" && isDueSoon);
+
+      return matchesQuery && matchesFilter;
     });
+  }, [servicesForClient, searchQuery, serviceFilter]);
 
-    // 2. Client active services (if not already included by invoice number)
-    activeServices.forEach((s) => {
-      const alreadyInList = list.some((l) => l.name.toLowerCase() === s.planName.toLowerCase());
-      if (!alreadyInList) {
-        const matchingContract = contracts.find((c) => c.planName === s.planName);
-        list.push({
-          id: `srv-${s.id}`,
-          name: s.planName,
-          description: `${s.downloadMbps} Mbps bajada / ${s.uploadMbps} Mbps subida • IP: ${s.ipv4Address || "DHCP Dinámica"}`,
-          invoiceNumber: matchingContract?.contractNumber || "Venta Inicial",
-          invoiceType: s.billingType === "prepago" ? "Nota de Venta Prepago" : "Factura Electrónica SRI",
-          date: s.installationDate || client.createdAt?.split("T")[0] || "2026-01-15",
-          price: s.customPrice || s.basePrice || 45,
-          homologation: matchingContract?.arcotelHomologationCode || "ARCOTEL-SAI-0041",
-          status: s.status === "activo" ? "activo" : s.status,
-          rawService: s,
-        });
-      }
-    });
-
-    // Filter by search query
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase().trim();
-    return list.filter(
-      (it) =>
-        it.name.toLowerCase().includes(q) ||
-        it.description.toLowerCase().includes(q) ||
-        it.invoiceNumber.toLowerCase().includes(q) ||
-        it.homologation.toLowerCase().includes(q)
+  // Summary metrics for this client's services
+  const serviceMetrics = useMemo(() => {
+    const total = servicesForClient.length;
+    const billableList = servicesForClient.filter(
+      (s) => s.status === "activo" && s.isBillableInCurrentCycle !== false
     );
-  }, [clientInvoices, activeServices, contracts, client.createdAt, searchQuery]);
+    const nonBillableCount = total - billableList.length;
+    const subtotalBillable = billableList.reduce(
+      (sum, s) => sum + (s.customPrice ?? s.basePrice ?? 0),
+      0
+    );
+    return {
+      total,
+      billableCount: billableList.length,
+      nonBillableCount,
+      subtotalBillable,
+      totalWithTax: Math.round(subtotalBillable * 1.15 * 100) / 100,
+    };
+  }, [servicesForClient]);
+
+  // Add new recurring service handler
+  const handleCreateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSvcName.trim()) {
+      showError("Nombre requerido", "Ingresa el nombre del servicio o plan contratado.");
+      return;
+    }
+    const priceNum = parseFloat(newSvcPrice);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      showError("Tarifa inválida", "Ingresa un valor mayor a $0.00.");
+      return;
+    }
+
+    setSavingService(true);
+    try {
+      await addClientService({
+        clientId: client.id,
+        planId: `plan-${Date.now()}`,
+        planName: newSvcName.trim(),
+        status: "activo",
+        billingType: "pospago",
+        billingFrequency: newSvcFreq,
+        isBillableInCurrentCycle: true,
+        nextRenewalDate: newSvcRenewalDate,
+        basePrice: priceNum,
+        customPrice: priceNum,
+        downloadMbps: 100,
+        uploadMbps: 100,
+        cutoffDay: 5,
+        nodeId: "node-1",
+        nodeName: "NODO-CENTRAL",
+        ipv4Address: "DHCP",
+        pppoeUser: `svc-${Date.now()}`,
+        installationAddress: client.address || "Dirección Principal",
+        installationDate: new Date().toISOString().split("T")[0],
+      });
+      showSuccess("Servicio Añadido", `Se agregó "${newSvcName.trim()}" al seguimiento recurrente del cliente.`);
+      setNewSvcName("");
+      setNewSvcPrice("");
+      setIsAddingService(false);
+    } catch (err: any) {
+      showError("Error", err?.message || "No se pudo añadir el servicio.");
+    } finally {
+      setSavingService(false);
+    }
+  };
+
+  // Toggle billable in current cycle (Facturable vs No Facturado)
+  const handleToggleBillable = async (svc: ClientService) => {
+    const currentlyBillable = svc.isBillableInCurrentCycle !== false && svc.status === "activo";
+    const nextBillable = !currentlyBillable;
+    try {
+      await updateClientService(svc.id, {
+        isBillableInCurrentCycle: nextBillable,
+        ...(nextBillable && svc.status !== "activo" ? { status: "activo" } : {}),
+        nonBillableReason: nextBillable ? "" : "Excluido del ciclo actual (No contratado este periodo)",
+      });
+      showSuccess(
+        nextBillable ? "Incluido en Facturación" : "Pasó a No Facturado",
+        nextBillable
+          ? `"${svc.planName}" se facturará normalmente en este ciclo.`
+          : `"${svc.planName}" fue marcado como No Facturado y no se cobrará en este ciclo.`
+      );
+    } catch {
+      showError("Error", "No se pudo actualizar la facturabilidad del servicio.");
+    }
+  };
+
+  // Change operational status (Activo / Inactivo / Por Renovar / Suspendido)
+  const handleStatusChange = async (svc: ClientService, newStatus: ServiceStatus) => {
+    const autoBillable = newStatus === "activo";
+    try {
+      await updateClientService(svc.id, {
+        status: newStatus,
+        isBillableInCurrentCycle: autoBillable,
+      });
+      showSuccess(
+        "Estado Actualizado",
+        `El servicio "${svc.planName}" ahora está ${newStatus.replace("_", " ").toUpperCase()}.`
+      );
+    } catch {
+      showError("Error", "No se pudo cambiar el estado del servicio.");
+    }
+  };
+
+  // Notify via WhatsApp (1 click)
+  const handleNotifyWhatsApp = async (svc: ClientService) => {
+    const rawPhone = (client.phone || "").replace(/\D/g, "");
+    const cleanPhone = rawPhone.startsWith("0")
+      ? `593${rawPhone.slice(1)}`
+      : rawPhone.startsWith("593")
+      ? rawPhone
+      : `593${rawPhone}`;
+
+    const price = (svc.customPrice ?? svc.basePrice ?? 0).toFixed(2);
+    const freqLabel = svc.billingFrequency === "anual" ? "anual" : "mensual";
+    const renewalDate = svc.nextRenewalDate || "próximo vencimiento";
+
+    const message = `Hola *${client.businessName}*, le saludamos de *Control Inntel*. Le informamos que su servicio *${svc.planName}* (ciclo ${freqLabel} - $${price} + IVA) tiene fecha de renovación para el *${renewalDate}*. Por favor confírmenos su renovación para mantener el servicio activo en el presente periodo.`;
+
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, "_blank");
+    await updateClientService(svc.id, {
+      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  // Notify via Email (1 click)
+  const handleNotifyEmail = async (svc: ClientService) => {
+    const price = (svc.customPrice ?? svc.basePrice ?? 0).toFixed(2);
+    const freqLabel = svc.billingFrequency === "anual" ? "Anual" : "Mensual";
+    const renewalDate = svc.nextRenewalDate || "próximo periodo";
+
+    const subject = `Aviso de Renovación de Servicio (${freqLabel}): ${svc.planName}`;
+    const body = `Estimado(a) ${client.businessName},\n\nLe saludamos cordialmente. Le informamos que su servicio contratado "${svc.planName}" con tarifa ${freqLabel.toLowerCase()} de $${price} USD (+ IVA) registra fecha de renovación el ${renewalDate}.\n\nPor favor confírmenos la continuidad del servicio para proceder con la facturación correspondiente del periodo.\n\nAtentamente,\nDepartamento de Facturación y Cartera`;
+
+    window.open(
+      `mailto:${client.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      "_self"
+    );
+    await updateClientService(svc.id, {
+      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+    });
+  };
+
+  // Renew service (+1 month or +1 year)
+  const handleRenewService = async (svc: ClientService) => {
+    try {
+      await renewClientService(svc.id);
+      const periodName = svc.billingFrequency === "anual" ? "1 año" : "1 mes";
+      showSuccess("Servicio Renovado", `Se extendió la vigencia de "${svc.planName}" por +${periodName} y quedó Activo/Facturable.`);
+    } catch {
+      showError("Error", "No se pudo renovar el servicio.");
+    }
+  };
+
+  // Emit recurring invoice for active & billable services of this client
+  const handleEmitClientRecurringInvoice = async () => {
+    if (serviceMetrics.billableCount === 0) {
+      showError("Sin servicios facturables", "Activa al menos un servicio como Facturable antes de emitir la factura.");
+      return;
+    }
+    setEmittingRecurring(true);
+    try {
+      const now = new Date();
+      const invoice = await emitRecurringInvoiceForClient(
+        client.id,
+        now.getMonth() + 1,
+        now.getFullYear()
+      );
+      if (invoice) {
+        showSuccess(
+          "Factura Recurrente Emitida",
+          `Se emitió la factura ${invoice.documentNumber} con ${serviceMetrics.billableCount} servicio(s) facturable(s) por $${invoice.total.toFixed(2)}.`
+        );
+      }
+    } catch (err: any) {
+      showError("Error al Facturar", err?.message || "No se pudo generar la factura recurrente.");
+    } finally {
+      setEmittingRecurring(false);
+    }
+  };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,7 +396,6 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
-  // If sale emission flow is open, render NewSaleView directly for this client
   if (isNewSaleOpen) {
     return (
       <div className="animate-in fade-in duration-200">
@@ -247,10 +418,10 @@ export function ClientContractTab({ client }: { client: Client }) {
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
       {/* ========================================================================= */}
-      {/* 1. SECCIÓN: SERVICIOS CONTRATADOS DEL CLIENTE (VÍA VENTAS Y FACTURAS)    */}
+      {/* 1. SEGUIMIENTO DE SERVICIOS CONTRATADOS Y FACTURACIÓN RECURRENTE          */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
-        {/* Header con botón para Contratar Servicio vía Venta */}
+        {/* Header principal limpio */}
         <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100">
@@ -258,130 +429,382 @@ export function ClientContractTab({ client }: { client: Client }) {
             </div>
             <div>
               <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider">
-                Servicios Contratados del Cliente
+                Seguimiento de Servicios Contratados & Recurrencia
               </h3>
               <p className="text-[11px] text-[#737686]">
-                Servicios activos asociados a facturas de venta y notas de venta emitidas
+                Control individual por servicio: activa/inactiva servicios, excluye del ciclo actual (No Facturado) y notifica renovaciones
               </p>
             </div>
           </div>
 
-          {/* Botón único para contratar servicios por medio de una venta */}
-          <button
-            type="button"
-            onClick={() => setIsNewSaleOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-            title="Para agregar servicios se debe emitir una Factura Electrónica o Nota de Venta"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Contratar Servicio (Vía Venta)</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAddingService((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isAddingService ? "Cerrar Formulario" : "Añadir Servicio Recurrente"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsNewSaleOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Emitir Venta Libre</span>
+            </button>
+
+            {serviceMetrics.billableCount > 0 && (
+              <button
+                type="button"
+                disabled={emittingRecurring}
+                onClick={handleEmitClientRecurringInvoice}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>
+                  {emittingRecurring
+                    ? "Facturando..."
+                    : `Facturar ${serviceMetrics.billableCount} Activo(s) ($${serviceMetrics.totalWithTax.toFixed(2)})`}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Buscador de servicios */}
-        <div className="p-3 px-6 border-b border-slate-100 bg-white flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
+        {/* Resumen rápido del ciclo actual del cliente */}
+        <div className="px-6 py-3 bg-slate-50/70 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-slate-600">
+              Servicios registrados: <strong className="text-slate-900">{serviceMetrics.total}</strong>
+            </span>
+            <span className="text-emerald-700 font-semibold">
+              Facturables este ciclo: <strong>{serviceMetrics.billableCount}</strong>
+            </span>
+            <span className="text-amber-700 font-semibold">
+              No Facturados / Pausados: <strong>{serviceMetrics.nonBillableCount}</strong>
+            </span>
+          </div>
+          <div className="font-mono text-xs">
+            <span className="text-slate-500">Total ciclo activo (IVA incl.): </span>
+            <strong className="text-[#004ac6] text-sm">${serviceMetrics.totalWithTax.toFixed(2)} USD</strong>
+          </div>
+        </div>
+
+        {/* Formulario ligero en línea para añadir un servicio al cliente (sin popup pesado) */}
+        {isAddingService && (
+          <form
+            onSubmit={handleCreateService}
+            className="p-4 px-6 bg-blue-50/50 border-b border-blue-100 grid grid-cols-1 md:grid-cols-5 gap-3 items-end animate-in fade-in"
+          >
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Nombre del Servicio / Plan *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: Licencias Corporativas / Fibra Dedicada / Hosting Anual"
+                value={newSvcName}
+                onChange={(e) => setNewSvcName(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Tarifa Base ($ sin IVA) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                placeholder="45.00"
+                value={newSvcPrice}
+                onChange={(e) => setNewSvcPrice(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Periodicidad y Próxima Renovación
+              </label>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={newSvcFreq}
+                  onChange={(e) => setNewSvcFreq(e.target.value as ServiceBillingFrequency)}
+                  className="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-800"
+                >
+                  <option value="mensual">Mensual</option>
+                  <option value="anual">Anual</option>
+                </select>
+                <input
+                  type="date"
+                  value={newSvcRenewalDate}
+                  onChange={(e) => setNewSvcRenewalDate(e.target.value)}
+                  className="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-800 w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddingService(false)}
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 text-xs font-semibold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingService}
+                className="px-4 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold cursor-pointer"
+              >
+                {savingService ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Barra de búsqueda y filtro rápido de estado */}
+        <div className="p-3 px-6 border-b border-slate-100 bg-white flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[220px] max-w-sm">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Filtrar servicios contratados..."
+              placeholder="Buscar servicio del cliente..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#004ac6]"
             />
           </div>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Total contratados: <strong>{contractedServices.length}</strong>
-          </span>
+
+          <div className="flex items-center gap-1.5 text-xs">
+            {(
+              [
+                { id: "todos", label: "Todos" },
+                { id: "facturables", label: "Facturables" },
+                { id: "no_facturados", label: "No Facturados" },
+                { id: "por_renovar", label: "Por Renovar / Vencidos" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setServiceFilter(tab.id)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition cursor-pointer ${
+                  serviceFilter === tab.id
+                    ? "bg-[#004ac6] text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tabla de Servicios Contratados (SIN columna redundante de Cliente) */}
+        {/* Tabla de Control Individual de Servicios Contratados */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px]">
+          <table className="w-full text-left text-xs min-w-[920px]">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5">Servicio / Plan Contratado</th>
-                <th className="py-3 px-5">Venta / Comprobante Origen</th>
-                <th className="py-3 px-5">Homologación</th>
-                <th className="py-3 px-5">Fecha Alta / Vigencia</th>
-                <th className="py-3 px-5 text-center">Estado</th>
-                <th className="py-3 px-5 text-right">Tarifa</th>
+                <th className="py-3 px-5">Servicio Contratado</th>
+                <th className="py-3 px-4">Frecuencia</th>
+                <th className="py-3 px-4">Próxima Renovación</th>
+                <th className="py-3 px-4 text-center">Estado del Servicio</th>
+                <th className="py-3 px-4 text-center">Ciclo Actual</th>
+                <th className="py-3 px-4 text-right">Tarifa Base</th>
+                <th className="py-3 px-5 text-right">Notificar / Renovar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
-              {contractedServices.length === 0 ? (
+              {filteredServices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-xs text-[#737686]">
-                    <Receipt className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-bold text-slate-600">No hay servicios contratados aún para este cliente.</p>
-                    <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
-                      Para contratar un nuevo servicio, haz clic en <strong>&quot;Contratar Servicio (Vía Venta)&quot;</strong> y emite la Factura Electrónica o Nota de Venta correspondiente.
+                  <td colSpan={7} className="py-10 text-center text-xs text-[#737686]">
+                    <p className="font-bold text-slate-600">
+                      No hay servicios recurrentes registrados con este filtro.
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Usa el botón <strong>&quot;Añadir Servicio Recurrente&quot;</strong> para registrar los servicios mensuales o anuales del cliente.
                     </p>
                   </td>
                 </tr>
               ) : (
-                contractedServices.map((svc) => (
-                  <tr key={svc.id} className="hover:bg-[#f8f9ff] transition-colors">
-                    {/* Servicio / Plan Contratado */}
-                    <td className="py-3.5 px-5">
-                      <span className="font-bold text-[#0b1c30] block text-xs">{svc.name}</span>
-                      <span className="text-[11px] text-[#737686] block truncate max-w-sm">
-                        {svc.description}
-                      </span>
-                    </td>
+                filteredServices.map((svc) => {
+                  const isBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
+                  const renewal = getRenewalStatus(svc.nextRenewalDate);
+                  const price = svc.customPrice ?? svc.basePrice ?? 0;
 
-                    {/* Venta / Comprobante Origen */}
-                    <td className="py-3.5 px-5 font-tnum">
-                      <div className="flex items-center gap-1.5">
-                        <Receipt className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                        {svc.rawInvoice ? (
+                  return (
+                    <tr
+                      key={svc.id}
+                      className={`transition-colors ${
+                        isBillable ? "hover:bg-[#f8f9ff]" : "bg-slate-50/70 text-slate-500"
+                      }`}
+                    >
+                      {/* 1. Servicio Contratado */}
+                      <td className="py-3.5 px-5">
+                        <span className={`font-bold block text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
+                          {svc.planName}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">
+                          {svc.lastBilledPeriod
+                            ? `Últ. facturado: ${svc.lastBilledPeriod}`
+                            : `Alta: ${svc.installationDate || "2026-01-15"}`}
+                          {svc.lastNotificationSentAt && ` • Avisado: ${svc.lastNotificationSentAt}`}
+                        </span>
+                      </td>
+
+                      {/* 2. Frecuencia (Mensual / Anual) */}
+                      <td className="py-3.5 px-4">
+                        <select
+                          value={svc.billingFrequency || "mensual"}
+                          onChange={(e) =>
+                            updateClientService(svc.id, {
+                              billingFrequency: e.target.value as ServiceBillingFrequency,
+                            })
+                          }
+                          className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                        >
+                          <option value="mensual">Mensual</option>
+                          <option value="anual">Anual</option>
+                        </select>
+                      </td>
+
+                      {/* 3. Próxima Renovación + Semáforo */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1">
+                          <input
+                            type="date"
+                            value={svc.nextRenewalDate || ""}
+                            onChange={(e) =>
+                              updateClientService(svc.id, { nextRenewalDate: e.target.value })
+                            }
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-mono text-slate-800 w-32 cursor-pointer"
+                          />
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold w-fit ${
+                              renewal.tone === "rose"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : renewal.tone === "amber"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            }`}
+                          >
+                            {renewal.label}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 4. Estado Operativo */}
+                      <td className="py-3.5 px-4 text-center">
+                        <select
+                          value={svc.status}
+                          onChange={(e) => handleStatusChange(svc, e.target.value as ServiceStatus)}
+                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
+                            svc.status === "activo"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : svc.status === "por_renovar"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-slate-100 text-slate-600 border-slate-300"
+                          }`}
+                        >
+                          <option value="activo">ACTIVO</option>
+                          <option value="por_renovar">POR RENOVAR</option>
+                          <option value="inactivo">INACTIVO</option>
+                          <option value="suspendido">SUSPENDIDO</option>
+                        </select>
+                      </td>
+
+                      {/* 5. Switch Facturable vs No Facturado en el ciclo actual */}
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBillable(svc)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition cursor-pointer ${
+                            isBillable
+                              ? "bg-blue-50 text-[#004ac6] border border-blue-200 hover:bg-blue-100"
+                              : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                          }`}
+                          title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
+                        >
+                          {isBillable ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-[#004ac6]" />
+                              <span>Facturable</span>
+                            </>
+                          ) : (
+                            <>
+                              <Ban className="w-3 h-3 text-amber-700" />
+                              <span>No Facturado</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+
+                      {/* 6. Tarifa Base */}
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs">
+                        <span className={isBillable ? "text-emerald-700" : "text-slate-400 line-through"}>
+                          ${price.toFixed(2)}
+                        </span>
+                      </td>
+
+                      {/* 7. Acciones: WhatsApp, Correo, Renovar (+1 periodo), Eliminar */}
+                      <td className="py-3.5 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => setSelectedInvoiceView(svc.rawInvoice!)}
-                            className="font-mono font-bold text-[#004ac6] hover:underline text-xs text-left cursor-pointer flex items-center gap-1"
-                            title="Ver Comprobante de Venta"
+                            onClick={() => handleNotifyWhatsApp(svc)}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                            title="Notificar renovación por WhatsApp"
                           >
-                            <span>{svc.invoiceNumber}</span>
-                            <Eye className="w-3.5 h-3.5 text-[#737686]" />
+                            <MessageCircle className="w-4 h-4" />
                           </button>
-                        ) : (
-                          <span className="font-mono font-bold text-slate-900 text-xs">
-                            {svc.invoiceNumber}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">
-                        {svc.invoiceType}
-                      </span>
-                    </td>
 
-                    {/* Homologación */}
-                    <td className="py-3.5 px-5 font-mono text-[11px] text-slate-600">
-                      <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
-                        {svc.homologation}
-                      </span>
-                    </td>
+                          <button
+                            type="button"
+                            onClick={() => handleNotifyEmail(svc)}
+                            className="p-1.5 text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                            title="Notificar renovación por Correo Electrónico"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
 
-                    {/* Fecha Alta / Vigencia */}
-                    <td className="py-3.5 px-5 whitespace-nowrap">
-                      <span className="font-semibold text-slate-800 text-xs block">{svc.date}</span>
-                      <span className="text-[10px] text-emerald-600 block font-medium">Contrato vigente</span>
-                    </td>
+                          <button
+                            type="button"
+                            onClick={() => handleRenewService(svc)}
+                            className="px-2 py-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            title="Renovar por +1 periodo y activar servicio"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Renovar</span>
+                          </button>
 
-                    {/* Estado */}
-                    <td className="py-3.5 px-5 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        ACTIVO
-                      </span>
-                    </td>
-
-                    {/* Tarifa */}
-                    <td className="py-3.5 px-5 text-right font-mono font-bold text-emerald-700 text-xs">
-                      ${svc.price.toFixed(2)} USD
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            type="button"
+                            onClick={() =>
+                              showConfirm(
+                                "¿Retirar Servicio?",
+                                `¿Deseas eliminar "${svc.planName}" de la lista de servicios de este cliente?`,
+                                () => deleteClientService(svc.id),
+                                "Eliminar"
+                              )
+                            }
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            title="Eliminar servicio"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -389,10 +812,9 @@ export function ClientContractTab({ client }: { client: Client }) {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. EXPEDIENTE DIGITAL DEL CLIENTE (ARCHIVOS / IMÁGENES / MENOS ES MÁS)     */}
+      {/* 2. EXPEDIENTE DIGITAL DEL CLIENTE (ARCHIVOS / IMÁGENES / CONTRATOS)       */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
-        {/* Header resumido y conciso */}
         <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider flex items-center gap-2">
@@ -418,7 +840,6 @@ export function ClientContractTab({ client }: { client: Client }) {
           </button>
         </div>
 
-        {/* Tabla de Archivos */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[650px]">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
@@ -480,9 +901,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL: SUBIR DOCUMENTO / IMAGEN / COMPROBANTE AL EXPEDIENTE              */}
-      {/* ========================================================================= */}
+      {/* MODAL: SUBIR DOCUMENTO AL EXPEDIENTE */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
@@ -568,9 +987,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL: VER DETALLE DE COMPROBANTE DE VENTA DE ORIGEN                      */}
-      {/* ========================================================================= */}
+      {/* MODAL: VER DETALLE DE COMPROBANTE DE VENTA */}
       {selectedInvoiceView && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
@@ -603,47 +1020,6 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Fecha de Emisión:</span>
                   <span className="font-mono text-slate-700">{selectedInvoiceView.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Método de Pago:</span>
-                  <span className="capitalize font-semibold text-slate-800">{selectedInvoiceView.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between items-center pt-1 border-t border-slate-200">
-                  <span className="text-slate-500">Estado SRI:</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {selectedInvoiceView.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Items / Detalle del Servicio */}
-              <div>
-                <span className="text-[11px] font-bold text-slate-700 block mb-2">Servicios / Productos en este Comprobante:</span>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
-                      <tr>
-                        <th className="py-2 px-3">Detalle</th>
-                        <th className="py-2 px-2 text-center">Cant.</th>
-                        <th className="py-2 px-3 text-right">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {selectedInvoiceView.items.map((it) => (
-                        <tr key={it.id}>
-                          <td className="py-2 px-3 font-medium text-slate-800">{it.name}</td>
-                          <td className="py-2 px-2 text-center font-mono">{it.quantity}</td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">${it.subtotal.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-slate-50 border-t border-slate-200 font-bold">
-                      <tr>
-                        <td colSpan={2} className="py-2 px-3 text-right">TOTAL:</td>
-                        <td className="py-2 px-3 text-right font-mono text-emerald-700">${selectedInvoiceView.total.toFixed(2)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
                 </div>
               </div>
 
