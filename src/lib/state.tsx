@@ -383,7 +383,7 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-const STORAGE_KEY = "INNTEL_CORP_STATE_PROD_DEMO_CLIENT_V1";
+const STORAGE_KEY = "INNTEL_CORP_STATE_CLEAN_V1";
 const USERS_KEY = "INNTEL_SYSTEM_USERS_PROD_V1";
 const AUTH_KEY = "INNTEL_AUTH_USER_PROD_V1";
 
@@ -574,7 +574,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
-      // 3. Check saved business state
+      // 3. Purge legacy demo storage & check saved business state
+      localStorage.removeItem("INNTEL_CORP_STATE_PROD_DEMO_CLIENT_V1");
+      localStorage.removeItem("INNTEL_CORP_STATE_PROD_V4");
+      localStorage.removeItem("INNTEL_CORP_STATE_PROD_V3");
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {

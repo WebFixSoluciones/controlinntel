@@ -15,6 +15,7 @@ import {
   ISP_FLOW_COLUMNS,
   GENERAL_FLOW_COLUMNS,
 } from "@/components/modules/projects/ProjectTaskModal";
+import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Calendar,
   Clock,
@@ -423,34 +424,25 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         </div>
       ) : null}
 
-      {/* ========================================================= */}
-      {/* 2. HEADER KPIS & ACTION BUTTONS                           */}
-      {/* ========================================================= */}
-      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
-              <ListTodo className="w-4 h-4" />
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900 text-xs">
-                Gestor de Tareas & Cronograma del Cliente
-              </h4>
-              <p className="text-[11px] text-slate-500">
-                Tareas técnicas y de despliegue sincronizadas en tiempo real con el Módulo de Proyectos
-              </p>
-            </div>
-          </div>
-
+      {/* Standard Tab Header */}
+      <ClientTabHeader
+        title="Tareas"
+        icon={ListTodo}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({clientTasks.length})
+          </span>
+        }
+        actions={
           <div className="flex flex-wrap items-center gap-2">
             {/* View Switcher: Cronograma vs Kanban */}
-            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-bold">
+            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setViewMode("cronograma")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                   viewMode === "cronograma"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -461,9 +453,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               <button
                 type="button"
                 onClick={() => setViewMode("kanban")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                   viewMode === "kanban"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -472,14 +464,14 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               </button>
             </div>
 
-            {/* Flow Switcher (only relevant for kanban or to categorize) */}
-            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-bold">
+            {/* Flow Switcher */}
+            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setActiveFlow("isp_tecnico")}
-                className={`px-2.5 py-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                   activeFlow === "isp_tecnico"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -488,9 +480,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               <button
                 type="button"
                 onClick={() => setActiveFlow("general")}
-                className={`px-2.5 py-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
                   activeFlow === "general"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -505,16 +497,18 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                 setModalDefaultCol(activeFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar");
                 setIsModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Tarea</span>
             </button>
           </div>
-        </div>
+        }
+      />
 
-        {/* Mini KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-slate-200/60">
+      {/* KPI Cards Container */}
+      <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
           <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
             <span className="text-[10px] font-bold uppercase text-slate-400">Total Tareas</span>
             <p className="text-xs font-extrabold text-slate-900 mt-0.5">{clientTasks.length}</p>

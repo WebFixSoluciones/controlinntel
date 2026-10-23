@@ -6,6 +6,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, NodeLocation } from "@/types";
 import { ClientNodeModal } from "./ClientNodeModal";
+import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Radio,
   Plus,
@@ -140,76 +141,70 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
 
   return (
     <div className="space-y-4 select-none">
-      {/* Barra Superior */}
-      <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[6px] bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
-            <Radio className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-slate-900 text-xs">
-              Sedes, Nodos & Conectividad del Cliente
-            </h4>
-            <p className="text-[11px] text-slate-500">
-              {clientNodes.length} sedes registradas para {client.businessName}
-            </p>
-          </div>
-        </div>
+      <ClientTabHeader
+        title="Nodos"
+        icon={Radio}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({clientNodes.length})
+          </span>
+        }
+        actions={
+          <>
+            {clientNodes.length > 0 && (
+              <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-[#004ac6] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Vista de tabla"
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  <span>Tabla</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("map")}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                    viewMode === "map"
+                      ? "bg-[#004ac6] text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Vista en mapa de sedes"
+                >
+                  <Map className="w-3.5 h-3.5" />
+                  <span>Mapa</span>
+                </button>
+              </div>
+            )}
 
-        <div className="flex items-center gap-2.5">
-          {clientNodes.length > 0 && (
-            <div className="inline-flex rounded-[6px] border border-slate-200 bg-white p-0.5 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-[#004ac6] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="Vista de tabla"
-              >
-                <Table className="w-3.5 h-3.5" />
-                <span>Tabla</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("map")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold transition-colors cursor-pointer ${
-                  viewMode === "map"
-                    ? "bg-[#004ac6] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="Vista en mapa de sedes"
-              >
-                <Map className="w-3.5 h-3.5" />
-                <span>Mapa</span>
-              </button>
-            </div>
-          )}
+            {viewMode === "table" && clientNodes.length > 0 && (
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar sede..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#004ac6] w-44 shadow-2xs"
+                />
+              </div>
+            )}
 
-          {viewMode === "table" && clientNodes.length > 0 && (
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Buscar sede, cantón..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-xs pl-8 pr-3 py-1.5 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
-              />
-            </div>
-          )}
-
-          <button
-            onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-[6px] text-xs font-bold shadow-sm transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Registrar Nodo / Sede</span>
-          </button>
-        </div>
-      </div>
+            <button
+              onClick={handleOpenCreate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo Nodo</span>
+            </button>
+          </>
+        }
+      />
 
       {/* VISTA MAPA GENERAL DE SEDES */}
       {viewMode === "map" && (

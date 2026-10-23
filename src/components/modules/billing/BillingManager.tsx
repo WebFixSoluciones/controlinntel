@@ -469,23 +469,23 @@ export function BillingManager() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">Factura</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-3">Bodega</th>
-                  <th className="py-3 px-3 text-right">Subtotal</th>
-                  <th className="py-3 px-3 text-right">IVA</th>
-                  <th className="py-3 px-4 text-right font-black">Total</th>
-                  <th className="py-3 px-3 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
+                  <th className="py-2.5 px-3.5">Comprobante</th>
+                  <th className="py-2.5 px-3.5">Fecha</th>
+                  <th className="py-2.5 px-3.5">Cliente</th>
+                  <th className="py-2.5 px-3">Bodega</th>
+                  <th className="py-2.5 px-3 text-right">Subtotal</th>
+                  <th className="py-2.5 px-3 text-right">IVA</th>
+                  <th className="py-2.5 px-3.5 text-right font-black">Total</th>
+                  <th className="py-2.5 px-3 text-center">Estado</th>
+                  <th className="py-2.5 px-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
-                      No se encontraron facturas con los criterios de búsqueda.
+                    <td colSpan={9} className="py-12 text-center text-slate-400 italic text-xs">
+                      No se encontraron comprobantes registrados.
                     </td>
                   </tr>
                 ) : (

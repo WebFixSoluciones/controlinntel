@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { useApp } from "@/lib/state";
 import { Client } from "@/types";
+import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Printer,
   FileText,
@@ -41,21 +42,20 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
   return (
     <div className="space-y-4 select-none">
       {/* Header Print Button */}
-      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80 print:hidden">
-        <div>
-          <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-            <FileText className="w-4 h-4 text-sky-600" />
-            Dossier Consolidado & Ficha Técnica Integral 360°
-          </h4>
-        </div>
-
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Imprimir / Exportar Dossier PDF</span>
-        </button>
+      <div className="print:hidden">
+        <ClientTabHeader
+          title="Informes"
+          icon={Printer}
+          actions={
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimir / Exportar PDF</span>
+            </button>
+          }
+        />
       </div>
 
       {/* Printable Sheet */}

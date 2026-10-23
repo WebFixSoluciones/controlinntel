@@ -254,11 +254,11 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
         {/* Data Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+            <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3.5 px-5">Cliente</th>
-                <th className="py-3.5 px-5">RUC / CI</th>
-                <th className="py-3.5 px-5 text-right">Acciones</th>
+                <th className="py-2.5 px-4">Cliente</th>
+                <th className="py-2.5 px-4">RUC / CI</th>
+                <th className="py-2.5 px-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">

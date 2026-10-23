@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { TicketModal } from "../tickets/TicketModal";
 import { TicketDetail } from "../tickets/TicketDetail";
+import { ClientTabHeader } from "./ClientTabHeader";
 
 interface ClientTicketsTabProps {
   client: Client;
@@ -152,62 +153,52 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
 
   return (
     <div className="space-y-4 select-none">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-[6px] border border-slate-200 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[6px] bg-blue-50 text-[#004ac6] flex items-center justify-center shadow-xs">
-            <TicketIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-sm text-slate-900">Tickets de Soporte</h3>
-              <span className="text-xs px-2 py-0.5 rounded-[6px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                {openTickets.length} Abierto{openTickets.length === 1 ? "" : "s"}
-              </span>
+      <ClientTabHeader
+        title="Tickets"
+        icon={TicketIcon}
+        badge={
+          <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-50 text-sky-700 border border-sky-200">
+            {openTickets.length} Abierto{openTickets.length === 1 ? "" : "s"}
+          </span>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setFilterMode("abiertos")}
+                className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                  filterMode === "abiertos"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Abiertos ({openTickets.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("todos")}
+                className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                  filterMode === "todos"
+                    ? "bg-white text-slate-900 shadow-2xs font-bold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Todos ({clientTickets.length})
+              </button>
             </div>
-            <span className="text-[11px] text-slate-500">
-              Incidencias y solicitudes técnicas asignadas a este cliente
-            </span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          {/* Filter selector */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-[6px] text-xs font-bold">
             <button
               type="button"
-              onClick={() => setFilterMode("abiertos")}
-              className={`px-3 py-1.5 rounded-[6px] transition cursor-pointer ${
-                filterMode === "abiertos"
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              Abiertos
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode("todos")}
-              className={`px-3 py-1.5 rounded-[6px] transition cursor-pointer ${
-                filterMode === "todos"
-                  ? "bg-white text-slate-900 shadow-2xs"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Todos
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nuevo Ticket</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Ticket</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tickets Table */}
       {displayedTickets.length === 0 ? (

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { simpleEncrypt } from "@/lib/crypto-vault";
+import { ClientTabHeader } from "../clients/ClientTabHeader";
 import {
   KeyRound,
   Eye,
@@ -134,28 +135,30 @@ export function SecureVault({ clientId }: { clientId?: string }) {
 
   return (
     <section className="space-y-4 select-none">
-      {/* Sub-header inside vault view */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-[#004ac6]" />
-          <h2 className="text-lg font-bold text-[#0b1c30]">
-            {clientId ? "Credenciales del Cliente" : "Bóveda de Credenciales"}
-          </h2>
-        </div>
-
-        <button
-          disabled={busy}
-          onClick={() => {
-            setEditing(!editing);
-            setEditingId(null);
-            setError("");
-          }}
-          className="flex items-center gap-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-xs cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{editing ? "Cerrar Formulario" : "Nueva Credencial"}</span>
-        </button>
-      </div>
+      {/* Standard Tab Header */}
+      <ClientTabHeader
+        title="Bóveda"
+        icon={KeyRound}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({items.length})
+          </span>
+        }
+        actions={
+          <button
+            disabled={busy}
+            onClick={() => {
+              setEditing(!editing);
+              setEditingId(null);
+              setError("");
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{editing ? "Cerrar" : "Nueva Credencial"}</span>
+          </button>
+        }
+      />
 
       {/* Create / Edit Form Card */}
       {editing && (
@@ -285,13 +288,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
         <table className="min-w-[900px] w-full text-left text-xs">
           <caption className="sr-only">Credenciales registradas en la bóveda</caption>
-          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+          <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
             <tr>
-              <th scope="col" className="py-3.5 px-5">Servicio / Destino</th>
-              <th scope="col" className="py-3.5 px-5">Usuario / Identificador</th>
-              <th scope="col" className="py-3.5 px-5">Contraseña Cifrada</th>
-              <th scope="col" className="py-3.5 px-5">Notas / Referencia</th>
-              <th scope="col" className="py-3.5 px-5 text-right">Acciones</th>
+              <th scope="col" className="py-2.5 px-4">Servicio / Destino</th>
+              <th scope="col" className="py-2.5 px-4">Usuario / Identificador</th>
+              <th scope="col" className="py-2.5 px-4">Contraseña Cifrada</th>
+              <th scope="col" className="py-2.5 px-4">Notas / Referencia</th>
+              <th scope="col" className="py-2.5 px-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">

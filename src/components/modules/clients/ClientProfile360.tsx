@@ -14,6 +14,7 @@ import { ClientNodesTab } from "./ClientNodesTab";
 import { ClientTramitesTab } from "./ClientTramitesTab";
 import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
+import { ClientTabHeader, ClientSectionHeader } from "./ClientTabHeader";
 import {
   User,
   Radio,
@@ -217,15 +218,14 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           {/* TAB 1: IDENTIFICACION */}
           {currentTabAllowed && activeTab === "fiscal" && (
             <div className="space-y-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400">
-                    Datos de Identificación & Catastro Tributario SRI
-                  </h4>
+              <ClientTabHeader
+                title="Identificación"
+                icon={User}
+                badge={
                   <div className="flex flex-wrap items-center gap-1.5">
                     {client.sriValidated && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Validado en Catastro SRI
+                        <Check className="w-3 h-3" /> Validado SRI
                       </span>
                     )}
                     {client.tipoContribuyente && (
@@ -235,16 +235,18 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                     )}
                     {client.obligadoContabilidad && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        Obligado a Contabilidad
+                        Obligado Contabilidad
                       </span>
                     )}
                     {client.agenteRetencion && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        Agente de Retención
+                        Agente Retención
                       </span>
                     )}
                   </div>
-                </div>
+                }
+              />
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                   <div>
                     <label className="text-[10px] text-slate-400 font-bold block">Razón Social / Cliente</label>
@@ -341,23 +343,23 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 </div>
               </div>
 
-              {/* Tarjeta de Personas de Contacto (Múltiples Contactos) */}
+              {/* Tarjeta de Personas de Contacto */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#004ac6]" />
-                    <span>Datos de Personas de Contacto</span>
-                  </h4>
-                  {onEdit && (
-                    <button
-                      onClick={onEdit}
-                      className="text-xs font-bold text-[#004ac6] hover:text-[#003da6] flex items-center gap-1 cursor-pointer"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                      <span>Gestionar Contactos</span>
-                    </button>
-                  )}
-                </div>
+                <ClientSectionHeader
+                  title="Contactos"
+                  icon={User}
+                  actions={
+                    onEdit && (
+                      <button
+                        onClick={onEdit}
+                        className="text-xs font-semibold text-[#004ac6] hover:text-[#003da6] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Gestionar Contactos</span>
+                      </button>
+                    )
+                  }
+                />
 
                 {allContacts.length === 0 ? (
                   <div className="text-center py-6 text-xs text-slate-400 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
@@ -423,14 +425,15 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           {/* TAB 6: FINANZAS & COBROS */}
           {currentTabAllowed && activeTab === "finanzas" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                    Historial de Cobros & Pre-Facturas Internas
-                  </h4>
-                </div>
-              </div>
+              <ClientTabHeader
+                title="Cobros"
+                icon={DollarSign}
+                badge={
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    ({charges.length})
+                  </span>
+                }
+              />
 
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <table className="w-full text-left text-xs">

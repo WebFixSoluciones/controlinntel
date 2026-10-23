@@ -5,6 +5,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, RegulatoryTramite } from "@/types";
 import { TramiteModal } from "@/components/modules/tramites/TramiteModal";
+import { ClientTabHeader } from "./ClientTabHeader";
 import {
   FileText,
   Plus,
@@ -143,9 +144,31 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
   };
 
   return (
-    <div className="space-y-6 select-none animate-in fade-in duration-150">
+    <div className="space-y-4 select-none animate-in fade-in duration-150">
+      <ClientTabHeader
+        title="Trámites"
+        icon={FileText}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({clientTramites.length})
+          </span>
+        }
+        actions={
+          <button
+            onClick={() => {
+              setTramiteToEdit(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nuevo Trámite</span>
+          </button>
+        }
+      />
+
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
@@ -245,16 +268,16 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#f8f9fc] border-b border-[#e2e8f0] text-[#737686] font-bold text-[11px] uppercase tracking-wider">
-                <th className="py-3 px-4">Código / Documento</th>
-                <th className="py-3 px-4">Motivo / Asunto</th>
-                <th className="py-3 px-4">Organismo</th>
-                <th className="py-3 px-4">Fecha Ingreso</th>
-                <th className="py-3 px-4">Estado Dinámico</th>
-                <th className="py-3 px-4">Prioridad</th>
-                <th className="py-3 px-4">Tarea / Proyecto</th>
-                <th className="py-3 px-4">Responsable</th>
-                <th className="py-3 px-4 text-right">Acciones</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
+                <th className="py-2.5 px-3.5">Código / Documento</th>
+                <th className="py-2.5 px-3.5">Motivo / Asunto</th>
+                <th className="py-2.5 px-3.5">Organismo</th>
+                <th className="py-2.5 px-3.5">Fecha Ingreso</th>
+                <th className="py-2.5 px-3.5">Estado Dinámico</th>
+                <th className="py-2.5 px-3.5">Prioridad</th>
+                <th className="py-2.5 px-3.5">Tarea / Proyecto</th>
+                <th className="py-2.5 px-3.5">Responsable</th>
+                <th className="py-2.5 px-3.5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">

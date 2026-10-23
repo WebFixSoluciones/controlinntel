@@ -5,6 +5,7 @@ import { Client, ClientDocumentFile, SriInvoice, ClientService, ServiceStatus, S
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { NewSaleView } from "../billing/NewSaleView";
+import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Download,
   FileText,
@@ -462,25 +463,23 @@ export function ClientContractTab({ client }: { client: Client }) {
   return (
     <div className="space-y-6 select-none animate-in fade-in duration-200">
       {/* ========================================================================= */}
-      {/* 1. SEGUIMIENTO DE SERVICIOS CONTRATADOS Y FACTURACIÓN RECURRENTE          */}
-      {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
-        {/* Header principal limpio */}
-        <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider">
-              Servicios
-            </h3>
+      {/* 1. SEGUIMIENTO DE SERVICIOS */}
+      <ClientTabHeader
+        title="Servicios"
+        icon={ShieldCheck}
+        badge={
+          <div className="flex items-center gap-2.5 text-xs">
+            <span className="text-slate-500">Total: <strong className="text-slate-800">{serviceMetrics.total}</strong></span>
+            <span className="text-emerald-700">Activos: <strong>{serviceMetrics.billableCount}</strong></span>
+            <span className="text-amber-700">Pausados: <strong>{serviceMetrics.nonBillableCount}</strong></span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+        }
+        actions={
+          <>
             <button
               type="button"
               onClick={() => setIsAddingService((prev) => !prev)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-xl text-xs font-bold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
@@ -489,7 +488,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             <button
               type="button"
               onClick={() => setIsNewSaleOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               <Receipt className="w-3.5 h-3.5" />
               <span>Nueva Venta</span>
@@ -500,30 +499,21 @@ export function ClientContractTab({ client }: { client: Client }) {
                 type="button"
                 disabled={emittingRecurring}
                 onClick={handleEmitClientRecurringInvoice}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
               </button>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         {/* Resumen rápido del ciclo actual del cliente */}
-        <div className="px-6 py-3 bg-slate-50/70 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-slate-600">
-              Total: <strong className="text-slate-900">{serviceMetrics.total}</strong>
-            </span>
-            <span className="text-emerald-700 font-semibold">
-              Activos: <strong>{serviceMetrics.billableCount}</strong>
-            </span>
-            <span className="text-amber-700 font-semibold">
-              Pausados: <strong>{serviceMetrics.nonBillableCount}</strong>
-            </span>
-          </div>
+        <div className="px-6 py-2.5 bg-slate-50/70 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-4 text-xs">
           <div className="font-mono text-xs">
-            <span className="text-slate-500">Total (IVA incl.): </span>
+            <span className="text-slate-500">Monto Mensual (IVA incl.): </span>
             <strong className="text-[#004ac6] text-sm">${serviceMetrics.totalWithTax.toFixed(2)}</strong>
           </div>
         </div>
@@ -846,16 +836,16 @@ export function ClientContractTab({ client }: { client: Client }) {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 2. EXPEDIENTE DIGITAL DEL CLIENTE (ARCHIVOS / IMÁGENES / CONTRATOS)       */}
-      {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
-        <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider flex items-center gap-2">
-            <FileCheck className="w-4 h-4 text-[#004ac6]" />
-            Documentos
-          </h3>
-
+      {/* 2. EXPEDIENTE DIGITAL DEL CLIENTE */}
+      <ClientTabHeader
+        title="Documentos"
+        icon={FileCheck}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({docs.length})
+          </span>
+        }
+        actions={
           <button
             type="button"
             onClick={() => {
@@ -863,16 +853,18 @@ export function ClientContractTab({ client }: { client: Client }) {
               setSelectedFile(null);
               setIsUploadModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Subir</span>
           </button>
-        </div>
+        }
+      />
 
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[650px]">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+            <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="py-2.5 px-5">Tipo</th>
                 <th className="py-2.5 px-5">Título / Archivo</th>

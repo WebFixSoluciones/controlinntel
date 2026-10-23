@@ -21,6 +21,7 @@ import {
 import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";
+import { ClientTabHeader } from "./ClientTabHeader";
 
 interface ClientQuotesManagerProps {
   client: Client;
@@ -360,27 +361,25 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
 
   return (
     <div className="space-y-4 select-none">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center shadow-xs">
-            <FileSpreadsheet className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-sm text-slate-900">Cotizaciones</h3>
-            <span className="text-[11px] text-slate-500">Cotizaciones comerciales asignadas a este cliente</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleOpenModal}
-          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Nueva Cotización</span>
-        </button>
-      </div>
+      <ClientTabHeader
+        title="Cotizaciones"
+        icon={FileSpreadsheet}
+        badge={
+          <span className="text-[11px] font-semibold text-slate-500">
+            ({quotes.length})
+          </span>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={handleOpenModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nueva Cotización</span>
+          </button>
+        }
+      />
 
       {/* Quotes Table */}
       {quotes.length === 0 ? (
