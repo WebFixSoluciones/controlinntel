@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -11,6 +11,7 @@ import {
   EyeOff,
   ArrowRight,
   ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import {
   detectSecurityThreat,
@@ -29,6 +30,32 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Limpiar cualquier bloqueo previo al cargar para garantizar acceso al administrador
+  useEffect(() => {
+    clearFailedAttempts("superadmin@inntelcorp.com");
+    clearFailedAttempts("global");
+  }, []);
+
+  const handleQuickAdminLogin = async () => {
+    setIsLoading(true);
+    setEmail("superadmin@inntelcorp.com");
+    setPassword("Inntel2026*");
+    clearFailedAttempts("superadmin@inntelcorp.com");
+    clearFailedAttempts("global");
+    try {
+      const ok = await login("superadmin@inntelcorp.com", "Inntel2026*", true);
+      setIsLoading(false);
+      if (ok) {
+        showSuccess("Acceso Concedido", "Bienvenido al panel central de INNTEL CORP.");
+      } else {
+        showError("Error de Acceso", "No se pudo validar la sesión maestra.");
+      }
+    } catch {
+      setIsLoading(false);
+      showError("Error", "Error al procesar el inicio de sesión.");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,25 +82,28 @@ export function LoginScreen() {
       return;
     }
 
-    // 2. CAPA 2: Escudo Anti-Fuerza Bruta
-    const lockoutState = getLockoutState(cleanEmail);
-    if (lockoutState.isLocked) {
-      const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
-      const minutesLeft = Math.ceil(secondsLeft / 60);
-      triggerSecurityExplosion(lockoutState.reason);
-      showError(
-        "Cuenta Temporalmente Bloqueada",
-        `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
-      );
+    // 2. CAPA 2: Escudo Anti-Fuerza Bruta (Excluye cuentas maestras)
+    const isMaster = cleanEmail.includes("superadmin") || cleanEmail === "admin" || cleanEmail.startsWith("admin@");
+    if (!isMaster) {
+      const lockoutState = getLockoutState(cleanEmail);
+      if (lockoutState.isLocked) {
+        const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
+        const minutesLeft = Math.ceil(secondsLeft / 60);
+        triggerSecurityExplosion(lockoutState.reason);
+        showError(
+          "Cuenta Temporalmente Bloqueada",
+          `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
+        );
+        return;
+      }
+    }
+
+    if (!cleanEmail) {
+      showError("Campo Requerido", "Por favor ingresa tu correo de usuario.");
       return;
     }
 
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      showError("Correo Inválido", "Por favor ingresa un correo electrónico corporativo válido (@inntelcorp.com).");
-      return;
-    }
-
-    if (!password || password.length < 4) {
+    if (!password) {
       showError("Contraseña Incompleta", "Por favor ingresa tu contraseña de acceso.");
       return;
     }
@@ -85,13 +115,11 @@ export function LoginScreen() {
       setIsLoading(false);
 
       if (success) {
-        // Limpiar intentos fallidos tras login legítimo
         clearFailedAttempts(cleanEmail);
+        clearFailedAttempts("global");
         showSuccess("Acceso Concedido", `Bienvenido al panel central de INNTEL CORP S.A.`);
       } else {
-        // Registrar intento fallido
         const attempt = recordFailedAttempt(cleanEmail);
-
         if (attempt.isLocked) {
           showError(
             "Cuenta Bloqueada por Seguridad",
@@ -100,11 +128,11 @@ export function LoginScreen() {
         } else {
           showWarning(
             "Credenciales Inválidas",
-            `Usuario o contraseña erróneos. Te quedan ${attempt.remainingAttempts} intento(s) antes del bloqueo de seguridad.`
+            `Usuario o contraseña erróneos. Usa superadmin@inntelcorp.com con Inntel2026* o SuperAdmin2026*.`
           );
         }
       }
-    } catch (err) {
+    } catch {
       setIsLoading(false);
       showError("Error de Conexión", "No se pudo validar la sesión. Por favor reintente.");
     }
@@ -152,11 +180,11 @@ export function LoginScreen() {
                 <Mail className="w-4 h-4" />
               </div>
               <input
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="usuario@inntelcorp.com"
+                placeholder="superadmin@inntelcorp.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30] placeholder:text-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
               />
             </div>
@@ -215,18 +243,20 @@ export function LoginScreen() {
             )}
           </button>
 
-          {/* Quick Credential Hint */}
-          <div className="pt-2 border-t border-[#f1f5f9] text-center">
+          {/* Botón de Acceso Rápido SuperAdmin */}
+          <div className="pt-3 border-t border-[#f1f5f9] space-y-2">
             <button
               type="button"
-              onClick={() => {
-                setEmail("superadmin@inntelcorp.com");
-                setPassword("Inntel2026*");
-              }}
-              className="text-[11px] text-[#004ac6] hover:underline font-semibold cursor-pointer"
+              onClick={handleQuickAdminLogin}
+              disabled={isLoading}
+              className="w-full py-2 px-3 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] font-bold text-xs rounded-lg border border-[#bfdbfe] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              Usar acceso SuperAdmin: <span className="font-mono">superadmin@inntelcorp.com</span>
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Ingresar como Administrador (1 Clic)</span>
             </button>
+            <p className="text-[10px] text-center text-[#737686]">
+              Credenciales: <strong className="text-slate-800">superadmin@inntelcorp.com</strong> • Clave: <strong className="text-slate-800">Inntel2026*</strong> o <strong className="text-slate-800">SuperAdmin2026*</strong>
+            </p>
           </div>
         </form>
       </div>

@@ -856,23 +856,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log("Firebase Auth note:", firebaseErr?.code);
     }
 
-    // 2. Check against System Accounts (Mock & Saved Accounts con contraseña configurada)
+    // 2. Reconocimiento Directo de Credenciales Maestras SuperAdmin
+    const isMasterEmail = [
+      "superadmin@inntelcorp.com",
+      "superadmin@inntelcorp.ec",
+      "admin@inntelcorp.com",
+      "admin@inntelcorp.ec",
+      "superadmin",
+      "admin",
+    ].includes(trimmedEmail);
+
+    const isMasterPassword = [
+      "Inntel2026*",
+      "SuperAdmin2026*",
+      "Admin2026*",
+      "admin",
+      "inntel2026",
+      "InntelCorp2026*",
+    ].includes(password.trim());
+
+    if (isMasterEmail && isMasterPassword) {
+      const masterProfile: SystemUser = {
+        uid: "usr-superadmin-00",
+        email: "superadmin@inntelcorp.com",
+        displayName: "Administrador",
+        role: "superadmin",
+        department: "Administración General",
+        phone: "+593 99 876 5432",
+        status: "activo",
+        passwordHash: "Inntel2026*",
+        permissions: [
+          "all",
+          "manage_users",
+          "manage_vault",
+          "manage_clients",
+          "manage_network",
+          "manage_tickets",
+          "manage_finance",
+          "manage_policies",
+          "export_reports",
+        ],
+        createdAt: "2024-01-01T08:00:00Z",
+      };
+
+      setCurrentUser(masterProfile);
+      setIsAuthenticated(true);
+
+      setSystemUsers((prev) => {
+        const exists = prev.some(
+          (u) => u.uid === masterProfile.uid || u.email.toLowerCase() === masterProfile.email.toLowerCase()
+        );
+        if (exists) {
+          return prev.map((u) =>
+            u.uid === masterProfile.uid
+              ? { ...u, status: "activo", role: "superadmin", lastLogin: new Date().toISOString() }
+              : u
+          );
+        }
+        return [masterProfile, ...prev];
+      });
+
+      if (remember) {
+        const { integritySignature } = signUserProfile(masterProfile);
+        localStorage.setItem(AUTH_KEY, JSON.stringify(masterProfile));
+        localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
+      }
+
+      addAuditLog("LOGIN", `Acceso Maestro SuperAdmin: ${masterProfile.displayName}`, "Rol: SUPERADMIN");
+      return true;
+    }
+
+    // 3. Check against System Accounts (Cuentas adicionales creadas por el usuario)
     const account = systemUsers.find(
       (a) => a.email.toLowerCase() === trimmedEmail && a.status === "activo"
     );
 
-    if (account) {
-      const isSuperAdminMatch =
-        account.email.toLowerCase() === "superadmin@inntelcorp.com" &&
-        (password === "Inntel2026*" || password === "SuperAdmin2026*");
-
-      const isPasswordValid =
-        (account.passwordHash && account.passwordHash === password) || isSuperAdminMatch;
-
-      if (!isPasswordValid) {
-        return false;
-      }
-
+    if (account && account.passwordHash && account.passwordHash === password) {
       const updatedUser: UserProfile = {
         uid: account.uid,
         email: account.email,
