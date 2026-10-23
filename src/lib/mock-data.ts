@@ -58,6 +58,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
     department: "Administración General",
     phone: "+593 99 876 5432",
     status: "activo",
+    passwordHash: "Inntel2026*",
     permissions: [
       "all",
       "manage_users",

@@ -214,6 +214,20 @@ export function LoginScreen() {
               </>
             )}
           </button>
+
+          {/* Quick Credential Hint */}
+          <div className="pt-2 border-t border-[#f1f5f9] text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("superadmin@inntelcorp.com");
+                setPassword("Inntel2026*");
+              }}
+              className="text-[11px] text-[#004ac6] hover:underline font-semibold cursor-pointer"
+            >
+              Usar acceso SuperAdmin: <span className="font-mono">superadmin@inntelcorp.com</span>
+            </button>
+          </div>
         </form>
       </div>
 
