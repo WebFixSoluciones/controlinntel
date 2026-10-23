@@ -1250,7 +1250,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                     </div>
                     {clients.slice(0, 2).map((c) => (
                       <div key={c.id} className="text-emerald-400">
-                        "{arcotelConcession.concessionaireCode}","{c.identificationType}","{c.identificationNumber}","{c.businessName}","Pichincha","Quito","{c.sector || "Matriz"}","Internet Dedicado",500,500,"pospago","FIBRA OPTICA GPON","2024-01-15","ACTIVO"
+                        {`"${arcotelConcession.concessionaireCode}","${c.identificationType}","${c.identificationNumber}","${c.businessName}","Pichincha","Quito","${c.sector || "Matriz"}","Internet Dedicado",500,500,"pospago","FIBRA OPTICA GPON","2024-01-15","ACTIVO"`}
                       </div>
                     ))}
                     <div className="text-slate-500 italic">... y {Math.max(0, clients.length - 2)} registros más listos para compilar.</div>
@@ -1260,7 +1260,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                     <div className="text-sky-400 font-bold">CODIGO_CONCESIONARIO,NOMBRE_PLAN,TARIFA_REGISTRADA_USD,MODALIDAD,TECNOLOGIA</div>
                     {plans.slice(0, 2).map((p) => (
                       <div key={p.id} className="text-emerald-400">
-                        "{arcotelConcession.concessionaireCode}","{p.name}",{p.defaultPrice.toFixed(2)},"{p.billingType}","FIBRA OPTICA"
+                        {`"${arcotelConcession.concessionaireCode}","${p.name}",${p.defaultPrice.toFixed(2)},"${p.billingType}","FIBRA OPTICA"`}
                       </div>
                     ))}
                   </>
@@ -1269,7 +1269,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                     <div className="text-sky-400 font-bold">CODIGO_CONCESIONARIO,NODO_POP,UBICACION,PROVEEDORES_TRANSITO,CAPACIDAD_TOTAL_MBPS</div>
                     {nodes.slice(0, 2).map((n) => (
                       <div key={n.id} className="text-emerald-400">
-                        "{arcotelConcession.concessionaireCode}","{n.name}","{n.address}","{n.upstreamProvider}",{n.totalCapacityMbps}
+                        {`"${arcotelConcession.concessionaireCode}","${n.name}","${n.address}","${n.upstreamProvider}",${n.totalCapacityMbps}`}
                       </div>
                     ))}
                   </>

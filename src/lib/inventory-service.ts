@@ -1,9 +1,9 @@
-import {
+import type {
   InventoryProduct,
   KardexEntry,
   KardexMovementType,
   Warehouse,
-} from "@/types";
+} from "../types";
 
 /**
  * Calcula el Costo Promedio Ponderado para una entrada de inventario.

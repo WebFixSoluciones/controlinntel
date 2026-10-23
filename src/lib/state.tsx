@@ -126,6 +126,7 @@ import {
   DEFAULT_INNTEL_SRI_CONFIG,
 } from "./sri-service";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
+import { api } from "./api-client";
 import {
   signUserProfile,
   verifyUserProfileIntegrity,
@@ -446,10 +447,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
 
-  // Synchronize state directly to Firestore cloud database
+  // Synchronize state via Server API (Admin SDK) with client fallback
   const syncToFirestore = async (collectionName: string, id: string, data: any) => {
     try {
       const cleanData = JSON.parse(JSON.stringify(data));
+      if (auth?.currentUser) {
+        try {
+          await api("/api/data", {
+            action: "save",
+            entity: collectionName,
+            id,
+            data: cleanData,
+          });
+          return;
+        } catch (apiErr: any) {
+          if (["vault", "clientVaultItems", "users", "systemUsers"].includes(collectionName)) {
+            throw apiErr;
+          }
+          console.warn(`Server API sync fallback for ${collectionName}/${id}:`, apiErr?.message);
+        }
+      }
       await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
     } catch (err: any) {
       console.warn(`Firestore sync note (${collectionName}/${id}):`, err?.message);
@@ -459,6 +476,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteFromFirestore = async (collectionName: string, id: string) => {
     try {
+      if (auth?.currentUser) {
+        try {
+          await api("/api/data", {
+            action: "delete",
+            entity: collectionName,
+            id,
+          });
+          return;
+        } catch (apiErr: any) {
+          if (["vault", "clientVaultItems", "users", "systemUsers"].includes(collectionName)) {
+            throw apiErr;
+          }
+          console.warn(`Server API delete fallback for ${collectionName}/${id}:`, apiErr?.message);
+        }
+      }
       await deleteDoc(doc(db, collectionName, id));
     } catch (err: any) {
       console.warn(`Firestore delete note (${collectionName}/${id}):`, err?.message);
@@ -916,6 +948,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "regulatoryTramites", setter: setRegulatoryTramites, initialData: INITIAL_REGULATORY_TRAMITES },
     ];
 
+    if (auth?.currentUser) {
+      try {
+        const serverSnapshot = await api<Record<string, any>>("/api/data");
+        if (serverSnapshot && typeof serverSnapshot === "object") {
+          let updatedCount = 0;
+          collectionsToSync.forEach((col) => {
+            const entityKey = (col.name === "users" ? "systemUsers" : col.name) as Entity;
+            if (Array.isArray(serverSnapshot[entityKey])) {
+              col.setter(serverSnapshot[entityKey]);
+              updatedCount++;
+            }
+          });
+          if (updatedCount > 0) return;
+        }
+      } catch (serverErr: any) {
+        console.warn("Server API snapshot note:", serverErr?.message);
+      }
+    }
+
     await Promise.all(
       collectionsToSync.map(async (col) => {
         const entity = (col.name === "users" ? "systemUsers" : col.name) as Entity;
@@ -941,10 +992,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     ...data,
                     id: d.id,
                     uid: d.id,
-                    passwordHash:
-                      data.passwordHash ||
-                      INITIAL_SYSTEM_USERS.find((u) => u.uid === d.id)?.passwordHash ||
-                      "",
                   };
                 });
               if (cleanUsers.length > 0) {
@@ -958,16 +1005,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 })
               );
             }
-          } else if (col.initialData && col.initialData.length > 0) {
-            // Seed base configuration into Firestore
-            col.initialData.forEach((item) => {
-              const itemId = item.id || item.uid;
-              if (itemId) {
-                void syncToFirestore(col.name, itemId, item).catch(() => {
-                  window.dispatchEvent(new CustomEvent("inntel:error", { detail: "No se pudieron guardar los datos iniciales de " + col.name }));
-                });
-              }
-            });
           }
         } catch (e) {
           console.warn(`Firestore collection read note (${col.name}):`, e);
@@ -1182,6 +1219,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const revealCredential = async (entity: "vault" | "clientVaultItems", id: string): Promise<string> => {
+    if (auth?.currentUser) {
+      try {
+        const response = await api<{ result: string }>("/api/data", {
+          action: "reveal",
+          entity,
+          id,
+        });
+        if (response && typeof response.result === "string") {
+          addAuditLog("VIEW_VAULT_PASSWORD", `${entity}: ${id}`, `Consulta autorizada por ${currentUser.role}`);
+          return response.result;
+        }
+      } catch (serverErr: any) {
+        console.warn("Server reveal error, trying fallback:", serverErr?.message);
+      }
+    }
     if (entity === "clientVaultItems") {
       const item = clientVaultItems.find((v) => v.id === id);
       if (!item) throw new Error("Credencial no encontrada.");

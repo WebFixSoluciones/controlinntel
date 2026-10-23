@@ -38,8 +38,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   const reference=db.collection(entity).doc(id || randomUUID());
   return db.runTransaction(async tx=>{
     const old=await tx.get(reference);
-    if (id && !old.exists) throw new HttpError(404,"Registro inexistente.");
-    if (old.exists && old.data()?.version!==version) throw new HttpError(409,"El registro cambió. Actualiza y vuelve a intentarlo.");
+    if (old.exists && version !== undefined && old.data()?.version !== version) throw new HttpError(409,"El registro cambió. Actualiza y vuelve a intentarlo.");
     const data=schemas[entity].parse({...old.data(),...input});
     if(entity==="clients" && old.exists && (data.identificationNumber!==old.data()?.identificationNumber || data.identificationType!==old.data()?.identificationType)) throw new HttpError(400,"La identificación registrada no puede cambiarse desde este formulario.");
     if(entity==="clientServices") {
@@ -82,14 +81,14 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     return reference.id;
   });
 }
-export async function remove(user:UserProfile,entity:Entity,id:string,version:number) {
+export async function remove(user:UserProfile,entity:Entity,id:string,version?:number) {
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
   requirePermission(user,collectionPermissions[entity]);
   const {db}=adminServices();
   await db.runTransaction(async tx=>{
     const ref=db.collection(entity).doc(id),record=await tx.get(ref);
     if (!record.exists) throw new HttpError(404,"Registro inexistente.");
-    if (record.data()?.version!==version) throw new HttpError(409,"El registro fue modificado.");
+    if (version !== undefined && record.data()?.version !== version) throw new HttpError(409,"El registro fue modificado.");
     // Preserve historical links; client retirement is explicit instead of cascading deletion.
     if (entity==="clients") throw new HttpError(400,"Retira el cliente editando su estado para conservar su historial.");
     if (entity==="vault" && user.role!=="superadmin" && !record.data()?.allowedRoles?.includes(user.role)) throw new HttpError(403,"Credencial restringida.");

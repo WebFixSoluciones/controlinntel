@@ -34,7 +34,7 @@ export async function POST(request:NextRequest) {
         if(!body.entity||!body.data) throw new HttpError(400,"Datos incompletos.");
         result=await save(user,body.entity,body.data,body.id,body.version);break;
       case "delete":
-        if(!body.entity||!body.id||!body.version) throw new HttpError(400,"Datos incompletos.");
+        if(!body.entity||!body.id) throw new HttpError(400,"Datos incompletos.");
         await remove(user,body.entity,body.id,body.version);break;
       case "reveal":
         if(!body.entity||!body.id) throw new HttpError(400,"Datos incompletos.");

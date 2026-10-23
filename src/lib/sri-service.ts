@@ -1,4 +1,4 @@
-import {
+import type {
   SriInvoice,
   SriCompanyConfig,
   CreditNote,
@@ -7,7 +7,7 @@ import {
   SriWsResponse,
   SriConnectionTestResult,
   SriEnvironment,
-} from "@/types";
+} from "../types";
 
 /**
  * Configuración predeterminada del Emisor SRI para INNTEL CORP S.A.
