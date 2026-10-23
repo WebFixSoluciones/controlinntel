@@ -74,6 +74,27 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       }
       if (data.status==="resuelto" || data.status==="cerrado") data.resolvedAt=old.data()?.resolvedAt || now();
     }
+    if (entity==="purchaseInvoices" && !old.exists) {
+      const rucClean = String(data.supplierRuc || "").replace(/\D/g, "");
+      const docClean = String(data.documentNumber || "").trim();
+      if (rucClean && docClean) {
+        const dupRef = db.collection("purchaseUniqueness").doc(`${rucClean}_${docClean}`);
+        const dupSnap = await tx.get(dupRef);
+        if (dupSnap.exists) {
+          throw new HttpError(409, `Factura de compra ${docClean} ya fue registrada para el RUC ${rucClean}.`);
+        }
+        tx.create(dupRef, { createdAt: now(), invoiceId: reference.id });
+      }
+    }
+    if (entity==="billingInvoices" && !old.exists && data.claveAcceso) {
+      const claveClean = String(data.claveAcceso).trim();
+      const dupClave = db.collection("claveAccesoUniqueness").doc(claveClean);
+      const snap = await tx.get(dupClave);
+      if (snap.exists) {
+        throw new HttpError(409, `La clave de acceso SRI ${claveClean} ya fue registrada previamente.`);
+      }
+      tx.create(dupClave, { createdAt: now(), invoiceId: reference.id });
+    }
     const updated={...data,id:reference.id,version:(old.data()?.version||0)+1,createdAt:old.data()?.createdAt||now(),updatedAt:now()};
     tx.set(reference,updated);
     const log=audit(user,old.exists?"UPDATE":"CREATE",entity+"/"+reference.id);

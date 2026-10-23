@@ -127,6 +127,7 @@ import {
 } from "./sri-service";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import { api } from "./api-client";
+import { getEcuadorDate, addMonthsSafely } from "./date-utils";
 import {
   signUserProfile,
   verifyUserProfileIntegrity,
@@ -1568,7 +1569,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ipv4Address: serviceData.ipv4Address || `100.64.10.${Math.floor(Math.random() * 200) + 10}`,
         pppoeUser: serviceData.pppoeUser || newClient.identificationNumber,
         status: "activo",
-        installationDate: new Date().toISOString().split("T")[0],
+        installationDate: getEcuadorDate(),
       };
       await syncToFirestore("clientServices", newService.id, newService);
     setClientServices((prev) => [...prev, newService]);
@@ -1579,8 +1580,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         contractNumber: `CONT-INNTEL-2026-${newId.toUpperCase()}`,
         arcotelHomologationCode: "ARCOTEL-SAI-HOM-0841",
         planName: newService.planName,
-        signedDate: new Date().toISOString().split("T")[0],
-        expirationDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
+        signedDate: getEcuadorDate(),
+        expirationDate: addMonthsSafely(getEcuadorDate(), 12),
         status: "vigente",
         monthlyPrice: newService.customPrice,
         notes: "Contrato estándar de adhesión para servicio de acceso a internet",
@@ -1594,7 +1595,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         column: "factibilidad",
         priority: "alta",
         assignedTo: "Cuadrilla NOC Central",
-        dueDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+        dueDate: getEcuadorDate(Date.now() + 86400000 * 3),
         checklist: [
           { id: "chk-1", text: "Inspección de caja NAP y nivel de potencia óptica (dBm)", done: false },
           { id: "chk-2", text: "Tendido de cable drop y herrajes", done: false },
@@ -1651,7 +1652,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: "srv-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
       billingFrequency: serviceData.billingFrequency || "mensual",
       isBillableInCurrentCycle: serviceData.isBillableInCurrentCycle ?? true,
-      nextRenewalDate: serviceData.nextRenewalDate || defaultNextRenewal.toISOString().split("T")[0],
+      nextRenewalDate: serviceData.nextRenewalDate || addMonthsSafely(getEcuadorDate(), 1),
     };
 
     await syncToFirestore("clientServices", newService.id, newService);
@@ -1700,16 +1701,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = clientServices.find((s) => s.id === id);
     if (!target) return;
 
-    const baseDate = target.nextRenewalDate ? new Date(target.nextRenewalDate + "T12:00:00") : new Date();
-    const validBase = isNaN(baseDate.getTime()) ? new Date() : baseDate;
+    const baseDate = target.nextRenewalDate || getEcuadorDate();
+    const monthsToAdd = target.billingFrequency === "anual" ? 12 : 1;
+    const nextRenewalDate = addMonthsSafely(baseDate, monthsToAdd);
 
-    if (target.billingFrequency === "anual") {
-      validBase.setFullYear(validBase.getFullYear() + 1);
-    } else {
-      validBase.setMonth(validBase.getMonth() + 1);
-    }
-
-    const nextRenewalDate = validBase.toISOString().split("T")[0];
     await updateClientService(id, {
       status: "activo",
       isBillableInCurrentCycle: true,
@@ -1993,58 +1988,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const charge = monthlyCharges.find((c) => c.id === chargeId);
     if (!charge) return;
 
-    if (remainingBalance && remainingBalance > 0 && paidAmount && paidAmount < charge.total) {
-      // Abono: mark current as paid for the partial amount
-      const updated = {
-        status: "pagado" as const,
-        paymentDate: new Date().toISOString().split("T")[0],
-        paymentMethod: method,
-        paymentReference: reference || "ABONO-REF",
-        paidAmount: paidAmount,
-        balanceRemaining: 0,
-      };
-      await syncToFirestore("monthlyCharges", chargeId, updated);
+    const paymentAmount = paidAmount !== undefined ? paidAmount : charge.total;
+    const currentPaid = charge.paidAmount || (charge.status === "pagado" ? charge.total : 0);
+    const newTotalPaid = Math.min(charge.total, Math.round((currentPaid + paymentAmount) * 100) / 100);
+    const newRemaining = Math.max(0, Math.round((charge.total - newTotalPaid) * 100) / 100);
+    const newStatus: "pagado" | "parcial" = newRemaining <= 0.009 ? "pagado" : "parcial";
 
-      // Create new invoice for remaining balance
-      const remSubtotal = parseFloat((remainingBalance / 1.15).toFixed(2));
-      const remIva = parseFloat((remainingBalance - remSubtotal).toFixed(2));
-      const newBalanceCharge: MonthlyCharge = {
-        id: "chg-bal-" + Date.now(),
-        clientId: charge.clientId,
-        clientName: charge.clientName,
-        clientRuc: charge.clientRuc,
-        month: charge.month,
-        year: charge.year,
-        serviceDescription: `Saldo restante / Abono pendiente factura #${charge.invoiceNumber}`,
-        subtotal: remSubtotal,
-        ivaAmount: remIva,
-        total: remainingBalance,
-        status: "pendiente",
-        invoiceNumber: `${charge.invoiceNumber}-R`,
-        parentChargeId: charge.id,
-        maxPaymentDate: charge.maxPaymentDate,
-      };
-      await syncToFirestore("monthlyCharges", newBalanceCharge.id, newBalanceCharge);
-      setMonthlyCharges((prev) => [
-        newBalanceCharge,
-        ...prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c)),
-      ]);
-      addAuditLog("EXPORT_BILLING", `Abono a Factura: ${charge.invoiceNumber}`, `Abonado: $${paidAmount}, Saldo pendiente: $${remainingBalance}`);
-    } else {
-      const updated = {
-        status: "pagado" as const,
-        paymentDate: new Date().toISOString().split("T")[0],
-        paymentMethod: method,
-        paymentReference: reference || undefined,
-        paidAmount: charge.total,
-        balanceRemaining: 0,
-      };
-      await syncToFirestore("monthlyCharges", chargeId, updated);
-      setMonthlyCharges((prev) =>
-        prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
-      );
-      addAuditLog("EXPORT_BILLING", `Pago Registrado: ${charge.invoiceNumber}`, `$${charge.total} - ${method}`);
-    }
+    const updated: Partial<MonthlyCharge> = {
+      status: newStatus,
+      paymentDate: getEcuadorDate(),
+      paymentMethod: method,
+      paymentReference: reference || "PAGO-INNTEL",
+      paidAmount: newTotalPaid,
+      balanceRemaining: newRemaining,
+    };
+
+    await syncToFirestore("monthlyCharges", chargeId, updated);
+    setMonthlyCharges((prev) =>
+      prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
+    );
+
+    addAuditLog(
+      "EXPORT_BILLING",
+      `Cobro: ${charge.invoiceNumber}`,
+      `Registrado abono/pago de $${paymentAmount} USD (${newStatus.toUpperCase()}) vía ${method}`
+    );
   };
 
   // ==========================================
@@ -2514,7 +2482,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const qty = Math.abs(item.quantity);
         const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-        const newWhStock = Math.max(0, currentWhStock - qty);
+        if (product.tracksStock && product.type !== "servicio" && currentWhStock < qty) {
+          throw new Error(`Stock insuficiente para '${product.name}' en la bodega '${warehouseName}'. Disponible: ${currentWhStock}, Solicitado: ${qty}.`);
+        }
+        const newWhStock = currentWhStock - qty;
 
         const kdx = buildKardexEntry({
           product,
@@ -2599,8 +2570,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         : 0;
 
       if (paidImmediate > 0) {
-        const targetBank =
-          bankAccounts.find((b) => b.id === data.bankAccountId) || bankAccounts[0];
+        const targetBank = data.bankAccountId
+          ? bankAccounts.find((b) => b.id === data.bankAccountId)
+          : undefined;
         if (targetBank) {
           const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
           const movement: FinancialMovement = {
@@ -2694,7 +2666,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const invoice = await createInvoice({
       documentType: "factura",
-      date: new Date().toISOString().slice(0, 10),
+      date: getEcuadorDate(),
       clientId: client.id,
       clientName: client.businessName,
       clientRuc: client.identificationNumber,
@@ -2814,6 +2786,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setInventoryKardex((prev) => [...kardexEntries, ...prev]);
         setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
       }
+
+      // Reversión de movimientos financieros y saldos vinculados a la factura anulada (P1-11)
+      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
+      for (const mov of linkedMovs) {
+        if (mov.bankAccountId) {
+          const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+          if (bank) {
+            const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
+            await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
+            setBankAccounts((prev) =>
+              prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+            );
+          }
+        }
+        const revId = `mov-rev-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+        const revMov: FinancialMovement = {
+          id: revId,
+          type: "egreso",
+          date: getEcuadorDate(),
+          amount: mov.amount,
+          category: "reversiones",
+          description: `Reverso por anulación de factura ${inv.documentNumber}`,
+          bankAccountId: mov.bankAccountId,
+          bankAccountName: mov.bankAccountName,
+          paymentMethod: mov.paymentMethod || "transferencia",
+          relatedEntityId: inv.id,
+          createdAt: now,
+        };
+        await syncToFirestore("financialMovements", revId, revMov);
+        setFinancialMovements((prev) => [revMov, ...prev]);
+      }
+
+      if (inv.clientId) {
+        const clientObj = clients.find((c) => c.id === inv.clientId);
+        if (clientObj) {
+          const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
+          await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
+          setClients((prev) =>
+            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
+          );
+        }
+      }
     }
 
     const updated: SriInvoice = {
@@ -2877,7 +2891,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const wh = inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
 
     const invoice = await createInvoice({
-      date: new Date().toISOString().slice(0, 10),
+      date: getEcuadorDate(),
       time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
       clientId: quote.clientId,
       clientName: quote.clientName,
@@ -3456,8 +3470,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPurchaseInvoices((prev) =>
       prev.map((inv) => {
         if (inv.id === payment.purchaseInvoiceId) {
+          const currentRem = inv.balanceRemaining !== undefined ? inv.balanceRemaining : (inv.total - (inv.paidAmount || 0));
+          const newRem = Math.max(0, Math.round((currentRem - payment.amount) * 100) / 100);
           const newPaid = Math.round(((inv.paidAmount || 0) + payment.amount) * 100) / 100;
-          const newRem = Math.max(0, Math.round((inv.total - newPaid) * 100) / 100);
           const newStatus: PurchasePaymentStatus = newRem === 0 ? "pagado" : "abono_parcial";
           const updated = {
             ...inv,

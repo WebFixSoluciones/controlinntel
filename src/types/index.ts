@@ -375,7 +375,7 @@ export interface MonthlyCharge {
   subtotal: number;
   ivaAmount: number;
   total: number;
-  status: "pendiente" | "pagado" | "anulado";
+  status: "pendiente" | "pagado" | "anulado" | "parcial";
   paymentDate?: string;
   paymentMethod?: string;
   paymentReference?: string;
