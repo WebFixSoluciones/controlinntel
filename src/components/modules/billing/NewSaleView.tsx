@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
+import { canUser } from "@/lib/permissions";
 import {
   ArrowLeft,
   Plus,
@@ -107,8 +108,12 @@ export function NewSaleView({
     bankAccounts,
     createInvoice,
     updateInvoiceStatus,
+    currentUser,
   } = useApp();
   const { showSuccess, showError, showWarning } = useToast();
+
+  const canEditPrices = canUser(currentUser, "facturacion", "canEditPrices");
+  const canApplyDiscounts = canUser(currentUser, "facturacion", "canApplyDiscounts");
 
   const clientSearchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
@@ -2232,12 +2237,15 @@ export function NewSaleView({
                                 min="0"
                                 step="0.01"
                                 value={item.unitPrice}
+                                readOnly={!canEditPrices}
+                                disabled={!canEditPrices}
                                 onChange={(e) =>
                                   handleUpdateCartItem(idx, {
                                     unitPrice: Math.max(0, parseFloat(e.target.value) || 0),
                                   })
                                 }
-                                className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-[4px] border border-slate-300 bg-white"
+                                className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-[4px] border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                title={!canEditPrices ? "No tienes permiso para modificar precios de catálogo" : undefined}
                               />
                             </td>
 
@@ -2245,13 +2253,14 @@ export function NewSaleView({
                             <td className="py-2 px-2 text-center align-top">
                               <button
                                 type="button"
+                                disabled={!canApplyDiscounts}
                                 onClick={() => openItemDiscountModal(idx)}
-                                className={`px-2 py-1 rounded-[4px] font-mono text-[10px] font-bold border transition cursor-pointer ${
+                                className={`px-2 py-1 rounded-[4px] font-mono text-[10px] font-bold border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                                   hasLineDisc
                                     ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
                                     : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
                                 }`}
-                                title="Configurar descuento de esta línea"
+                                title={!canApplyDiscounts ? "No tienes permiso para aplicar descuentos manuales" : "Configurar descuento de esta línea"}
                               >
                                 {item.discountType === "no_iva"
                                   ? "-IVA"

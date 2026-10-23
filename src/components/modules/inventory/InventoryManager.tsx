@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { canAccessSubmodule } from "@/lib/permissions";
+import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import {
   InventoryProduct,
   Warehouse,
@@ -253,6 +253,9 @@ export function InventoryManager() {
 
   // Check sub-module permission
   const hasAccess = canAccessSubmodule(currentUser, "inventarios", activeTab);
+  const canViewCosts = canUser(currentUser, "inventarios", "canViewCosts");
+  const canCreateProduct = canUser(currentUser, "inventarios", "canCreateProduct");
+  const canCreateService = canUser(currentUser, "inventarios", "canCreateService");
 
   // ==========================================
   // Filtered Products
@@ -777,17 +780,19 @@ export function InventoryManager() {
                 <span>Exportar CSV</span>
               </button>
 
-              <button
-                onClick={() => {
-                  setProductToEdit(null);
-                  setProductModalDefaultType("producto");
-                  setIsProductModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Producto</span>
-              </button>
+              {canCreateProduct && (
+                <button
+                  onClick={() => {
+                    setProductToEdit(null);
+                    setProductModalDefaultType("producto");
+                    setIsProductModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nuevo Producto</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -801,7 +806,7 @@ export function InventoryManager() {
                     <th className="py-3 px-4 font-bold">Producto / Equipo</th>
                     <th className="py-3 px-4 font-bold">Categoría / Marca</th>
                     <th className="py-3 px-4 font-bold text-center">Stock Global</th>
-                    <th className="py-3 px-4 font-bold text-right">Costo Promedio</th>
+                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo Promedio" : "—"}</th>
                     <th className="py-3 px-4 font-bold text-right">P. Venta (Sin IVA)</th>
                     <th className="py-3 px-4 font-bold text-right">P. Venta (Con IVA)</th>
                     <th className="py-3 px-4 font-bold text-center">Estado</th>
@@ -872,7 +877,7 @@ export function InventoryManager() {
                             )}
                           </td>
                           <td className="py-3 px-4 text-right font-medium text-[#434655]">
-                            ${p.baseCost.toFixed(2)}
+                            {canViewCosts ? `$${p.baseCost.toFixed(2)}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">
                             ${p.salePrice.toFixed(2)}
@@ -987,17 +992,19 @@ export function InventoryManager() {
                 <option value="inactivo">Inactivos</option>
               </select>
 
-              <button
-                onClick={() => {
-                  setProductToEdit(null);
-                  setProductModalDefaultType("servicio");
-                  setIsProductModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Servicio</span>
-              </button>
+              {canCreateService && (
+                <button
+                  onClick={() => {
+                    setProductToEdit(null);
+                    setProductModalDefaultType("servicio");
+                    setIsProductModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nuevo Servicio</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1011,7 +1018,7 @@ export function InventoryManager() {
                     <th className="py-3 px-4 font-bold">Servicio Técnico / Mano de Obra</th>
                     <th className="py-3 px-4 font-bold">Categoría</th>
                     <th className="py-3 px-4 font-bold text-center">Unidad</th>
-                    <th className="py-3 px-4 font-bold text-right">Costo Base ($)</th>
+                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo Base ($)" : "—"}</th>
                     <th className="py-3 px-4 font-bold text-right">P. Venta Sin IVA ($)</th>
                     <th className="py-3 px-4 font-bold text-right">P. Venta Con IVA ($)</th>
                     <th className="py-3 px-4 font-bold text-center">Estado</th>
@@ -1043,7 +1050,7 @@ export function InventoryManager() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center capitalize font-medium text-[#434655]">{s.unit}</td>
-                        <td className="py-3 px-4 text-right font-medium text-[#434655]">${s.baseCost.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-medium text-[#434655]">{canViewCosts ? `$${s.baseCost.toFixed(2)}` : "—"}</td>
                         <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">${s.salePrice.toFixed(2)}</td>
                         <td className="py-3 px-4 text-right font-bold text-emerald-700">${s.salePriceConIva.toFixed(2)}</td>
                         <td className="py-3 px-4 text-center">
