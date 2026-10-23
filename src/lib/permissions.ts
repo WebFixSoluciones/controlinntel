@@ -33,7 +33,10 @@ export const collectionPermissions = {
   supplierDebitNotes: "manage_finance",
   purchaseWithholdings: "manage_finance",
   bankAccounts: "manage_finance",
+  financialMovements: "manage_finance",
   supplierPayments: "manage_finance",
+  hostingDomains: "manage_network",
+  regulatoryTramites: "manage_policies",
 } as const;
 
 export type Entity = keyof typeof collectionPermissions;
@@ -389,6 +392,7 @@ export const routePermissions: Record<string, keyof UserModulePermissions> = {
   "/proyectos": "proyectos",
   "/tickets": "tickets",
   "/arcotel": "arcotel",
+  "/tramites": "arcotel",
   "/boveda": "boveda",
   "/plantillas": "plantillas",
   "/configuracion": "configuracion",
@@ -397,13 +401,15 @@ export const routePermissions: Record<string, keyof UserModulePermissions> = {
 export function canAccessRoute(user: UserProfile, route: string): boolean {
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
+  if (route === "/" || route === "") return true;
 
   const targetModule = routePermissions[route];
   if (targetModule) {
     return canAccessModule(user, targetModule);
   }
 
-  return true;
+  // Fail-closed por defecto para rutas no reconocidas
+  return false;
 }
 
 export const tabPermissions: Record<string, string> = {

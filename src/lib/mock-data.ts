@@ -58,7 +58,6 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
     department: "Administración General",
     phone: "+593 99 876 5432",
     status: "activo",
-    passwordHash: "SuperAdmin2026*",
     permissions: [
       "all",
       "manage_users",
@@ -76,7 +75,7 @@ export const INITIAL_SYSTEM_USERS: SystemUser[] = [
 
 export interface SystemAccount {
   user: UserProfile;
-  passwordHash: string;
+  passwordHash?: string;
 }
 
 export const SYSTEM_ACCOUNTS: SystemAccount[] = INITIAL_SYSTEM_USERS.map((u) => ({
@@ -210,14 +209,14 @@ export const DEMO_NODE: NodeLocation = {
       id: "srv-sys-1",
       systemName: "MIKROTIK CCR2116-12G-4S+",
       linkOrIp: "181.198.112.112:5258",
-      credentials: "admin / InntelRouter2026*",
+      credentials: "admin / [Almacenado en Bóveda]",
       notes: "Core BGP Router & CGNAT Sede Norte",
     },
     {
       id: "srv-sys-2",
       systemName: "SMART OLT",
       linkOrIp: "https://sotelnet.smartolt.com/auth/login",
-      credentials: "noc@inntelcorp.com / OltPlatform2026*",
+      credentials: "noc@inntelcorp.com / [Almacenado en Bóveda]",
       notes: "Plataforma de aprovisionamiento de ONUs",
     },
   ],
@@ -264,7 +263,7 @@ export const DEMO_NODE_2: NodeLocation = {
       id: "srv-sys-gye",
       systemName: "MikroTik RB5009UG+S+IN",
       linkOrIp: "181.198.120.4:8291",
-      credentials: "admin / GyeLogistica2026*",
+      credentials: "admin / [Almacenado en Bóveda]",
       notes: "Firewall & VPN Túnel IPsec con Matriz Quito",
     },
   ],
@@ -298,7 +297,7 @@ export const DEMO_CLIENT_SERVICE: ClientService = {
   ipv4Address: "186.42.110.5",
   ipv6Prefix: "2800:3f0:4000:100::/64",
   pppoeUser: "corpecuador_corp",
-  pppoePassword: "CorpSecurePppoe2026*",
+  pppoePassword: "••••••••",
   status: "activo",
   installationDate: "2024-01-20",
   installationAddress: "Av. República de El Salvador N36-140 y Naciones Unidas, Edificio Platinum Plaza, Piso 8, Quito",
@@ -817,7 +816,7 @@ export const DEMO_CLIENT_VAULT_ITEMS: ClientVaultItem[] = [
     serviceName: "Router de Borde MikroTik Platinum Plaza",
     category: "ont_router",
     username: "admin_inntel",
-    encryptedPassword: simpleEncrypt("MikroTik#Corp2026"),
+    encryptedPassword: simpleEncrypt("Demo#ClientPass123"),
     ipAddress: "186.42.110.5",
     port: 8291,
     notes: "Winbox port 8291 protegido por Firewall filter rules. Solo accesible desde IP NOC INNTEL.",
@@ -829,7 +828,7 @@ export const DEMO_CLIENT_VAULT_ITEMS: ClientVaultItem[] = [
     serviceName: "Red Wi-Fi 6 Corporativa (SSID: CorpEcuador_5G)",
     category: "wifi",
     username: "WPA3-Enterprise",
-    encryptedPassword: simpleEncrypt("WiFi#Corp2026*Secure"),
+    encryptedPassword: simpleEncrypt("Demo#WifiSecure123"),
     notes: "Red con aislamiento de clientes (AP Isolation) y ancho de canal 80MHz.",
     updatedAt: "2024-01-20T14:00:00Z",
   },
@@ -839,7 +838,7 @@ export const DEMO_CLIENT_VAULT_ITEMS: ClientVaultItem[] = [
     serviceName: "Túnel de Acceso PPPoE / Radius",
     category: "pppoe",
     username: "corpecuador_corp",
-    encryptedPassword: simpleEncrypt("CorpSecurePppoe2026*"),
+    encryptedPassword: simpleEncrypt("Demo#PppoeSecure123"),
     notes: "Autenticación Radius centralizada con asignación de IP estática.",
     updatedAt: "2024-01-20T14:00:00Z",
   },
@@ -1062,7 +1061,7 @@ export const DEMO_VAULT: VaultCredential[] = [
     serviceType: "sietel",
     portalUrl: "https://sietel.arcotel.gob.ec/",
     username: "INNTEL_CORP_RUC1793211553001",
-    encryptedPassword: simpleEncrypt("Arcotel#Sietel2026*"),
+    encryptedPassword: simpleEncrypt("Demo#ArcotelSietel123"),
     notes: "Acceso institucional para reporte de abonados, capacidad de tráfico internacional y calidad de servicio.",
     allowedRoles: ["superadmin", "admin", "legal"],
     updatedAt: "2024-01-01T08:00:00Z",

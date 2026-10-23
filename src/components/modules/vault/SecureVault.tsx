@@ -106,7 +106,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       setEditing(false);
       setEditingId(null);
       setError("");
-      showSuccess("Guardado Exitoso", "Credencial cifrada con AES-GCM y guardada en la bóveda.");
+      showSuccess("Guardado Exitoso", "Credencial almacenada en la bóveda protegida.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar la credencial.");
       showError("Error", e instanceof Error ? e.message : "Comprueba la configuración de cifrado.");

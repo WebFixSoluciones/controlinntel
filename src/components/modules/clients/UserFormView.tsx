@@ -933,7 +933,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                       {[
                         { key: "canViewClientVault", label: "Ver Claves de Clientes", critical: false },
                         { key: "canViewInternalVault", label: "Ver Claves Internas del NOC", critical: true },
-                        { key: "canRevealPasswords", label: "Revelar Contraseñas Ocultas (AES)", critical: true },
+                        { key: "canRevealPasswords", label: "Revelar Contraseñas Ocultas", critical: true },
                         { key: "canDeleteCredentials", label: "Eliminar Credenciales", critical: true },
                       ].map((act) => {
                         const checked = !!permissions.boveda?.actions?.[act.key as keyof typeof DEFAULT_VAULT_ACTIONS];

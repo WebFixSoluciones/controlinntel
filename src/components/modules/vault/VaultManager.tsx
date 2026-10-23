@@ -202,7 +202,7 @@ export function VaultManager() {
                               <td className="py-4 px-5 text-center">
                                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                                  AES-256 GCM
+                                  Bóveda Segura
                                 </span>
                               </td>
                               <td className="py-4 px-5 text-right">

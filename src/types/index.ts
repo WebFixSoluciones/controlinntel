@@ -40,7 +40,7 @@ export interface UserProfile {
 }
 
 export interface SystemUser extends UserProfile {
-  passwordHash: string;
+  passwordHash?: string;
   status: "activo" | "inactivo";
   permissions: SystemPermission[];
   createdAt: string;
@@ -408,7 +408,9 @@ export interface AuditLog {
     | "EXPORT_FINANCE"
     | "EXPORT_ARCOTEL"
     | "SECURITY_ALERT"
-    | "SECURITY_LOCKDOWN";
+    | "SECURITY_LOCKDOWN"
+    | "LOGIN_RECHAZADO"
+    | "LOGIN_FAILED";
   resource: string;
   details: string;
   timestamp: string;

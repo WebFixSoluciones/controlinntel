@@ -5,19 +5,27 @@ export async function askGeminiAssistant(
   userRole: string = "admin",
   contextData: any
 ): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-
-  const systemContext = `
-Eres el Asistente Inteligente de INNTEL CORP (ISP de Telecomunicaciones en Ecuador regulado por ARCOTEL).
-Rol del usuario: "${userRole.toUpperCase()}".
-
-DATOS OPERATIVOS ACTUALES:
-${JSON.stringify(contextData, null, 2)}
-`;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return simulateAiResponse(prompt, userRole, contextData);
   }
+
+  const systemContext = `
+Eres el Asistente Técnico y Regulatorio de INNTEL CORP (ISP de Telecomunicaciones en Ecuador regulado por ARCOTEL).
+Rol del usuario: "${userRole.toUpperCase()}".
+
+DATOS DE CONTEXTO OPERATIVO:
+- Clientes Registrados: ${contextData?.clientsCount || 0}
+- Sedes / Nodos: ${contextData?.nodesCount || 0}
+- Pólizas ARCOTEL: ${contextData?.policiesCount || 0}
+- Tickets Activos: ${contextData?.activeTicketsCount || 0}
+
+INSTRUCCIONES:
+1. Responde de forma concisa, técnica y respetuosa.
+2. Si te consultan sobre normativas ARCOTEL, cita la normativa ecuatoriana aplicable.
+3. No inventes cifras ni reveles contraseñas o secretos de red.
+`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -33,17 +41,13 @@ ${JSON.stringify(contextData, null, 2)}
 function simulateAiResponse(prompt: string, userRole: string, contextData: any): string {
   const p = prompt.toLowerCase();
 
-  if (p.includes("poliza") || p.includes("venc")) {
-    return "📋 Reporte Regulatorio ARCOTEL:\n\n- Tienes 1 póliza en estado crítico: Póliza de Responsabilidad Civil (Chubb Seguros) vence en 20 días.\n- Póliza de Fiel Cumplimiento (Seguros Sucre) vence en 45 días.\n\n👉 Recomendación: Genera el Oficio Formal desde el módulo de Plantillas y gestiona el endoso ante ARCOTEL.";
-  }
-
-  if (p.includes("gasto") || p.includes("finan") || p.includes("mrr")) {
-    return "💰 Resumen Financiero:\n\n- Ingresos Recurrentes (MRR): $28,450.00 USD\n- Gastos Operativos: $8,920.00 USD\n- Utilidad Neta Proyectada: $19,530.00 USD (Margen del 68.6%)\n- Mayor egreso: Tránsito IP Internacional con Telconet ($1,450.00 USD).";
+  if (p.includes("poliza") || p.includes("arcotel") || p.includes("venc")) {
+    return "📋 Pólizas y Garantías ARCOTEL:\n\nPara el seguimiento de pólizas, consulta la pestaña 'Contratos & ARCOTEL' en la ficha del cliente o el módulo regulatorio central. Recuerda que los endosos y renovaciones deben presentarse ante ARCOTEL con al menos 15 días de anticipación.";
   }
 
   if (p.includes("nodo") || p.includes("mikrotik") || p.includes("red")) {
-    return "📡 Diagnóstico de Red:\n\n- 4 POPs activos.\n- Alerta: Nodo Calderón presenta utilización del 82.5% (1650/2000 Mbps). Se sugiere programar ampliación en el Core Router CCR2116.\n- Pools CGNAT Norte y Sur operando con normalidad.";
+    return `📡 Infraestructura de Red:\n\nActualmente el sistema registra ${contextData.nodesCount || 0} sedes/nodos. Para verificar el direccionamiento IPv4 de los enlaces de transporte y sus credenciales de borde, ingresa a la pestaña de 'Nodos' del cliente.`;
   }
 
-  return `🤖 Asistente INNTEL CORP (Rol: ${userRole.toUpperCase()}):\n\nActualmente el sistema cuenta con ${contextData.clientsCount || 4} clientes registrados, ${contextData.nodes?.length || 4} nodos de red y pólizas ARCOTEL monitoreadas.\n\n¿En qué proceso operativo o regulatorio te puedo asistir hoy?`;
+  return `🤖 Asistente INNTEL CORP:\n\nEl servicio de IA generativa requiere configurar la variable de entorno 'GEMINI_API_KEY' en el servidor para procesamiento dinámico en tiempo real.\n\nDatos activos del sistema: ${contextData.clientsCount || 0} clientes y ${contextData.nodesCount || 0} sedes registradas.`;
 }

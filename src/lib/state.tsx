@@ -135,7 +135,6 @@ import { SecurityLockoutModal } from "@/components/security/SecurityLockoutModal
 
 interface AppContextType {
   currentUser: UserProfile;
-  setUserRole: (role: UserRole) => void;
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -518,33 +517,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               user.displayName = "Administrador";
             }
 
-            // Si hay firma, verificar que el rol/email no hayan sido adulterados
-            if (savedSig) {
-              const isSignatureValid = verifyUserProfileIntegrity(user, savedSig);
-              if (!isSignatureValid) {
-                console.error("[ANTI-TAMPER SHIELD] Sesión adulterada en LocalStorage. Destruyendo sesión.");
-                localStorage.removeItem(AUTH_KEY);
-                localStorage.removeItem(`${AUTH_KEY}_SIG`);
-                triggerSecurityExplosion(
-                  "DETECCIÓN DE MANIPULACIÓN: Se detectó una alteración ilegal de privilegios o roles en el almacenamiento local. La sesión ha sido destruida preventivamente."
-                );
-                return;
-              }
-            } else {
-              // Si no tenía firma, firmar la sesión legítima inicial
-              const { integritySignature } = signUserProfile(user);
-              localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
+            // Verificar firma criptográfica obligatoria para evitar inyección de sesión
+            if (!savedSig || !verifyUserProfileIntegrity(user, savedSig)) {
+              console.warn("[ANTI-TAMPER SHIELD] Sesión no firmada o adulterada en LocalStorage. Destruyendo sesión.");
+              localStorage.removeItem(AUTH_KEY);
+              localStorage.removeItem(`${AUTH_KEY}_SIG`);
+              return;
             }
 
+            // Solo restaurar si el usuario existe y está activo en el registro de usuarios del sistema
             const matched = activeUsers.find(
               (u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo"
             );
             if (matched) {
               setCurrentUser(matched);
               setIsAuthenticated(true);
-            } else if (user.uid) {
-              setCurrentUser(user);
-              setIsAuthenticated(true);
+            } else {
+              localStorage.removeItem(AUTH_KEY);
+              localStorage.removeItem(`${AUTH_KEY}_SIG`);
             }
           }
         } catch (e) {}
@@ -648,11 +638,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               department: data.department || "",
               phone: data.phone || "",
               status: data.status || "activo",
-              passwordHash:
-                data.passwordHash ||
-                INITIAL_SYSTEM_USERS.find((u) => u.uid === d.id)?.passwordHash ||
-                "",
-              permissions: data.permissions || ["all"],
+              permissions: data.permissions || [],
               modulePermissions: data.modulePermissions,
               createdAt: data.createdAt || new Date().toISOString(),
             } as SystemUser);
@@ -804,13 +790,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const userCred = await signInWithEmailAndPassword(auth, trimmedEmail, password);
           if (userCred.user) {
             const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
-            const activeProfile: UserProfile = matched || {
+            if (!matched || matched.status !== "activo") {
+              addAuditLog("LOGIN_RECHAZADO", `Usuario sin perfil activo en sistema: ${trimmedEmail}`, "RECHAZADO");
+              return false;
+            }
+            const activeProfile: UserProfile = {
               uid: userCred.user.uid,
               email: userCred.user.email || trimmedEmail,
-              displayName: userCred.user.displayName || "Operador INNTEL",
-              role: "admin",
-              status: "activo",
-              permissions: ["all"],
+              displayName: matched.displayName || userCred.user.displayName || "Usuario INNTEL",
+              role: matched.role || "operador",
+              status: matched.status || "activo",
+              permissions: matched.permissions || [],
+              modulePermissions: matched.modulePermissions,
             };
             setCurrentUser(activeProfile);
             setIsAuthenticated(true);
@@ -823,42 +814,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return true;
           }
         } catch (authSignInErr: any) {
-          if (authSignInErr?.code === "auth/user-not-found" || authSignInErr?.code === "auth/invalid-credential") {
-            try {
-              const newCred = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-              if (newCred.user) {
-                const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
-                const activeProfile: UserProfile = matched || {
-                  uid: newCred.user.uid,
-                  email: newCred.user.email || trimmedEmail,
-                  displayName: "Operador INNTEL",
-                  role: "admin",
-                  status: "activo",
-                  permissions: ["all"],
-                };
-                setCurrentUser(activeProfile);
-                setIsAuthenticated(true);
-                if (remember) {
-                  const { integritySignature } = signUserProfile(activeProfile);
-                  localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
-                  localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-                }
-                addAuditLog("LOGIN", `Cuenta Creada & Acceso Firebase: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
-                return true;
-              }
-            } catch (createErr) {
-              // Proceed to system account validation
-            }
-          }
+          // Credenciales incorrectas en Firebase Auth
+          console.warn("[AUTH] Error de credenciales Firebase:", authSignInErr?.code);
         }
       }
     } catch (firebaseErr: any) {
-      console.log("Firebase Auth note (fallback to system accounts):", firebaseErr?.code);
+      console.log("Firebase Auth note:", firebaseErr?.code);
     }
 
-    // 2. Check against System Accounts (Mock & Saved Accounts)
+    // 2. Check against System Accounts (Mock & Saved Accounts con contraseña configurada)
     const account = systemUsers.find(
-      (a) => a.email.toLowerCase() === trimmedEmail && a.passwordHash === password && a.status === "activo"
+      (a) => a.email.toLowerCase() === trimmedEmail && a.passwordHash && a.passwordHash === password && a.status === "activo"
     );
 
     if (account) {
@@ -870,7 +836,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         department: account.department,
         phone: account.phone,
         status: account.status,
-        permissions: account.permissions || ["all"],
+        permissions: account.permissions || [],
+        modulePermissions: account.modulePermissions,
       };
 
       setCurrentUser(updatedUser);
@@ -905,20 +872,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("LOGOUT", `Cierre de Sesión: ${currentUser.displayName}`, `Rol: ${currentUser.role}`);
   };
 
-  const setUserRole = (role: UserRole) => {
-    setCurrentUser((prev) => {
-      const updated = { ...prev, role };
-      try {
-        if (localStorage.getItem(AUTH_KEY)) {
-          const { integritySignature } = signUserProfile(updated);
-          localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
-          localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-        }
-      } catch (e) {}
-      return updated;
-    });
-  };
-
   const refresh = useCallback(async () => {
     const collectionsToSync: { name: string; setter: (data: any[]) => void; initialData?: any[] }[] = [
       { name: "clients", setter: setClients, initialData: INITIAL_CLIENTS },
@@ -950,6 +903,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "billingCreditNotes", setter: setBillingCreditNotes, initialData: INITIAL_CREDIT_NOTES },
       { name: "billingWithholdings", setter: setBillingWithholdings, initialData: INITIAL_WITHHOLDINGS },
       { name: "billingRemissionGuides", setter: setBillingRemissionGuides, initialData: INITIAL_REMISSION_GUIDES },
+      // Compras, Proveedores & Finanzas (P0-09)
+      { name: "suppliers", setter: setSuppliers, initialData: INITIAL_SUPPLIERS },
+      { name: "purchaseInvoices", setter: setPurchaseInvoices, initialData: INITIAL_PURCHASE_INVOICES },
+      { name: "supplierCreditNotes", setter: setSupplierCreditNotes, initialData: INITIAL_SUPPLIER_CREDIT_NOTES },
+      { name: "supplierDebitNotes", setter: setSupplierDebitNotes, initialData: INITIAL_SUPPLIER_DEBIT_NOTES },
+      { name: "purchaseWithholdings", setter: setPurchaseWithholdings, initialData: INITIAL_PURCHASE_WITHHOLDINGS },
+      { name: "bankAccounts", setter: setBankAccounts, initialData: INITIAL_BANK_ACCOUNTS },
+      { name: "financialMovements", setter: setFinancialMovements, initialData: INITIAL_FINANCIAL_MOVEMENTS },
+      { name: "supplierPayments", setter: setSupplierPayments, initialData: INITIAL_SUPPLIER_PAYMENTS },
+      { name: "hostingDomains", setter: setHostingDomains, initialData: INITIAL_HOSTING_DOMAINS },
+      { name: "regulatoryTramites", setter: setRegulatoryTramites, initialData: INITIAL_REGULATORY_TRAMITES },
     ];
 
     await Promise.all(
@@ -3588,7 +3552,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       <AppContext.Provider
         value={{
           currentUser,
-          setUserRole,
           isAuthenticated,
           login,
           logout,

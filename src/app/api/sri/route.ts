@@ -241,20 +241,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // En ambiente de producción o pruebas, simulamos/retornamos respuesta oficial del SRI
+      // Control de integridad fiscal: sin integración SOAP y certificado .p12 real, el comprobante se mantiene como borrador local
       return NextResponse.json({
-        success: true,
-        estado: "AUTORIZADO",
+        success: false,
+        estado: "NO_ENVIADO",
         claveAcceso,
-        numeroAutorizacion: claveAcceso,
-        fechaAutorizacion: new Date().toISOString(),
+        numeroAutorizacion: null,
+        fechaAutorizacion: null,
         ambiente,
         mensajes: [
           {
-            identificador: "SRI-OK-200",
-            mensaje: "AUTORIZADO POR SERVICIO DE RENTAS INTERNAS",
-            informacionAdicional: `Emisión Normal - Ambiente ${ambiente === "2" ? "Producción" : "Pruebas"}`,
-            tipo: "INFORMACION",
+            identificador: "SRI-NO-ENVIADO",
+            mensaje: "COMPROBANTE LOCAL: El servicio SOAP oficial del SRI requiere configuración de certificado .p12 para emisión tributaria real.",
+            informacionAdicional: `Ambiente ${ambiente === "2" ? "Producción" : "Pruebas"} - Comprobante guardado como borrador local`,
+            tipo: "ADVERTENCIA",
           },
         ],
       });
@@ -269,20 +269,20 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json({
-        success: true,
-        estado: "AUTORIZADO",
+        success: false,
+        estado: "NO_ENVIADO",
         claveAcceso,
-        numeroAutorizacion: claveAcceso,
-        fechaAutorizacion: new Date().toISOString(),
+        numeroAutorizacion: null,
+        fechaAutorizacion: null,
         ambiente,
         mensajes: [
           {
-            identificador: "REC-200",
-            mensaje: "COMPROBANTE RECIBIDO Y AUTORIZADO",
-            tipo: "INFORMACION",
+            identificador: "SRI-NO-ENVIADO",
+            mensaje: "RECEPCIÓN NO EJECUTADA: Requiere firma digital XAdES-BES real y conexión SOAP activa con el SRI.",
+            tipo: "ADVERTENCIA",
           },
         ],
-        xmlFirmado: xml,
+        xmlFirmado: null,
       });
     }
 

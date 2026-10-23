@@ -76,7 +76,7 @@ export function ClientNodesManager() {
       id: "srv-1",
       systemName: "MIKROTIK CCR2116-12G-4S+",
       linkOrIp: "181.198.112.112:5258",
-      credentials: "admin / InntelRouter2026*",
+      credentials: "admin / [Almacenado en Bóveda]",
       notes: "Core BGP Router & CGNAT",
     },
   ]);

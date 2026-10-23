@@ -146,10 +146,6 @@ export function validateIdentification(
     }
     return { isValid: true };
   }
-  // Si fue validado directamente en el catastro del SRI, verificar estructura básica (10 o 13 dígitos numéricos)
-  if (isValidated && /^\d+$/.test(clean) && (clean.length === 10 || (clean.length === 13 && !clean.endsWith("000")))) {
-    return { isValid: true };
-  }
   // Auto-detectar según longitud real si el usuario ingresó 10 o 13 dígitos
   if (clean.length === 10) return validateCedulaEcuador(clean);
   if (clean.length === 13) return validateRucEcuador(clean);

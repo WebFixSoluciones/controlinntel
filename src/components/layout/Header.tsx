@@ -8,7 +8,6 @@ import {
   Search,
   Bell,
   HelpCircle,
-  RotateCcw,
   User,
   Settings,
   LogOut,
@@ -202,25 +201,6 @@ function HeaderContent() {
           title="Ayuda y Documentación"
         >
           <HelpCircle className="w-4 h-4" />
-        </button>
-
-        {/* Reset Data */}
-        <button
-          onClick={() => {
-            showConfirm(
-              "Reiniciar Base de Datos",
-              "¿Deseas restaurar todos los registros de prueba a los valores predeterminados del sistema?",
-              () => {
-                resetDataToDefaults();
-                showSuccess("Sistema Restaurado", "Los datos operativos fueron restaurados correctamente.");
-              },
-              "Restaurar Datos"
-            );
-          }}
-          className="p-2 rounded-lg text-[#737686] hover:text-[#ef4444] hover:bg-red-50 transition-all cursor-pointer"
-          title="Reiniciar datos del sistema"
-        >
-          <RotateCcw className="w-4 h-4" />
         </button>
 
         {/* User Profile Pill Avatar & Interactive Dropdown */}

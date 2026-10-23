@@ -12,14 +12,14 @@ interface Message {
 }
 
 export function GeminiAssistantWidget() {
-  const { currentUser, clients, nodes, policies, tickets, expenses, vault } = useApp();
+  const { currentUser, clients, nodes, policies, tickets } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP (Gemini Flash 2.5 Lite). Puedo apoyarte en consultas de pólizas ARCOTEL, estado de nodos MikroTik, órdenes de cobro o redacción de oficios. ¿En qué te puedo colaborar hoy?`,
+      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP. Puedo orientarte sobre normativas de telecomunicaciones, buenas prácticas de redes ISP y documentación operativa.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -45,15 +45,14 @@ export function GeminiAssistantWidget() {
     setLoading(true);
 
     try {
+      // Datos contextuales agregados seguros: NUNCA exfiltrar credenciales, RUCs ni saldos individuales
       const contextData = {
-        currentUser,
+        role: currentUser.role,
         clientsCount: clients.length,
-        clients: clients.map((c) => ({ name: c.businessName, ruc: c.identificationNumber, balance: c.currentBalance })),
-        nodes: nodes.map((n) => ({ name: n.name, capacity: `${n.usedCapacityMbps}/${n.totalCapacityMbps} Mbps`, status: n.status })),
-        policies: policies.map((p) => ({ num: p.policyNumber, status: p.status, expires: p.expirationDate })),
-        tickets: tickets.map((t) => ({ id: t.ticketNumber, title: t.title, status: t.status })),
-        expensesTotal: expenses.reduce((acc, e) => acc + e.amount, 0),
-        vaultServices: vault.map((v) => v.serviceName),
+        nodesCount: nodes.length,
+        policiesCount: policies.length,
+        ticketsCount: tickets.length,
+        activeTicketsCount: tickets.filter((t) => t.status === "abierto" || t.status === "en_progreso").length,
       };
 
       const aiResponse = await askGeminiAssistant(textToSend, currentUser.role, contextData);
@@ -73,10 +72,9 @@ export function GeminiAssistantWidget() {
   };
 
   const SUGGESTED_PROMPTS = [
-    "¿Qué pólizas de ARCOTEL vencen pronto?",
-    "¿Cuál es el resumen de gastos y utilidad del mes?",
-    "¿Cómo está la capacidad de los nodos y MikroTik?",
-    "Generar borrador de oficio para renovación ARCOTEL",
+    "¿Qué consideraciones regulatorias aplican a pólizas ARCOTEL?",
+    "¿Cuáles son las buenas prácticas de diseño BGP multi-homing?",
+    "¿Cómo estructurar un reporte formal de incidencias de red?",
   ];
 
   return (
@@ -100,7 +98,7 @@ export function GeminiAssistantWidget() {
                 <h3 className="text-xs font-bold flex items-center gap-1.5">
                   Asistente IA Gemini
                   <span className="px-1.5 py-0.2 bg-white/20 text-white rounded text-[9px] font-mono">
-                    Flash 2.5 Lite
+                    Flash 2.5
                   </span>
                 </h3>
                 <p className="text-[10px] text-blue-100 flex items-center gap-1">
@@ -148,7 +146,7 @@ export function GeminiAssistantWidget() {
             {loading && (
               <div className="flex items-center gap-2 text-[#737686] text-xs italic p-2">
                 <Loader2 className="w-4 h-4 animate-spin text-[#004ac6]" />
-                Consultando Gemini Flash con contexto de telecomunicaciones...
+                Consultando asistente de telecomunicaciones...
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -175,7 +173,7 @@ export function GeminiAssistantWidget() {
           >
             <input
               type="text"
-              placeholder="Pregunta sobre clientes, ARCOTEL, MikroTik o finanzas..."
+              placeholder="Escribe una consulta operativa o técnica..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 bg-white text-xs text-[#0b1c30] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
