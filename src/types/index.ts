@@ -49,7 +49,8 @@ export interface SystemUser extends UserProfile {
 
 export type IdentificationType = "RUC" | "CEDULA" | "PASAPORTE";
 export type ServiceBillingType = "prepago" | "pospago";
-export type ServiceStatus = "activo" | "suspendido" | "retirado" | "en_instalacion";
+export type ServiceBillingFrequency = "mensual" | "anual";
+export type ServiceStatus = "activo" | "inactivo" | "por_renovar" | "suspendido" | "retirado" | "en_instalacion";
 
 export interface ClientService {
   id: string;
@@ -61,6 +62,7 @@ export interface ClientService {
   basePrice: number;
   customPrice: number;
   billingType: ServiceBillingType;
+  billingFrequency?: ServiceBillingFrequency; // "mensual" (default) | "anual"
   cutoffDay: number;
   nodeId: string;
   nodeName: string;
@@ -70,6 +72,11 @@ export interface ClientService {
   pppoePassword?: string;
   status: ServiceStatus;
   installationDate: string;
+  nextRenewalDate?: string;       // YYYY-MM-DD: Fecha de próxima renovación
+  lastBilledPeriod?: string;      // Ej: "2026-10" o "2026"
+  isBillableInCurrentCycle?: boolean; // true = facturable, false = "No Facturado"
+  nonBillableReason?: string;
+  lastNotificationSentAt?: string;
   installationAddress?: string;
   coordinates?: { lat: number; lng: number };
   ontSerialNumber?: string;
@@ -105,6 +112,7 @@ export interface Client {
   actividadEconomica?: string;
   sriValidated?: boolean;
   requiresSriBilling: boolean;
+  billingRecurrence?: "mensual" | "anual" | "ocasional";
   status: "activo" | "inactivo" | "suspendido" | "retirado" | "cancelado";
   totalActiveServices: number;
   currentBalance: number;

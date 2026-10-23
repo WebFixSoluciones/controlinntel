@@ -196,6 +196,11 @@ interface AppContextType {
   addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => Promise<Client>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
+  addClientService: (service: Omit<ClientService, "id">) => Promise<ClientService>;
+  updateClientService: (id: string, updates: Partial<ClientService>) => Promise<void>;
+  deleteClientService: (id: string) => Promise<void>;
+  renewClientService: (id: string) => Promise<void>;
+  emitRecurringInvoiceForClient: (clientId: string, month: number, year: number) => Promise<SriInvoice | null>;
 
   addPolicy: (policy: Omit<ArcotelPolicy, "id">) => Promise<void>;
   updatePolicy: (id: string, updates: Partial<ArcotelPolicy>) => Promise<void>;
@@ -1616,6 +1621,87 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setClientContracts((prev) => prev.filter((c) => c.clientId !== id));
   };
 
+  const addClientService = async (serviceData: Omit<ClientService, "id">): Promise<ClientService> => {
+    const today = new Date();
+    const defaultNextRenewal = new Date(today);
+    if (serviceData.billingFrequency === "anual") {
+      defaultNextRenewal.setFullYear(defaultNextRenewal.getFullYear() + 1);
+    } else {
+      defaultNextRenewal.setMonth(defaultNextRenewal.getMonth() + 1);
+    }
+
+    const newService: ClientService = {
+      ...serviceData,
+      id: "srv-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      billingFrequency: serviceData.billingFrequency || "mensual",
+      isBillableInCurrentCycle: serviceData.isBillableInCurrentCycle ?? true,
+      nextRenewalDate: serviceData.nextRenewalDate || defaultNextRenewal.toISOString().split("T")[0],
+    };
+
+    await syncToFirestore("clientServices", newService.id, newService);
+    setClientServices((prev) => {
+      const next = [...prev, newService];
+      const activeCount = next.filter((s) => s.clientId === newService.clientId && s.status === "activo").length;
+      setClients((cPrev) =>
+        cPrev.map((c) => (c.id === newService.clientId ? { ...c, totalActiveServices: activeCount } : c))
+      );
+      return next;
+    });
+    return newService;
+  };
+
+  const updateClientService = async (id: string, updates: Partial<ClientService>) => {
+    await syncToFirestore("clientServices", id, updates);
+    setClientServices((prev) => {
+      const next = prev.map((s) => (s.id === id ? { ...s, ...updates } : s));
+      const target = next.find((s) => s.id === id);
+      if (target) {
+        const activeCount = next.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
+        setClients((cPrev) =>
+          cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
+        );
+      }
+      return next;
+    });
+  };
+
+  const deleteClientService = async (id: string) => {
+    const target = clientServices.find((s) => s.id === id);
+    await deleteFromFirestore("clientServices", id);
+    setClientServices((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      if (target) {
+        const activeCount = next.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
+        setClients((cPrev) =>
+          cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
+        );
+      }
+      return next;
+    });
+  };
+
+  const renewClientService = async (id: string) => {
+    const target = clientServices.find((s) => s.id === id);
+    if (!target) return;
+
+    const baseDate = target.nextRenewalDate ? new Date(target.nextRenewalDate + "T12:00:00") : new Date();
+    const validBase = isNaN(baseDate.getTime()) ? new Date() : baseDate;
+
+    if (target.billingFrequency === "anual") {
+      validBase.setFullYear(validBase.getFullYear() + 1);
+    } else {
+      validBase.setMonth(validBase.getMonth() + 1);
+    }
+
+    const nextRenewalDate = validBase.toISOString().split("T")[0];
+    await updateClientService(id, {
+      status: "activo",
+      isBillableInCurrentCycle: true,
+      nonBillableReason: "",
+      nextRenewalDate,
+    });
+  };
+
   const addPolicy = async (policyData: Omit<ArcotelPolicy, "id">) => {
     const newPolicy: ArcotelPolicy = {
       ...policyData,
@@ -1826,30 +1912,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const generateMonthlyBillingBatch = async (month: number, year: number) => {
-    const newCharges: MonthlyCharge[] = clients.map((client) => {
-      const clientServs = clientServices.filter((s) => s.clientId === client.id && s.status === "activo");
-      const totalAmount = clientServs.reduce((sum, s) => sum + s.customPrice, 0) || 28.0;
-      const subtotal = totalAmount / 1.15;
-      const iva = totalAmount - subtotal;
-      const planNames = clientServs.map((s) => s.planName).join(" + ") || "Servicio de Internet";
-      return {
+    const newCharges: MonthlyCharge[] = [];
+    const periodKey = `${year}-${String(month).padStart(2, "0")}`;
+
+    for (const client of clients) {
+      if (client.billingRecurrence === "ocasional") continue;
+      const clientServs = clientServices.filter(
+        (s) =>
+          s.clientId === client.id &&
+          s.status === "activo" &&
+          s.isBillableInCurrentCycle !== false
+      );
+      if (clientServs.length === 0) continue;
+
+      const subtotal = clientServs.reduce((sum, s) => sum + (Number(s.customPrice) || 0), 0);
+      const iva = subtotal * 0.15;
+      const totalAmount = subtotal + iva;
+      const planNames = clientServs.map((s) => s.planName).join(" + ");
+
+      newCharges.push({
         id: `chg-${client.id}-${month}-${year}`,
         clientId: client.id,
         clientName: client.businessName,
         clientRuc: client.identificationNumber,
         month,
         year,
-        serviceDescription: `${planNames} - Periodo ${month}/${year}`,
+        serviceDescription: `${planNames} - Periodo ${String(month).padStart(2, "0")}/${year}`,
         subtotal: parseFloat(subtotal.toFixed(2)),
         ivaAmount: parseFloat(iva.toFixed(2)),
         total: parseFloat(totalAmount.toFixed(2)),
         status: "pendiente",
         invoiceNumber: `001-100-${Math.floor(Math.random() * 900000 + 100000)}`,
-      };
-    });
-    setMonthlyCharges((prev) => [...newCharges, ...prev]);
-    newCharges.forEach((c) => syncToFirestore("monthlyCharges", c.id, c));
-    addAuditLog("EXPORT_BILLING", "Emisión Cobros Día 1", `Lote para ${clients.length} clientes`);
+      });
+
+      for (const srv of clientServs) {
+        await updateClientService(srv.id, { lastBilledPeriod: periodKey });
+      }
+    }
+
+    if (newCharges.length > 0) {
+      setMonthlyCharges((prev) => [...newCharges, ...prev]);
+      newCharges.forEach((c) => syncToFirestore("monthlyCharges", c.id, c));
+    }
+    addAuditLog("EXPORT_BILLING", "Emisión Facturación Recurrente", `Lote para ${newCharges.length} clientes recurrentes`);
   };
 
   const addMonthlyCharge = async (chargeData: Omit<MonthlyCharge, "id">) => {
@@ -2527,6 +2632,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     return newInvoice;
+  };
+
+  const emitRecurringInvoiceForClient = async (
+    clientId: string,
+    month: number,
+    year: number
+  ): Promise<SriInvoice | null> => {
+    const client = clients.find((c) => c.id === clientId);
+    if (!client) return null;
+
+    const billableServices = clientServices.filter(
+      (s) =>
+        s.clientId === clientId &&
+        s.status === "activo" &&
+        s.isBillableInCurrentCycle !== false
+    );
+    if (billableServices.length === 0) return null;
+
+    const periodKey = `${year}-${String(month).padStart(2, "0")}`;
+    const items: InvoiceItem[] = billableServices.map((s) => {
+      const unitPrice = Math.max(0, Number(s.customPrice || s.basePrice || 0));
+      const ivaAmount = Math.round(unitPrice * 0.15 * 100) / 100;
+      const total = Math.round((unitPrice + ivaAmount) * 100) / 100;
+      return {
+        id: `it-rec-${s.id}`,
+        productId: s.planId || s.id,
+        sku: (s.planId || "SRV-REC").toUpperCase(),
+        name: `${s.planName} (${s.billingFrequency === "anual" ? `Anual ${year}` : `Mensual ${String(month).padStart(2, "0")}/${year}`})`,
+        description: `Capacidad: ${s.downloadMbps} Mbps / ${s.uploadMbps} Mbps • IP: ${s.ipv4Address || "Asignada"}`,
+        unit: "servicio",
+        quantity: 1,
+        unitPrice,
+        discount: 0,
+        ivaRate: 15,
+        subtotal: unitPrice,
+        ivaAmount,
+        total,
+      };
+    });
+
+    const subtotal15 = Math.round(items.reduce((acc, i) => acc + i.subtotal, 0) * 100) / 100;
+    const ivaTotal = Math.round(items.reduce((acc, i) => acc + i.ivaAmount, 0) * 100) / 100;
+    const total = Math.round((subtotal15 + ivaTotal) * 100) / 100;
+
+    const invoice = await createInvoice({
+      documentType: "factura",
+      date: new Date().toISOString().slice(0, 10),
+      clientId: client.id,
+      clientName: client.businessName,
+      clientRuc: client.identificationNumber,
+      clientEmail: client.email,
+      clientPhone: client.phone,
+      clientAddress: client.address,
+      tipoIdentificacion:
+        client.identificationType === "RUC"
+          ? "04"
+          : client.identificationType === "CEDULA"
+          ? "05"
+          : "06",
+      items,
+      subtotal15,
+      subtotal0: 0,
+      subtotalNoObjeto: 0,
+      subtotalExento: 0,
+      discountTotal: 0,
+      ivaTotal,
+      total,
+      paymentMethod: "credito",
+      paymentsBreakdown: { efectivo: 0, transferencia: 0, tarjeta: 0, credito: total },
+      status: "emitida",
+      warehouseId: inventoryWarehouses[0]?.id || "wh-central",
+      warehouseName: inventoryWarehouses[0]?.name || "Bodega Central",
+      notes: `Facturación Recurrente Periodo ${String(month).padStart(2, "0")}/${year} (${items.length} servicio(s) facturado(s))`,
+    });
+
+    const chargeId = `chg-${client.id}-${month}-${year}`;
+    const newCharge: MonthlyCharge = {
+      id: chargeId,
+      clientId: client.id,
+      clientName: client.businessName,
+      clientRuc: client.identificationNumber,
+      month,
+      year,
+      serviceDescription: `${billableServices.map((s) => s.planName).join(" + ")} (${String(month).padStart(2, "0")}/${year})`,
+      subtotal: subtotal15,
+      ivaAmount: ivaTotal,
+      total,
+      status: "pendiente",
+      invoiceNumber: invoice.documentNumber,
+    };
+    setMonthlyCharges((prev) => [newCharge, ...prev.filter((c) => c.id !== chargeId)]);
+    await syncToFirestore("monthlyCharges", chargeId, newCharge);
+
+    for (const srv of billableServices) {
+      await updateClientService(srv.id, { lastBilledPeriod: periodKey });
+    }
+
+    return invoice;
   };
 
   const updateInvoiceStatus = async (
@@ -3444,6 +3647,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addClient,
           updateClient,
           deleteClient,
+          addClientService,
+          updateClientService,
+          deleteClientService,
+          renewClientService,
+          emitRecurringInvoiceForClient,
           addPolicy,
           updatePolicy,
           addVaultCredential,
