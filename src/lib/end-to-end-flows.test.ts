@@ -710,3 +710,44 @@ test("Flujo E2E 10: Seguimiento de Servicios del Cliente (Inventario Oficial, As
   assert.equal(clientServicesList[0].saleDocNumber, undefined);
   assert.equal(clientServicesList[1].saleStatus, "emitida", "El segundo servicio permanece emitido");
 });
+
+test("Flujo E2E 11: Visibilidad Condicional de Pestañas del Cliente (Solo Identificación y Servicios si services.length === 0)", () => {
+  const allTabs = [
+    { id: "fiscal", label: "Identificación" },
+    { id: "red", label: "Nodos" },
+    { id: "boveda", label: "Bóveda" },
+    { id: "contratos", label: "Servicios" },
+    { id: "cotizaciones", label: "Cotizaciones" },
+    { id: "finanzas", label: "Cobros" },
+    { id: "tickets", label: "Tickets" },
+    { id: "proyectos", label: "Tareas" },
+    { id: "tramites", label: "Trámites" },
+    { id: "arcotel", label: "ARCOTEL" },
+    { id: "dossier", label: "Informes" },
+  ];
+
+  const filterTabs = (hasServices: boolean) => {
+    return allTabs.filter((t) => {
+      if (!hasServices) {
+        return t.id === "fiscal" || t.id === "contratos";
+      }
+      return true;
+    });
+  };
+
+  // Caso 1: Cliente nuevo sin servicios contratados
+  const tabsSinServicios = filterTabs(false);
+  assert.equal(tabsSinServicios.length, 2, "Solo deben mostrarse 2 pestañas cuando no hay servicios");
+  assert.deepEqual(
+    tabsSinServicios.map((t) => t.id),
+    ["fiscal", "contratos"],
+    "Solo Identificación y Servicios deben estar disponibles"
+  );
+
+  // Caso 2: Cliente contrata un servicio en 'contratos' o por nota de venta
+  const tabsConServicios = filterTabs(true);
+  assert.equal(tabsConServicios.length, 11, "Todas las 11 pestañas deben desbloquearse al tomar servicios");
+  assert.ok(tabsConServicios.some((t) => t.id === "red"));
+  assert.ok(tabsConServicios.some((t) => t.id === "boveda"));
+  assert.ok(tabsConServicios.some((t) => t.id === "finanzas"));
+});

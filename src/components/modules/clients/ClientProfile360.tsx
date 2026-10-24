@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientContactPerson } from "@/types";
@@ -82,15 +82,14 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!client) return null;
-
-  const services = clientServices.filter((s) => s.clientId === client.id);
-  const charges = monthlyCharges.filter((c) => c.clientId === client.id);
-  const clientTickets = tickets.filter((t) => t.clientId === client.id);
-  const projects = clientProjects.filter((p) => p.clientId === client.id);
-  const quotes = clientQuotes.filter((q) => q.clientId === client.id);
-  const vaultItems = clientVaultItems.filter((v) => v.clientId === client.id);
-  const clientNodesList = nodes.filter((n) => n.clientId === client.id);
+  const clientId = client?.id || "";
+  const services = clientServices.filter((s) => s.clientId === clientId);
+  const charges = monthlyCharges.filter((c) => c.clientId === clientId);
+  const clientTickets = tickets.filter((t) => t.clientId === clientId);
+  const projects = clientProjects.filter((p) => p.clientId === clientId);
+  const quotes = clientQuotes.filter((q) => q.clientId === clientId);
+  const vaultItems = clientVaultItems.filter((v) => v.clientId === clientId);
+  const clientNodesList = nodes.filter((n) => n.clientId === clientId);
 
   const allContacts: ClientContactPerson[] =
     client?.contacts && client.contacts.length > 0
@@ -148,9 +147,34 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     { id: "dossier", label: "Informes", icon: Printer, permission: "manage_clients" },
   ];
 
+  // Regla de Negocio: Si el cliente NO tiene servicios contratados, solo se habilitan
+  // "Identificación" y "Servicios" (para poder asignarle servicios).
+  // Una vez que el cliente tome un servicio, se desbloquean automáticamente todas las pestañas.
+  const hasServices = services.some((s) => s.status !== "retirado");
+
+  const eligibleTabs = allTabs.filter((t) => {
+    if (!hasServices) {
+      return t.id === "fiscal" || t.id === "contratos";
+    }
+    return true;
+  });
+
   // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
-  const authorizedTabs = allTabs.filter((t) => can(currentUser, t.permission));
+  const authorizedTabs = eligibleTabs.filter((t) => can(currentUser, t.permission));
   const currentTabAllowed = authorizedTabs.some((t) => t.id === activeTab);
+
+  // Asegurar que si la pestaña activa queda fuera de las permitidas, vuelva a Identificación o Servicios
+  useEffect(() => {
+    if (!authorizedTabs.some((t) => t.id === activeTab)) {
+      if (authorizedTabs.some((t) => t.id === "fiscal")) {
+        setActiveTab("fiscal");
+      } else if (authorizedTabs[0]) {
+        setActiveTab(authorizedTabs[0].id);
+      }
+    }
+  }, [hasServices, activeTab, authorizedTabs]);
+
+  if (!client) return null;
 
   return (
     <div className="w-full animate-in fade-in duration-200 select-none">
@@ -202,26 +226,35 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
         </div>
 
         {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
-          {authorizedTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {authorizedTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
-                  isActive
-                    ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
-                    : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                    isActive
+                      ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
+                      : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {!hasServices && (
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-[6px] shrink-0">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Asigna un servicio en &quot;Servicios&quot; para habilitar Nodos, Bóveda, Cobros, Tickets y demás pestañas.</span>
+            </div>
+          )}
         </div>
 
         {/* Tab Content Body */}
