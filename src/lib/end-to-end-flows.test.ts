@@ -560,3 +560,153 @@ test("Flujo E2E 9: Baja Completa de Cliente y Purga en Cascada", () => {
   assert.equal(clientQuotesList.length, 0, "Las cotizaciones deben ser purgadas");
   assert.equal(clientVaultList.length, 0, "Las credenciales de bóveda deben ser purgadas");
 });
+
+test("Flujo E2E 10: Seguimiento de Servicios del Cliente (Inventario Oficial, Asignación Manual Pendiente y Promoción por Nota de Venta)", () => {
+  // 1. Inventario de Servicios Oficial
+  const inventoryServices = [
+    {
+      id: "srv-prod-fibra-200",
+      sku: "SRV-FIB-200",
+      name: "Internet Fibra Óptica 200 Mbps Corporativo",
+      type: "servicio" as const,
+      salePrice: 45.0,
+      ivaRate: 15,
+      tracksStock: false,
+      status: "activo" as const,
+    },
+    {
+      id: "srv-prod-ip-fija",
+      sku: "SRV-IP-PUB",
+      name: "Enlace con IPv4 Pública Estática",
+      type: "servicio" as const,
+      salePrice: 15.0,
+      ivaRate: 15,
+      tracksStock: false,
+      status: "activo" as const,
+    },
+  ];
+
+  const clientId = "cli-arteaga-01";
+  let clientServicesList: Array<{
+    id: string;
+    clientId: string;
+    inventoryProductId: string;
+    inventorySku: string;
+    planName: string;
+    basePrice: number;
+    customPrice: number;
+    origin?: "manual" | "nota_venta" | "factura";
+    saleStatus?: "pendiente_venta" | "emitida";
+    saleDocNumber?: string;
+    saleInvoiceId?: string;
+  }> = [];
+
+  // 2. Asignación manual sin venta (debe tomarse del inventario oficial de servicios)
+  const chosenService = inventoryServices.find((s) => s.id === "srv-prod-fibra-200")!;
+  assert.ok(chosenService, "El servicio debe existir en el Inventario de Servicios");
+  assert.equal(chosenService.type, "servicio", "Debe ser de tipo 'servicio' sin control de stock");
+
+  const manualAssignedService = {
+    id: "cs-001",
+    clientId,
+    inventoryProductId: chosenService.id,
+    inventorySku: chosenService.sku,
+    planName: chosenService.name,
+    basePrice: chosenService.salePrice,
+    customPrice: chosenService.salePrice,
+    origin: "manual" as const,
+    saleStatus: "pendiente_venta" as const,
+  };
+  clientServicesList.push(manualAssignedService);
+
+  assert.equal(clientServicesList.length, 1);
+  assert.equal(clientServicesList[0].saleStatus, "pendiente_venta", "Debe estar marcado como pendiente de Nota de Venta");
+  assert.equal(clientServicesList[0].saleDocNumber, undefined, "No debe tener número de nota de venta todavía");
+
+  // 3. Generación de Nota de Venta comercial para el servicio asignado
+  const notaVenta = {
+    id: "inv-nota-991",
+    documentType: "nota_venta",
+    documentNumber: "010-001-000000045",
+    date: "2026-10-24",
+    clientId,
+    items: [
+      {
+        productId: chosenService.id,
+        sku: chosenService.sku,
+        name: chosenService.name,
+        unitPrice: 45.0,
+        unit: "servicio",
+      },
+    ],
+  };
+
+  // La emisión de la nota de venta promueve el servicio existente a 'emitida'
+  const pendingIndex = clientServicesList.findIndex(
+    (s) => s.clientId === clientId && s.inventoryProductId === chosenService.id && s.saleStatus === "pendiente_venta"
+  );
+  assert.ok(pendingIndex >= 0, "Debe encontrar el servicio pendiente");
+  clientServicesList[pendingIndex] = {
+    ...clientServicesList[pendingIndex],
+    origin: "nota_venta",
+    saleStatus: "emitida",
+    saleDocNumber: notaVenta.documentNumber,
+    saleInvoiceId: notaVenta.id,
+  };
+
+  assert.equal(clientServicesList[0].saleStatus, "emitida", "El servicio ahora tiene Nota de Venta emitida");
+  assert.equal(clientServicesList[0].saleDocNumber, "010-001-000000045", "El comprobante debe estar vinculado");
+
+  // 4. Emisión de una Nota de Venta directa con un segundo servicio (entra directamente por venta)
+  const secondService = inventoryServices.find((s) => s.id === "srv-prod-ip-fija")!;
+  const notaVenta2 = {
+    id: "inv-nota-992",
+    documentType: "nota_venta",
+    documentNumber: "010-001-000000046",
+    date: "2026-10-24",
+    clientId,
+    items: [
+      {
+        productId: secondService.id,
+        sku: secondService.sku,
+        name: secondService.name,
+        unitPrice: 15.0,
+        unit: "servicio",
+      },
+    ],
+  };
+
+  clientServicesList.push({
+    id: "cs-002",
+    clientId,
+    inventoryProductId: secondService.id,
+    inventorySku: secondService.sku,
+    planName: secondService.name,
+    basePrice: secondService.salePrice,
+    customPrice: secondService.salePrice,
+    origin: "nota_venta",
+    saleStatus: "emitida",
+    saleDocNumber: notaVenta2.documentNumber,
+    saleInvoiceId: notaVenta2.id,
+  });
+
+  assert.equal(clientServicesList.length, 2, "La ficha del cliente debe reflejar ambos servicios");
+  assert.equal(clientServicesList.filter((s) => s.saleStatus === "emitida").length, 2, "Ambos servicios tienen comprobante");
+
+  // 5. Reversión al anular o eliminar una Nota de Venta
+  clientServicesList = clientServicesList.map((s) => {
+    if (s.saleInvoiceId === notaVenta.id) {
+      return {
+        ...s,
+        saleInvoiceId: undefined,
+        saleDocNumber: undefined,
+        saleStatus: "pendiente_venta" as const,
+      };
+    }
+    return s;
+  });
+
+  assert.equal(clientServicesList[0].saleStatus, "pendiente_venta", "El primer servicio vuelve a quedar pendiente de venta");
+  assert.equal(clientServicesList[0].saleDocNumber, undefined);
+  assert.equal(clientServicesList[1].saleStatus, "emitida", "El segundo servicio permanece emitido");
+});

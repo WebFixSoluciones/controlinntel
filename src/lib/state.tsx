@@ -2701,6 +2701,81 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           syncToFirestore("clients", clientObj.id, { currentBalance: newClientBal });
         }
       }
+
+      // Sincronización y seguimiento automático de servicios del cliente desde Nota de Venta / Factura
+      if (data.clientId && data.clientId !== "cf-9999999999999") {
+        const clientObj = clients.find((c) => c.id === data.clientId);
+        for (const item of data.items) {
+          const invProd = inventoryProducts.find((p) => p.id === item.productId);
+          const isService =
+            item.unit === "servicio" ||
+            invProd?.type === "servicio" ||
+            (item.sku && item.sku.toUpperCase().startsWith("SRV-"));
+
+          if (isService) {
+            // Verificar si el cliente ya tiene este servicio registrado pendiente de nota de venta
+            const existingPending = clientServices.find(
+              (cs) =>
+                cs.clientId === data.clientId &&
+                (cs.inventoryProductId === item.productId || cs.planName.toLowerCase() === item.name.toLowerCase()) &&
+                cs.saleStatus === "pendiente_venta"
+            );
+
+            if (existingPending) {
+              const updates: Partial<ClientService> = {
+                origin: docType === "nota_venta" ? "nota_venta" : "factura",
+                saleInvoiceId: invoiceId,
+                saleDocNumber: documentNumber,
+                saleDate: dateStr,
+                saleStatus: "emitida",
+                status: "activo",
+                isBillableInCurrentCycle: true,
+                basePrice: item.unitPrice,
+                customPrice: item.unitPrice,
+              };
+              setClientServices((prev) =>
+                prev.map((s) => (s.id === existingPending.id ? { ...s, ...updates } : s))
+              );
+              syncToFirestore("clientServices", existingPending.id, updates);
+            } else {
+              // Si no existe, crear el servicio vinculado a esta venta en el inventario del cliente
+              const renewalDate = new Date();
+              renewalDate.setMonth(renewalDate.getMonth() + 1);
+              const newSvc: ClientService = {
+                id: `srv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                clientId: data.clientId,
+                planId: item.productId || `plan-${Date.now()}`,
+                planName: item.name,
+                inventoryProductId: item.productId || undefined,
+                inventorySku: item.sku || undefined,
+                downloadMbps: 100,
+                uploadMbps: 100,
+                basePrice: item.unitPrice,
+                customPrice: item.unitPrice,
+                billingType: "pospago",
+                billingFrequency: "mensual",
+                cutoffDay: 5,
+                nodeId: "node-1",
+                nodeName: "NODO-CENTRAL",
+                ipv4Address: "DHCP",
+                pppoeUser: `svc-${Date.now().toString().slice(-4)}`,
+                status: "activo",
+                installationDate: dateStr,
+                nextRenewalDate: renewalDate.toISOString().split("T")[0],
+                isBillableInCurrentCycle: true,
+                origin: docType === "nota_venta" ? "nota_venta" : "factura",
+                saleInvoiceId: invoiceId,
+                saleDocNumber: documentNumber,
+                saleDate: dateStr,
+                saleStatus: "emitida",
+                installationAddress: clientObj?.address || "Dirección Principal",
+              };
+              setClientServices((prev) => [...prev, newSvc]);
+              syncToFirestore("clientServices", newSvc.id, newSvc);
+            }
+          }
+        }
+      }
     }
 
     addAuditLog(
@@ -3328,6 +3403,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
           );
         }
+      }
+
+      // Reversión de estado en servicios del cliente vinculados a esta venta
+      const linkedServices = clientServices.filter((s) => s.saleInvoiceId === inv.id);
+      for (const svc of linkedServices) {
+        const updates: Partial<ClientService> = {
+          saleInvoiceId: undefined,
+          saleDocNumber: undefined,
+          saleDate: undefined,
+          saleStatus: "pendiente_venta",
+        };
+        await syncToFirestore("clientServices", svc.id, updates);
+        setClientServices((prev) => prev.map((s) => (s.id === svc.id ? { ...s, ...updates } : s)));
       }
     }
 

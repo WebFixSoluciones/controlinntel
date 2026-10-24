@@ -81,6 +81,13 @@ export interface ClientService {
   coordinates?: { lat: number; lng: number };
   ontSerialNumber?: string;
   notes?: string;
+  inventoryProductId?: string;         // ID del producto en el Inventario de Servicios
+  inventorySku?: string;               // SKU del servicio en inventario
+  origin?: "nota_venta" | "factura" | "manual"; // Cómo ingresó el servicio
+  saleInvoiceId?: string;              // ID del comprobante de venta vinculado
+  saleDocNumber?: string;              // Número de documento (ej. 010-001-000000045)
+  saleDate?: string;                   // Fecha de emisión de la venta
+  saleStatus?: "emitida" | "pendiente_venta"; // "emitida" si tiene nota de venta / factura, "pendiente_venta" si fue asignado manualmente sin venta
 }
 
 export interface ClientContactPerson {
