@@ -8,6 +8,7 @@ import {
   SriInvoice,
   ClientQuote,
   CreditNote,
+  DebitNote,
   WithholdingReceipt,
   RemissionGuide,
   SriWsResponse,
@@ -18,6 +19,7 @@ import { NewSaleView } from "./NewSaleView";
 import { RecurringBillingView } from "./RecurringBillingView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
+import { DebitNoteModal } from "./DebitNoteModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
 import { EditSaleModal } from "./EditSaleModal";
 import {
@@ -53,6 +55,7 @@ import {
 import {
   generarFacturaXml,
   generarNotaCreditoXml,
+  generarNotaDebitoXml,
   generarComprobanteRetencionXml,
   generarGuiaRemisionXml,
   generarXmlFirmado,
@@ -66,6 +69,7 @@ type BillingTab =
   | "recurrentes"
   | "cotizaciones"
   | "notas_credito"
+  | "notas_debito"
   | "retenciones"
   | "guias_remision";
 
@@ -75,6 +79,7 @@ export function BillingManager() {
     billingInvoices,
     billingQuotes,
     billingCreditNotes,
+    billingDebitNotes,
     billingWithholdings,
     billingRemissionGuides,
     sriCompanyConfig,
@@ -133,6 +138,9 @@ export function BillingManager() {
   const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
   const [creditNoteInitialInvoice, setCreditNoteInitialInvoice] = useState<SriInvoice | null>(null);
 
+  const [isDebitNoteModalOpen, setIsDebitNoteModalOpen] = useState(false);
+  const [debitNoteInitialInvoice, setDebitNoteInitialInvoice] = useState<SriInvoice | null>(null);
+
   const [isRemissionModalOpen, setIsRemissionModalOpen] = useState(false);
   const [remissionInitialInvoice, setRemissionInitialInvoice] = useState<SriInvoice | null>(null);
 
@@ -168,6 +176,9 @@ export function BillingManager() {
   // ==========================================
   const filteredInvoices = useMemo(() => {
     return billingInvoices.filter((inv) => {
+      // En facturación SRI solo se muestran Facturas Electrónicas (Tipo 01)
+      if (inv.documentType === "nota_venta") return false;
+
       const q = searchTerm.toLowerCase();
       const matchSearch =
         inv.documentNumber.toLowerCase().includes(q) ||
@@ -204,6 +215,18 @@ export function BillingManager() {
       );
     });
   }, [billingCreditNotes, searchTerm]);
+
+  const filteredDebitNotes = useMemo(() => {
+    return billingDebitNotes.filter((nd) => {
+      const search = searchTerm.toLowerCase();
+      return (
+        nd.documentNumber.toLowerCase().includes(search) ||
+        nd.modifiedInvoiceNumber.toLowerCase().includes(search) ||
+        nd.clientName.toLowerCase().includes(search) ||
+        nd.clientRuc.includes(search)
+      );
+    });
+  }, [billingDebitNotes, searchTerm]);
 
   // Actions
   const handleDeleteInvoice = (inv: SriInvoice) => {
@@ -378,6 +401,44 @@ export function BillingManager() {
 
   return (
     <div className="space-y-6">
+      {/* Selector de los 5 Comprobantes Oficiales del SRI */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-thin">
+        {[
+          { key: "facturas", label: "Facturas (01)", icon: Receipt, count: filteredInvoices.length },
+          { key: "notas_credito", label: "Notas de Crédito (04)", icon: RotateCcw, count: billingCreditNotes.length },
+          { key: "notas_debito", label: "Notas de Débito (05)", icon: FileText, count: billingDebitNotes.length },
+          { key: "retenciones", label: "Retenciones (07)", icon: DollarSign, count: billingWithholdings.length },
+          { key: "guias_remision", label: "Guías Remisión (06)", icon: Truck, count: billingRemissionGuides.length },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveTab(tab.key as BillingTab);
+                router.replace(`/facturacion?sub=${tab.key}`);
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
+                isActive
+                  ? "bg-[#004ac6] text-white shadow-xs"
+                  : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Barra de Filtros (Oculta en vista Recurrentes porque tiene su propia barra de periodo/filtros) */}
       {activeTab !== "recurrentes" && (
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
@@ -468,6 +529,19 @@ export function BillingManager() {
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Nota</span>
+            </button>
+          )}
+
+          {activeTab === "notas_debito" && (
+            <button
+              onClick={() => {
+                setDebitNoteInitialInvoice(null);
+                setIsDebitNoteModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nueva Nota Débito</span>
             </button>
           )}
 
@@ -621,9 +695,19 @@ export function BillingManager() {
                                 <button
                                   onClick={() => handleEmitNcFromInvoice(inv)}
                                   className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                  title="Emitir Nota de Crédito"
+                                  title="Emitir Nota de Crédito (04)"
                                 >
                                   <RotateCcw className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setDebitNoteInitialInvoice(inv);
+                                    setIsDebitNoteModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                  title="Emitir Nota de Débito (05)"
+                                >
+                                  <FileText className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleEmitRemissionFromInvoice(inv)}
@@ -836,6 +920,91 @@ export function BillingManager() {
                           </button>
                           <button
                             onClick={() => handleConsultarSri(nc.claveAcceso, nc.documentNumber)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            title="Consultar Estado en SRI"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3.5. Notas de Débito (Tipo 05) */}
+      {activeTab === "notas_debito" && (
+        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                  <th className="py-3 px-4">No. Nota Débito</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Factura Modificada</th>
+                  <th className="py-3 px-4">Cliente</th>
+                  <th className="py-3 px-4">Motivos</th>
+                  <th className="py-3 px-4 text-right">Total</th>
+                  <th className="py-3 px-4 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredDebitNotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                      No se encontraron Notas de Débito registradas.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredDebitNotes.map((nd) => (
+                    <tr key={nd.id} className="hover:bg-slate-50/50">
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-900">
+                        {nd.documentNumber}
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">{nd.date}</td>
+                      <td className="py-3 px-4 font-mono text-slate-700">
+                        {nd.modifiedInvoiceNumber}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-bold text-slate-800 block">{nd.clientName}</span>
+                        <span className="text-[11px] font-mono text-slate-500">{nd.clientRuc}</span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                        {nd.reasons.map((r) => r.reason).join(", ")}
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                        ${nd.total.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {nd.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              try {
+                                const rawXml = generarNotaDebitoXml(nd, sriCompanyConfig);
+                                const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
+                                descargarXmlArchivo(signedXml, `SRI-ND-${nd.documentNumber}.xml`);
+                                showSuccess("Descarga Exitosa", `XML de Nota de Débito ${nd.documentNumber} descargado.`);
+                              } catch (e: any) {
+                                showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+                              }
+                            }}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            title="Descargar XML SRI"
+                          >
+                            <FileCode className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleConsultarSri(nd.claveAcceso, nd.documentNumber)}
                             className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
@@ -1221,6 +1390,18 @@ export function BillingManager() {
           setRideWithholding(null);
           setRideRemissionGuide(null);
           setIsRideOpen(true);
+        }}
+      />
+
+      <DebitNoteModal
+        isOpen={isDebitNoteModalOpen}
+        onClose={() => {
+          setIsDebitNoteModalOpen(false);
+          setDebitNoteInitialInvoice(null);
+        }}
+        initialInvoice={debitNoteInitialInvoice}
+        onSuccess={(nd) => {
+          showSuccess("Nota de Débito Emitida", `Nota de Débito ${nd.documentNumber} emitida con éxito.`);
         }}
       />
 

@@ -585,10 +585,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Nombre Comercial / Fantasía</label>
+                <label className="font-bold text-[#434655] block mb-1">Nombre Comercial</label>
                 <input
                   type="text"
-                  placeholder="Ej: Comercial del Pacífico"
+                  placeholder="Ej: Inntelcorp Solutions"
                   value={tradeName}
                   onChange={(e) => setTradeName(e.target.value)}
                   onBlur={() => setTradeName((v) => limpiarTextoSri(v))}

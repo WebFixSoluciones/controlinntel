@@ -385,6 +385,7 @@ export const routePermissions: Record<string, keyof UserModulePermissions> = {
   "/personas": "personas",
   "/clientes": "abonados",
   "/compras": "compras",
+  "/ventas": "ventas",
   "/finanzas": "finanzas",
   "/facturacion": "facturacion",
   "/inventarios": "inventarios",

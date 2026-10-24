@@ -38,6 +38,7 @@ import {
   ShieldAlert,
   Server,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -72,11 +73,14 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
     regulatoryTramites,
     currentUser,
     markChargeAsPaid,
+    deleteClient,
   } = useApp();
-  const { showSuccess, showConfirm } = useToast();
+  const { showSuccess, showError, showConfirm } = useToast();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>("fiscal");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!client) return null;
 
@@ -168,16 +172,33 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </span>
           </div>
 
-          {onEdit && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>Editar</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {(currentUser.role === "admin" ||
+              currentUser.role === "superadmin" ||
+              currentUser.permissions?.includes("all") ||
+              currentUser.permissions?.includes("delete_clients") ||
+              currentUser.modulePermissions?.clientes?.actions?.canDeleteClient) && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Eliminar Cliente Definitivamente"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Eliminar Cliente</span>
+              </button>
+            )}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Editar</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}
@@ -509,6 +530,66 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
           {currentTabAllowed && activeTab === "dossier" && <ClientDossierTab client={client} />}
         </div>
       </div>
+
+      {/* Modal de Confirmación de Baja / Eliminación de Cliente */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
+                <Trash2 className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">¿Eliminar Cliente Definitivamente?</h3>
+                <p className="text-xs text-slate-500">
+                  Confirmas la eliminación permanente del cliente del sistema:
+                </p>
+                <p className="font-semibold text-slate-800 text-sm mt-1">{client.businessName}</p>
+                <p className="font-mono text-slate-500 text-xs">RUC / CI: {client.identificationNumber}</p>
+              </div>
+
+              <div className="bg-amber-50 p-3.5 rounded-xl border border-amber-200 text-left text-xs text-amber-800 space-y-1">
+                <span className="font-bold block">Advertencia de Eliminación:</span>
+                <p className="text-[11px] leading-relaxed">
+                  Esta acción eliminará la ficha completa del cliente y limpiará en cascada todos sus servicios activos, proyectos, credenciales y contratos vinculados.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    try {
+                      await deleteClient(client.id);
+                      showSuccess("Cliente Eliminado", `El cliente "${client.businessName}" ha sido eliminado exitosamente.`);
+                      setShowDeleteModal(false);
+                      onClose();
+                    } catch (err: any) {
+                      showError("Error al Eliminar", err?.message || "No se pudo eliminar el cliente.");
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeleting ? "Eliminando..." : "Sí, Eliminar Cliente"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

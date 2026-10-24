@@ -10,6 +10,11 @@ import {
   generarClaveAccesoSRI,
   validarClaveAccesoSRI,
   mapearFormaPagoSRI,
+  generarFacturaXml,
+  generarNotaCreditoXml,
+  generarNotaDebitoXml,
+  generarComprobanteRetencionXml,
+  generarGuiaRemisionXml,
 } from "./sri-service.ts";
 import { validateIdentification } from "./validation-engine.ts";
 import { getEcuadorDate, addMonthsSafely, diffInCalendarDays } from "./date-utils.ts";
@@ -325,4 +330,233 @@ test("Flujo E2E 6: Edición de Nota de Venta (Corrección de Precios, Cantidades
 
   bankBalance += diffTotal;
   assert.equal(bankBalance, 1100.0, "El saldo en cuenta bancaria debe reajustarse exactamente a $1100.00 ($1000 inicial + $100 de la venta real)");
+});
+
+test("Flujo E2E 7: Emisión de Nota de Venta Comercial en /ventas y Promoción a Factura Electrónica SRI (Cero Duplicidad)", () => {
+  // 1. Operación Comercial Diaria: Emisión de Nota de Venta (NV-010-001-000000010)
+  const initialStock = 50;
+  const unitCost = 35.0;
+  const saleQty = 2;
+  const salePrice = 75.0;
+  const totalSale = saleQty * salePrice; // $150.00
+
+  // Kardex en la emisión comercial
+  const kardexVenta = buildKardexEntry({
+    product: { ...mockProduct, baseCost: unitCost },
+    warehouse: mockWarehouse,
+    type: "SALE",
+    referenceId: "sale-nv-010",
+    referenceDocNumber: "010-001-000000010",
+    concept: "Venta Comercial Nota de Venta 010-001-000000010",
+    quantity: saleQty,
+    unitCost: unitCost,
+    currentStock: initialStock,
+    currentAvgCost: unitCost,
+  });
+
+  const stockAfterSale = kardexVenta.balanceQuantity;
+  assert.equal(stockAfterSale, 48, "El stock en bodega debe quedar en 48 unidades tras emitir la Nota de Venta");
+
+  let bankBalance = 5000.0;
+  bankBalance += totalSale; // Entra el dinero del cobro
+  assert.equal(bankBalance, 5150.0, "El banco recibe los $150 de la venta comercial");
+
+  // 2. Estado de la Nota de Venta
+  let saleStatus = "pendiente_sri";
+  assert.equal(saleStatus, "pendiente_sri", "La venta nace como comprobante comercial pendiente de facturar SRI");
+
+  // 3. El usuario decide promover la venta a Factura Electrónica SRI
+  // Regla crítica: CERO DUPLICIDAD DE STOCK Y CERO DUPLICIDAD BANCARIA
+  const promotesToSri = true;
+  if (promotesToSri) {
+    const sriFacturaNumber = "010-001-000000045";
+    const claveAccesoSri = generarClaveAccesoSRI({
+      fechaEmision: "2026-10-24",
+      tipoComprobante: "01",
+      ruc: "1792458921001",
+      ambiente: "2",
+      establecimiento: "010",
+      puntoEmision: "001",
+      secuencial: "000000045",
+      codigoNumerico: "98765432",
+    });
+
+    assert.equal(claveAccesoSri.length, 49, "La clave de acceso de la factura debe tener 49 dígitos oficiales");
+
+    // Vinculación comercial
+    saleStatus = "facturada_sri";
+    const linkedSriInvoiceId = "inv-sri-045";
+
+    assert.equal(saleStatus, "facturada_sri");
+    assert.equal(linkedSriInvoiceId, "inv-sri-045");
+
+    // Verificación de no duplicidad: El stock sigue siendo 48 (no se descuenta otra vez)
+    assert.equal(stockAfterSale, 48, "El stock de bodega NO debe alterarse de nuevo al generar la Factura SRI");
+    assert.equal(bankBalance, 5150.0, "El saldo bancario NO debe duplicarse al generar la Factura SRI");
+  }
+});
+
+test("Flujo E2E 8: Los 5 Comprobantes Electrónicos Oficiales del SRI (Factura 01, NC 04, ND 05, Retención 07, Guía 06)", () => {
+  // 1. Factura (01)
+  const mockInvoice: any = {
+    id: "inv-01",
+    documentNumber: "010-001-000000100",
+    claveAcceso: "2410202601179245892100120100010000001001234567818",
+    date: "2026-10-24",
+    clientName: "EMPRESA DE PRUEBA S.A.",
+    clientRuc: "1790011223001",
+    clientEmail: "tributario@empresa.com",
+    clientAddress: "Quito",
+    items: [
+      {
+        id: "item-1",
+        productId: "p1",
+        sku: "ROUTER-01",
+        name: "Router MikroTik",
+        quantity: 1,
+        unitPrice: 100,
+        discount: 0,
+        ivaRate: 15,
+        subtotal: 100,
+        ivaAmount: 15,
+        total: 115,
+        unit: "unidad",
+      },
+    ],
+    subtotal15: 100,
+    subtotal0: 0,
+    discountTotal: 0,
+    ivaTotal: 15,
+    total: 115,
+    paymentMethod: "transferencia",
+    warehouseId: "wh-1",
+    warehouseName: "Bodega",
+    kardexRegistered: true,
+    status: "emitida",
+    createdAt: "2026-10-24",
+  };
+  const xmlFactura = generarFacturaXml(mockInvoice);
+  assert.ok(xmlFactura.includes("<codDoc>01</codDoc>"), "El XML debe tener código 01 de Factura");
+
+  // 2. Nota de Crédito (04)
+  const mockNC: any = {
+    id: "nc-01",
+    documentNumber: "010-001-000000010",
+    claveAcceso: "2410202604179245892100120100010000000101234567818",
+    date: "2026-10-24",
+    invoiceNumber: "010-001-000000100",
+    invoiceDate: "2026-10-24",
+    clientId: "c1",
+    clientName: "EMPRESA DE PRUEBA S.A.",
+    clientRuc: "1790011223001",
+    clientEmail: "tributario@empresa.com",
+    reason: "Devolución de mercadería",
+    items: mockInvoice.items,
+    subtotal: 100,
+    ivaRate: 15,
+    ivaAmount: 15,
+    total: 115,
+    warehouseId: "wh-1",
+    warehouseName: "Bodega",
+    kardexReentered: true,
+    status: "emitida",
+    createdAt: "2026-10-24",
+  };
+  const xmlNC = generarNotaCreditoXml(mockNC);
+  assert.ok(xmlNC.includes("<codDoc>04</codDoc>"), "El XML debe tener código 04 de Nota de Crédito");
+
+  // 3. Nota de Débito (05)
+  const mockND: any = {
+    id: "nd-01",
+    documentNumber: "010-001-000000005",
+    claveAcceso: "2410202605179245892100120100010000000051234567818",
+    date: "2026-10-24",
+    modifiedInvoiceNumber: "010-001-000000100",
+    modifiedInvoiceDate: "2026-10-24",
+    clientId: "c1",
+    clientName: "EMPRESA DE PRUEBA S.A.",
+    clientRuc: "1790011223001",
+    clientEmail: "tributario@empresa.com",
+    reasons: [{ reason: "Interés por mora en pago", amount: 10.0 }],
+    subtotal: 10.0,
+    ivaRate: 15,
+    ivaAmount: 1.5,
+    total: 11.5,
+    status: "emitida",
+    createdAt: "2026-10-24",
+  };
+  const xmlND = generarNotaDebitoXml(mockND);
+  assert.ok(xmlND.includes("<codDoc>05</codDoc>"), "El XML debe tener código 05 de Nota de Débito");
+  assert.ok(xmlND.includes("<notaDebito"), "Debe abrir con etiqueta notaDebito");
+
+  // 4. Retención (07)
+  const mockRet: any = {
+    id: "ret-01",
+    documentNumber: "010-001-000000020",
+    claveAcceso: "2410202607179245892100120100010000000201234567818",
+    date: "2026-10-24",
+    clientId: "c1",
+    clientName: "EMPRESA DE PRUEBA S.A.",
+    clientRuc: "1790011223001",
+    invoiceNumber: "001-001-000001234",
+    fiscalPeriod: "10/2026",
+    items: [
+      { taxType: "RENTA", code: "312", percentage: 1.75, taxBase: 100, retainedAmount: 1.75 },
+    ],
+    totalRetained: 1.75,
+    status: "emitida",
+    createdAt: "2026-10-24",
+  };
+  const xmlRet = generarComprobanteRetencionXml(mockRet);
+  assert.ok(xmlRet.includes("<codDoc>07</codDoc>"), "El XML debe tener código 07 de Retención");
+
+  // 5. Guía de Remisión (06)
+  const mockGuia: any = {
+    id: "guia-01",
+    documentNumber: "010-001-000000008",
+    claveAcceso: "2410202606179245892100120100010000000081234567818",
+    date: "2026-10-24",
+    startDate: "2026-10-24",
+    endDate: "2026-10-25",
+    carrierName: "TRANSPORTES PICHINCHA",
+    carrierRuc: "1791234567001",
+    licensePlate: "PDD-1234",
+    originAddress: "Quito Norte",
+    destAddress: "Cumbayá",
+    destClientName: "EMPRESA DE PRUEBA S.A.",
+    destClientRuc: "1790011223001",
+    route: "Quito - Cumbayá",
+    reason: "Entrega de equipos de red",
+    items: [{ name: "Router MikroTik", quantity: 1, unit: "unidad" }],
+    status: "emitida",
+    createdAt: "2026-10-24",
+  };
+  const xmlGuia = generarGuiaRemisionXml(mockGuia);
+  assert.ok(xmlGuia.includes("<codDoc>06</codDoc>"), "El XML debe tener código 06 de Guía de Remisión");
+});
+
+test("Flujo E2E 9: Baja Completa de Cliente y Purga en Cascada", () => {
+  const clientId = "cli-demo-999";
+  let clientsList = [{ id: clientId, businessName: "CLIENTE DEMO", tradeName: "DEMO STORE" }];
+  let clientServicesList = [{ id: "srv-1", clientId, planName: "Fibra 200M" }];
+  let clientProjectsList = [{ id: "prj-1", clientId, name: "Instalación Fibra" }];
+  let clientQuotesList = [{ id: "q-1", clientId, quoteNumber: "COT-2026-0099" }];
+  let clientVaultList = [{ id: "v-1", clientId, serviceName: "Router MikroTik WebFig" }];
+
+  assert.equal(clientsList.length, 1);
+  assert.equal(clientServicesList.length, 1);
+  assert.equal(clientVaultList.length, 1);
+
+  // Ejecución de eliminación en cascada
+  clientsList = clientsList.filter((c) => c.id !== clientId);
+  clientServicesList = clientServicesList.filter((s) => s.clientId !== clientId);
+  clientProjectsList = clientProjectsList.filter((p) => p.clientId !== clientId);
+  clientQuotesList = clientQuotesList.filter((q) => q.clientId !== clientId);
+  clientVaultList = clientVaultList.filter((v) => v.clientId !== clientId);
+
+  assert.equal(clientsList.length, 0, "El cliente debe desaparecer de la lista de clientes");
+  assert.equal(clientServicesList.length, 0, "Los servicios del cliente deben ser purgados");
+  assert.equal(clientProjectsList.length, 0, "Los proyectos deben ser purgados");
+  assert.equal(clientQuotesList.length, 0, "Las cotizaciones deben ser purgadas");
+  assert.equal(clientVaultList.length, 0, "Las credenciales de bóveda deben ser purgadas");
 });

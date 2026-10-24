@@ -145,6 +145,11 @@ export interface SriInvoice {
   warehouseName: string;
   kardexRegistered: boolean;
 
+  sriStatus?: "pendiente" | "facturada" | "no_aplica";
+  sriInvoiceId?: string;
+  sriDocumentNumber?: string;
+  relatedSaleId?: string;
+
   notes?: string;
   createdAt: string;
 }
@@ -256,5 +261,31 @@ export interface RemissionGuide {
   reason: string;
   items: RemissionGuideItem[];
   status: "emitida" | "en_transito" | "entregada";
+  createdAt: string;
+}
+
+export interface DebitNoteReason {
+  reason: string;
+  amount: number;
+}
+
+export interface DebitNote {
+  id: string;
+  documentNumber: string; // ej. "001-001-000000010"
+  claveAcceso: string;    // 49 dígitos oficiales del SRI
+  date: string;
+  modifiedInvoiceNumber: string;
+  modifiedInvoiceDate: string;
+  clientId: string;
+  clientName: string;
+  clientRuc: string;
+  clientEmail: string;
+  clientAddress?: string;
+  reasons: DebitNoteReason[];
+  subtotal: number;
+  ivaRate: number;
+  ivaAmount: number;
+  total: number;
+  status: "emitida" | "autorizada" | "anulada";
   createdAt: string;
 }

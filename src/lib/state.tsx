@@ -43,6 +43,7 @@ import {
   SriInvoice,
   ClientQuote,
   CreditNote,
+  DebitNote,
   WithholdingReceipt,
   RemissionGuide,
   InvoiceItem,
@@ -285,6 +286,7 @@ interface AppContextType {
   billingInvoices: SriInvoice[];
   billingQuotes: ClientQuote[];
   billingCreditNotes: CreditNote[];
+  billingDebitNotes: DebitNote[];
   billingWithholdings: WithholdingReceipt[];
   billingRemissionGuides: RemissionGuide[];
   sriCompanyConfig: SriCompanyConfig;
@@ -317,9 +319,16 @@ interface AppContextType {
     warehouseId: string,
     paymentMethod?: SriInvoice["paymentMethod"]
   ) => Promise<SriInvoice>;
+  convertSaleToSriInvoice: (
+    saleId: string,
+    customData?: Partial<SriInvoice> & { customSecuencial?: number }
+  ) => Promise<SriInvoice>;
   createCreditNote: (
     data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
   ) => Promise<CreditNote>;
+  createDebitNote: (
+    data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ) => Promise<DebitNote>;
   createWithholding: (
     data: Omit<WithholdingReceipt, "id" | "claveAcceso" | "documentNumber" | "createdAt">
   ) => Promise<WithholdingReceipt>;
@@ -433,6 +442,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [billingInvoices, setBillingInvoices] = useState<SriInvoice[]>(INITIAL_INVOICES);
   const [billingQuotes, setBillingQuotes] = useState<ClientQuote[]>(INITIAL_BILLING_QUOTES);
   const [billingCreditNotes, setBillingCreditNotes] = useState<CreditNote[]>(INITIAL_CREDIT_NOTES);
+  const [billingDebitNotes, setBillingDebitNotes] = useState<DebitNote[]>([]);
   const [billingWithholdings, setBillingWithholdings] = useState<WithholdingReceipt[]>(INITIAL_WITHHOLDINGS);
   const [billingRemissionGuides, setBillingRemissionGuides] = useState<RemissionGuide[]>(INITIAL_REMISSION_GUIDES);
   const [sriCompanyConfig, setSriCompanyConfig] = useState<SriCompanyConfig>(INITIAL_SRI_CONFIG);
@@ -1013,6 +1023,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "billingInvoices", setter: setBillingInvoices, initialData: INITIAL_INVOICES },
       { name: "billingQuotes", setter: setBillingQuotes, initialData: INITIAL_BILLING_QUOTES },
       { name: "billingCreditNotes", setter: setBillingCreditNotes, initialData: INITIAL_CREDIT_NOTES },
+      { name: "billingDebitNotes", setter: setBillingDebitNotes, initialData: [] },
       { name: "billingWithholdings", setter: setBillingWithholdings, initialData: INITIAL_WITHHOLDINGS },
       { name: "billingRemissionGuides", setter: setBillingRemissionGuides, initialData: INITIAL_REMISSION_GUIDES },
       // Compras, Proveedores & Finanzas (P0-09)
@@ -3422,6 +3433,88 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return invoice;
   };
 
+  const convertSaleToSriInvoice = async (
+    saleId: string,
+    customData?: Partial<SriInvoice> & { customSecuencial?: number }
+  ): Promise<SriInvoice> => {
+    const sale = billingInvoices.find((i) => i.id === saleId);
+    if (!sale) throw new Error("Venta comercial no encontrada.");
+
+    if (sale.sriInvoiceId) {
+      const existing = billingInvoices.find((i) => i.id === sale.sriInvoiceId);
+      if (existing) return existing;
+    }
+
+    const now = new Date().toISOString();
+    const dateStr = customData?.date || sale.date || now.slice(0, 10);
+    const invoiceId = `inv-${Date.now()}`;
+    const estab = sriCompanyConfig.establecimiento || "010";
+    const pto = sriCompanyConfig.puntoEmision || "001";
+
+    const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
+    const maxSec = billingInvoices
+      .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
+      .reduce((max, inv) => {
+        const parts = (inv.documentNumber || "").split("-");
+        const num = parseInt(parts[2] || "0", 10);
+        return !isNaN(num) && num > max ? num : max;
+      }, 0);
+    const secuencial = customData?.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
+    const documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "01",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: estab,
+      puntoEmision: pto,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const newInvoice: SriInvoice = {
+      ...sale,
+      ...customData,
+      id: invoiceId,
+      documentType: "factura",
+      documentNumber,
+      claveAcceso,
+      date: dateStr,
+      time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
+      status: "emitida",
+      relatedSaleId: sale.id,
+      kardexRegistered: false, // El stock ya fue descontado en la Nota de Venta comercial
+      notes: `Factura Electrónica emitida a partir de Nota de Venta ${sale.documentNumber}. ${sale.notes || ""}`,
+      createdAt: now,
+    };
+
+    const updatedSale: SriInvoice = {
+      ...sale,
+      sriStatus: "facturada",
+      sriInvoiceId: newInvoice.id,
+      sriDocumentNumber: newInvoice.documentNumber,
+    };
+
+    await Promise.all([
+      syncToFirestore("billingInvoices", newInvoice.id, newInvoice),
+      syncToFirestore("billingInvoices", sale.id, updatedSale),
+    ]);
+
+    setBillingInvoices((prev) => [
+      newInvoice,
+      ...prev.map((i) => (i.id === sale.id ? updatedSale : i)),
+    ]);
+
+    addAuditLog(
+      "UPDATE_CLIENT",
+      `Pase de Venta a Factura SRI: ${sale.documentNumber} -> ${newInvoice.documentNumber}`,
+      `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`
+    );
+
+    return newInvoice;
+  };
+
   const createCreditNote = async (
     data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
   ): Promise<CreditNote> => {
@@ -3530,6 +3623,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("CREATE_EXPENSE", `Nota de Crédito: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
 
     return newCreditNote;
+  };
+
+  const createDebitNote = async (
+    data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+  ): Promise<DebitNote> => {
+    const now = new Date().toISOString();
+    const ndId = `nd-${Date.now()}`;
+    const dateStr = data.date || now.slice(0, 10);
+
+    const startFromND = (sriCompanyConfig.secuencialNotaDebito || 1) - 1;
+    const maxSec = billingDebitNotes.reduce((max, nd) => {
+      const parts = (nd.documentNumber || "").split("-");
+      const num = parseInt(parts[2] || "0", 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    const secuencial = Math.max(maxSec, startFromND) + 1;
+    const documentNumber = formatearSecuencialSRI(
+      secuencial,
+      sriCompanyConfig.establecimiento,
+      sriCompanyConfig.puntoEmision
+    );
+
+    const claveAcceso = generarClaveAccesoSRI({
+      fechaEmision: dateStr,
+      tipoComprobante: "05",
+      ruc: sriCompanyConfig.ruc,
+      ambiente: sriCompanyConfig.ambiente,
+      establecimiento: sriCompanyConfig.establecimiento,
+      puntoEmision: sriCompanyConfig.puntoEmision,
+      secuencial,
+      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+    });
+
+    const newND: DebitNote = {
+      ...data,
+      id: ndId,
+      documentNumber,
+      claveAcceso,
+      createdAt: now,
+    };
+
+    await syncToFirestore("billingDebitNotes", newND.id, newND);
+    setBillingDebitNotes((prev) => [newND, ...prev]);
+
+    addAuditLog(
+      "UPDATE_CLIENT",
+      `Nota de Débito SRI: ${newND.documentNumber}`,
+      `Total: $${newND.total.toFixed(2)} - Factura Modificada: ${newND.modifiedInvoiceNumber}`
+    );
+
+    return newND;
   };
 
   const createWithholding = async (
@@ -4217,6 +4361,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           billingInvoices,
           billingQuotes,
           billingCreditNotes,
+          billingDebitNotes,
           billingWithholdings,
           billingRemissionGuides,
           sriCompanyConfig,
@@ -4228,7 +4373,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateBillingQuote,
           deleteBillingQuote,
           convertQuoteToInvoice,
+          convertSaleToSriInvoice,
           createCreditNote,
+          createDebitNote,
           createWithholding,
           createRemissionGuide,
           updateSriConfig,

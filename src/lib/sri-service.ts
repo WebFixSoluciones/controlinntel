@@ -2,6 +2,7 @@ import type {
   SriInvoice,
   SriCompanyConfig,
   CreditNote,
+  DebitNote,
   WithholdingReceipt,
   RemissionGuide,
   SriWsResponse,
@@ -721,6 +722,85 @@ export function generarNotaCreditoXml(
     <campoAdicional nombre="Bodega">${escaparXml(limpiarTextoSri(nc.warehouseName))}</campoAdicional>
   </infoAdicional>
 </notaCredito>`;
+}
+
+/**
+ * Genera el XML formal de Nota de Débito (Tipo 05) bajo estándar XSD v1.0.0 del SRI.
+ */
+export function generarNotaDebitoXml(
+  nd: DebitNote,
+  emisor: SriCompanyConfig = DEFAULT_INNTEL_SRI_CONFIG
+): string {
+  const [estab, pto, sec] = nd.documentNumber.split("-");
+  const fechaEmisionDdmmyyyy = formatearFechaDdmmyyyy(nd.date);
+  const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
+  const cleanClientRuc = limpiarIdentificacion(nd.clientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+
+  const regimenTag =
+    emisor.tipoContribuyente === "rimpe_emprendedor" || emisor.tipoContribuyente === "rimpe_popular"
+      ? `\n    <contribuyenteRimpe>CONTRIBUYENTE RÉGIMEN RIMPE</contribuyenteRimpe>`
+      : "";
+
+  const xmlMotivos = nd.reasons
+    .map(
+      (r) => `
+    <motivo>
+      <razon>${escaparXml(limpiarTextoSri(r.reason))}</razon>
+      <valor>${r.amount.toFixed(2)}</valor>
+    </motivo>`
+    )
+    .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<notaDebito id="comprobante" version="1.0.0">
+  <infoTributaria>
+    <ambiente>${emisor.ambiente}</ambiente>
+    <tipoEmision>1</tipoEmision>
+    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
+    <nombreComercial>${escaparXml(emisor.nombreComercial || emisor.razonSocial)}</nombreComercial>
+    <ruc>${cleanEmisorRuc}</ruc>
+    <claveAcceso>${nd.claveAcceso}</claveAcceso>
+    <codDoc>05</codDoc>
+    <estab>${estab}</estab>
+    <ptoEmi>${pto}</ptoEmi>
+    <secuencial>${sec}</secuencial>
+    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>${regimenTag}
+  </infoTributaria>
+  <infoNotaDebito>
+    <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
+    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento || emisor.direccionMatriz)}</dirEstablecimiento>
+    <tipoIdentificacionComprador>${cleanTipoId}</tipoIdentificacionComprador>
+    <razonSocialComprador>${escaparXml(limpiarTextoSri(nd.clientName))}</razonSocialComprador>
+    <identificacionComprador>${cleanClientRuc}</identificacionComprador>
+    <codDocModificado>01</codDocModificado>
+    <numDocModificado>${nd.modifiedInvoiceNumber}</numDocModificado>
+    <fechaEmisionDocSustento>${formatearFechaDdmmyyyy(nd.modifiedInvoiceDate)}</fechaEmisionDocSustento>
+    <totalSinImpuestos>${nd.subtotal.toFixed(2)}</totalSinImpuestos>
+    <impuestos>
+      <impuesto>
+        <codigo>2</codigo>
+        <codigoPorcentaje>${nd.ivaRate === 15 ? "4" : "0"}</codigoPorcentaje>
+        <tarifa>${nd.ivaRate}</tarifa>
+        <baseImponible>${nd.subtotal.toFixed(2)}</baseImponible>
+        <valor>${nd.ivaAmount.toFixed(2)}</valor>
+      </impuesto>
+    </impuestos>
+    <valorTotal>${nd.total.toFixed(2)}</valorTotal>
+    <pagos>
+      <pago>
+        <formaPago>20</formaPago>
+        <total>${nd.total.toFixed(2)}</total>
+      </pago>
+    </pagos>
+  </infoNotaDebito>
+  <motivos>${xmlMotivos}
+  </motivos>
+  <infoAdicional>
+    <campoAdicional nombre="Email">${escaparXml(limpiarEmailSri(nd.clientEmail))}</campoAdicional>
+    ${nd.clientAddress ? `<campoAdicional nombre="Direccion">${escaparXml(limpiarTextoSri(nd.clientAddress))}</campoAdicional>` : ""}
+  </infoAdicional>
+</notaDebito>`;
 }
 
 /**

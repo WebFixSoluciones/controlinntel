@@ -30,7 +30,7 @@ interface ClientsTableProps {
 }
 
 export function ClientsTable({ onSelectClient }: ClientsTableProps) {
-  const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient } = useApp();
+  const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
   const { showSuccess, showError } = useToast();
 
   const [filter, setFilter] = useState("");
@@ -289,6 +289,11 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                             </span>
                           )}
                         </div>
+                        {client.tradeName && client.tradeName.trim() !== client.businessName.trim() && (
+                          <span className="block text-[11px] text-slate-500 font-normal mt-0.5">
+                            {client.tradeName}
+                          </span>
+                        )}
                       </td>
 
                       {/* RUC / CI (Solo el número limpio sin espacios) */}
@@ -619,7 +624,24 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 flex-wrap">
+                {(currentUser.role === "admin" ||
+                  currentUser.role === "superadmin" ||
+                  currentUser.permissions?.includes("all") ||
+                  currentUser.permissions?.includes("delete_clients")) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const client = blockedDeleteClient.client;
+                      setBlockedDeleteClient(null);
+                      setConfirmDeleteClient(client);
+                      setConfirmDeleteChecked(false);
+                    }}
+                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 rounded-xl text-xs transition cursor-pointer"
+                  >
+                    Forzar Baja (Admin)
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setBlockedDeleteClient(null)}

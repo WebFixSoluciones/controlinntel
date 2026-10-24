@@ -268,12 +268,22 @@ export interface UserModulePermissions {
     };
     actions?: FinanceActions;
   };
+  ventas?: {
+    enabled: boolean;
+    submodules: {
+      notas_venta: boolean;
+      nueva_venta: boolean;
+      cotizaciones: boolean;
+      recurrentes: boolean;
+    };
+  };
   facturacion?: {
     enabled: boolean;
     submodules: {
       facturas: boolean;
-      cotizaciones: boolean;
+      cotizaciones?: boolean;
       notas_credito: boolean;
+      notas_debito?: boolean;
       retenciones: boolean;
       guias_remision: boolean;
     };
