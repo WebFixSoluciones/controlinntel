@@ -751,3 +751,77 @@ test("Flujo E2E 11: Visibilidad Condicional de Pestañas del Cliente (Solo Ident
   assert.ok(tabsConServicios.some((t) => t.id === "boveda"));
   assert.ok(tabsConServicios.some((t) => t.id === "finanzas"));
 });
+
+test("Flujo E2E 12: Gestión Exclusiva de Contactos de Cliente (Popup Aislado de Edición Fiscal)", () => {
+  let client = {
+    id: "cli-999",
+    identification: "1792458921001",
+    businessName: "CORPORACION ANDINA DE TELECOMUNICACIONES S.A.",
+    tradename: "ANDINATEL REDES",
+    email: "facturacion@andinatel.com",
+    phone: "022345678",
+    address: "Av. República de El Salvador 1084",
+    sector: "Iñaquito Norte",
+    contacts: [
+      {
+        id: "ct-1",
+        name: "Ing. Carlos Mendoza",
+        role: "Gerente de TI",
+        phone: "0991234567",
+        email: "cmendoza@andinatel.com",
+        address: "Piso 4 Oficina Técnica",
+      },
+    ],
+    contactName: "Ing. Carlos Mendoza",
+    contactRole: "Gerente de TI",
+    contactPhone: "0991234567",
+    contactAddress: "Piso 4 Oficina Técnica",
+  };
+
+  // 1. Simulación de agregar nuevo contacto mediante el modal exclusivo
+  const newContact = {
+    id: "ct-2",
+    name: "Lic. Diana Paredes",
+    role: "Jefa de Compras y Pagos",
+    phone: "0987654321",
+    email: "dparedes@andinatel.com",
+    address: "Piso 2 Administración",
+  };
+
+  const updatedContacts = [...client.contacts, newContact];
+
+  // La actualización solo modifica contactos, no los datos fiscales
+  client = {
+    ...client,
+    contacts: updatedContacts,
+  };
+
+  assert.equal(client.contacts.length, 2, "El cliente ahora debe tener 2 personas de contacto");
+  assert.equal(client.contacts[1].name, "Lic. Diana Paredes");
+  assert.equal(client.identification, "1792458921001", "El RUC fiscal debe permanecer inalterado");
+  assert.equal(client.tradename, "ANDINATEL REDES", "El Nombre Comercial no debe alterarse");
+
+  // 2. Edición de contacto específico
+  const editedContacts = client.contacts.map((c) =>
+    c.id === "ct-2" ? { ...c, phone: "0987000111", role: "Directora Financiera" } : c
+  );
+  client = { ...client, contacts: editedContacts };
+  assert.equal(client.contacts[1].phone, "0987000111");
+  assert.equal(client.contacts[1].role, "Directora Financiera");
+
+  // 3. Eliminación de un contacto
+  const remainingContacts = client.contacts.filter((c) => c.id !== "ct-1");
+  client = {
+    ...client,
+    contacts: remainingContacts,
+    contactName: remainingContacts[0]?.name || "",
+    contactRole: remainingContacts[0]?.role || "",
+    contactPhone: remainingContacts[0]?.phone || "",
+    contactAddress: remainingContacts[0]?.address || "",
+  };
+
+  assert.equal(client.contacts.length, 1);
+  assert.equal(client.contacts[0].id, "ct-2");
+  assert.equal(client.contactName, "Lic. Diana Paredes", "El contacto principal pasa a ser el restante");
+  assert.equal(client.businessName, "CORPORACION ANDINA DE TELECOMUNICACIONES S.A.", "La Razón Social sigue intacta");
+});

@@ -14,6 +14,7 @@ import { ClientNodesTab } from "./ClientNodesTab";
 import { ClientTramitesTab } from "./ClientTramitesTab";
 import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
+import { ClientContactsModal } from "./ClientContactsModal";
 import { ClientTabHeader, ClientSectionHeader } from "./ClientTabHeader";
 import {
   User,
@@ -39,6 +40,8 @@ import {
   Server,
   AlertCircle,
   Trash2,
+  UserPlus,
+  Users,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -81,6 +84,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
 
   const clientId = client?.id || "";
   const services = clientServices.filter((s) => s.clientId === clientId);
@@ -403,21 +407,30 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                   title="Contactos"
                   icon={User}
                   actions={
-                    onEdit && (
-                      <button
-                        onClick={onEdit}
-                        className="text-xs font-semibold text-[#004ac6] hover:text-[#003da6] flex items-center gap-1 cursor-pointer"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span>Gestionar Contactos</span>
-                      </button>
-                    )
+                    <button
+                      type="button"
+                      onClick={() => setIsContactsModalOpen(true)}
+                      className="text-xs font-semibold text-[#004ac6] hover:text-[#003da6] flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Gestionar Contactos</span>
+                    </button>
                   }
                 />
 
                 {allContacts.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-400 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                    No se han registrado personas de contacto. Haz clic en &quot;Editar Ficha&quot; para agregar contactos al cliente.
+                  <div className="text-center py-6 text-xs text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 space-y-2.5">
+                    <p className="italic text-slate-400">
+                      No se han registrado personas de contacto para este cliente.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsContactsModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>+ Agregar Primer Contacto</span>
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -622,6 +635,15 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Dedicado Exclusivo para Gestión de Contactos */}
+      {client && (
+        <ClientContactsModal
+          isOpen={isContactsModalOpen}
+          onClose={() => setIsContactsModalOpen(false)}
+          client={client}
+        />
       )}
     </div>
   );
