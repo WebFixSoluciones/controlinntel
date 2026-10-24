@@ -299,6 +299,7 @@ interface AppContextType {
     status: SriInvoice["status"],
     authorizationDate?: string
   ) => Promise<void>;
+  deleteInvoice: (id: string) => Promise<void>;
   createBillingQuote: (
     quote: Omit<ClientQuote, "id" | "quoteNumber" | "createdAt">
   ) => Promise<ClientQuote>;
@@ -2915,6 +2916,125 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("UPDATE_CLIENT", `Estado Documento ${inv.documentNumber}`, `Nuevo estado: ${status}`);
   };
 
+  const deleteInvoice = async (id: string) => {
+    const inv = billingInvoices.find((i) => i.id === id);
+    if (!inv) return;
+
+    // Validación de permisos para eliminación de facturas / notas de venta
+    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
+    const canDelete =
+      isSuperOrAdmin ||
+      currentUser.permissions?.includes("all") ||
+      currentUser.permissions?.includes("delete_invoices") ||
+      currentUser.permissions?.includes("manage_finance") ||
+      currentUser.modulePermissions?.actions?.canDeleteInvoices;
+
+    if (!canDelete) {
+      throw new Error("No tienes autorización para eliminar ventas o notas de venta.");
+    }
+
+    const now = new Date().toISOString();
+
+    // 1. Si tenía kardex registrado y no estaba previamente anulada, revertimos el stock y generamos entrada de devolución
+    if (inv.status !== "anulada" && inv.kardexRegistered) {
+      const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
+      const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
+      const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
+      const kardexEntries: KardexEntry[] = [];
+      const updatedProductsMap = new Map<string, InventoryProduct>();
+
+      for (const item of inv.items) {
+        if (!item.productId) continue;
+        const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+        if (!product || !product.tracksStock) continue;
+
+        const qty = Math.abs(item.quantity);
+        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+        const newWhStock = currentWhStock + qty;
+
+        const kdx = buildKardexEntry({
+          product,
+          warehouse: wh || { id: warehouseId, name: warehouseName },
+          type: "CUSTOMER_RETURN",
+          referenceId: inv.id,
+          referenceDocNumber: inv.documentNumber,
+          concept: `Reversión por eliminación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
+          quantity: qty,
+          unitCost: product.baseCost,
+          currentStock: currentWhStock,
+          currentAvgCost: product.baseCost,
+          userName: currentUser.displayName,
+        });
+
+        kardexEntries.push(kdx);
+
+        const updatedStockByWh = {
+          ...(product.stockByWarehouse || {}),
+          [warehouseId]: newWhStock,
+        };
+        const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+        updatedProductsMap.set(product.id, {
+          ...product,
+          baseCost: kdx.balanceAverageCost,
+          stockByWarehouse: updatedStockByWh,
+          stock: totalStock,
+          updatedAt: now,
+        });
+      }
+
+      if (kardexEntries.length > 0) {
+        await Promise.all([
+          ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+          ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+        ]);
+        setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+        setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
+      }
+
+      // Reversión de movimientos financieros vinculados
+      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
+      for (const mov of linkedMovs) {
+        if (mov.bankAccountId) {
+          const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+          if (bank) {
+            const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
+            await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
+            setBankAccounts((prev) =>
+              prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+            );
+          }
+        }
+        await deleteFromFirestore("financialMovements", mov.id);
+      }
+      if (linkedMovs.length > 0) {
+        const linkedIds = new Set(linkedMovs.map((m) => m.id));
+        setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
+      }
+
+      // Reversión de saldo de cliente si aplica
+      if (inv.clientId) {
+        const clientObj = clients.find((c) => c.id === inv.clientId);
+        if (clientObj) {
+          const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
+          await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
+          setClients((prev) =>
+            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
+          );
+        }
+      }
+    }
+
+    // 2. Eliminar de Firestore y estado local
+    await deleteFromFirestore("billingInvoices", id);
+    setBillingInvoices((prev) => prev.filter((i) => i.id !== id));
+    addAuditLog(
+      "UPDATE_CLIENT",
+      `Eliminación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"}: ${inv.documentNumber}`,
+      `Total: $${inv.total?.toFixed(2) || "0.00"} - Cliente: ${inv.clientName}`
+    );
+  };
+
   const createBillingQuote = async (
     quote: Omit<ClientQuote, "id" | "quoteNumber" | "createdAt">
   ): Promise<ClientQuote> => {
@@ -3807,6 +3927,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           sriCompanyConfig,
           createInvoice,
           updateInvoiceStatus,
+          deleteInvoice,
           createBillingQuote,
           updateBillingQuote,
           deleteBillingQuote,

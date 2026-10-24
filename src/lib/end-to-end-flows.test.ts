@@ -252,3 +252,30 @@ test("Flujo E2E 4: Ciclo de Topología de Red con Múltiples IPv4 y Semáforo de
   const daysLeft = diffInCalendarDays(today, policyExpirationDate);
   assert.ok(daysLeft > 0, "La póliza debe estar vigente con días restantes positivos");
 });
+
+test("Flujo E2E 5: Eliminación de Venta / Nota de Venta y Reversión Automática de Kardex", () => {
+  // 1. Simulación de venta con descuento de 4 unidades
+  const initialStock = 20;
+  const unitCost = 45.0;
+  const soldQuantity = 4;
+  const stockAfterSale = initialStock - soldQuantity; // 16 unidades
+
+  // 2. Proceso de eliminación de la venta
+  // Debe reversar la cantidad vendida al stock de bodega
+  const restoredQuantity = soldQuantity;
+  const kardexReversion = buildKardexEntry({
+    product: { ...mockProduct, baseCost: unitCost },
+    warehouse: mockWarehouse,
+    type: "CUSTOMER_RETURN",
+    referenceId: "inv-del-001",
+    referenceDocNumber: "NV-010-001-000000099",
+    concept: "Reversión por eliminación de Nota de Venta NV-010-001-000000099",
+    quantity: restoredQuantity,
+    unitCost: unitCost,
+    currentStock: stockAfterSale,
+    currentAvgCost: unitCost,
+  });
+
+  assert.equal(kardexReversion.balanceQuantity, 20, "Al eliminar la venta, el stock debe restaurarse a las 20 unidades");
+  assert.equal(kardexReversion.type, "CUSTOMER_RETURN", "El tipo de movimiento debe registrarse como devolución de cliente");
+});

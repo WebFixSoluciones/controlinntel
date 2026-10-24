@@ -46,6 +46,7 @@ import {
   FileCode,
   RefreshCw,
   X,
+  Trash2,
 } from "lucide-react";
 import {
   generarFacturaXml,
@@ -76,6 +77,7 @@ export function BillingManager() {
     billingRemissionGuides,
     sriCompanyConfig,
     convertQuoteToInvoice,
+    deleteInvoice,
     inventoryWarehouses,
   } = useApp();
   const { showConfirm, showSuccess, showError } = useToast();
@@ -198,6 +200,29 @@ export function BillingManager() {
   }, [billingCreditNotes, searchTerm]);
 
   // Actions
+  const handleDeleteInvoice = (inv: SriInvoice) => {
+    const isNota = inv.documentType === "nota_venta";
+    const docLabel = isNota ? "Nota de Venta" : "Factura";
+
+    showConfirm(
+      `¿Eliminar ${docLabel}?`,
+      `¿Confirmas la eliminación definitiva del comprobante ${inv.documentNumber} (${inv.clientName})? ${
+        inv.kardexRegistered
+          ? "El stock de los productos se devolverá automáticamente al inventario."
+          : ""
+      }`,
+      async () => {
+        try {
+          await deleteInvoice(inv.id);
+          showSuccess(`${docLabel} Eliminada`, `El comprobante ${inv.documentNumber} fue eliminado exitosamente.`);
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message || "No se pudo eliminar el comprobante.");
+        }
+      },
+      "Eliminar Comprobante"
+    );
+  };
+
   const handleOpenRide = (inv: SriInvoice) => {
     setRideInvoice(inv);
     setRideCreditNote(null);
@@ -603,6 +628,13 @@ export function BillingManager() {
                                 </button>
                               </>
                             )}
+                            <button
+                              onClick={() => handleDeleteInvoice(inv)}
+                              className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                              title={isNotaVenta ? "Eliminar Nota de Venta" : "Eliminar Venta / Factura"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
