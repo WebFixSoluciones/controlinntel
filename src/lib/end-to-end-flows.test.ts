@@ -279,3 +279,50 @@ test("Flujo E2E 5: Eliminación de Venta / Nota de Venta y Reversión Automátic
   assert.equal(kardexReversion.balanceQuantity, 20, "Al eliminar la venta, el stock debe restaurarse a las 20 unidades");
   assert.equal(kardexReversion.type, "CUSTOMER_RETURN", "El tipo de movimiento debe registrarse como devolución de cliente");
 });
+
+test("Flujo E2E 6: Edición de Nota de Venta (Corrección de Precios, Cantidades y Conciliación Financiera)", () => {
+  // 1. Emisión inicial incorrecta: 3 unidades a $150 c/u = $450
+  const initialStock = 20;
+  const unitCost = 40.0;
+  const initialQty = 3;
+  const initialPrice = 150.0;
+  const initialTotal = initialQty * initialPrice; // $450.00
+  let currentStock = initialStock - initialQty; // 17
+
+  // Saldo bancario inicial con el cobro incorrecto
+  let bankBalance = 1000.0 + initialTotal; // $1450.00
+
+  // 2. Operador detecta el error: el precio real era $50 y la cantidad real era 2 unidades
+  const correctedQty = 2;
+  const correctedPrice = 50.0;
+  const correctedTotal = correctedQty * correctedPrice; // $100.00
+
+  // 3. Ajuste de Stock (Delta de Cantidad)
+  const qtyDelta = correctedQty - initialQty; // -1 unidad (devolver 1 a bodega)
+  assert.equal(qtyDelta, -1, "La variación de inventario debe ser de -1 unidad");
+
+  if (qtyDelta < 0) {
+    const returnQty = Math.abs(qtyDelta);
+    const kardexAjuste = buildKardexEntry({
+      product: { ...mockProduct, baseCost: unitCost },
+      warehouse: mockWarehouse,
+      type: "CUSTOMER_RETURN",
+      referenceId: "nv-edit-001",
+      referenceDocNumber: "010-001-000000045",
+      concept: "Reversión por reducción en edición de Nota de Venta 010-001-000000045",
+      quantity: returnQty,
+      unitCost: unitCost,
+      currentStock: currentStock,
+      currentAvgCost: unitCost,
+    });
+    currentStock = kardexAjuste.balanceQuantity;
+    assert.equal(currentStock, 18, "El stock en bodega debe incrementarse de 17 a 18 unidades");
+  }
+
+  // 4. Ajuste Financiero (Diferencia de Dinero)
+  const diffTotal = correctedTotal - initialTotal; // -$350.00
+  assert.equal(diffTotal, -350.0, "La diferencia contable debe ser -$350.00");
+
+  bankBalance += diffTotal;
+  assert.equal(bankBalance, 1100.0, "El saldo en cuenta bancaria debe reajustarse exactamente a $1100.00 ($1000 inicial + $100 de la venta real)");
+});

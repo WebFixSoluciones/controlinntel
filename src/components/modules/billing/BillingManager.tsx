@@ -19,6 +19,7 @@ import { RecurringBillingView } from "./RecurringBillingView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
+import { EditSaleModal } from "./EditSaleModal";
 import {
   Receipt,
   FileText,
@@ -47,6 +48,7 @@ import {
   RefreshCw,
   X,
   Trash2,
+  Edit2,
 } from "lucide-react";
 import {
   generarFacturaXml,
@@ -133,6 +135,10 @@ export function BillingManager() {
 
   const [isRemissionModalOpen, setIsRemissionModalOpen] = useState(false);
   const [remissionInitialInvoice, setRemissionInitialInvoice] = useState<SriInvoice | null>(null);
+
+  // Edit Sale / Nota de Venta Modal
+  const [isEditSaleModalOpen, setIsEditSaleModalOpen] = useState(false);
+  const [invoiceToEdit, setInvoiceToEdit] = useState<SriInvoice | null>(null);
 
   // RIDE Viewer
   const [isRideOpen, setIsRideOpen] = useState(false);
@@ -627,6 +633,18 @@ export function BillingManager() {
                                   <Truck className="w-4 h-4" />
                                 </button>
                               </>
+                            )}
+                            {(isNotaVenta || isDraft || inv.status !== "autorizada") && inv.status !== "anulada" && (
+                              <button
+                                onClick={() => {
+                                  setInvoiceToEdit(inv);
+                                  setIsEditSaleModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-[6px] text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                                title={isNotaVenta ? "Editar Nota de Venta" : "Editar Comprobante"}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
                             )}
                             <button
                               onClick={() => handleDeleteInvoice(inv)}
@@ -1246,6 +1264,21 @@ export function BillingManager() {
         onConvertToInvoice={(q) => {
           setQuoteToPreview(null);
           setQuoteToConvert(q);
+        }}
+      />
+
+      <EditSaleModal
+        isOpen={isEditSaleModalOpen}
+        invoice={invoiceToEdit}
+        onClose={() => {
+          setIsEditSaleModalOpen(false);
+          setInvoiceToEdit(null);
+        }}
+        onSuccess={(updated) => {
+          showSuccess(
+            "Comprobante Actualizado",
+            `La ${updated.documentType === "nota_venta" ? "Nota de Venta" : "Venta"} ${updated.documentNumber} fue actualizada con éxito.`
+          );
         }}
       />
     </div>

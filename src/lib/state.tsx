@@ -299,6 +299,10 @@ interface AppContextType {
     status: SriInvoice["status"],
     authorizationDate?: string
   ) => Promise<void>;
+  updateInvoice: (
+    id: string,
+    updates: Partial<SriInvoice>
+  ) => Promise<SriInvoice>;
   deleteInvoice: (id: string) => Promise<void>;
   createBillingQuote: (
     quote: Omit<ClientQuote, "id" | "quoteNumber" | "createdAt">
@@ -2916,6 +2920,297 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("UPDATE_CLIENT", `Estado Documento ${inv.documentNumber}`, `Nuevo estado: ${status}`);
   };
 
+  const updateInvoice = async (
+    id: string,
+    updates: Partial<SriInvoice>
+  ): Promise<SriInvoice> => {
+    const inv = billingInvoices.find((i) => i.id === id);
+    if (!inv) throw new Error("Comprobante no encontrado.");
+
+    // Validación de permisos
+    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
+    const canEdit =
+      isSuperOrAdmin ||
+      currentUser.permissions?.includes("all") ||
+      currentUser.permissions?.includes("manage_finance") ||
+      currentUser.permissions?.includes("edit_invoices") ||
+      currentUser.modulePermissions?.actions?.canEditInvoices;
+
+    if (!canEdit) {
+      throw new Error("No tienes autorización para editar ventas o notas de venta.");
+    }
+
+    if (inv.status === "anulada") {
+      throw new Error("No se puede editar un comprobante que ya ha sido anulado.");
+    }
+
+    if (inv.documentType === "factura" && inv.status === "autorizada") {
+      throw new Error("Una factura electrónica ya autorizada por el SRI no puede modificarse directamente. Debe emitir una Nota de Crédito.");
+    }
+
+    const now = new Date().toISOString();
+    const oldWarehouseId = inv.warehouseId || "wh-central";
+    const newWarehouseId = updates.warehouseId || oldWarehouseId;
+    const wh = inventoryWarehouses.find((w) => w.id === newWarehouseId) || inventoryWarehouses[0];
+    const warehouseId = wh ? wh.id : newWarehouseId;
+    const warehouseName = wh ? wh.name : (updates.warehouseName || inv.warehouseName || "Bodega Central");
+
+    // 1. Ajuste de Inventario / Kardex si aplica
+    const kardexEntries: KardexEntry[] = [];
+    const updatedProductsMap = new Map<string, InventoryProduct>();
+
+    if (inv.status !== "borrador" && (inv.kardexRegistered || updates.items)) {
+      const oldItems = inv.items || [];
+      const newItems = updates.items || oldItems;
+
+      const oldQtyMap = new Map<string, number>();
+      for (const it of oldItems) {
+        if (!it.productId) continue;
+        oldQtyMap.set(it.productId, (oldQtyMap.get(it.productId) || 0) + Math.abs(it.quantity));
+      }
+
+      const newQtyMap = new Map<string, number>();
+      for (const it of newItems) {
+        if (!it.productId) continue;
+        newQtyMap.set(it.productId, (newQtyMap.get(it.productId) || 0) + Math.abs(it.quantity));
+      }
+
+      const allProductIds = Array.from(new Set([...oldQtyMap.keys(), ...newQtyMap.keys()]));
+
+      for (const prodId of allProductIds) {
+        const product = updatedProductsMap.get(prodId) || inventoryProducts.find((p) => p.id === prodId);
+        if (!product || !product.tracksStock) continue;
+
+        const oldQty = oldQtyMap.get(prodId) || 0;
+        const newQty = newQtyMap.get(prodId) || 0;
+        const delta = newQty - oldQty;
+
+        if (delta === 0) continue;
+
+        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+
+        if (delta > 0) {
+          if (product.tracksStock && product.type !== "servicio" && currentWhStock < delta) {
+            throw new Error(`Stock insuficiente para '${product.name}' en la bodega '${warehouseName}'. Disponible: ${currentWhStock}, adicional requerido: ${delta}.`);
+          }
+          const newWhStock = currentWhStock - delta;
+          const kdx = buildKardexEntry({
+            product,
+            warehouse: wh || { id: warehouseId, name: warehouseName },
+            type: "SALE",
+            referenceId: inv.id,
+            referenceDocNumber: inv.documentNumber,
+            concept: `Ajuste incremento por edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
+            quantity: delta,
+            unitCost: product.baseCost,
+            currentStock: currentWhStock,
+            currentAvgCost: product.baseCost,
+            userName: currentUser.displayName,
+          });
+          kardexEntries.push(kdx);
+
+          const updatedStockByWh = {
+            ...(product.stockByWarehouse || {}),
+            [warehouseId]: newWhStock,
+          };
+          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+          updatedProductsMap.set(product.id, {
+            ...product,
+            stockByWarehouse: updatedStockByWh,
+            stock: totalStock,
+            updatedAt: now,
+          });
+        } else {
+          const returnQty = Math.abs(delta);
+          const newWhStock = currentWhStock + returnQty;
+          const kdx = buildKardexEntry({
+            product,
+            warehouse: wh || { id: warehouseId, name: warehouseName },
+            type: "CUSTOMER_RETURN",
+            referenceId: inv.id,
+            referenceDocNumber: inv.documentNumber,
+            concept: `Reversión por reducción en edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
+            quantity: returnQty,
+            unitCost: product.baseCost,
+            currentStock: currentWhStock,
+            currentAvgCost: product.baseCost,
+            userName: currentUser.displayName,
+          });
+          kardexEntries.push(kdx);
+
+          const updatedStockByWh = {
+            ...(product.stockByWarehouse || {}),
+            [warehouseId]: newWhStock,
+          };
+          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+
+          updatedProductsMap.set(product.id, {
+            ...product,
+            stockByWarehouse: updatedStockByWh,
+            stock: totalStock,
+            updatedAt: now,
+          });
+        }
+      }
+
+      if (kardexEntries.length > 0) {
+        await Promise.all([
+          ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+          ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+        ]);
+        setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+        setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
+      }
+    }
+
+    // 2. Ajuste de movimientos financieros y saldos bancarios / cuentas por cobrar
+    const oldTotal = Number(inv.total || 0);
+    const newTotal = updates.total !== undefined ? Number(updates.total) : oldTotal;
+    const oldMethod = inv.paymentMethod || "transferencia";
+    const newMethod = updates.paymentMethod || oldMethod;
+    const oldBankId = inv.bankAccountId;
+    const newBankId = updates.bankAccountId || oldBankId;
+
+    if (inv.status !== "borrador") {
+      const diffTotal = Math.round((newTotal - oldTotal) * 100) / 100;
+      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
+
+      if (newMethod !== "credito") {
+        if (oldMethod === "credito") {
+          // Cambió de crédito a contado
+          if (inv.clientId && inv.clientId !== "cf-9999999999999") {
+            const cl = clients.find((c) => c.id === inv.clientId);
+            if (cl) {
+              const adjustedClBal = Math.max(0, Math.round(((cl.currentBalance || 0) - oldTotal) * 100) / 100);
+              await syncToFirestore("clients", cl.id, { currentBalance: adjustedClBal });
+              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: adjustedClBal } : c)));
+            }
+          }
+          const targetBank = newBankId ? bankAccounts.find((b) => b.id === newBankId) : bankAccounts[0];
+          if (targetBank) {
+            const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+            const movement: FinancialMovement = {
+              id: movId,
+              type: "ingreso",
+              date: updates.date || inv.date,
+              amount: newTotal,
+              category: "venta_equipos",
+              description: `Cobro editado ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber} - ${updates.clientName || inv.clientName}`,
+              bankAccountId: targetBank.id,
+              bankAccountName: targetBank.bankName,
+              paymentMethod: newMethod,
+              referenceNumber: updates.transferenciaRef || updates.tarjetaRef || inv.documentNumber,
+              relatedEntityId: inv.id,
+              createdAt: now,
+            };
+            setFinancialMovements((prev) => [movement, ...prev]);
+            await syncToFirestore("financialMovements", movId, movement);
+
+            const newBankBal = Math.round((targetBank.currentBalance + newTotal) * 100) / 100;
+            setBankAccounts((prev) => prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBankBal } : b)));
+            await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBankBal });
+          }
+        } else {
+          // Ambos contado
+          if (linkedMovs.length > 0) {
+            for (const mov of linkedMovs) {
+              const currentBank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+              if (currentBank) {
+                if (!newBankId || newBankId === mov.bankAccountId) {
+                  const updatedBankBal = Math.max(0, Math.round(((currentBank.currentBalance || 0) + diffTotal) * 100) / 100);
+                  await syncToFirestore("bankAccounts", currentBank.id, { currentBalance: updatedBankBal });
+                  setBankAccounts((prev) => prev.map((b) => (b.id === currentBank.id ? { ...b, currentBalance: updatedBankBal } : b)));
+                } else {
+                  const revertedOldBankBal = Math.max(0, Math.round(((currentBank.currentBalance || 0) - mov.amount) * 100) / 100);
+                  await syncToFirestore("bankAccounts", currentBank.id, { currentBalance: revertedOldBankBal });
+                  setBankAccounts((prev) => prev.map((b) => (b.id === currentBank.id ? { ...b, currentBalance: revertedOldBankBal } : b)));
+
+                  const targetNewBank = bankAccounts.find((b) => b.id === newBankId);
+                  if (targetNewBank) {
+                    const updatedNewBankBal = Math.round(((targetNewBank.currentBalance || 0) + newTotal) * 100) / 100;
+                    await syncToFirestore("bankAccounts", targetNewBank.id, { currentBalance: updatedNewBankBal });
+                    setBankAccounts((prev) => prev.map((b) => (b.id === targetNewBank.id ? { ...b, currentBalance: updatedNewBankBal } : b)));
+                  }
+                }
+              }
+              const updatedMov: FinancialMovement = {
+                ...mov,
+                amount: newTotal,
+                bankAccountId: newBankId || mov.bankAccountId,
+                bankAccountName: newBankId ? (bankAccounts.find((b) => b.id === newBankId)?.bankName || mov.bankAccountName) : mov.bankAccountName,
+                paymentMethod: newMethod,
+                description: `Cobro editado ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber} - ${updates.clientName || inv.clientName}`,
+              };
+              await syncToFirestore("financialMovements", mov.id, updatedMov);
+              setFinancialMovements((prev) => prev.map((m) => (m.id === mov.id ? updatedMov : m)));
+            }
+          }
+        }
+      } else {
+        // Nuevo método es crédito
+        if (oldMethod !== "credito") {
+          for (const mov of linkedMovs) {
+            if (mov.bankAccountId) {
+              const b = bankAccounts.find((acc) => acc.id === mov.bankAccountId);
+              if (b) {
+                const revBal = Math.max(0, Math.round(((b.currentBalance || 0) - mov.amount) * 100) / 100);
+                await syncToFirestore("bankAccounts", b.id, { currentBalance: revBal });
+                setBankAccounts((prev) => prev.map((item) => (item.id === b.id ? { ...item, currentBalance: revBal } : item)));
+              }
+            }
+            await deleteFromFirestore("financialMovements", mov.id);
+          }
+          setFinancialMovements((prev) => prev.filter((m) => m.relatedEntityId !== inv.id));
+
+          const targetClientId = updates.clientId || inv.clientId;
+          if (targetClientId && targetClientId !== "cf-9999999999999") {
+            const cl = clients.find((c) => c.id === targetClientId);
+            if (cl) {
+              const updatedClBal = Math.round(((cl.currentBalance || 0) + newTotal) * 100) / 100;
+              await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
+              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
+            }
+          }
+        } else {
+          // Ya era crédito
+          const targetClientId = updates.clientId || inv.clientId;
+          if (targetClientId && targetClientId !== "cf-9999999999999") {
+            const cl = clients.find((c) => c.id === targetClientId);
+            if (cl) {
+              const updatedClBal = Math.max(0, Math.round(((cl.currentBalance || 0) + diffTotal) * 100) / 100);
+              await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
+              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Objeto actualizado final y sincronización
+    const updatedInvoice: SriInvoice = {
+      ...inv,
+      ...updates,
+      warehouseId,
+      warehouseName,
+      kardexRegistered: inv.kardexRegistered || kardexEntries.length > 0,
+      clientRuc: updates.clientRuc ? String(updates.clientRuc).replace(/\s+/g, "").trim() : inv.clientRuc,
+      clientEmail: updates.clientEmail ? String(updates.clientEmail).replace(/\s+/g, "").trim().toLowerCase() : inv.clientEmail,
+      clientName: updates.clientName ? String(updates.clientName).replace(/\s+/g, " ").trim() : inv.clientName,
+    };
+
+    await syncToFirestore("billingInvoices", id, updatedInvoice);
+    setBillingInvoices((prev) => prev.map((i) => (i.id === id ? updatedInvoice : i)));
+
+    addAuditLog(
+      "UPDATE_CLIENT",
+      `Edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"}: ${inv.documentNumber}`,
+      `Total anterior: $${oldTotal.toFixed(2)} -> Nuevo Total: $${newTotal.toFixed(2)} - Cliente: ${updatedInvoice.clientName}`
+    );
+
+    return updatedInvoice;
+  };
+
   const deleteInvoice = async (id: string) => {
     const inv = billingInvoices.find((i) => i.id === id);
     if (!inv) return;
@@ -3927,6 +4222,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           sriCompanyConfig,
           createInvoice,
           updateInvoiceStatus,
+          updateInvoice,
           deleteInvoice,
           createBillingQuote,
           updateBillingQuote,
