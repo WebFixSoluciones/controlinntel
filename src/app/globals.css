@@ -62,4 +62,27 @@ textarea:not(.rounded-full),
   border-radius: 6px;
 }
 
+/* Reglas maestras de impresión para navegadores y atajos directos */
+@media print {
+  header,
+  nav,
+  aside,
+  [data-sidebar],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt;
+  }
+
+  /* Evitar saltos de página dentro de tablas o filas de totales */
+  tr, table, .avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
 

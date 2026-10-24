@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Printer,
@@ -11,6 +11,7 @@ import {
   FileCheck2,
   FileText,
   Receipt,
+  FileCode,
 } from "lucide-react";
 import {
   SriInvoice,
@@ -19,22 +20,26 @@ import {
   RemissionGuide,
   SriCompanyConfig,
 } from "@/types";
+import { DebitNote } from "@/types/billing";
 import {
   DEFAULT_INNTEL_SRI_CONFIG,
   numeroALetrasDolares,
   generarFacturaXml,
   generarNotaCreditoXml,
+  generarNotaDebitoXml,
   generarComprobanteRetencionXml,
   generarGuiaRemisionXml,
   generarXmlFirmado,
   descargarXmlArchivo,
 } from "@/lib/sri-service";
+import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
 
 interface RidePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoice?: SriInvoice | null;
   creditNote?: CreditNote | null;
+  debitNote?: DebitNote | null;
   withholding?: WithholdingReceipt | null;
   remissionGuide?: RemissionGuide | null;
   companyConfig?: SriCompanyConfig;
@@ -46,11 +51,13 @@ export function RidePreviewModal({
   onClose,
   invoice,
   creditNote,
+  debitNote,
   withholding,
   remissionGuide,
   companyConfig = DEFAULT_INNTEL_SRI_CONFIG,
   initialFormat = "ride",
 }: RidePreviewModalProps) {
+  const printAreaRef = useRef<HTMLDivElement>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [xmlDownloaded, setXmlDownloaded] = useState(false);
   const [format, setFormat] = useState<"ride" | "ticket">(initialFormat);
@@ -63,12 +70,13 @@ export function RidePreviewModal({
 
   if (!isOpen) return null;
 
-  const doc = invoice || creditNote || withholding || remissionGuide;
+  const doc = invoice || creditNote || debitNote || withholding || remissionGuide;
   if (!doc) return null;
 
   const isInvoice = !!invoice;
   const isNotaVenta = isInvoice && invoice?.documentType === "nota_venta";
   const isCreditNote = !!creditNote;
+  const isDebitNote = !!debitNote;
   const isWithholding = !!withholding;
   const isRemissionGuide = !!remissionGuide;
 
@@ -78,6 +86,8 @@ export function RidePreviewModal({
     ? "FACTURA"
     : isCreditNote
     ? "NOTA DE CRÉDITO"
+    : isDebitNote
+    ? "NOTA DE DÉBITO"
     : isWithholding
     ? "COMPROBANTE DE RETENCIÓN"
     : "GUÍA DE REMISIÓN";
@@ -95,17 +105,36 @@ export function RidePreviewModal({
     ? remissionGuide.destClientRuc
     : (doc as any).clientRuc || "9999999999999";
 
-  // Totales
-  const subtotal15 = (invoice && invoice.subtotal15) || (creditNote && creditNote.subtotal15) || 0;
-  const subtotal0 = (invoice && invoice.subtotal0) || (creditNote && creditNote.subtotal0) || 0;
-  const subtotalNoObjeto = (invoice && invoice.subtotalNoObjeto) || 0;
-  const subtotalExento = (invoice && invoice.subtotalExento) || 0;
+  // Totales seguros
+  const subtotal15 = safeFloat(
+    (invoice && invoice.subtotal15) ||
+    (creditNote && creditNote.subtotal15) ||
+    (debitNote && debitNote.subtotal) ||
+    0
+  );
+  const subtotal0 = safeFloat(
+    (invoice && invoice.subtotal0) ||
+    (creditNote && creditNote.subtotal0) ||
+    0
+  );
+  const subtotalNoObjeto = safeFloat((invoice && invoice.subtotalNoObjeto) || 0);
+  const subtotalExento = safeFloat((invoice && invoice.subtotalExento) || 0);
   const subtotalSinImpuestos = subtotal15 + subtotal0 + subtotalNoObjeto + subtotalExento;
-  const discountTotal = (invoice && invoice.discountTotal) || 0;
-  const ivaTotal = (invoice && invoice.ivaTotal) || (creditNote && creditNote.ivaTotal) || 0;
+  const discountTotal = safeFloat((invoice && invoice.discountTotal) || 0);
+  const ivaTotal = safeFloat(
+    (invoice && invoice.ivaTotal) ||
+    (creditNote && creditNote.ivaTotal) ||
+    (debitNote && debitNote.ivaAmount) ||
+    0
+  );
   const total = isWithholding
-    ? withholding.totalRetained
-    : (invoice && invoice.total) || (creditNote && creditNote.total) || 0;
+    ? safeFloat(withholding.totalRetained)
+    : safeFloat(
+        (invoice && invoice.total) ||
+        (creditNote && creditNote.total) ||
+        (debitNote && debitNote.total) ||
+        0
+      );
 
   const totalEnLetras = numeroALetrasDolares(total);
 
@@ -113,36 +142,36 @@ export function RidePreviewModal({
   const paymentRows: Array<{ label: string; sriLabel: string; amount: number; termDays: number }> = [];
   if (invoice) {
     const bd = invoice.paymentsBreakdown;
-    if (bd && (bd.efectivo > 0 || bd.transferencia > 0 || bd.tarjeta > 0 || bd.credito > 0)) {
-      if (bd.efectivo > 0) {
+    if (bd && (safeFloat(bd.efectivo) > 0 || safeFloat(bd.transferencia) > 0 || safeFloat(bd.tarjeta) > 0 || safeFloat(bd.credito) > 0)) {
+      if (safeFloat(bd.efectivo) > 0) {
         paymentRows.push({
           label: "Efectivo",
           sriLabel: "01 - SIN UTILIZACIÓN DEL SISTEMA FINANCIERO",
-          amount: Math.min(invoice.total, bd.efectivo),
+          amount: Math.min(invoice.total, safeFloat(bd.efectivo)),
           termDays: 0,
         });
       }
-      if (bd.transferencia > 0) {
+      if (safeFloat(bd.transferencia) > 0) {
         paymentRows.push({
           label: `Transferencia${invoice.transferenciaRef ? ` (${invoice.transferenciaRef})` : ""}`,
           sriLabel: "20 - OTROS CON UTILIZACIÓN DEL SISTEMA FINANCIERO",
-          amount: bd.transferencia,
+          amount: safeFloat(bd.transferencia),
           termDays: 0,
         });
       }
-      if (bd.tarjeta > 0) {
+      if (safeFloat(bd.tarjeta) > 0) {
         paymentRows.push({
           label: `Tarjeta${invoice.tarjetaRef ? ` (${invoice.tarjetaRef})` : ""}`,
           sriLabel: "19 - TARJETA DE CRÉDITO / DÉBITO",
-          amount: bd.tarjeta,
+          amount: safeFloat(bd.tarjeta),
           termDays: 0,
         });
       }
-      if (bd.credito > 0) {
+      if (safeFloat(bd.credito) > 0) {
         paymentRows.push({
           label: "Crédito Directo",
           sriLabel: "20 - CRÉDITO DIRECTO CON UTILIZACIÓN DEL SISTEMA FINANCIERO",
-          amount: bd.credito,
+          amount: safeFloat(bd.credito),
           termDays: invoice.paymentTermDays || 30,
         });
       }
@@ -162,7 +191,7 @@ export function RidePreviewModal({
             : invoice.paymentMethod === "tarjeta"
             ? "19 - TARJETA DE CRÉDITO"
             : "20 - OTROS CON UTILIZACIÓN DEL SISTEMA FINANCIERO",
-        amount: invoice.total,
+        amount: safeFloat(invoice.total),
         termDays: invoice.paymentTermDays || 0,
       });
     }
@@ -186,6 +215,9 @@ export function RidePreviewModal({
       } else if (creditNote) {
         rawXml = generarNotaCreditoXml(creditNote, emisor);
         fileName = `SRI-NC-${creditNote.documentNumber}.xml`;
+      } else if (debitNote) {
+        rawXml = generarNotaDebitoXml(debitNote, emisor);
+        fileName = `SRI-ND-${debitNote.documentNumber}.xml`;
       } else if (withholding) {
         rawXml = generarComprobanteRetencionXml(withholding, emisor);
         fileName = `SRI-RET-${withholding.documentNumber}.xml`;
@@ -205,7 +237,15 @@ export function RidePreviewModal({
   };
 
   const handlePrint = () => {
-    window.print();
+    if (printAreaRef.current) {
+      printHtmlElement(
+        printAreaRef.current,
+        `${docTypeLabel}-${docNumber || "INNTEL"}`,
+        format === "ticket" ? "ticket" : "a4"
+      );
+    } else {
+      window.print();
+    }
   };
 
   return (
@@ -318,7 +358,11 @@ export function RidePreviewModal({
             /* =====================================================
                VISTA TICKET TÉRMICO POS (80mm)
                ===================================================== */
-            <div className="w-[310px] mx-auto bg-white p-5 rounded-[6px] shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full">
+            <div
+              ref={printAreaRef}
+              id="ticket-print-area"
+              className="w-[310px] mx-auto bg-white p-5 rounded-[6px] shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full"
+            >
               <div className="text-center border-b border-dashed border-slate-400 pb-3 mb-3 space-y-0.5">
                 <div className="flex justify-center mb-1.5">
                   <img
@@ -383,10 +427,10 @@ export function RidePreviewModal({
                 <tbody className="divide-y divide-dotted divide-slate-200">
                   {invoice.items.map((it, idx) => (
                     <tr key={it.id || idx}>
-                      <td className="py-1 pr-1 align-top font-bold">{it.quantity}</td>
+                      <td className="py-1 pr-1 align-top font-bold">{safeNumber(it.quantity)}</td>
                       <td className="py-1 pr-1 align-top">{it.name}</td>
-                      <td className="py-1 pr-1 align-top text-right">${it.unitPrice.toFixed(2)}</td>
-                      <td className="py-1 align-top text-right font-bold">${it.subtotal.toFixed(2)}</td>
+                      <td className="py-1 pr-1 align-top text-right">${safeNumber(it.unitPrice)}</td>
+                      <td className="py-1 align-top text-right font-bold">${safeNumber(it.subtotal)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -395,25 +439,25 @@ export function RidePreviewModal({
               <div className="space-y-1 text-[10.5px] border-b border-dashed border-slate-400 pb-3 mb-3">
                 <div className="flex justify-between">
                   <span>SUBTOTAL 15%:</span>
-                  <span>${subtotal15.toFixed(2)}</span>
+                  <span>${safeNumber(subtotal15)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>SUBTOTAL 0%:</span>
-                  <span>${subtotal0.toFixed(2)}</span>
+                  <span>${safeNumber(subtotal0)}</span>
                 </div>
                 {discountTotal > 0 && (
                   <div className="flex justify-between">
                     <span>DESCUENTO:</span>
-                    <span>-${discountTotal.toFixed(2)}</span>
+                    <span>-${safeNumber(discountTotal)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span>IVA 15%:</span>
-                  <span>${ivaTotal.toFixed(2)}</span>
+                  <span>${safeNumber(ivaTotal)}</span>
                 </div>
                 <div className="flex justify-between text-xs font-black pt-1 border-t border-slate-300">
                   <span>TOTAL A PAGAR:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>${safeNumber(total)}</span>
                 </div>
               </div>
 
@@ -422,7 +466,7 @@ export function RidePreviewModal({
                 {paymentRows.map((row, i) => (
                   <div key={i} className="flex justify-between">
                     <span>{row.label}</span>
-                    <span className="font-bold">${row.amount.toFixed(2)}</span>
+                    <span className="font-bold">${safeNumber(row.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -440,7 +484,11 @@ export function RidePreviewModal({
             /* =====================================================
                VISTA FORMATO A4 (RIDE OFICIAL SRI / NOTA DE VENTA)
                ===================================================== */
-            <div className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-[6px] shadow-xs border border-slate-200 space-y-6 text-[12px] leading-relaxed print:shadow-none print:border-none print:p-0">
+            <div
+              ref={printAreaRef}
+              id="ride-print-area"
+              className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-[6px] shadow-xs border border-slate-200 space-y-6 text-[12px] leading-relaxed print:shadow-none print:border-none print:p-0"
+            >
               {/* Cabecera: 2 Columnas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
                 {/* Columna Izquierda: Logo Oficial + Datos del Emisor */}
@@ -642,6 +690,17 @@ export function RidePreviewModal({
                     </div>
                   )}
 
+                  {isDebitNote && debitNote && (
+                    <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1">
+                      <p className="font-bold text-indigo-950">
+                        Comprobante que se Modifica: Factura No. {debitNote.modifiedInvoiceNumber}
+                      </p>
+                      <p className="text-indigo-800 text-[11px]">
+                        Fecha Factura Origen: {debitNote.modifiedInvoiceDate}
+                      </p>
+                    </div>
+                  )}
+
                   {isWithholding && withholding && (
                     <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-sky-50 border border-sky-200 mt-1">
                       <p className="font-bold text-sky-900">
@@ -693,7 +752,7 @@ export function RidePreviewModal({
                             {item.sku || "PROD-" + (idx + 1)}
                           </td>
                           <td className="py-2.5 px-2 text-center font-bold text-slate-900">
-                            {item.quantity.toFixed(2)}
+                            {safeNumber(item.quantity)}
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="font-medium text-slate-900">{item.name}</div>
@@ -707,13 +766,39 @@ export function RidePreviewModal({
                             )}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono">
-                            ${item.unitPrice.toFixed(2)}
+                            ${safeNumber(item.unitPrice)}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono text-slate-600">
-                            ${(item.discount || 0).toFixed(2)}
+                            ${safeNumber(item.discount)}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                            ${item.subtotal.toFixed(2)}
+                            ${safeNumber(item.subtotal)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Tabla para Nota de Débito */}
+              {isDebitNote && debitNote && (
+                <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-900 text-white text-[11px] font-bold">
+                        <th className="py-2.5 px-3">#</th>
+                        <th className="py-2.5 px-3">Razón / Motivo de Modificación</th>
+                        <th className="py-2.5 px-3 text-right">Valor Modificación</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-[11.5px]">
+                      {debitNote.reasons.map((r, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="py-2.5 px-3 font-mono font-semibold text-slate-700">{idx + 1}</td>
+                          <td className="py-2.5 px-3 font-medium text-slate-900">{r.reason}</td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                            ${safeNumber(r.amount)}
                           </td>
                         </tr>
                       ))}
@@ -749,13 +834,13 @@ export function RidePreviewModal({
                             {it.code}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono">
-                            ${it.taxBase.toFixed(2)}
+                            ${safeNumber(it.taxBase)}
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                            {it.percentage}%
+                            {safeNumber(it.percentage, 1)}%
                           </td>
                           <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">
-                            ${it.retainedAmount.toFixed(2)}
+                            ${safeNumber(it.retainedAmount)}
                           </td>
                         </tr>
                       ))}
@@ -854,7 +939,7 @@ export function RidePreviewModal({
                                 {isNotaVenta ? row.label : row.sriLabel}
                               </td>
                               <td className="py-1.5 text-right font-mono font-bold text-slate-900">
-                                ${row.amount.toFixed(2)}
+                                ${safeNumber(row.amount)}
                               </td>
                               <td className="py-1.5 text-center text-slate-600">
                                 {row.termDays}
@@ -870,35 +955,35 @@ export function RidePreviewModal({
 
                 {/* Columna Derecha: Cuadro Oficial de Totales */}
                 <div className="md:col-span-5">
-                  {(isInvoice || isCreditNote) ? (
+                  {(isInvoice || isCreditNote || isDebitNote) ? (
                     <div className="rounded-[6px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
                         <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
-                        <span className="font-mono font-semibold text-slate-900">${subtotal15.toFixed(2)}</span>
+                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotal15)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5">
                         <span className="font-bold text-slate-700">SUBTOTAL 0%:</span>
-                        <span className="font-mono font-semibold text-slate-900">${subtotal0.toFixed(2)}</span>
+                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotal0)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
                         <span className="font-bold text-slate-700">SUBTOTAL NO OBJETO DE IVA:</span>
-                        <span className="font-mono font-semibold text-slate-900">${subtotalNoObjeto.toFixed(2)}</span>
+                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotalNoObjeto)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5">
                         <span className="font-bold text-slate-700">SUBTOTAL EXENTO DE IVA:</span>
-                        <span className="font-mono font-semibold text-slate-900">${subtotalExento.toFixed(2)}</span>
+                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotalExento)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50 font-bold">
                         <span className="text-slate-900">SUBTOTAL SIN IMPUESTOS:</span>
-                        <span className="font-mono text-slate-900">${subtotalSinImpuestos.toFixed(2)}</span>
+                        <span className="font-mono text-slate-900">${safeNumber(subtotalSinImpuestos)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5">
                         <span className="font-bold text-slate-700">TOTAL DESCUENTO:</span>
-                        <span className="font-mono font-semibold text-slate-900">${discountTotal.toFixed(2)}</span>
+                        <span className="font-mono font-semibold text-slate-900">${safeNumber(discountTotal)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
                         <span className="font-bold text-[#004ac6]">IVA 15%:</span>
-                        <span className="font-mono font-bold text-[#004ac6]">${ivaTotal.toFixed(2)}</span>
+                        <span className="font-mono font-bold text-[#004ac6]">${safeNumber(ivaTotal)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5">
                         <span className="font-bold text-slate-700">PROPINA:</span>
@@ -907,7 +992,7 @@ export function RidePreviewModal({
                       <div className="flex justify-between px-4 py-2.5 bg-slate-900 text-white text-xs font-black">
                         <span>VALOR TOTAL:</span>
                         <span className="font-mono text-sm tracking-wide text-white">
-                          ${total.toFixed(2)}
+                          ${safeNumber(total)}
                         </span>
                       </div>
                     </div>
@@ -916,13 +1001,13 @@ export function RidePreviewModal({
                       <div className="flex justify-between px-3.5 py-2 bg-slate-50">
                         <span className="font-bold text-slate-700">TOTAL BASE IMPONIBLE:</span>
                         <span className="font-mono font-semibold text-slate-900">
-                          ${withholding!.items.reduce((s, it) => s + it.taxBase, 0).toFixed(2)}
+                          ${safeNumber(withholding!.items.reduce((s, it) => s + safeFloat(it.taxBase), 0))}
                         </span>
                       </div>
                       <div className="flex justify-between px-4 py-2.5 bg-emerald-700 text-white text-xs font-black">
                         <span>TOTAL RETENIDO:</span>
                         <span className="font-mono text-sm tracking-wide text-white">
-                          ${total.toFixed(2)}
+                          ${safeNumber(total)}
                         </span>
                       </div>
                     </div>

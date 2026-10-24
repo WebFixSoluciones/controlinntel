@@ -15,6 +15,7 @@ import {
 } from "@/types";
 import { RidePreviewModal } from "./RidePreviewModal";
 import { QuotePreviewModal } from "./QuotePreviewModal";
+import { safeNumber } from "@/lib/print-service";
 import { NewSaleView } from "./NewSaleView";
 import { RecurringBillingView } from "./RecurringBillingView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
@@ -152,6 +153,7 @@ export function BillingManager() {
   const [isRideOpen, setIsRideOpen] = useState(false);
   const [rideInvoice, setRideInvoice] = useState<SriInvoice | null>(null);
   const [rideCreditNote, setRideCreditNote] = useState<CreditNote | null>(null);
+  const [rideDebitNote, setRideDebitNote] = useState<DebitNote | null>(null);
   const [rideWithholding, setRideWithholding] = useState<WithholdingReceipt | null>(null);
   const [rideRemissionGuide, setRideRemissionGuide] = useState<RemissionGuide | null>(null);
 
@@ -255,6 +257,7 @@ export function BillingManager() {
   const handleOpenRide = (inv: SriInvoice) => {
     setRideInvoice(inv);
     setRideCreditNote(null);
+    setRideDebitNote(null);
     setRideWithholding(null);
     setRideRemissionGuide(null);
     setIsRideOpen(true);
@@ -263,6 +266,16 @@ export function BillingManager() {
   const handleOpenNcRide = (nc: CreditNote) => {
     setRideCreditNote(nc);
     setRideInvoice(null);
+    setRideDebitNote(null);
+    setRideWithholding(null);
+    setRideRemissionGuide(null);
+    setIsRideOpen(true);
+  };
+
+  const handleOpenDebitNoteRide = (nd: DebitNote) => {
+    setRideDebitNote(nd);
+    setRideInvoice(null);
+    setRideCreditNote(null);
     setRideWithholding(null);
     setRideRemissionGuide(null);
     setIsRideOpen(true);
@@ -272,6 +285,7 @@ export function BillingManager() {
     setRideWithholding(ret);
     setRideInvoice(null);
     setRideCreditNote(null);
+    setRideDebitNote(null);
     setRideRemissionGuide(null);
     setIsRideOpen(true);
   };
@@ -280,6 +294,7 @@ export function BillingManager() {
     setRideRemissionGuide(guia);
     setRideInvoice(null);
     setRideCreditNote(null);
+    setRideDebitNote(null);
     setRideWithholding(null);
     setIsRideOpen(true);
   };
@@ -642,13 +657,13 @@ export function BillingManager() {
                           </span>
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-slate-700">
-                          ${inv.subtotal15.toFixed(2)}
+                          ${safeNumber(inv.subtotal15)}
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
-                          ${inv.ivaTotal.toFixed(2)}
+                          ${safeNumber(inv.ivaTotal)}
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
-                          ${inv.total.toFixed(2)}
+                          ${safeNumber(inv.total)}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span
@@ -787,13 +802,13 @@ export function BillingManager() {
                         <div className="text-[10px] font-mono text-slate-500">{q.clientRuc}</div>
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-slate-700">
-                        ${(q.subtotal15 + q.subtotal0).toFixed(2)}
+                        ${safeNumber((q.subtotal15 || 0) + (q.subtotal0 || 0))}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
-                        ${q.ivaTotal.toFixed(2)}
+                        ${safeNumber(q.ivaTotal)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-amber-700 text-sm">
-                        ${q.total.toFixed(2)}
+                        ${safeNumber(q.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span
@@ -895,7 +910,7 @@ export function BillingManager() {
                         {nc.reason}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 text-sm">
-                        ${nc.total.toFixed(2)}
+                        ${safeNumber(nc.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
@@ -978,7 +993,7 @@ export function BillingManager() {
                         {nd.reasons.map((r) => r.reason).join(", ")}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                        ${nd.total.toFixed(2)}
+                        ${safeNumber(nd.total)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -987,6 +1002,13 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenDebitNoteRide(nd)}
+                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            title="Ver / Imprimir RIDE (05)"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => {
                               try {
@@ -1066,13 +1088,13 @@ export function BillingManager() {
                               key={idx}
                               className="inline-block mr-2 px-2 py-0.5 rounded-[4px] bg-slate-100 text-slate-700 font-mono text-[10px]"
                             >
-                              {it.taxType} {it.percentage}%: ${it.retainedAmount.toFixed(2)}
+                              {it.taxType} {it.percentage}%: ${safeNumber(it.retainedAmount)}
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700 text-sm">
-                        ${ret.totalRetained.toFixed(2)}
+                        ${safeNumber(ret.totalRetained)}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
@@ -1304,7 +1326,7 @@ export function BillingManager() {
                   Convertir a Factura Electrónica
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Cotización {quoteToConvert.quoteNumber} (${quoteToConvert.total.toFixed(2)})
+                  Cotización {quoteToConvert.quoteNumber} (${safeNumber(quoteToConvert.total)})
                 </p>
               </div>
             </div>
@@ -1402,6 +1424,12 @@ export function BillingManager() {
         initialInvoice={debitNoteInitialInvoice}
         onSuccess={(nd) => {
           showSuccess("Nota de Débito Emitida", `Nota de Débito ${nd.documentNumber} emitida con éxito.`);
+          setRideDebitNote(nd);
+          setRideInvoice(null);
+          setRideCreditNote(null);
+          setRideWithholding(null);
+          setRideRemissionGuide(null);
+          setIsRideOpen(true);
         }}
       />
 
@@ -1417,6 +1445,7 @@ export function BillingManager() {
           setRideRemissionGuide(g);
           setRideInvoice(null);
           setRideCreditNote(null);
+          setRideDebitNote(null);
           setRideWithholding(null);
           setIsRideOpen(true);
         }}
@@ -1428,11 +1457,13 @@ export function BillingManager() {
           setIsRideOpen(false);
           setRideInvoice(null);
           setRideCreditNote(null);
+          setRideDebitNote(null);
           setRideWithholding(null);
           setRideRemissionGuide(null);
         }}
         invoice={rideInvoice}
         creditNote={rideCreditNote}
+        debitNote={rideDebitNote}
         withholding={rideWithholding}
         remissionGuide={rideRemissionGuide}
         companyConfig={sriCompanyConfig}

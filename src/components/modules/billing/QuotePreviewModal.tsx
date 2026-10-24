@@ -21,6 +21,7 @@ import {
   DEFAULT_INNTEL_SRI_CONFIG,
   numeroALetrasDolares,
 } from "@/lib/sri-service";
+import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
 
 interface QuotePreviewModalProps {
   isOpen?: boolean;
@@ -42,48 +43,52 @@ export function QuotePreviewModal({
   if (!isOpen || !quote) return null;
 
   const handlePrint = () => {
-    window.print();
+    if (printAreaRef.current) {
+      printHtmlElement(printAreaRef.current, `Cotizacion-${quote.quoteNumber || "INNTEL"}`, "a4");
+    } else {
+      window.print();
+    }
   };
 
   // Cálculos precisos y desglosados de subtotales
   const items = quote.items || [];
   
   const subtotal15 =
-    quote.subtotal15 !== undefined && quote.subtotal15 > 0
-      ? quote.subtotal15
+    quote.subtotal15 !== undefined && Number(quote.subtotal15) > 0
+      ? safeFloat(quote.subtotal15)
       : items
-          .filter((it) => it.ivaRate === undefined || it.ivaRate === 15)
+          .filter((it) => it.ivaRate === undefined || safeFloat(it.ivaRate) === 15)
           .reduce(
             (sum, it) =>
               sum +
               (it.subtotal !== undefined
-                ? it.subtotal
-                : it.quantity * it.unitPrice - (it.discount || 0)),
+                ? safeFloat(it.subtotal)
+                : safeFloat(it.quantity) * safeFloat(it.unitPrice) - safeFloat(it.discount)),
             0
           );
 
   const subtotal5 = items
-    .filter((it) => it.ivaRate === 5)
+    .filter((it) => safeFloat(it.ivaRate) === 5)
     .reduce(
       (sum, it) =>
         sum +
         (it.subtotal !== undefined
-          ? it.subtotal
-          : it.quantity * it.unitPrice - (it.discount || 0)),
+          ? safeFloat(it.subtotal)
+          : safeFloat(it.quantity) * safeFloat(it.unitPrice) - safeFloat(it.discount)),
       0
     );
 
   const subtotal0 =
     quote.subtotal0 !== undefined
-      ? quote.subtotal0
+      ? safeFloat(quote.subtotal0)
       : items
-          .filter((it) => it.ivaRate === 0)
+          .filter((it) => safeFloat(it.ivaRate) === 0)
           .reduce(
             (sum, it) =>
               sum +
               (it.subtotal !== undefined
-                ? it.subtotal
-                : it.quantity * it.unitPrice - (it.discount || 0)),
+                ? safeFloat(it.subtotal)
+                : safeFloat(it.quantity) * safeFloat(it.unitPrice) - safeFloat(it.discount)),
             0
           );
 
@@ -94,19 +99,19 @@ export function QuotePreviewModal({
 
   const descuento =
     quote.discountTotal !== undefined
-      ? quote.discountTotal
-      : items.reduce((sum, it) => sum + (it.discount || 0), 0);
+      ? safeFloat(quote.discountTotal)
+      : items.reduce((sum, it) => sum + safeFloat(it.discount), 0);
 
   const iva15 =
     quote.ivaTotal !== undefined && subtotal5 === 0
-      ? quote.ivaTotal
+      ? safeFloat(quote.ivaTotal)
       : parseFloat((subtotal15 * 0.15).toFixed(2));
   const iva5 = parseFloat((subtotal5 * 0.05).toFixed(2));
   const ivaTotal = parseFloat((iva15 + iva5).toFixed(2));
 
   const total =
     quote.total !== undefined
-      ? quote.total
+      ? safeFloat(quote.total)
       : parseFloat((subtotalSinImpuestos + ivaTotal).toFixed(2));
 
   const totalEnLetras = numeroALetrasDolares(total);
@@ -437,8 +442,8 @@ export function QuotePreviewModal({
                       items.map((it, idx) => {
                         const lineSubtotal =
                           it.subtotal !== undefined
-                            ? it.subtotal
-                            : it.quantity * it.unitPrice - (it.discount || 0);
+                            ? safeFloat(it.subtotal)
+                            : safeFloat(it.quantity) * safeFloat(it.unitPrice) - safeFloat(it.discount);
                         const skuCode = it.sku || it.productId || `COT-${idx + 1}`;
 
                         return (
@@ -450,7 +455,7 @@ export function QuotePreviewModal({
                               {skuCode}
                             </td>
                             <td className="py-2 px-2 text-center font-bold text-slate-900">
-                              {it.quantity.toFixed(2)} {it.unit || "Unid."}
+                              {safeNumber(it.quantity)} {it.unit || "Unid."}
                             </td>
                             <td className="py-2 px-3">
                               <span className="font-bold text-slate-900 block leading-tight">
@@ -468,13 +473,13 @@ export function QuotePreviewModal({
                               )}
                             </td>
                             <td className="py-2 px-3 text-right font-mono text-slate-800">
-                              ${it.unitPrice.toFixed(2)}
+                              ${safeNumber(it.unitPrice)}
                             </td>
                             <td className="py-2 px-3 text-right font-mono text-slate-600">
-                              ${(it.discount || 0).toFixed(2)}
+                              ${safeNumber(it.discount)}
                             </td>
                             <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
-                              ${lineSubtotal.toFixed(2)}
+                              ${safeNumber(lineSubtotal)}
                             </td>
                           </tr>
                         );
@@ -547,7 +552,7 @@ export function QuotePreviewModal({
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
                       <span className="font-mono font-semibold text-slate-900">
-                        ${subtotal15.toFixed(2)}
+                        ${safeNumber(subtotal15)}
                       </span>
                     </div>
 
@@ -555,7 +560,7 @@ export function QuotePreviewModal({
                       <div className="flex justify-between px-3 py-1.5">
                         <span className="font-bold text-slate-700">SUBTOTAL 5%:</span>
                         <span className="font-mono font-semibold text-slate-900">
-                          ${subtotal5.toFixed(2)}
+                          ${safeNumber(subtotal5)}
                         </span>
                       </div>
                     )}
@@ -563,7 +568,7 @@ export function QuotePreviewModal({
                     <div className="flex justify-between px-3 py-1.5">
                       <span className="font-bold text-slate-700">SUBTOTAL 0%:</span>
                       <span className="font-mono font-semibold text-slate-900">
-                        ${subtotal0.toFixed(2)}
+                        ${safeNumber(subtotal0)}
                       </span>
                     </div>
 
@@ -580,21 +585,21 @@ export function QuotePreviewModal({
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50 font-bold">
                       <span className="text-slate-900">SUBTOTAL SIN IMPUESTOS:</span>
                       <span className="font-mono text-slate-900">
-                        ${subtotalSinImpuestos.toFixed(2)}
+                        ${safeNumber(subtotalSinImpuestos)}
                       </span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5">
                       <span className="font-bold text-slate-700">TOTAL DESCUENTO:</span>
                       <span className="font-mono font-semibold text-slate-900">
-                        ${descuento.toFixed(2)}
+                        ${safeNumber(descuento)}
                       </span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-[#004ac6]">IVA 15%:</span>
                       <span className="font-mono font-bold text-[#004ac6]">
-                        ${iva15.toFixed(2)}
+                        ${safeNumber(iva15)}
                       </span>
                     </div>
 
@@ -602,7 +607,7 @@ export function QuotePreviewModal({
                       <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                         <span className="font-bold text-[#004ac6]">IVA 5%:</span>
                         <span className="font-mono font-bold text-[#004ac6]">
-                          ${iva5.toFixed(2)}
+                          ${safeNumber(iva5)}
                         </span>
                       </div>
                     )}
@@ -610,7 +615,7 @@ export function QuotePreviewModal({
                     <div className="flex justify-between px-3.5 py-2 bg-slate-900 text-white font-black text-xs">
                       <span>VALOR TOTAL:</span>
                       <span className="font-mono text-sm tracking-wide text-white">
-                        ${total.toFixed(2)}
+                        ${safeNumber(total)}
                       </span>
                     </div>
                   </div>
@@ -623,7 +628,7 @@ export function QuotePreviewModal({
               <div className="space-y-4 pt-1 print-avoid-break">
                 <div className="p-2.5 rounded-[4px] bg-slate-50 border border-slate-300 text-center">
                   <p className="font-mono font-bold text-[11px] text-slate-900 uppercase">
-                    SON: {totalEnLetras}
+                    {totalEnLetras}
                   </p>
                 </div>
 
