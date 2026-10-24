@@ -193,7 +193,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Buscar por RUC o Razón Social..."
+                placeholder="Buscar por RUC, Razón Social o Nombre Comercial..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
@@ -257,6 +257,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="py-2.5 px-4">Cliente</th>
+                <th className="py-2.5 px-4">Nombre Comercial</th>
                 <th className="py-2.5 px-4">RUC / CI</th>
                 <th className="py-2.5 px-4 text-right">Acciones</th>
               </tr>
@@ -264,7 +265,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {paginatedClients.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-10 text-center text-[#737686] italic">
+                  <td colSpan={4} className="py-10 text-center text-[#737686] italic">
                     No se encontraron clientes con el filtro aplicado.
                   </td>
                 </tr>
@@ -277,7 +278,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                       onClick={() => onSelectClient(client)}
                       className="hover:bg-[#f8f9ff] transition-colors cursor-pointer group"
                     >
-                      {/* Cliente */}
+                      {/* Cliente (Razón Social) */}
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors">
@@ -289,9 +290,17 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                             </span>
                           )}
                         </div>
-                        {client.tradeName && client.tradeName.trim() !== client.businessName.trim() && (
-                          <span className="block text-[11px] text-slate-500 font-normal mt-0.5">
+                      </td>
+
+                      {/* Nombre Comercial */}
+                      <td className="py-3.5 px-5">
+                        {client.tradeName && client.tradeName.trim() ? (
+                          <span className="font-semibold text-[#0b1c30]">
                             {client.tradeName}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-normal italic">
+                            —
                           </span>
                         )}
                       </td>
