@@ -41,7 +41,7 @@ export default function DashboardPage() {
         <Header />
         <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
           {/* Header con Bienvenida y Accesos Directos Minimalistas */}
-          <div className="flex flex-wrap items-center justify-between gap-3 select-none pb-1 border-b border-[#e2e8f0]/60">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-[#e2e8f0]/60">
             <div>
               <h1 className="text-lg md:text-xl font-bold text-[#0b1c30] tracking-tight">
                 Bienvenido, {cleanUserName}
@@ -115,7 +115,7 @@ export default function DashboardPage() {
         </main>
 
         {/* Institutional Footer */}
-        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686] select-none">
+        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686]">
           <a href="https://www.inntelcorp.com/" target="_blank" rel="noopener noreferrer" className="hover:text-[#004ac6] font-medium transition-colors">&copy; 2026 INNTEL CORP S.A. • www.inntelcorp.com</a>
           <div className="flex items-center gap-4">
             <a href="#" className="hover:text-[#004ac6] transition-colors">Soporte</a>

@@ -208,7 +208,7 @@ export default function ClientNodesOverviewMap({
   }, [mapType]);
 
   return (
-    <div className="space-y-3 select-none">
+    <div className="space-y-3">
       {/* Barra de control del mapa */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-[6px] border border-slate-200">
         <div className="flex items-center gap-2">

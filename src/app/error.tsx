@@ -17,7 +17,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center select-none">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-200 space-y-6">
         <div className="flex justify-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 p-2 flex items-center justify-center shadow-xs">

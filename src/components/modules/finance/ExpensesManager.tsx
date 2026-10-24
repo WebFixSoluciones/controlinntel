@@ -62,7 +62,7 @@ export function ExpensesManager() {
   const totalOpex = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
       {/* Header & KPI */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

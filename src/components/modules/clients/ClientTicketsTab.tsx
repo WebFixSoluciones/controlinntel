@@ -152,7 +152,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
   }
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       <ClientTabHeader
         title="Tickets"
         icon={TicketIcon}

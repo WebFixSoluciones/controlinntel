@@ -21,7 +21,7 @@ export function ClientTabHeader({
   actions,
 }: ClientTabHeaderProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 bg-slate-50 rounded-xl border border-slate-200/80 mb-4 select-none">
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 bg-slate-50 rounded-xl border border-slate-200/80 mb-4">
       <div className="flex items-center gap-2.5">
         {Icon && (
           <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100/60">
@@ -51,7 +51,7 @@ export function ClientSectionHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3 select-none">
+    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
       <div className="flex items-center gap-2">
         {Icon && <Icon className="w-3.5 h-3.5 text-[#004ac6]" />}
         <h4 className="font-bold text-xs text-slate-800 tracking-tight">

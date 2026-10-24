@@ -225,7 +225,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
   const internalCount = allMessages.filter((m) => m.isInternal).length;
 
   return (
-    <div className="space-y-6 select-none animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200">
       {/* 1. Header Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-start md:items-center gap-3">

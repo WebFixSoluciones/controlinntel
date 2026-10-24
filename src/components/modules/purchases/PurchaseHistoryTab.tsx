@@ -54,7 +54,7 @@ export function PurchaseHistoryTab({
   });
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-6">
       {/* Filter and Search Bar with Action Button */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">

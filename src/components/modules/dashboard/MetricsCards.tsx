@@ -15,7 +15,7 @@ export function MetricsCards() {
   const isNetNegative = netUtility < 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Clientes Activos */}
       <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">

@@ -395,7 +395,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
       {/* Botones de Navegación de Pestañas Principales (idéntico a imagen del usuario) */}
       <div className="flex items-center gap-2">
         <button
@@ -850,7 +850,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       {/* MODAL: REGISTRAR PAGO FACTURA # (Idéntico a imagen image41.png del usuario) */}
       {payingCharge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-4xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
             {/* Header del Modal */}
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
@@ -1081,7 +1081,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       {/* MODAL: FACTURA MANUAL / OCASIONAL CON BÚSQUEDA PREDICTIVA */}
       {isManualModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -1199,7 +1199,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       {/* MODAL: REGISTRAR GASTO OPEX */}
       {isExpenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-purple-50/50">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">

@@ -140,7 +140,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
   };
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       <ClientTabHeader
         title="Nodos"
         icon={Radio}

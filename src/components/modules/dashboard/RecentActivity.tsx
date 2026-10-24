@@ -24,7 +24,7 @@ export function TicketsRecientesCard() {
   };
 
   return (
-    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between pb-2.5 border-b border-[#f1f5f9]">
           <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-2">
@@ -79,7 +79,7 @@ export function AuditActivityTable() {
   };
 
   return (
-    <div className="rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card overflow-hidden select-none">
+    <div className="rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
       <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-white">
         <h3 className="font-bold text-sm text-[#0b1c30] flex items-center gap-2">
           <Activity className="w-4 h-4 text-[#004ac6]" />

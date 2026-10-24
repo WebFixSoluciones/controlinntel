@@ -347,7 +347,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   };
 
   return (
-    <div className="space-y-5 select-none">
+    <div className="space-y-5">
       {/* Top Bar: Selector de Vista + Periodo + Frecuencia */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         {/* Selector de Sub-vista */}

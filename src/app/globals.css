@@ -21,6 +21,44 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Selección y copiado natural de texto en todo el sistema (IPs, credenciales, boveda, tablas) */
+body,
+main,
+section,
+article,
+table,
+td,
+th,
+p,
+span,
+div,
+code,
+pre,
+strong,
+label {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Evitar selección accidental en botones de navegación e iconos al hacer clic rápido */
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"],
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Campos de entrada editables siempre con selección de texto completa */
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
 /* Tabular figures for monetary & metric alignment */
 .font-tnum {
   font-feature-settings: "tnum" on, "lnum" on;

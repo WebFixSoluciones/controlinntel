@@ -73,7 +73,7 @@ export function RecordManager({
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-[#e2e8f0] p-6 space-y-4 shadow-lumina-card select-none">
+    <section className="bg-white rounded-2xl border border-[#e2e8f0] p-6 space-y-4 shadow-lumina-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-[#0b1c30]">{title}</h2>
         <button

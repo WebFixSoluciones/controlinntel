@@ -19,7 +19,7 @@ export default function InventariosPage() {
         </main>
 
         {/* Institutional Footer */}
-        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686] select-none">
+        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686]">
           <a
             href="https://www.inntelcorp.com/"
             target="_blank"

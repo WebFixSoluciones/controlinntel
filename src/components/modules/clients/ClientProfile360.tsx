@@ -181,7 +181,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   if (!client) return null;
 
   return (
-    <div className="w-full animate-in fade-in duration-200 select-none">
+    <div className="w-full animate-in fade-in duration-200">
       {/* Contenedor Principal de la Ficha */}
       <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
         {/* Hub Header Elegante y Limpio */}
@@ -240,7 +240,7 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
                       : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"

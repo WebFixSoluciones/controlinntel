@@ -14,7 +14,7 @@ export function ExpirationsTimeline() {
   ).length;
 
   return (
-    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between pb-2.5 border-b border-[#f1f5f9]">
           <div className="flex items-center gap-1.5 bg-[#f1f5f9] p-0.5 rounded-lg text-xs font-bold">

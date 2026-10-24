@@ -64,7 +64,7 @@ export function FinancialReportsTab() {
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-6">
       {/* Header and Export Action */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div>

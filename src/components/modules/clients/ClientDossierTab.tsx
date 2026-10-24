@@ -40,7 +40,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
   };
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       {/* Header Print Button */}
       <div className="print:hidden">
         <ClientTabHeader

@@ -358,7 +358,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
   };
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       {/* ========================================================= */}
       {/* 1. NOTIFICACIÓN EN EL ENCABEZADO DE TAREAS PENDIENTES     */}
       {/* ========================================================= */}

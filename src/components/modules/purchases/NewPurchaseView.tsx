@@ -311,7 +311,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 select-none">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
         <div className="flex items-center gap-3">

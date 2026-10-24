@@ -185,7 +185,7 @@ function SidebarContent() {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 min-h-screen select-none">
+    <aside className="w-64 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 min-h-screen">
       {/* Brand Header: Logo Only */}
       <div className="h-16 border-b border-[#e2e8f0] flex items-center justify-center px-4 bg-white">
         <Link href="/" className="flex items-center justify-center">

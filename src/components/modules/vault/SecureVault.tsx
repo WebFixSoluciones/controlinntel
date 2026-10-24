@@ -134,7 +134,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   }
 
   return (
-    <section className="space-y-4 select-none">
+    <section className="space-y-4">
       {/* Standard Tab Header */}
       <ClientTabHeader
         title="Bóveda"

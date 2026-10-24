@@ -160,7 +160,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
   };
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       {/* 1. Header & Summary KPIs */}
       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -144,7 +144,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
   };
 
   return (
-    <div className="space-y-4 select-none animate-in fade-in duration-150">
+    <div className="space-y-4 animate-in fade-in duration-150">
       <ClientTabHeader
         title="Trámites"
         icon={FileText}

@@ -49,7 +49,7 @@ export function VaultManager() {
   });
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
 
       {/* Navigation Switcher Tabs */}
       <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2">

@@ -553,7 +553,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   }
 
   return (
-    <div className="space-y-6 select-none animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200">
       {/* ========================================================================= */}
       {/* 1. SEGUIMIENTO DE SERVICIOS */}
       <ClientTabHeader

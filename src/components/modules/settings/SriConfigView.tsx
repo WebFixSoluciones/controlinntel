@@ -207,7 +207,7 @@ export function SriConfigView() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* 1. BARRA SUPERIOR COMPACTA DE ACCIONES & ESTADO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-[6px] border border-slate-200 shadow-2xs select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-[6px] border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Switch rápido de ambiente */}
           <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-[6px] border border-slate-200">
@@ -513,7 +513,7 @@ export function SriConfigView() {
         {/* Tabla compacta de secuencias numéricas */}
         <div className="overflow-x-auto rounded-[6px] border border-slate-200">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 select-none">
+            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-2 px-3">Comprobante</th>
                 <th className="py-2 px-2 text-center">Código</th>

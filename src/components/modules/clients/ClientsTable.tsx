@@ -183,7 +183,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
   };
 
   return (
-    <div className="w-full select-none">
+    <div className="w-full">
       {/* Main Container Card */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
         {/* Search & Filter Toolbar */}
@@ -731,7 +731,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                   onChange={(e) => setConfirmDeleteChecked(e.target.checked)}
                   className="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
                 />
-                <span className="font-medium text-[11px] leading-tight select-none">
+                <span className="font-medium text-[11px] leading-tight">
                   Confirmo que deseo dar de baja definitiva a este cliente de la base activa.
                 </span>
               </label>

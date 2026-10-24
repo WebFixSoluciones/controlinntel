@@ -116,7 +116,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   }
 
   return (
-    <div className="w-full space-y-6 select-none animate-in fade-in duration-200">
+    <div className="w-full space-y-6 animate-in fade-in duration-200">
       {/* 1. WHMCS Filter and Action Bar */}
       <div className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

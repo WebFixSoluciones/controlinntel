@@ -360,7 +360,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
   }
 
   return (
-    <div className="space-y-4 select-none">
+    <div className="space-y-4">
       <ClientTabHeader
         title="Cotizaciones"
         icon={FileSpreadsheet}

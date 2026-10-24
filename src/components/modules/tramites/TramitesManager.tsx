@@ -155,7 +155,7 @@ export function TramitesManager() {
   ).length;
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-6">
       {/* Top Header & Metrics */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -390,7 +390,7 @@ export function TramitesManager() {
 
       {/* Modal Bitácora de Seguimiento */}
       {selectedTramiteForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div>

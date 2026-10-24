@@ -29,7 +29,7 @@ export function FinancialChart() {
   ];
 
   return (
-    <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between select-none">
+    <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
       <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
         <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30]">
           Ingresos vs Egresos

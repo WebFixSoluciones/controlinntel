@@ -352,7 +352,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   };
 
   return (
-    <div className="w-full space-y-6 select-none animate-in fade-in duration-150">
+    <div className="w-full space-y-6 animate-in fade-in duration-150">
       {/* Banner estandarizado de Cliente en la Ficha 360 */}
       {client && (
         <ClientTabHeader
@@ -1411,7 +1411,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
       {/* Modal Agregar Atributo Regulatorio */}
       {isAddingCustomField && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] w-full max-w-md overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">

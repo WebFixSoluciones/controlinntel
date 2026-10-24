@@ -41,7 +41,7 @@ export function RecentSalesCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden select-none">
+    <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
       <div className="p-4 px-5 border-b border-[#f1f5f9] flex items-center justify-between">
         <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-2">
           <Receipt className="w-4 h-4 text-[#004ac6]" />

@@ -73,7 +73,7 @@ export function PurchasesManager() {
   }
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-6">
       {/* Submodule View Content */}
       <div className="w-full">
         {activeTab === "historial_compras" && canHistorial && (

@@ -491,7 +491,7 @@ export function TemplateGenerator() {
   };
 
   return (
-    <div className="w-full space-y-6 select-none animate-in fade-in duration-150">
+    <div className="w-full space-y-6 animate-in fade-in duration-150">
       {/* Top Filter and Action Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex flex-wrap items-center gap-3 flex-1">
@@ -755,7 +755,7 @@ export function TemplateGenerator() {
       {/* MODAL 1: SUBIR NUEVA PLANTILLA                            */}
       {/* ========================================================= */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2.5">
@@ -856,7 +856,7 @@ export function TemplateGenerator() {
       {/* MODAL 2: EDITAR Y ACTUALIZAR FORMATO DE LA PLANTILLA      */}
       {/* ========================================================= */}
       {editingTemplate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 select-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2.5">

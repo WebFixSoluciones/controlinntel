@@ -94,7 +94,7 @@ export function AccountsReceivableTab() {
     .reduce((sum, c) => sum + (c.balanceRemaining !== undefined ? c.balanceRemaining : c.total), 0);
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">

@@ -223,7 +223,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   };
 
   return (
-    <div className="space-y-6 select-none animate-in fade-in duration-150">
+    <div className="space-y-6 animate-in fade-in duration-150">
       {/* Top Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 px-6 rounded-2xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-3">

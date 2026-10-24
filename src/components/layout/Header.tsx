@@ -156,7 +156,7 @@ function HeaderContent() {
   const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
 
   return (
-    <header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between sticky top-0 z-30 select-none">
+    <header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between sticky top-0 z-30">
       {/* Minimalist Top Module / Submodule Title */}
       <div className="flex items-center gap-3 min-w-0">
         <h1 className="text-base font-bold text-[#0b1c30] tracking-tight truncate">

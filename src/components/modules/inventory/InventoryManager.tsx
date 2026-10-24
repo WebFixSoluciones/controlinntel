@@ -637,7 +637,7 @@ export function InventoryManager() {
   // =========================================================
   if (isProductModalOpen) {
     return (
-      <div className="select-none animate-in fade-in duration-200">
+      <div className="animate-in fade-in duration-200">
         <ProductModal
           isOpen={true}
           embedded={true}
@@ -654,7 +654,7 @@ export function InventoryManager() {
 
   if (isWarehouseModalOpen) {
     return (
-      <div className="select-none animate-in fade-in duration-200">
+      <div className="animate-in fade-in duration-200">
         <WarehouseModal
           isOpen={true}
           embedded={true}
@@ -670,7 +670,7 @@ export function InventoryManager() {
 
   if (isTransferModalOpen) {
     return (
-      <div className="select-none animate-in fade-in duration-200">
+      <div className="animate-in fade-in duration-200">
         <TransferModal
           isOpen={true}
           embedded={true}
@@ -686,7 +686,7 @@ export function InventoryManager() {
 
   if (isAdjustmentModalOpen) {
     return (
-      <div className="select-none animate-in fade-in duration-200">
+      <div className="animate-in fade-in duration-200">
         <AdjustmentModal
           isOpen={true}
           embedded={true}
@@ -702,7 +702,7 @@ export function InventoryManager() {
 
   if (isCatBrandOpen) {
     return (
-      <div className="select-none animate-in fade-in duration-200">
+      <div className="animate-in fade-in duration-200">
         <CategoryBrandModal
           isOpen={true}
           embedded={true}
@@ -714,7 +714,7 @@ export function InventoryManager() {
   }
 
   return (
-    <div className="space-y-6 select-none animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200">
       {/* ========================================================= */}
       {/* 1. PRODUCTOS                                              */}
       {/* ========================================================= */}

@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import {
   calculateWeightedAverageCost,
   calculatePriceWithTax,
@@ -824,4 +826,29 @@ test("Flujo E2E 12: Gestión Exclusiva de Contactos de Cliente (Popup Aislado de
   assert.equal(client.contacts[0].id, "ct-2");
   assert.equal(client.contactName, "Lic. Diana Paredes", "El contacto principal pasa a ser el restante");
   assert.equal(client.businessName, "CORPORACION ANDINA DE TELECOMUNICACIONES S.A.", "La Razón Social sigue intacta");
+});
+
+test("Flujo E2E 13: Selección y Copiado de Texto Libre en Bóveda, IPs, Fichas y Tablas", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificar que globals.css tiene la regla de user-select: text
+  const cssPath = path.resolve(rootDir, "src/app/globals.css");
+  const cssContent = fs.readFileSync(cssPath, "utf8");
+  assert.ok(
+    cssContent.includes("user-select: text"),
+    "globals.css debe contener regla user-select: text para permitir copiado natural con cursor"
+  );
+
+  // 2. Verificar que los componentes clave de Bóveda y Nodos no contengan select-none en sus contenedores
+  const vaultPath = path.resolve(rootDir, "src/components/modules/vault/SecureVault.tsx");
+  const vaultContent = fs.readFileSync(vaultPath, "utf8");
+  assert.ok(!vaultContent.includes("select-none"), "SecureVault no debe contener select-none");
+
+  const nodesPath = path.resolve(rootDir, "src/components/modules/clients/ClientNodesTab.tsx");
+  const nodesContent = fs.readFileSync(nodesPath, "utf8");
+  assert.ok(!nodesContent.includes("select-none"), "ClientNodesTab no debe contener select-none");
+
+  const profilePath = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profileContent = fs.readFileSync(profilePath, "utf8");
+  assert.ok(!profileContent.includes("select-none"), "ClientProfile360 no debe contener select-none");
 });

@@ -194,7 +194,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
       {/* Top Header - Only when rendered as standalone page */}
       {!clientId && (
         <div className="flex flex-wrap items-center justify-between gap-4">

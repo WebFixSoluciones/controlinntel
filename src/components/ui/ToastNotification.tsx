@@ -22,7 +22,7 @@ export function ToastNotificationContainer({ toasts, onDismiss }: ToastNotificat
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none select-none">
+    <div className="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none">
       {toasts.map((toast) => {
         const isError = toast.type === "error";
         const isWarning = toast.type === "warning";

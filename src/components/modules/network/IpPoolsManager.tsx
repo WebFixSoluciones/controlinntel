@@ -8,7 +8,7 @@ export function IpPoolsManager() {
   const { ipPools } = useApp();
 
   return (
-    <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card select-none">
+    <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
       <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2 mb-4">
         <Network className="w-4 h-4 text-[#004ac6]" />
         Gestión de Subredes & Pools de Direccionamiento IP (IPv4 / IPv6)

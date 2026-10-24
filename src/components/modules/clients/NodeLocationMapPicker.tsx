@@ -435,7 +435,7 @@ export default function NodeLocationMapPicker({
   const hasValidCoords = !isNaN(currentLat) && !isNaN(currentLng);
 
   return (
-    <div className="space-y-2 select-none">
+    <div className="space-y-2">
       {/* Barra de herramientas superior */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 flex-1 min-w-[240px]">

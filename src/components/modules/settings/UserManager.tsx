@@ -151,7 +151,7 @@ export function UserManager() {
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
       {/* Action Toolbar without redundant description */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">

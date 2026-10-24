@@ -469,7 +469,7 @@ export function ClientNodesManager() {
   };
 
   return (
-    <div className="w-full space-y-6 select-none">
+    <div className="w-full space-y-6">
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
