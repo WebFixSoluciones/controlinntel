@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Client, ClientContactPerson, IdentificationType, ServiceBillingType } from "@/types";
+import { Client, ClientContactPerson, IdentificationType } from "@/types";
 import {
   validateIdentification,
   validateEmail,
-  validateMonetaryAmount,
 } from "@/lib/validation-engine";
 import {
   consultarRucSri,
@@ -36,7 +35,7 @@ interface ClientModalProps {
 }
 
 export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps) {
-  const { clients, addClient, updateClient, plans } = useApp();
+  const { clients, addClient, updateClient } = useApp();
   const { showError, showSuccess, showWarning } = useToast();
 
   // Datos Principales y Fiscales SRI
@@ -63,16 +62,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   const [isQueryingSri, setIsQueryingSri] = useState(false);
 
   const [status, setStatus] = useState<Client["status"]>("activo");
-  const [requiresSriBilling, setRequiresSriBilling] = useState(true);
+  const [requiresSriBilling, setRequiresSriBilling] = useState(false);
 
   // Múltiples Personas de Contacto
   const [contacts, setContacts] = useState<ClientContactPerson[]>([]);
-
-  // Asignación de Servicio Inicial
-  const [planId, setPlanId] = useState(plans[0]?.id || "");
-  const [customPrice, setCustomPrice] = useState(plans[0]?.defaultPrice || 28.0);
-  const [billingType, setBillingType] = useState<ServiceBillingType>("pospago");
-  const [cutoffDay, setCutoffDay] = useState(1);
   const [busy, setBusy] = useState(false);
 
   // Sincronizar y extraer los datos guardados del cliente cada vez que cambie o se abra el modal
@@ -147,12 +140,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
       setStatus("activo");
       setRequiresSriBilling(true);
       setContacts([]);
-      setPlanId(plans[0]?.id || "");
-      setCustomPrice(plans[0]?.defaultPrice || 28.0);
-      setBillingType("pospago");
-      setCutoffDay(1);
     }
-  }, [clientToEdit, isOpen, plans]);
+  }, [clientToEdit, isOpen]);
 
   if (!isOpen) return null;
 
@@ -329,19 +318,6 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         }
       }
 
-      // 5. Validar Tarifa (si es nuevo)
-      if (!clientToEdit) {
-        const priceVal = validateMonetaryAmount(customPrice, "Tarifa mensual");
-        if (!priceVal.isValid) {
-          showError(
-            "Tarifa Incorrecta",
-            priceVal.error || "El precio pactado debe ser mayor o igual a cero."
-          );
-          setBusy(false);
-          return;
-        }
-      }
-
       // Preparar lista depurada de contactos sin espacios residuales
       const cleanContacts = contacts
         .filter((c) => c.name.trim() !== "")
@@ -385,45 +361,37 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
         });
         showSuccess("Cliente Actualizado", `Datos de ${cleanName} actualizados con éxito.`);
       } else {
-        await addClient(
-          {
-            identificationType: resolvedType,
-            identificationNumber: cleanId,
-            businessName: cleanName,
-            tradeName: cleanTradeName || undefined,
-            legalRepresentative: cleanRep,
-            email: cleanMail,
-            phone: cleanPhone,
-            address: cleanAddr,
-            sector: cleanSector,
-            ciudad: cleanCiudad || undefined,
-            provincia: cleanProvincia || undefined,
-            tipoContribuyente,
-            obligadoContabilidad,
-            agenteRetencion,
-            contribuyenteEspecial,
-            actividadEconomica: actividadEconomica || undefined,
-            sriValidated: Boolean(sriValidated),
-            requiresSriBilling,
-            status,
-            totalActiveServices: 1,
-            currentBalance: 0,
-            contactName: primaryContact?.name || "",
-            contactRole: primaryContact?.role || "",
-            contactPhone: primaryContact?.phone || "",
-            contactAddress: primaryContact?.address || "",
-            contacts: cleanContacts,
-          },
-          {
-            planId,
-            customPrice: Number(customPrice),
-            billingType,
-            cutoffDay: Number(cutoffDay),
-          }
-        );
+        await addClient({
+          identificationType: resolvedType,
+          identificationNumber: cleanId,
+          businessName: cleanName,
+          tradeName: cleanTradeName || undefined,
+          legalRepresentative: cleanRep,
+          email: cleanMail,
+          phone: cleanPhone,
+          address: cleanAddr,
+          sector: cleanSector,
+          ciudad: cleanCiudad || undefined,
+          provincia: cleanProvincia || undefined,
+          tipoContribuyente,
+          obligadoContabilidad,
+          agenteRetencion,
+          contribuyenteEspecial,
+          actividadEconomica: actividadEconomica || undefined,
+          sriValidated: Boolean(sriValidated),
+          requiresSriBilling,
+          status,
+          totalActiveServices: 0,
+          currentBalance: 0,
+          contactName: primaryContact?.name || "",
+          contactRole: primaryContact?.role || "",
+          contactPhone: primaryContact?.phone || "",
+          contactAddress: primaryContact?.address || "",
+          contacts: cleanContacts,
+        });
         showSuccess(
           "Cliente Registrado",
-          `Nuevo cliente ${cleanName} registrado con modalidad ${billingType.toUpperCase()}.`
+          `Nuevo cliente ${cleanName} registrado con éxito.`
         );
       }
 
@@ -864,78 +832,6 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 ))}
               </div>
             )}
-          </div>
-
-          {/* SECCIÓN 3: SERVICIO INICIAL & FACTURACIÓN (SOLO AL CREAR NUEVO CLIENTE) */}
-          {!clientToEdit && (
-            <div className="p-4 rounded-[6px] bg-[#f8f9ff] border border-[#dce9ff] space-y-3">
-              <h4 className="font-bold text-[#004ac6] text-xs flex items-center justify-between">
-                <span>3. Asignación Inicial de Servicio Comercial</span>
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Plan / Servicio</label>
-                  <select
-                    value={planId}
-                    onChange={(e) => {
-                      const p = plans.find((x) => x.id === e.target.value);
-                      setPlanId(e.target.value);
-                      if (p) setCustomPrice(p.defaultPrice);
-                    }}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                  >
-                    {plans.length === 0 ? (
-                      <option value="">-- Sin plan asignado --</option>
-                    ) : (
-                      plans.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Precio Pactado ($ USD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Modalidad de Facturación *</label>
-                  <select
-                    value={billingType}
-                    onChange={(e) => setBillingType(e.target.value as ServiceBillingType)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-xs font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
-                  >
-                    <option value="pospago">POSPAGO</option>
-                    <option value="prepago">PREPAGO</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 p-3 bg-white rounded-[6px] border border-[#e2e8f0]">
-            <input
-              type="checkbox"
-              id="billingSwitch"
-              checked={requiresSriBilling}
-              onChange={(e) => setRequiresSriBilling(e.target.checked)}
-              className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
-            />
-            <label htmlFor="billingSwitch" className="text-xs font-semibold text-[#0b1c30] cursor-pointer">
-              Generar Orden de Pedido / Pre-Factura automáticamente el día 1 de cada mes
-            </label>
           </div>
 
           {/* Modal Footer Actions */}
