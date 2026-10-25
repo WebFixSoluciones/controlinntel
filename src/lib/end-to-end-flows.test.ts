@@ -954,3 +954,34 @@ test("Flujo E2E 15: Auditoría Integral de Facturación SRI (5 Comprobantes Ofic
     "ConvertToSriInvoiceModal debe permitir editar datos fiscales del receptor y enviarlos a convertSaleToSriInvoice"
   );
 });
+
+test("Flujo E2E 16: Separación Estricta de Ventas, Inventario y Finanzas respecto a Facturación Electrónica SRI", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificar que NewSaleView registra siempre como Nota de Venta comercial y ofrece promoción posterior a Factura SRI
+  const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
+  const newSaleContent = fs.readFileSync(newSalePath, "utf8");
+  assert.ok(
+    newSaleContent.includes("Nueva Nota de Venta") &&
+      newSaleContent.includes("ConvertToSriInvoiceModal") &&
+      newSaleContent.includes("Pasar a Factura Electrónica SRI"),
+    "NewSaleView debe operar exclusivamente como Nota de Venta comercial y permitir pasarla luego a Factura Electrónica SRI"
+  );
+
+  // 2. Verificar que CreditNoteModal y BillingManager operan en el ámbito tributario SRI sin tocar Kardex ni finanzas
+  const creditNoteModalPath = path.resolve(rootDir, "src/components/modules/billing/CreditNoteModal.tsx");
+  const creditNoteModalContent = fs.readFileSync(creditNoteModalPath, "utf8");
+  assert.ok(
+    !creditNoteModalContent.includes("Bodega de Reingreso de Stock") &&
+      creditNoteModalContent.includes("No altera el inventario ni los movimientos bancarios del módulo comercial"),
+    "CreditNoteModal no debe alterar el Kardex de inventario ni los bancos del módulo comercial"
+  );
+
+  const billingManagerPath = path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx");
+  const billingManagerContent = fs.readFileSync(billingManagerPath, "utf8");
+  assert.ok(
+    billingManagerContent.includes("Pasar Nota de Venta a Factura SRI") &&
+      billingManagerContent.includes("handleVoidSriInvoice"),
+    "BillingManager debe permitir promover Notas de Venta pendientes a Factura SRI y anular Facturas SRI liberando la Nota de Venta origen"
+  );
+});

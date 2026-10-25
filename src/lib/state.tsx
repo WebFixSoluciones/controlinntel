@@ -2857,7 +2857,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const total = Math.round((subtotal15 + ivaTotal) * 100) / 100;
 
     const invoice = await createInvoice({
-      documentType: "factura",
+      documentType: "nota_venta",
       date: getEcuadorDate(),
       clientId: client.id,
       clientName: client.businessName,
@@ -2881,10 +2881,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       total,
       paymentMethod: "credito",
       paymentsBreakdown: { efectivo: 0, transferencia: 0, tarjeta: 0, credito: total },
-      status: "emitida",
+      status: "registrado",
+      sriStatus: "pendiente",
       warehouseId: inventoryWarehouses[0]?.id || "wh-central",
       warehouseName: inventoryWarehouses[0]?.name || "Bodega Central",
-      notes: `Facturación Recurrente Periodo ${String(month).padStart(2, "0")}/${year} (${items.length} servicio(s) facturado(s))`,
+      notes: `Nota de Venta Recurrente Periodo ${String(month).padStart(2, "0")}/${year} (${items.length} servicio(s))`,
     });
 
     const chargeId = `chg-${client.id}-${month}-${year}`;
@@ -2922,102 +2923,118 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const now = new Date().toISOString();
 
-    // Si pasa a "anulada" y tenía kardex registrado, reversamos el stock
-    if (status === "anulada" && inv.status !== "anulada" && inv.kardexRegistered) {
-      const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
-      const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
-      const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
-      const kardexEntries: KardexEntry[] = [];
-      const updatedProductsMap = new Map<string, InventoryProduct>();
+    // Si pasa a "anulada":
+    // - Si es una Nota de Venta comercial (documentType === "nota_venta") y tenía kardex registrado, reversamos el stock y finanzas.
+    // - Si es una Factura Electrónica SRI (documentType === "factura"), NO altera inventario ni finanzas (que pertenecen a la Nota de Venta comercial), y libera la Nota de Venta origen si aplica.
+    if (status === "anulada" && inv.status !== "anulada") {
+      if (inv.documentType === "nota_venta" && inv.kardexRegistered) {
+        const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
+        const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
+        const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
+        const kardexEntries: KardexEntry[] = [];
+        const updatedProductsMap = new Map<string, InventoryProduct>();
 
-      for (const item of inv.items) {
-        if (!item.productId) continue;
-        const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-        if (!product || !product.tracksStock) continue;
+        for (const item of inv.items) {
+          if (!item.productId) continue;
+          const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
+          if (!product || !product.tracksStock) continue;
 
-        const qty = Math.abs(item.quantity);
-        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-        const newWhStock = currentWhStock + qty;
+          const qty = Math.abs(item.quantity);
+          const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
+          const newWhStock = currentWhStock + qty;
 
-        const kdx = buildKardexEntry({
-          product,
-          warehouse: wh || { id: warehouseId, name: warehouseName },
-          type: "CUSTOMER_RETURN",
-          referenceId: inv.id,
-          referenceDocNumber: inv.documentNumber,
-          concept: `Anulación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
-          quantity: qty,
-          unitCost: product.baseCost,
-          currentStock: currentWhStock,
-          currentAvgCost: product.baseCost,
-          userName: currentUser.displayName,
-        });
+          const kdx = buildKardexEntry({
+            product,
+            warehouse: wh || { id: warehouseId, name: warehouseName },
+            type: "CUSTOMER_RETURN",
+            referenceId: inv.id,
+            referenceDocNumber: inv.documentNumber,
+            concept: `Anulación de Nota de Venta ${inv.documentNumber}`,
+            quantity: qty,
+            unitCost: product.baseCost,
+            currentStock: currentWhStock,
+            currentAvgCost: product.baseCost,
+            userName: currentUser.displayName,
+          });
 
-        kardexEntries.push(kdx);
+          kardexEntries.push(kdx);
 
-        const updatedStockByWh = {
-          ...(product.stockByWarehouse || {}),
-          [warehouseId]: newWhStock,
-        };
-        const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
+          const updatedStockByWh = {
+            ...(product.stockByWarehouse || {}),
+            [warehouseId]: newWhStock,
+          };
+          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
 
-        updatedProductsMap.set(product.id, {
-          ...product,
-          baseCost: kdx.balanceAverageCost,
-          stockByWarehouse: updatedStockByWh,
-          stock: totalStock,
-          updatedAt: now,
-        });
-      }
+          updatedProductsMap.set(product.id, {
+            ...product,
+            baseCost: kdx.balanceAverageCost,
+            stockByWarehouse: updatedStockByWh,
+            stock: totalStock,
+            updatedAt: now,
+          });
+        }
 
-      if (kardexEntries.length > 0) {
-        await Promise.all([
-          ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-          ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-        ]);
-        setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-        setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
-      }
+        if (kardexEntries.length > 0) {
+          await Promise.all([
+            ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
+            ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
+          ]);
+          setInventoryKardex((prev) => [...kardexEntries, ...prev]);
+          setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
+        }
 
-      // Reversión de movimientos financieros y saldos vinculados a la factura anulada (P1-11)
-      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
-      for (const mov of linkedMovs) {
-        if (mov.bankAccountId) {
-          const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-          if (bank) {
-            const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-            await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-            setBankAccounts((prev) =>
-              prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+        const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
+        for (const mov of linkedMovs) {
+          if (mov.bankAccountId) {
+            const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+            if (bank) {
+              const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
+              await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
+              setBankAccounts((prev) =>
+                prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+              );
+            }
+          }
+          const revId = `mov-rev-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+          const revMov: FinancialMovement = {
+            id: revId,
+            type: "egreso",
+            date: getEcuadorDate(),
+            amount: mov.amount,
+            category: "reversiones",
+            description: `Reverso por anulación de Nota de Venta ${inv.documentNumber}`,
+            bankAccountId: mov.bankAccountId,
+            bankAccountName: mov.bankAccountName,
+            paymentMethod: mov.paymentMethod || "transferencia",
+            relatedEntityId: inv.id,
+            createdAt: now,
+          };
+          await syncToFirestore("financialMovements", revId, revMov);
+          setFinancialMovements((prev) => [revMov, ...prev]);
+        }
+
+        if (inv.clientId) {
+          const clientObj = clients.find((c) => c.id === inv.clientId);
+          if (clientObj) {
+            const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
+            await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
+            setClients((prev) =>
+              prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
             );
           }
         }
-        const revId = `mov-rev-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-        const revMov: FinancialMovement = {
-          id: revId,
-          type: "egreso",
-          date: getEcuadorDate(),
-          amount: mov.amount,
-          category: "reversiones",
-          description: `Reverso por anulación de factura ${inv.documentNumber}`,
-          bankAccountId: mov.bankAccountId,
-          bankAccountName: mov.bankAccountName,
-          paymentMethod: mov.paymentMethod || "transferencia",
-          relatedEntityId: inv.id,
-          createdAt: now,
-        };
-        await syncToFirestore("financialMovements", revId, revMov);
-        setFinancialMovements((prev) => [revMov, ...prev]);
-      }
-
-      if (inv.clientId) {
-        const clientObj = clients.find((c) => c.id === inv.clientId);
-        if (clientObj) {
-          const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
-          await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
-          setClients((prev) =>
-            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
-          );
+      } else if (inv.relatedSaleId) {
+        // Es Factura Electrónica SRI: liberar la Nota de Venta comercial vinculada sin alterar stock ni finanzas
+        const originSale = billingInvoices.find((s) => s.id === inv.relatedSaleId);
+        if (originSale) {
+          const restoredSale: SriInvoice = {
+            ...originSale,
+            sriStatus: "pendiente",
+            sriInvoiceId: undefined,
+            sriDocumentNumber: undefined,
+          };
+          await syncToFirestore("billingInvoices", originSale.id, restoredSale);
+          setBillingInvoices((prev) => prev.map((i) => (i.id === originSale.id ? restoredSale : i)));
         }
       }
     }
@@ -3428,8 +3445,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const now = new Date().toISOString();
 
-    // 1. Si tenía kardex registrado y no estaba previamente anulada, revertimos el stock y generamos entrada de devolución
-    if (inv.status !== "anulada" && inv.kardexRegistered) {
+    // Si es una Factura Electrónica SRI vinculada a una Nota de Venta, liberar la Nota de Venta comercial
+    if (inv.documentType !== "nota_venta" && inv.relatedSaleId) {
+      const originSale = billingInvoices.find((s) => s.id === inv.relatedSaleId);
+      if (originSale) {
+        const restoredSale: SriInvoice = {
+          ...originSale,
+          sriStatus: "pendiente",
+          sriInvoiceId: undefined,
+          sriDocumentNumber: undefined,
+        };
+        await syncToFirestore("billingInvoices", originSale.id, restoredSale);
+        setBillingInvoices((prev) => prev.map((i) => (i.id === originSale.id ? restoredSale : i)));
+      }
+    }
+
+    // 1. Si es Nota de Venta comercial con kardex registrado y no estaba previamente anulada, revertimos el stock y finanzas
+    if (inv.documentType === "nota_venta" && inv.status !== "anulada" && inv.kardexRegistered) {
       const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
       const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
       const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
@@ -3584,7 +3616,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     quoteId: string,
     warehouseId: string,
     paymentMethod: SriInvoice["paymentMethod"] = "transferencia",
-    documentType: "factura" | "nota_venta" = "factura"
+    documentType: "factura" | "nota_venta" = "nota_venta"
   ): Promise<SriInvoice> => {
     const quote = billingQuotes.find((q) => q.id === quoteId);
     if (!quote) throw new Error("Cotización no encontrada.");
@@ -3616,6 +3648,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       paymentMethod,
       sriPaymentCode: paymentMethod === "efectivo" ? "01" : paymentMethod === "tarjeta" ? "19" : "20",
       status: documentType === "nota_venta" ? "registrado" : "autorizada",
+      sriStatus: documentType === "nota_venta" ? "pendiente" : "facturada",
       authorizationDate: new Date().toISOString(),
       warehouseId: wh ? wh.id : warehouseId,
       warehouseName: wh ? wh.name : "Bodega Central",
@@ -3754,51 +3787,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
     const warehouseName = wh ? wh.name : (data.warehouseName || "Bodega Central");
 
-    const kardexEntries: KardexEntry[] = [];
-    const updatedProductsMap = new Map<string, InventoryProduct>();
-
-    for (const item of data.items) {
-      if (!item.productId) continue;
-      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-      if (!product || !product.tracksStock) continue;
-
-      const qty = Math.abs(item.quantity);
-      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-      const newWhStock = currentWhStock + qty;
-
-      const kdx = buildKardexEntry({
-        product,
-        warehouse: wh || { id: warehouseId, name: warehouseName },
-        type: "CUSTOMER_RETURN",
-        referenceId: ncId,
-        referenceDocNumber: documentNumber,
-        concept: `Devolución NC ${documentNumber} - Factura ${data.invoiceNumber}: ${data.reason}`,
-        quantity: qty,
-        unitCost: product.baseCost,
-        currentStock: currentWhStock,
-        currentAvgCost: product.baseCost,
-        userName: currentUser.displayName,
-      });
-
-      kardexEntries.push(kdx);
-
-      const updatedStockByWh = {
-        ...(product.stockByWarehouse || {}),
-        [warehouseId]: newWhStock,
-      };
-      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-      const updatedProd: InventoryProduct = {
-        ...product,
-        baseCost: kdx.balanceAverageCost,
-        stockByWarehouse: updatedStockByWh,
-        stock: totalStock,
-        updatedAt: now,
-      };
-
-      updatedProductsMap.set(product.id, updatedProd);
-    }
-
+    // La Nota de Crédito (04) es un comprobante electrónico tributario del SRI sobre la Factura Electrónica (01).
+    // El inventario y las finanzas se gestionan fuera del proceso de facturación electrónica.
     const newCreditNote: CreditNote = {
       ...data,
       id: ncId,
@@ -3806,35 +3796,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       claveAcceso,
       warehouseId,
       warehouseName,
-      kardexReentered: kardexEntries.length > 0,
+      kardexReentered: false,
       createdAt: now,
     };
 
-    await Promise.all([
-      syncToFirestore("billingCreditNotes", newCreditNote.id, newCreditNote),
-      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-    ]);
-
+    await syncToFirestore("billingCreditNotes", newCreditNote.id, newCreditNote);
     setBillingCreditNotes((prev) => [newCreditNote, ...prev]);
-    if (kardexEntries.length > 0) {
-      setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-      setInventoryProducts((prev) =>
-        prev.map((p) => updatedProductsMap.get(p.id) || p)
-      );
+
+    // Si la Nota de Crédito cubre el total de la Factura Electrónica modificada, marcar la factura SRI como anulada y liberar la Nota de Venta origen
+    const targetInv = billingInvoices.find((i) => i.id === data.invoiceId);
+    if (targetInv && newCreditNote.total >= (targetInv.total || 0)) {
+      await updateInvoiceStatus(targetInv.id, "anulada");
     }
 
-    // Si el cliente tiene saldo por cobrar pendiente, reducirlo por el monto de la Nota de Crédito
-    if (data.clientId && data.clientId !== "cf-9999999999999") {
-      const clientObj = clients.find((c) => c.id === data.clientId);
-      if (clientObj && (clientObj.currentBalance || 0) > 0) {
-        const newBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - newCreditNote.total) * 100) / 100);
-        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
-        syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
-      }
-    }
-
-    addAuditLog("CREATE_EXPENSE", `Nota de Crédito: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
+    addAuditLog("CREATE_EXPENSE", `Nota de Crédito SRI: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
 
     return newCreditNote;
   };
@@ -3881,16 +3856,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     await syncToFirestore("billingDebitNotes", newND.id, newND);
     setBillingDebitNotes((prev) => [newND, ...prev]);
-
-    // Reflejar cargo adicional de la Nota de Débito en el saldo del cliente
-    if (data.clientId && data.clientId !== "cf-9999999999999") {
-      const clientObj = clients.find((c) => c.id === data.clientId);
-      if (clientObj) {
-        const newBal = Math.round(((clientObj.currentBalance || 0) + newND.total) * 100) / 100;
-        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
-        syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
-      }
-    }
 
     addAuditLog(
       "UPDATE_CLIENT",

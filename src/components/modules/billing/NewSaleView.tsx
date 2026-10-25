@@ -57,6 +57,7 @@ import {
   limpiarEmailSri,
 } from "@/lib/sri-service";
 import { RidePreviewModal } from "./RidePreviewModal";
+import { ConvertToSriInvoiceModal } from "../sales/ConvertToSriInvoiceModal";
 
 interface NewSaleViewProps {
   onBack: () => void;
@@ -128,6 +129,7 @@ export function NewSaleView({
   const [isRideModalOpen, setIsRideModalOpen] = useState(false);
   const [rideModalFormat, setRideModalFormat] = useState<"ride" | "ticket">("ride");
   const [copiedAccessKey, setCopiedAccessKey] = useState(false);
+  const [isConvertSriOpen, setIsConvertSriOpen] = useState(false);
 
   // Panel de correo en Paso 2
   const [emailStatus, setEmailStatus] = useState<"sent" | "sending" | "idle">("sent");
@@ -142,9 +144,7 @@ export function NewSaleView({
   const [clientSearch, setClientSearch] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
-  const [documentType, setDocumentType] = useState<"factura" | "nota_venta">(
-    initialDocType === "nota_venta" ? "nota_venta" : "factura"
-  );
+  const [documentType, setDocumentType] = useState<"factura" | "nota_venta">("nota_venta");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedEstablecimiento, setSelectedEstablecimiento] = useState(
     sriCompanyConfig?.establecimiento || "010"
@@ -1429,13 +1429,24 @@ export function NewSaleView({
                 <span>WhatsApp</span>
               </button>
 
+              {isNota && emittedInvoice.sriStatus !== "facturada" && (
+                <button
+                  type="button"
+                  onClick={() => setIsConvertSriOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Pasar a Factura Electrónica SRI</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleStartNewSale}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Nueva Venta</span>
+                <span>Nueva Nota de Venta</span>
               </button>
 
               <button
@@ -1707,6 +1718,17 @@ export function NewSaleView({
           initialFormat={rideModalFormat}
         />
 
+        <ConvertToSriInvoiceModal
+          isOpen={isConvertSriOpen}
+          sale={emittedInvoice}
+          onClose={() => setIsConvertSriOpen(false)}
+          onSuccess={(sriInv) => {
+            setEmittedInvoice(sriInv);
+            setRideModalFormat("ride");
+            setIsRideModalOpen(true);
+          }}
+        />
+
         {/* Modal de Confirmación para Anular en Paso 2 */}
         {confirmDialog && confirmDialog.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
@@ -1761,10 +1783,10 @@ export function NewSaleView({
           </button>
           <div>
             <h1 className="text-base font-black text-slate-900 tracking-tight">
-              Nueva Venta
+              Nueva Nota de Venta
             </h1>
             <p className="text-[11px] text-slate-500">
-              Emisión electrónica SRI y notas de venta
+              Proceso comercial de ventas, despacho de inventario y registro en finanzas (fuera de Facturación Electrónica)
             </p>
           </div>
         </div>
@@ -1774,14 +1796,8 @@ export function NewSaleView({
             Serie Activa: {selectedEstablecimiento || sriCompanyConfig.establecimiento || "010"}-
             {sriCompanyConfig.puntoEmision || "001"}
           </span>
-          <span
-            className={`px-2.5 py-1 rounded-[4px] text-[10px] font-bold uppercase border ${
-              sriCompanyConfig.ambiente === "2"
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                : "bg-amber-50 text-amber-700 border-amber-200"
-            }`}
-          >
-            SRI: {sriCompanyConfig.ambiente === "2" ? "PRODUCCIÓN" : "PRUEBAS"}
+          <span className="px-2.5 py-1 rounded-[4px] text-[10px] font-bold uppercase border bg-blue-50 text-[#004ac6] border-blue-200">
+            COMERCIAL / NOTA DE VENTA
           </span>
         </div>
       </div>
@@ -1916,27 +1932,15 @@ export function NewSaleView({
 
               {/* Configuración del Documento (7 cols -> 4 campos compactos) */}
               <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* Tipo Documento */}
+                {/* Tipo Documento (fijo: NOTA DE VENTA en el flujo comercial) */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
-                    Tipo Documento *
+                    Tipo Documento
                   </label>
-                  <select
-                    value={documentType}
-                    onChange={(e) => setDocumentType(e.target.value as "factura" | "nota_venta")}
-                    className={`w-full text-[11px] font-bold py-2 px-2 rounded-[6px] border outline-hidden cursor-pointer ${
-                      documentType === "nota_venta"
-                        ? "bg-slate-900 text-white border-slate-900"
-                        : "bg-white text-slate-900 border-slate-300 focus:border-[#004ac6]"
-                    }`}
-                  >
-                    <option value="factura" className="bg-white text-slate-900">
-                      FACTURA ELECTRÓNICA
-                    </option>
-                    <option value="nota_venta" className="bg-white text-slate-900">
-                      NOTA DE VENTA
-                    </option>
-                  </select>
+                  <div className="w-full text-[11px] font-bold py-2 px-2.5 rounded-[6px] border bg-slate-900 text-white border-slate-900 flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-[#c0ffa5] shrink-0" />
+                    <span className="truncate">NOTA DE VENTA</span>
+                  </div>
                 </div>
 
                 {/* Fecha Emisión */}

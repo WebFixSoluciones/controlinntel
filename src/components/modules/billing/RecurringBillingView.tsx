@@ -236,8 +236,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       );
       if (inv) {
         showSuccess(
-          "Factura Emitida",
-          `Se emitió ${inv.documentNumber} para ${clientName} por $${inv.total.toFixed(2)}.`
+          "Nota de Venta Recurrente Emitida",
+          `Se emitió la Nota de Venta ${inv.documentNumber} para ${clientName} por $${inv.total.toFixed(2)}.`
         );
         if (onOpenInvoiceRide) {
           onOpenInvoiceRide(inv);
@@ -249,7 +249,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         );
       }
     } catch (err: any) {
-      showError("Error", err?.message || "No se pudo emitir la factura recurrente.");
+      showError("Error", err?.message || "No se pudo emitir la nota de venta recurrente.");
     } finally {
       setEmittingClientId(null);
     }
@@ -263,7 +263,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     if (pendingRows.length === 0) {
       showError(
         "Lote al día",
-        "No hay clientes recurrentes pendientes de facturar en el periodo seleccionado."
+        "No hay clientes recurrentes pendientes de generar Nota de Venta en el periodo seleccionado."
       );
       return;
     }
@@ -280,8 +280,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         if (inv) emittedCount++;
       }
       showSuccess(
-        "Facturación Recurrente Completada",
-        `Se emitieron ${emittedCount} factura(s) electrónicas correspondientes a ${selectedMonth} ${selectedYear}.`
+        "Ventas Recurrentes Generadas",
+        `Se emitieron ${emittedCount} Nota(s) de Venta correspondientes a ${selectedMonth} ${selectedYear}.`
       );
     } catch (err: any) {
       showError("Error en Lote", err?.message || "Ocurrió un error al procesar el lote.");
@@ -638,8 +638,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                 {emittingClientId === row.client.id
                                   ? "Emitiendo..."
                                   : row.alreadyBilledInPeriod
-                                  ? "Re-emitir"
-                                  : "Facturar"}
+                                  ? "Re-emitir NV"
+                                  : "Generar Nota Venta"}
                               </button>
                             </div>
                           </td>

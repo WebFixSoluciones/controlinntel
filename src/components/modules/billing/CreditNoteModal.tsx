@@ -180,11 +180,11 @@ export function CreditNoteModal({
             </div>
           )}
 
-          {/* Fila 1: Factura Origen & Bodega */}
+          {/* Fila 1: Factura Electrónica que Modifica */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Factura que Modifica:
+                Factura Electrónica que Modifica (01):
               </label>
               <select
                 value={selectedInvoiceId}
@@ -204,29 +204,18 @@ export function CreditNoteModal({
               )}
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Bodega de Reingreso de Stock:
-              </label>
-              <select
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900"
-              >
-                {inventoryWarehouses.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] text-emerald-600 font-semibold mt-1">
-                Los productos devueltos reingresarán automáticamente al Kardex de esta bodega.
-              </p>
+            <div className="flex flex-col justify-center bg-blue-50/70 p-3 rounded-xl border border-blue-200/80 text-[11px] text-slate-700">
+              <span className="font-bold text-[#004ac6] block mb-0.5">
+                Comprobante Tributario SRI (Cod. 04)
+              </span>
+              <span>
+                Modifica o anula tributariamente la Factura Electrónica ante el SRI. No altera el inventario ni los movimientos bancarios del módulo comercial.
+              </span>
             </div>
 
             <div className="sm:col-span-2">
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Motivo de la Modificación / Devolución *:
+                Motivo de la Modificación / Anulación SRI *:
               </label>
               <input
                 type="text"
@@ -234,7 +223,7 @@ export function CreditNoteModal({
                 onChange={(e) => setReason(e.target.value)}
                 required
                 className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
-                placeholder="Ej. Devolución de 1 equipo por cambio de especificación..."
+                placeholder="Ej. Anulación o descuento sobre Factura Electrónica..."
               />
             </div>
           </div>

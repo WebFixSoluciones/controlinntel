@@ -24,6 +24,7 @@ import { DebitNoteModal } from "./DebitNoteModal";
 import { WithholdingModal } from "./WithholdingModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
 import { EditSaleModal } from "./EditSaleModal";
+import { ConvertToSriInvoiceModal } from "../sales/ConvertToSriInvoiceModal";
 import {
   Receipt,
   FileText,
@@ -53,6 +54,8 @@ import {
   X,
   Trash2,
   Edit2,
+  Ban,
+  FileCheck2,
 } from "lucide-react";
 import {
   generarFacturaXml,
@@ -86,6 +89,7 @@ export function BillingManager() {
     billingRemissionGuides,
     sriCompanyConfig,
     convertQuoteToInvoice,
+    updateInvoiceStatus,
     deleteInvoice,
     deleteBillingQuote,
     deleteRecord,
@@ -154,6 +158,10 @@ export function BillingManager() {
   // Edit Sale / Nota de Venta Modal
   const [isEditSaleModalOpen, setIsEditSaleModalOpen] = useState(false);
   const [invoiceToEdit, setInvoiceToEdit] = useState<SriInvoice | null>(null);
+
+  // Selector de Nota de Venta para pasar a Factura Electrónica SRI (01)
+  const [isSelectSaleForSriOpen, setIsSelectSaleForSriOpen] = useState(false);
+  const [saleToPromoteToSri, setSaleToPromoteToSri] = useState<SriInvoice | null>(null);
 
   // RIDE Viewer
   const [isRideOpen, setIsRideOpen] = useState(false);
@@ -261,17 +269,47 @@ export function BillingManager() {
     });
   }, [billingRemissionGuides, searchTerm]);
 
+  // Notas de Venta comerciales pendientes de pasar a Factura Electrónica SRI
+  const pendingSalesForSri = useMemo(() => {
+    return billingInvoices.filter(
+      (inv) =>
+        inv.documentType === "nota_venta" &&
+        inv.status !== "anulada" &&
+        inv.sriStatus !== "facturada" &&
+        !inv.sriInvoiceId
+    );
+  }, [billingInvoices]);
+
   // Actions
+  const handleVoidSriInvoice = (inv: SriInvoice) => {
+    showConfirm(
+      "¿Anular Factura Electrónica SRI?",
+      `¿Confirmas anular la Factura Electrónica ${inv.documentNumber} (${inv.clientName})? Se liberará la Nota de Venta comercial origen para poder volver a facturarla, sin alterar el inventario (Kardex) ni los registros financieros.`,
+      async () => {
+        try {
+          await updateInvoiceStatus(inv.id, "anulada");
+          showSuccess(
+            "Factura SRI Anulada",
+            `La Factura ${inv.documentNumber} fue anulada y la Nota de Venta origen quedó disponible.`
+          );
+        } catch (err: any) {
+          showError("Error al Anular", err?.message || "No se pudo anular la Factura SRI.");
+        }
+      },
+      "Anular Factura SRI"
+    );
+  };
+
   const handleDeleteInvoice = (inv: SriInvoice) => {
     const isNota = inv.documentType === "nota_venta";
-    const docLabel = isNota ? "Nota de Venta" : "Factura";
+    const docLabel = isNota ? "Nota de Venta" : "Factura Electrónica SRI";
 
     showConfirm(
       `¿Eliminar ${docLabel}?`,
       `¿Confirmas la eliminación definitiva del comprobante ${inv.documentNumber} (${inv.clientName})? ${
-        inv.kardexRegistered
-          ? "El stock de los productos se devolverá automáticamente al inventario."
-          : ""
+        isNota
+          ? "El stock de los productos se devolverá al inventario y se revertirá el movimiento financiero."
+          : "Se liberará la Nota de Venta comercial origen sin alterar el inventario ni las finanzas."
       }`,
       async () => {
         try {
@@ -509,6 +547,7 @@ export function BillingManager() {
               <option value="all">Estado</option>
               <option value="autorizada">Autorizadas</option>
               <option value="emitida">Emitidas</option>
+              <option value="anulada">Anuladas</option>
               <option value="borrador">Borradores</option>
             </select>
           )}
@@ -527,29 +566,18 @@ export function BillingManager() {
           )}
 
           {activeTab === "facturas" && (
-            <>
-              <button
-                onClick={() => {
-                  setActiveTab("recurrentes");
-                  router.push("/facturacion?sub=recurrentes");
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-blue-50 text-[#004ac6] border border-blue-200 rounded-[6px] text-xs font-bold transition cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Recurrentes</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab("nueva_venta");
-                  router.push("/facturacion?sub=nueva_venta");
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Nueva Venta</span>
-              </button>
-            </>
+            <button
+              onClick={() => setIsSelectSaleForSriOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <FileCheck2 className="w-3.5 h-3.5" />
+              <span>Pasar Nota de Venta a Factura SRI</span>
+              {pendingSalesForSri.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-mono">
+                  {pendingSalesForSri.length}
+                </span>
+              )}
+            </button>
           )}
 
           {activeTab === "cotizaciones" && (
@@ -656,6 +684,9 @@ export function BillingManager() {
                   filteredInvoices.map((inv) => {
                     const isNotaVenta = inv.documentType === "nota_venta";
                     const isDraft = inv.status === "borrador";
+                    const originSale = inv.relatedSaleId
+                      ? billingInvoices.find((b) => b.id === inv.relatedSaleId)
+                      : undefined;
                     return (
                       <tr key={inv.id} className="hover:bg-slate-50/60 transition">
                         <td className="py-3 px-4">
@@ -674,10 +705,12 @@ export function BillingManager() {
                             </span>
                           </div>
                           <span
-                            className="text-[10px] font-mono text-slate-400 truncate max-w-[160px] block"
+                            className="text-[10px] font-mono text-slate-400 truncate max-w-[200px] block"
                             title={inv.claveAcceso}
                           >
-                            {isNotaVenta
+                            {originSale
+                              ? `Origen: ${originSale.documentNumber} • Clave: ${(inv.claveAcceso || "").slice(-8)}`
+                              : isNotaVenta
                               ? "Recibo Control Interno"
                               : isDraft
                               ? "Borrador Pendiente"
@@ -751,40 +784,51 @@ export function BillingManager() {
                                 >
                                   <ShieldCheck className="w-4 h-4" />
                                 </button>
-                                <button
-                                  onClick={() => handleEmitNcFromInvoice(inv)}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                  title="Emitir Nota de Crédito (04)"
-                                >
-                                  <RotateCcw className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDebitNoteInitialInvoice(inv);
-                                    setIsDebitNoteModalOpen(true);
-                                  }}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                  title="Emitir Nota de Débito (05)"
-                                >
-                                  <FileText className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setWithholdingInitialInvoice(inv);
-                                    setIsWithholdingModalOpen(true);
-                                  }}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                                  title="Emitir Comprobante de Retención (07)"
-                                >
-                                  <Percent className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleEmitRemissionFromInvoice(inv)}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                  title="Emitir Guía de Remisión"
-                                >
-                                  <Truck className="w-4 h-4" />
-                                </button>
+                                {inv.status !== "anulada" && (
+                                  <>
+                                    <button
+                                      onClick={() => handleEmitNcFromInvoice(inv)}
+                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                      title="Emitir Nota de Crédito (04)"
+                                    >
+                                      <RotateCcw className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setDebitNoteInitialInvoice(inv);
+                                        setIsDebitNoteModalOpen(true);
+                                      }}
+                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                      title="Emitir Nota de Débito (05)"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setWithholdingInitialInvoice(inv);
+                                        setIsWithholdingModalOpen(true);
+                                      }}
+                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                      title="Emitir Comprobante de Retención (07)"
+                                    >
+                                      <Percent className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleEmitRemissionFromInvoice(inv)}
+                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                      title="Emitir Guía de Remisión (06)"
+                                    >
+                                      <Truck className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleVoidSriInvoice(inv)}
+                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                      title="Anular Factura Electrónica SRI (libera Nota de Venta)"
+                                    >
+                                      <Ban className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )}
                             {(isNotaVenta || isDraft || inv.status !== "autorizada") && inv.status !== "anulada" && (
@@ -802,7 +846,7 @@ export function BillingManager() {
                             <button
                               onClick={() => handleDeleteInvoice(inv)}
                               className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              title={isNotaVenta ? "Eliminar Nota de Venta" : "Eliminar Venta / Factura"}
+                              title={isNotaVenta ? "Eliminar Nota de Venta" : "Eliminar Factura Electrónica SRI"}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1649,6 +1693,125 @@ export function BillingManager() {
             "Comprobante Actualizado",
             `La ${updated.documentType === "nota_venta" ? "Nota de Venta" : "Venta"} ${updated.documentNumber} fue actualizada con éxito.`
           );
+        }}
+      />
+
+      {/* Modal Selector de Notas de Venta Pendientes para Pasar a Factura Electrónica SRI */}
+      {isSelectSaleForSriOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
+          <div className="w-full max-w-2xl bg-white rounded-[8px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-[#004ac6] text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <FileCheck2 className="w-4 h-4 text-sky-200" />
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider">
+                    Pasar Nota de Venta a Factura Electrónica SRI (01)
+                  </h3>
+                  <p className="text-[11px] text-sky-100">
+                    Selecciona la Nota de Venta comercial registrada para emitir su Factura Electrónica ante el SRI
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsSelectSaleForSriOpen(false)}
+                className="p-1 text-sky-200 hover:text-white rounded-md cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-3">
+              {pendingSalesForSri.length === 0 ? (
+                <div className="py-10 text-center space-y-2">
+                  <p className="text-xs font-bold text-slate-700">
+                    No hay Notas de Venta pendientes de facturación electrónica.
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Todas las Notas de Venta comerciales registradas ya fueron pasadas a Factura Electrónica SRI, o puedes registrar una nueva venta en el módulo de Ventas.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectSaleForSriOpen(false);
+                      router.push("/ventas?sub=nueva_venta");
+                    }}
+                    className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Ir a Ventas Comerciales (Nueva Nota de Venta)</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-slate-200 rounded-[6px] overflow-hidden">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase border-b border-slate-200">
+                        <th className="py-2.5 px-3">Nota de Venta</th>
+                        <th className="py-2.5 px-3">Fecha</th>
+                        <th className="py-2.5 px-3">Cliente</th>
+                        <th className="py-2.5 px-3 text-right">Total</th>
+                        <th className="py-2.5 px-3 text-right">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {pendingSalesForSri.map((sale) => (
+                        <tr key={sale.id} className="hover:bg-slate-50">
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                            {sale.documentNumber}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600">{sale.date}</td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-bold text-slate-900">{sale.clientName}</div>
+                            <div className="text-[10px] font-mono text-slate-500">{sale.clientRuc}</div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                            ${safeNumber(sale.total)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsSelectSaleForSriOpen(false);
+                                setSaleToPromoteToSri(sale);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-[#004ac6] hover:bg-[#003ca3] text-white font-bold text-[11px] cursor-pointer"
+                            >
+                              <FileCheck2 className="w-3 h-3" />
+                              <span>Pasar a Factura SRI</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsSelectSaleForSriOpen(false)}
+                className="px-4 py-1.5 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConvertToSriInvoiceModal
+        isOpen={Boolean(saleToPromoteToSri)}
+        sale={saleToPromoteToSri}
+        onClose={() => setSaleToPromoteToSri(null)}
+        onSuccess={(sriInvoice) => {
+          setSaleToPromoteToSri(null);
+          showSuccess(
+            "Factura Electrónica Emitida",
+            `Comprobante SRI ${sriInvoice.documentNumber} generado y autorizado.`
+          );
+          handleOpenRide(sriInvoice);
         }}
       />
     </div>

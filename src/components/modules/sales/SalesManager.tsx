@@ -494,7 +494,7 @@ export function SalesManager() {
             <div>
               <h3 className="text-sm font-bold text-slate-900">Cotizaciones y Proformas Comerciales</h3>
               <p className="text-xs text-slate-500">
-                Gestiona cotizaciones emitidas con opción de conversión directa a Nota de Venta o Factura SRI.
+                Gestiona cotizaciones emitidas y conviértelas en Nota de Venta para despachar inventario y registrar cobro.
               </p>
             </div>
             <button
@@ -588,28 +588,16 @@ export function SalesManager() {
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
                           {q.status !== "facturada" ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setConvertDocType("nota_venta");
-                                  setQuoteToConvert(q);
-                                }}
-                                className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-[#004ac6] text-[#004ac6] hover:text-white font-bold text-[11px] transition cursor-pointer"
-                                title="Convertir a Nota de Venta"
-                              >
-                                + Nota Venta
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setConvertDocType("factura");
-                                  setQuoteToConvert(q);
-                                }}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold text-[11px] transition cursor-pointer"
-                                title="Convertir a Factura SRI"
-                              >
-                                + Factura SRI
-                              </button>
-                            </>
+                            <button
+                              onClick={() => {
+                                setConvertDocType("nota_venta");
+                                setQuoteToConvert(q);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-[#004ac6] text-[#004ac6] hover:text-white font-bold text-[11px] transition cursor-pointer"
+                              title="Convertir a Nota de Venta Comercial"
+                            >
+                              Pasar a Nota de Venta
+                            </button>
                           ) : (
                             <span className="text-[10px] font-mono text-slate-500 mr-1">
                               {q.invoiceNumber}
@@ -673,7 +661,7 @@ export function SalesManager() {
         />
       )}
 
-      {/* Modal: Convertir Cotización a Nota de Venta o Factura */}
+      {/* Modal: Convertir Cotización a Nota de Venta */}
       {quoteToConvert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4">
@@ -683,45 +671,19 @@ export function SalesManager() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Convertir Cotización {quoteToConvert.quoteNumber}
+                  Convertir a Nota de Venta
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Cliente: {quoteToConvert.clientName} (${quoteToConvert.total.toFixed(2)})
+                  Cotización {quoteToConvert.quoteNumber} • {quoteToConvert.clientName} (${quoteToConvert.total.toFixed(2)})
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-800 mb-1">
-                  Tipo de Comprobante a Generar:
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setConvertDocType("nota_venta")}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                      convertDocType === "nota_venta"
-                        ? "bg-blue-50 border-[#004ac6] text-[#004ac6]"
-                        : "bg-white border-slate-200 text-slate-600"
-                    }`}
-                  >
-                    Nota de Venta
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConvertDocType("factura")}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition cursor-pointer ${
-                      convertDocType === "factura"
-                        ? "bg-emerald-50 border-emerald-600 text-emerald-700"
-                        : "bg-white border-slate-200 text-slate-600"
-                    }`}
-                  >
-                    Factura SRI (01)
-                  </button>
-                </div>
-              </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Se generará la <strong>Nota de Venta Comercial</strong> descontando el inventario de la bodega seleccionada y registrando el ingreso en finanzas. Posteriormente podrás pasar la Nota de Venta a Factura Electrónica SRI.
+            </p>
 
+            <div className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-slate-800 mb-1">
                   Bodega de Despacho de Mercadería:
