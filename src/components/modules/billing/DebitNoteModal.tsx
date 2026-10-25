@@ -41,7 +41,10 @@ export function DebitNoteModal({
   const [errorMsg, setErrorMsg] = useState("");
 
   const authorizedInvoices = billingInvoices.filter(
-    (inv) => (inv.documentType || "factura") === "factura"
+    (inv) =>
+      (inv.documentType || "factura") === "factura" &&
+      inv.status !== "anulada" &&
+      inv.status !== "borrador"
   );
 
   useEffect(() => {
@@ -54,7 +57,8 @@ export function DebitNoteModal({
         setSelectedInvoiceId(authorizedInvoices[0].id);
       }
     }
-  }, [isOpen, initialInvoice, authorizedInvoices]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialInvoice]);
 
   if (!isOpen) return null;
 
@@ -117,7 +121,7 @@ export function DebitNoteModal({
         ivaRate,
         ivaAmount,
         total,
-        status: "emitida",
+        status: "autorizada",
       });
 
       showSuccess(

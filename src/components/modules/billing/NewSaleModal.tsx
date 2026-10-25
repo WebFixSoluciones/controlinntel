@@ -23,9 +23,15 @@ interface NewSaleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (invoice: SriInvoice) => void;
+  documentType?: "factura" | "nota_venta";
 }
 
-export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) {
+export function NewSaleModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  documentType = "nota_venta",
+}: NewSaleModalProps) {
   const {
     clients,
     inventoryWarehouses,
@@ -280,6 +286,7 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
           : "20";
 
       const newInvoice = await createInvoice({
+        documentType,
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
         clientId: clientMode === "registered" ? selectedClientId : "cli-custom",
@@ -300,7 +307,7 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
         paymentMethod,
         sriPaymentCode,
         paymentTermDays: paymentMethod === "credito" ? 30 : 0,
-        status: "autorizada", // En ambiente de pruebas o producción autoriza directamente
+        status: documentType === "nota_venta" ? "registrado" : "autorizada",
         authorizationDate: new Date().toISOString(),
         warehouseId,
         warehouseName: currentWarehouse?.name || "Bodega Central",

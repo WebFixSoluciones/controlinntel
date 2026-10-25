@@ -342,8 +342,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     finalTipoIdentificacion = customClientRuc.length === 13 ? "04" : "05";
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSave = async (targetStatus?: SriInvoice["status"]) => {
     setErrorMsg("");
 
     if (!finalClientName.trim() || !finalClientRuc.trim()) {
@@ -362,7 +361,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
         const prod = inventoryProducts.find((p) => p.id === it.productId);
         if (prod && prod.tracksStock && prod.type !== "servicio") {
           const oldItem = invoice.items?.find((old) => old.productId === it.productId);
-          const oldQty = oldItem ? Math.abs(oldItem.quantity) : 0;
+          const oldQty = invoice.kardexRegistered && oldItem ? Math.abs(oldItem.quantity) : 0;
           const delta = it.quantity - oldQty;
           if (delta > 0) {
             const whStock = Number(prod.stockByWarehouse?.[warehouseId || invoice.warehouseId] || 0);
@@ -382,6 +381,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
       const selectedWh = inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
 
       const updated = await updateInvoice(invoice.id, {
+        ...(targetStatus ? { status: targetStatus } : {}),
         clientName: finalClientName,
         clientRuc: finalClientRuc,
         clientEmail: finalClientEmail,
@@ -414,6 +414,11 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeSave();
   };
 
   return (
@@ -901,8 +906,23 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               className="px-5 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ea8] text-white text-xs font-medium transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {isSubmitting ? "Guardando Cambios..." : "Guardar Cambios"}
+              {isSubmitting
+                ? "Guardando Cambios..."
+                : invoice.status === "borrador"
+                ? "Guardar Borrador"
+                : "Guardar Cambios"}
             </button>
+            {invoice.status === "borrador" && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => executeSave("autorizada")}
+                className="px-5 py-2 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isSubmitting ? "Emitiendo..." : "Guardar y Emitir Comprobante"}
+              </button>
+            )}
           </div>
         </form>
       </div>

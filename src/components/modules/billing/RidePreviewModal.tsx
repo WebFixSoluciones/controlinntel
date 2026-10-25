@@ -109,12 +109,13 @@ export function RidePreviewModal({
   const subtotal15 = safeFloat(
     (invoice && invoice.subtotal15) ||
     (creditNote && creditNote.subtotal15) ||
-    (debitNote && debitNote.subtotal) ||
+    (debitNote && (debitNote.ivaRate > 0 ? debitNote.subtotal : 0)) ||
     0
   );
   const subtotal0 = safeFloat(
     (invoice && invoice.subtotal0) ||
     (creditNote && creditNote.subtotal0) ||
+    (debitNote && (debitNote.ivaRate === 0 ? debitNote.subtotal : 0)) ||
     0
   );
   const subtotalNoObjeto = safeFloat((invoice && invoice.subtotalNoObjeto) || 0);

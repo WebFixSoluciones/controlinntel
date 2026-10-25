@@ -317,7 +317,8 @@ interface AppContextType {
   convertQuoteToInvoice: (
     quoteId: string,
     warehouseId: string,
-    paymentMethod?: SriInvoice["paymentMethod"]
+    paymentMethod?: SriInvoice["paymentMethod"],
+    documentType?: "factura" | "nota_venta"
   ) => Promise<SriInvoice>;
   convertSaleToSriInvoice: (
     saleId: string,
@@ -1276,6 +1277,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as CreditNote) : c)) : [recordWithId as CreditNote, ...prev];
         });
         break;
+      case "billingDebitNotes":
+        setBillingDebitNotes((prev) => {
+          const exists = prev.some((d) => d.id === targetId);
+          return exists ? prev.map((d) => (d.id === targetId ? ({ ...d, ...recordWithId } as DebitNote) : d)) : [recordWithId as DebitNote, ...prev];
+        });
+        break;
       case "billingWithholdings":
         setBillingWithholdings((prev) => {
           const exists = prev.some((w) => w.id === targetId);
@@ -1323,6 +1330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "billingInvoices": setBillingInvoices((prev) => prev.filter((i) => i.id !== id)); break;
       case "billingQuotes": setBillingQuotes((prev) => prev.filter((q) => q.id !== id)); break;
       case "billingCreditNotes": setBillingCreditNotes((prev) => prev.filter((c) => c.id !== id)); break;
+      case "billingDebitNotes": setBillingDebitNotes((prev) => prev.filter((d) => d.id !== id)); break;
       case "billingWithholdings": setBillingWithholdings((prev) => prev.filter((w) => w.id !== id)); break;
       case "billingRemissionGuides": setBillingRemissionGuides((prev) => prev.filter((g) => g.id !== id)); break;
     }
@@ -3063,10 +3071,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // 1. Ajuste de Inventario / Kardex si aplica
     const kardexEntries: KardexEntry[] = [];
     const updatedProductsMap = new Map<string, InventoryProduct>();
+    const isTransitioningFromDraft = inv.status === "borrador" && updates.status !== undefined && updates.status !== "borrador";
 
-    if (inv.status !== "borrador" && (inv.kardexRegistered || updates.items)) {
-      const oldItems = inv.items || [];
-      const newItems = updates.items || oldItems;
+    let assignedDocNumber = inv.documentNumber;
+    let assignedClaveAcceso = inv.claveAcceso;
+
+    if (isTransitioningFromDraft) {
+      const estab = sriCompanyConfig.establecimiento || "010";
+      const pto = sriCompanyConfig.puntoEmision || "001";
+      const docType = updates.documentType || inv.documentType || "factura";
+      const dateStr = updates.date || inv.date || now.slice(0, 10);
+
+      if (docType === "nota_venta") {
+        const startFromNotaVenta = (sriCompanyConfig.secuencialNotaVenta || 1) - 1;
+        const maxSecNota = billingInvoices
+          .filter((i) => i.documentType === "nota_venta" && i.status !== "borrador")
+          .reduce((max, i) => {
+            const parts = (i.documentNumber || "").split("-");
+            const num = parseInt(parts[2] || "0", 10);
+            return !isNaN(num) && num > max ? num : max;
+          }, 0);
+        assignedDocNumber = formatearSecuencialSRI(Math.max(maxSecNota, startFromNotaVenta) + 1, estab, pto);
+        assignedClaveAcceso = "";
+      } else {
+        const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
+        const maxSec = billingInvoices
+          .filter((i) => (i.documentType || "factura") === "factura" && i.status !== "borrador")
+          .reduce((max, i) => {
+            const parts = (i.documentNumber || "").split("-");
+            const num = parseInt(parts[2] || "0", 10);
+            return !isNaN(num) && num > max ? num : max;
+          }, 0);
+        const secuencial = Math.max(maxSec, startFromFactura) + 1;
+        assignedDocNumber = formatearSecuencialSRI(secuencial, estab, pto);
+        assignedClaveAcceso = generarClaveAccesoSRI({
+          fechaEmision: dateStr,
+          tipoComprobante: "01",
+          ruc: sriCompanyConfig.ruc,
+          ambiente: sriCompanyConfig.ambiente,
+          establecimiento: estab,
+          puntoEmision: pto,
+          secuencial,
+          codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+        });
+      }
+    }
+
+    if ((inv.status !== "borrador" && (inv.kardexRegistered || updates.items)) || isTransitioningFromDraft) {
+      const oldItems = isTransitioningFromDraft ? [] : (inv.items || []);
+      const newItems = updates.items || inv.items || [];
 
       const oldQtyMap = new Map<string, number>();
       for (const it of oldItems) {
@@ -3290,12 +3343,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
+    } else if (isTransitioningFromDraft) {
+      if (newMethod !== "credito") {
+        const targetBank = newBankId ? bankAccounts.find((b) => b.id === newBankId) : bankAccounts[0];
+        if (targetBank && newTotal > 0) {
+          const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+          const movement: FinancialMovement = {
+            id: movId,
+            type: "ingreso",
+            date: updates.date || inv.date,
+            amount: newTotal,
+            category: "venta_equipos",
+            description: `Cobro ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${assignedDocNumber} - ${updates.clientName || inv.clientName}`,
+            bankAccountId: targetBank.id,
+            bankAccountName: targetBank.bankName,
+            paymentMethod: newMethod,
+            referenceNumber: updates.transferenciaRef || updates.tarjetaRef || assignedDocNumber,
+            relatedEntityId: inv.id,
+            createdAt: now,
+          };
+          setFinancialMovements((prev) => [movement, ...prev]);
+          await syncToFirestore("financialMovements", movId, movement);
+
+          const newBankBal = Math.round((targetBank.currentBalance + newTotal) * 100) / 100;
+          setBankAccounts((prev) => prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBankBal } : b)));
+          await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBankBal });
+        }
+      } else {
+        const targetClientId = updates.clientId || inv.clientId;
+        if (targetClientId && targetClientId !== "cf-9999999999999" && newTotal > 0) {
+          const cl = clients.find((c) => c.id === targetClientId);
+          if (cl) {
+            const updatedClBal = Math.round(((cl.currentBalance || 0) + newTotal) * 100) / 100;
+            await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
+            setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
+          }
+        }
+      }
     }
 
     // 3. Objeto actualizado final y sincronización
     const updatedInvoice: SriInvoice = {
       ...inv,
       ...updates,
+      documentNumber: assignedDocNumber,
+      claveAcceso: assignedClaveAcceso,
+      authorizationDate: isTransitioningFromDraft ? now : (updates.authorizationDate || inv.authorizationDate),
       warehouseId,
       warehouseName,
       kardexRegistered: inv.kardexRegistered || kardexEntries.length > 0,
@@ -3490,7 +3583,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const convertQuoteToInvoice = async (
     quoteId: string,
     warehouseId: string,
-    paymentMethod: SriInvoice["paymentMethod"] = "transferencia"
+    paymentMethod: SriInvoice["paymentMethod"] = "transferencia",
+    documentType: "factura" | "nota_venta" = "factura"
   ): Promise<SriInvoice> => {
     const quote = billingQuotes.find((q) => q.id === quoteId);
     if (!quote) throw new Error("Cotización no encontrada.");
@@ -3498,6 +3592,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const wh = inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
 
     const invoice = await createInvoice({
+      documentType,
       date: getEcuadorDate(),
       time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
       clientId: quote.clientId,
@@ -3520,10 +3615,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       total: quote.total,
       paymentMethod,
       sriPaymentCode: paymentMethod === "efectivo" ? "01" : paymentMethod === "tarjeta" ? "19" : "20",
-      status: "emitida",
+      status: documentType === "nota_venta" ? "registrado" : "autorizada",
+      authorizationDate: new Date().toISOString(),
       warehouseId: wh ? wh.id : warehouseId,
       warehouseName: wh ? wh.name : "Bodega Central",
-      notes: `Facturado desde Cotización ${quote.quoteNumber}. ${quote.notes || ""}`,
+      notes: `${documentType === "nota_venta" ? "Nota de Venta" : "Facturado"} desde Cotización ${quote.quoteNumber}. ${quote.notes || ""}`,
     });
 
     const updatedQuote: ClientQuote = {
@@ -3589,7 +3685,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       claveAcceso,
       date: dateStr,
       time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
-      status: "emitida",
+      status: "autorizada",
+      authorizationDate: now,
       relatedSaleId: sale.id,
       kardexRegistered: false, // El stock ya fue descontado en la Nota de Venta comercial
       notes: `Factura Electrónica emitida a partir de Nota de Venta ${sale.documentNumber}. ${sale.notes || ""}`,
@@ -3727,6 +3824,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
+    // Si el cliente tiene saldo por cobrar pendiente, reducirlo por el monto de la Nota de Crédito
+    if (data.clientId && data.clientId !== "cf-9999999999999") {
+      const clientObj = clients.find((c) => c.id === data.clientId);
+      if (clientObj && (clientObj.currentBalance || 0) > 0) {
+        const newBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - newCreditNote.total) * 100) / 100);
+        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
+        syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
+      }
+    }
+
     addAuditLog("CREATE_EXPENSE", `Nota de Crédito: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
 
     return newCreditNote;
@@ -3765,6 +3872,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const newND: DebitNote = {
       ...data,
+      status: data.status || "autorizada",
       id: ndId,
       documentNumber,
       claveAcceso,
@@ -3773,6 +3881,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     await syncToFirestore("billingDebitNotes", newND.id, newND);
     setBillingDebitNotes((prev) => [newND, ...prev]);
+
+    // Reflejar cargo adicional de la Nota de Débito en el saldo del cliente
+    if (data.clientId && data.clientId !== "cf-9999999999999") {
+      const clientObj = clients.find((c) => c.id === data.clientId);
+      if (clientObj) {
+        const newBal = Math.round(((clientObj.currentBalance || 0) + newND.total) * 100) / 100;
+        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
+        syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
+      }
+    }
 
     addAuditLog(
       "UPDATE_CLIENT",

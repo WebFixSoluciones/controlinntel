@@ -909,3 +909,48 @@ test("Flujo E2E 14: Submódulo de Bancos (Permisos Granulares, Inicialización d
   const totalLiquidity = bankAccounts.reduce((sum, b) => sum + b.currentBalance, 0);
   assert.equal(totalLiquidity, 8500.0, "La liquidez total institucional debe conservarse intacta ($8,500)");
 });
+
+test("Flujo E2E 15: Auditoría Integral de Facturación SRI (5 Comprobantes Oficiales) y Proceso de Ventas Comerciales", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificar que BillingManager integra los 5 comprobantes oficiales del SRI (01, 04, 05, 07, 06) incluyendo WithholdingModal
+  const billingManagerPath = path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx");
+  const billingManagerContent = fs.readFileSync(billingManagerPath, "utf8");
+  assert.ok(
+    billingManagerContent.includes("WithholdingModal"),
+    "BillingManager debe integrar WithholdingModal para emitir Comprobantes de Retención (07)"
+  );
+  assert.ok(
+    billingManagerContent.includes("filteredWithholdings") &&
+      billingManagerContent.includes("filteredRemissionGuides"),
+    "BillingManager debe filtrar correctamente Retenciones (07) y Guías de Remisión (06)"
+  );
+  assert.ok(
+    billingManagerContent.includes('inv.documentType === "nota_venta"') &&
+      billingManagerContent.includes("return false"),
+    "BillingManager debe separar estrictamente las Facturas SRI (01) de las Notas de Venta internas"
+  );
+
+  // 2. Verificar que SalesManager integra NewSaleView para nueva_venta y conversión de cotizaciones
+  const salesManagerPath = path.resolve(rootDir, "src/components/modules/sales/SalesManager.tsx");
+  const salesManagerContent = fs.readFileSync(salesManagerPath, "utf8");
+  assert.ok(
+    salesManagerContent.includes('<NewSaleView') &&
+      salesManagerContent.includes('initialDocType="nota_venta"'),
+    "SalesManager debe renderizar NewSaleView con initialDocType='nota_venta' en el submódulo nueva_venta"
+  );
+  assert.ok(
+    salesManagerContent.includes("convertQuoteToInvoice"),
+    "SalesManager debe permitir convertir cotizaciones directamente a Nota de Venta o Factura SRI"
+  );
+
+  // 3. Verificar que ConvertToSriInvoiceModal permite completar/editar RUC, Razón Social y Correo antes de emitir al SRI
+  const convertModalPath = path.resolve(rootDir, "src/components/modules/sales/ConvertToSriInvoiceModal.tsx");
+  const convertModalContent = fs.readFileSync(convertModalPath, "utf8");
+  assert.ok(
+    convertModalContent.includes("setClientRuc") &&
+      convertModalContent.includes("setClientEmail") &&
+      convertModalContent.includes("convertSaleToSriInvoice(sale.id,"),
+    "ConvertToSriInvoiceModal debe permitir editar datos fiscales del receptor y enviarlos a convertSaleToSriInvoice"
+  );
+});

@@ -58,12 +58,12 @@ const NAV_ITEMS: NavItem[] = [
     href: "/ventas",
     label: "Ventas",
     icon: Receipt,
-    moduleKey: "facturacion",
+    moduleKey: "ventas",
     submodules: [
-      { key: "notas_venta", label: "Notas de Venta", href: "/ventas?sub=notas_venta", submoduleKey: "facturas" },
-      { key: "nueva_venta", label: "Nueva Venta", href: "/ventas?sub=nueva_venta", submoduleKey: "facturas" },
+      { key: "notas_venta", label: "Notas de Venta", href: "/ventas?sub=notas_venta", submoduleKey: "notas_venta" },
+      { key: "nueva_venta", label: "Nueva Venta", href: "/ventas?sub=nueva_venta", submoduleKey: "nueva_venta" },
       { key: "cotizaciones", label: "Cotizaciones", href: "/ventas?sub=cotizaciones", submoduleKey: "cotizaciones" },
-      { key: "recurrentes", label: "Recurrentes", href: "/ventas?sub=recurrentes", submoduleKey: "facturas" },
+      { key: "recurrentes", label: "Recurrentes", href: "/ventas?sub=recurrentes", submoduleKey: "recurrentes" },
     ],
   },
   {
@@ -87,10 +87,10 @@ const NAV_ITEMS: NavItem[] = [
     submodules: [
       { key: "facturas", label: "Facturas (01)", href: "/facturacion?sub=facturas", submoduleKey: "facturas" },
       { key: "notas_credito", label: "Notas de Crédito (04)", href: "/facturacion?sub=notas_credito", submoduleKey: "notas_credito" },
-      { key: "notas_debito", label: "Notas de Débito (05)", href: "/facturacion?sub=notas_debito", submoduleKey: "notas_credito" },
+      { key: "notas_debito", label: "Notas de Débito (05)", href: "/facturacion?sub=notas_debito", submoduleKey: "notas_debito" },
       { key: "retenciones", label: "Retenciones (07)", href: "/facturacion?sub=retenciones", submoduleKey: "retenciones" },
       { key: "guias_remision", label: "Guías Remisión (06)", href: "/facturacion?sub=guias_remision", submoduleKey: "guias_remision" },
-      { key: "configuracion_sri", label: "Ambiente y Firma", href: "/configuracion?sub=sri", submoduleKey: "general" },
+      { key: "configuracion_sri", label: "Ambiente y Firma", href: "/configuracion?sub=sri", submoduleKey: "facturas" },
     ],
   },
   {

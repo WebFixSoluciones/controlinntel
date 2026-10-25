@@ -624,13 +624,14 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   <span className="font-bold text-[#434655] text-[11px] uppercase tracking-wider block mb-2">
                     Submódulos Permitidos:
                   </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                     {[
-                      { key: "facturas", label: "Facturas" },
+                      { key: "facturas", label: "Facturas (01)" },
                       { key: "cotizaciones", label: "Cotizaciones" },
-                      { key: "notas_credito", label: "Notas Crédito" },
-                      { key: "retenciones", label: "Retenciones" },
-                      { key: "guias_remision", label: "Guías Remisión" },
+                      { key: "notas_credito", label: "Notas Crédito (04)" },
+                      { key: "notas_debito", label: "Notas Débito (05)" },
+                      { key: "retenciones", label: "Retenciones (07)" },
+                      { key: "guias_remision", label: "Guías Remisión (06)" },
                     ].map((sub) => {
                       const checked = !!(permissions.facturacion?.submodules as any)?.[sub.key];
                       return (

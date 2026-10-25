@@ -33,6 +33,13 @@ export function CreditNoteModal({
     createCreditNote,
   } = useApp();
 
+  const sriInvoices = billingInvoices.filter(
+    (inv) =>
+      (inv.documentType || "factura") === "factura" &&
+      inv.status !== "anulada" &&
+      inv.status !== "borrador"
+  );
+
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [reason, setReason] = useState("Devolución de mercadería por garantía o cambio de requerimiento");
   const [warehouseId, setWarehouseId] = useState("");
@@ -46,24 +53,25 @@ export function CreditNoteModal({
         setSelectedInvoiceId(initialInvoice.id);
         setWarehouseId(initialInvoice.warehouseId || inventoryWarehouses[0]?.id || "");
         setItems(JSON.parse(JSON.stringify(initialInvoice.items || [])));
-      } else if (billingInvoices.length > 0) {
-        const first = billingInvoices[0];
+      } else if (sriInvoices.length > 0) {
+        const first = sriInvoices[0];
         setSelectedInvoiceId(first.id);
         setWarehouseId(first.warehouseId || inventoryWarehouses[0]?.id || "");
         setItems(JSON.parse(JSON.stringify(first.items || [])));
       }
       setErrorMsg("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialInvoice, billingInvoices, inventoryWarehouses]);
 
   if (!isOpen) return null;
 
-  const selectedInvoice = billingInvoices.find((i) => i.id === selectedInvoiceId);
+  const selectedInvoice = sriInvoices.find((i) => i.id === selectedInvoiceId);
   const currentWarehouse = inventoryWarehouses.find((w) => w.id === warehouseId) || inventoryWarehouses[0];
 
   const handleInvoiceChange = (invId: string) => {
     setSelectedInvoiceId(invId);
-    const inv = billingInvoices.find((i) => i.id === invId);
+    const inv = sriInvoices.find((i) => i.id === invId);
     if (inv) {
       setWarehouseId(inv.warehouseId || inventoryWarehouses[0]?.id || "");
       setItems(JSON.parse(JSON.stringify(inv.items || [])));
@@ -183,7 +191,7 @@ export function CreditNoteModal({
                 onChange={(e) => handleInvoiceChange(e.target.value)}
                 className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900"
               >
-                {billingInvoices.map((inv) => (
+                {sriInvoices.map((inv) => (
                   <option key={inv.id} value={inv.id}>
                     {inv.documentNumber} - {inv.clientName} (${inv.total.toFixed(2)})
                   </option>

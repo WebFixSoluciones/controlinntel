@@ -21,6 +21,7 @@ import { RecurringBillingView } from "./RecurringBillingView";
 import { BillingQuoteModal } from "./BillingQuoteModal";
 import { CreditNoteModal } from "./CreditNoteModal";
 import { DebitNoteModal } from "./DebitNoteModal";
+import { WithholdingModal } from "./WithholdingModal";
 import { RemissionGuideModal } from "./RemissionGuideModal";
 import { EditSaleModal } from "./EditSaleModal";
 import {
@@ -86,6 +87,8 @@ export function BillingManager() {
     sriCompanyConfig,
     convertQuoteToInvoice,
     deleteInvoice,
+    deleteBillingQuote,
+    deleteRecord,
     inventoryWarehouses,
   } = useApp();
   const { showConfirm, showSuccess, showError } = useToast();
@@ -141,6 +144,9 @@ export function BillingManager() {
 
   const [isDebitNoteModalOpen, setIsDebitNoteModalOpen] = useState(false);
   const [debitNoteInitialInvoice, setDebitNoteInitialInvoice] = useState<SriInvoice | null>(null);
+
+  const [isWithholdingModalOpen, setIsWithholdingModalOpen] = useState(false);
+  const [withholdingInitialInvoice, setWithholdingInitialInvoice] = useState<SriInvoice | null>(null);
 
   const [isRemissionModalOpen, setIsRemissionModalOpen] = useState(false);
   const [remissionInitialInvoice, setRemissionInitialInvoice] = useState<SriInvoice | null>(null);
@@ -229,6 +235,31 @@ export function BillingManager() {
       );
     });
   }, [billingDebitNotes, searchTerm]);
+
+  const filteredWithholdings = useMemo(() => {
+    return billingWithholdings.filter((ret) => {
+      const search = searchTerm.toLowerCase();
+      return (
+        ret.documentNumber.toLowerCase().includes(search) ||
+        ret.invoiceNumber.toLowerCase().includes(search) ||
+        ret.clientName.toLowerCase().includes(search) ||
+        ret.clientRuc.includes(search)
+      );
+    });
+  }, [billingWithholdings, searchTerm]);
+
+  const filteredRemissionGuides = useMemo(() => {
+    return billingRemissionGuides.filter((g) => {
+      const search = searchTerm.toLowerCase();
+      return (
+        g.documentNumber.toLowerCase().includes(search) ||
+        g.carrierName.toLowerCase().includes(search) ||
+        g.licensePlate.toLowerCase().includes(search) ||
+        g.destClientName.toLowerCase().includes(search) ||
+        g.destClientRuc.includes(search)
+      );
+    });
+  }, [billingRemissionGuides, searchTerm]);
 
   // Actions
   const handleDeleteInvoice = (inv: SriInvoice) => {
@@ -560,6 +591,19 @@ export function BillingManager() {
             </button>
           )}
 
+          {activeTab === "retenciones" && (
+            <button
+              onClick={() => {
+                setWithholdingInitialInvoice(null);
+                setIsWithholdingModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nueva Retención (07)</span>
+            </button>
+          )}
+
           {activeTab === "guias_remision" && (
             <button
               onClick={() => {
@@ -725,6 +769,16 @@ export function BillingManager() {
                                   <FileText className="w-4 h-4" />
                                 </button>
                                 <button
+                                  onClick={() => {
+                                    setWithholdingInitialInvoice(inv);
+                                    setIsWithholdingModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                  title="Emitir Comprobante de Retención (07)"
+                                >
+                                  <Percent className="w-4 h-4" />
+                                </button>
+                                <button
                                   onClick={() => handleEmitRemissionFromInvoice(inv)}
                                   className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                                   title="Emitir Guía de Remisión"
@@ -857,6 +911,24 @@ export function BillingManager() {
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
+
+                          <button
+                            onClick={() => {
+                              showConfirm(
+                                "¿Eliminar Cotización?",
+                                `¿Confirmas eliminar la cotización ${q.quoteNumber} (${q.clientName})?`,
+                                async () => {
+                                  await deleteBillingQuote(q.id);
+                                  showSuccess("Cotización Eliminada", `La cotización ${q.quoteNumber} fue eliminada.`);
+                                },
+                                "Eliminar"
+                              );
+                            }}
+                            className="p-1 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            title="Eliminar Cotización"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -939,6 +1011,23 @@ export function BillingManager() {
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              showConfirm(
+                                "¿Eliminar Nota de Crédito?",
+                                `¿Confirmas eliminar la Nota de Crédito ${nc.documentNumber}?`,
+                                async () => {
+                                  await deleteRecord("billingCreditNotes", nc.id);
+                                  showSuccess("Nota Eliminada", `La Nota de Crédito ${nc.documentNumber} fue eliminada.`);
+                                },
+                                "Eliminar"
+                              );
+                            }}
+                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title="Eliminar Nota de Crédito"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1032,6 +1121,23 @@ export function BillingManager() {
                           >
                             <ShieldCheck className="w-4 h-4" />
                           </button>
+                          <button
+                            onClick={() => {
+                              showConfirm(
+                                "¿Eliminar Nota de Débito?",
+                                `¿Confirmas eliminar la Nota de Débito ${nd.documentNumber}?`,
+                                async () => {
+                                  await deleteRecord("billingDebitNotes", nd.id);
+                                  showSuccess("Nota Eliminada", `La Nota de Débito ${nd.documentNumber} fue eliminada.`);
+                                },
+                                "Eliminar"
+                              );
+                            }}
+                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title="Eliminar Nota de Débito"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1061,14 +1167,14 @@ export function BillingManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {billingWithholdings.length === 0 ? (
+                {filteredWithholdings.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-slate-400">
                       No hay comprobantes de retención registrados.
                     </td>
                   </tr>
                 ) : (
-                  billingWithholdings.map((ret) => (
+                  filteredWithholdings.map((ret) => (
                     <tr key={ret.id} className="hover:bg-slate-50/60 transition">
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">
                         {ret.documentNumber}
@@ -1124,6 +1230,23 @@ export function BillingManager() {
                           >
                             <ShieldCheck className="w-4 h-4" />
                           </button>
+                          <button
+                            onClick={() => {
+                              showConfirm(
+                                "¿Eliminar Retención?",
+                                `¿Confirmas eliminar el Comprobante de Retención ${ret.documentNumber}?`,
+                                async () => {
+                                  await deleteRecord("billingWithholdings", ret.id);
+                                  showSuccess("Retención Eliminada", `El comprobante ${ret.documentNumber} fue eliminado.`);
+                                },
+                                "Eliminar"
+                              );
+                            }}
+                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title="Eliminar Retención"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1153,14 +1276,14 @@ export function BillingManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {billingRemissionGuides.length === 0 ? (
+                {filteredRemissionGuides.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-slate-400">
                       No hay guías de remisión registradas.
                     </td>
                   </tr>
                 ) : (
-                  billingRemissionGuides.map((g) => (
+                  filteredRemissionGuides.map((g) => (
                     <tr key={g.id} className="hover:bg-slate-50/60 transition">
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">
                         {g.documentNumber}
@@ -1215,6 +1338,23 @@ export function BillingManager() {
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              showConfirm(
+                                "¿Eliminar Guía de Remisión?",
+                                `¿Confirmas eliminar la Guía de Remisión ${g.documentNumber}?`,
+                                async () => {
+                                  await deleteRecord("billingRemissionGuides", g.id);
+                                  showSuccess("Guía Eliminada", `La Guía ${g.documentNumber} fue eliminada.`);
+                                },
+                                "Eliminar"
+                              );
+                            }}
+                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            title="Eliminar Guía de Remisión"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1428,6 +1568,24 @@ export function BillingManager() {
           setRideInvoice(null);
           setRideCreditNote(null);
           setRideWithholding(null);
+          setRideRemissionGuide(null);
+          setIsRideOpen(true);
+        }}
+      />
+
+      <WithholdingModal
+        isOpen={isWithholdingModalOpen}
+        onClose={() => {
+          setIsWithholdingModalOpen(false);
+          setWithholdingInitialInvoice(null);
+        }}
+        initialInvoice={withholdingInitialInvoice}
+        onSuccess={(ret) => {
+          showSuccess("Retención Emitida", `Comprobante de Retención ${ret.documentNumber} emitido con éxito.`);
+          setRideWithholding(ret);
+          setRideInvoice(null);
+          setRideCreditNote(null);
+          setRideDebitNote(null);
           setRideRemissionGuide(null);
           setIsRideOpen(true);
         }}

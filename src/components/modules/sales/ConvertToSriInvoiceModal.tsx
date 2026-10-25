@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   FileCheck2,
   AlertTriangle,
-  Receipt,
-  Building2,
   CheckCircle2,
   Send,
   User,
   Mail,
   MapPin,
-  Calendar,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -32,11 +29,29 @@ export function ConvertToSriInvoiceModal({
   onClose,
   onSuccess,
 }: ConvertToSriInvoiceModalProps) {
-  const { sriCompanyConfig, convertSaleToSriInvoice, billingInvoices } = useApp();
-  const { showSuccess, showError } = useToast();
+  const { sriCompanyConfig, convertSaleToSriInvoice, billingInvoices, clients } = useApp();
+  const { showSuccess } = useToast();
 
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientRuc, setClientRuc] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    if (isOpen && sale) {
+      setErrorMsg("");
+      setSelectedClientId(sale.clientId && sale.clientId !== "cf-9999999999999" ? sale.clientId : "");
+      setClientName(sale.clientName || "");
+      setClientRuc(sale.clientRuc || "");
+      setClientEmail(
+        sale.clientEmail || sriCompanyConfig?.emailNotificaciones || "facturacion@inntelcorp.com"
+      );
+      setClientAddress(sale.clientAddress || "Quito, Ecuador");
+    }
+  }, [isOpen, sale, sriCompanyConfig]);
 
   if (!isOpen || !sale) return null;
 
@@ -53,30 +68,58 @@ export function ConvertToSriInvoiceModal({
   const nextSecuencial = Math.max(maxSec, startFromFactura) + 1;
   const estimatedDocNumber = formatearSecuencialSRI(nextSecuencial, estab, pto);
 
+  const handleSelectRegisteredClient = (cid: string) => {
+    setSelectedClientId(cid);
+    if (!cid) return;
+    const found = clients.find((c) => c.id === cid);
+    if (found) {
+      setClientName(found.businessName || found.legalRepresentative || "");
+      setClientRuc(found.identificationNumber || "");
+      setClientEmail(found.email || "facturacion@inntelcorp.com");
+      setClientAddress(found.address || "Quito, Ecuador");
+    }
+  };
+
   // Validation rules for SRI
-  const isConsumidorFinal = sale.clientRuc === "9999999999999";
+  const cleanRuc = clientRuc.replace(/\s+/g, "").trim();
+  const isConsumidorFinal = cleanRuc === "9999999999999";
   const isAboveFifty = (sale.total || 0) > 50;
 
   const handleConvert = async () => {
     setErrorMsg("");
 
+    if (!clientName.trim() || !cleanRuc) {
+      setErrorMsg("Debe ingresar la Razón Social y el RUC/Cédula del receptor de la factura.");
+      return;
+    }
+
     if (isConsumidorFinal && isAboveFifty) {
       setErrorMsg(
-        "Por normativa legal del SRI, las facturas mayores a $50.00 no pueden emitirse a Consumidor Final. Debe registrar un RUC o Cédula válido del cliente antes de facturar."
+        "Por normativa legal del SRI, las facturas mayores a $50.00 no pueden emitirse a Consumidor Final. Ingrese el RUC o Cédula del cliente en los campos inferiores."
       );
       return;
     }
 
-    if (!sale.clientEmail || !sale.clientEmail.includes("@")) {
+    if (!clientEmail || !clientEmail.includes("@")) {
       setErrorMsg(
         "El cliente debe tener un correo electrónico válido para recibir el comprobante electrónico SRI."
       );
       return;
     }
 
+    const tipoIdentificacion =
+      cleanRuc === "9999999999999" ? "07" : cleanRuc.length === 13 ? "04" : "05";
+
     setIsSubmitting(true);
     try {
-      const newInvoice = await convertSaleToSriInvoice(sale.id);
+      const newInvoice = await convertSaleToSriInvoice(sale.id, {
+        clientId: selectedClientId || sale.clientId,
+        clientName: clientName.trim(),
+        clientRuc: cleanRuc,
+        clientEmail: clientEmail.trim().toLowerCase(),
+        clientAddress: clientAddress.trim() || "Ecuador",
+        tipoIdentificacion,
+      });
       showSuccess(
         "Factura Electrónica Emitida",
         `La venta ${sale.documentNumber} fue promovida exitosamente a Factura SRI ${newInvoice.documentNumber}.`
@@ -123,7 +166,7 @@ export function ConvertToSriInvoiceModal({
         )}
 
         {/* Content */}
-        <div className="p-6 space-y-4 text-xs text-slate-600 overflow-y-auto max-h-[70vh]">
+        <div className="p-6 space-y-4 text-xs text-slate-600 overflow-y-auto max-h-[72vh]">
           {/* Informative Note */}
           <div className="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200/80 space-y-1 text-slate-700">
             <div className="flex items-center gap-1.5 font-bold text-[#004ac6]">
@@ -135,29 +178,79 @@ export function ConvertToSriInvoiceModal({
             </p>
           </div>
 
-          {/* Client Fiscal Data */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-            <span className="font-bold text-slate-800 text-xs block border-b border-slate-200 pb-1.5">
-              Datos Fiscales del Cliente
-            </span>
-            <div className="flex items-center gap-2 text-slate-800 font-semibold">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <span>{sale.clientName}</span>
+          {/* Client Fiscal Data (Editable) */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+              <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-[#004ac6]" />
+                Datos Fiscales del Receptor (SRI)
+              </span>
+              <select
+                value={selectedClientId}
+                onChange={(e) => handleSelectRegisteredClient(e.target.value)}
+                className="text-[11px] bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-[#004ac6]"
+              >
+                <option value="">-- Cargar cliente registrado --</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.businessName} ({c.identificationNumber})
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Identificación / RUC:</span>
-              <span className="font-mono font-bold text-slate-800">{sale.clientRuc}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-600">
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
-              <span>{sale.clientEmail || "Sin correo tributario"}</span>
-            </div>
-            {sale.clientAddress && (
-              <div className="flex items-center gap-2 text-slate-600">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>{sale.clientAddress}</span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Razón Social / Nombres *
+                </label>
+                <input
+                  type="text"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="w-full text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  placeholder="Ej. Corporación Inntel S.A."
+                />
               </div>
-            )}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  RUC / Cédula *
+                </label>
+                <input
+                  type="text"
+                  value={clientRuc}
+                  onChange={(e) => setClientRuc(e.target.value)}
+                  className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  placeholder="1790000000001"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  <Mail className="w-3 h-3 inline mr-1 text-slate-400" />
+                  Correo para envío RIDE *
+                </label>
+                <input
+                  type="email"
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                  className="w-full text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  placeholder="cliente@empresa.com"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  <MapPin className="w-3 h-3 inline mr-1 text-slate-400" />
+                  Dirección Fiscal
+                </label>
+                <input
+                  type="text"
+                  value={clientAddress}
+                  onChange={(e) => setClientAddress(e.target.value)}
+                  className="w-full text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  placeholder="Quito, Ecuador"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Electronic Document Assignment */}
