@@ -488,13 +488,13 @@ export function RidePreviewModal({
             <div
               ref={printAreaRef}
               id="ride-print-area"
-              className="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-[6px] shadow-xs border border-slate-200 space-y-6 text-[12px] leading-relaxed print:shadow-none print:border-none print:p-0"
+              className="max-w-4xl mx-auto bg-white p-6 sm:p-7 rounded-[6px] shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
             >
               {/* Cabecera: 2 Columnas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
                 {/* Columna Izquierda: Logo Oficial + Datos del Emisor */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3.5">
                     <div className="w-20 h-16 rounded-[6px] bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
                       <img
                         src="/logo-inntel.webp"
@@ -503,7 +503,7 @@ export function RidePreviewModal({
                       />
                     </div>
                     <div>
-                      <h1 className="text-xl font-black text-slate-900 tracking-tight">
+                      <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
                         {emisor.razonSocial}
                       </h1>
                       <p className="text-[11px] font-semibold text-[#004ac6]">
@@ -515,7 +515,7 @@ export function RidePreviewModal({
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1.5 text-slate-700">
+                  <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1 text-slate-700">
                     <p>
                       <span className="font-bold text-slate-900">Dirección Matriz:</span>{" "}
                       {emisor.direccionMatriz}
@@ -556,12 +556,12 @@ export function RidePreviewModal({
                 </div>
 
                 {/* Columna Derecha: Recuadro Oficial SRI o Recibo Interno */}
-                <div className="p-5 rounded-[6px] border-2 border-slate-900 space-y-3 bg-white">
+                <div className="p-4 rounded-[6px] border-2 border-slate-900 space-y-2.5 bg-white">
                   <div className="border-b border-slate-200 pb-2">
                     <p className="text-sm font-black tracking-wider text-slate-900">
                       R.U.C.: {emisor.ruc}
                     </p>
-                    <h3 className="text-lg font-black text-[#004ac6] tracking-tight">
+                    <h3 className="text-base font-black text-[#004ac6] tracking-tight">
                       {docTypeLabel}
                     </h3>
                     <p className="text-sm font-mono font-bold text-slate-900">
@@ -570,7 +570,7 @@ export function RidePreviewModal({
                   </div>
 
                   {isNotaVenta ? (
-                    <div className="space-y-2 text-[11.5px] text-slate-700 pt-1">
+                    <div className="space-y-1.5 text-[11px] text-slate-700 pt-1">
                       <p>
                         <span className="font-bold text-slate-900">TIPO DE DOCUMENTO:</span>{" "}
                         RECIBO INTERNO / NOTA DE VENTA
@@ -592,11 +592,11 @@ export function RidePreviewModal({
                     </div>
                   ) : (
                     <>
-                      <div className="space-y-1 text-[11px] text-slate-700">
+                      <div className="space-y-1 text-[10.5px] text-slate-700">
                         <p>
                           <span className="font-bold text-slate-900">NÚMERO DE AUTORIZACIÓN:</span>
                           <br />
-                          <span className="font-mono text-[10px] break-all text-slate-900 font-semibold select-all">
+                          <span className="font-mono text-[9.5px] break-all text-slate-900 font-semibold select-all">
                             {claveAcceso}
                           </span>
                         </p>
@@ -616,14 +616,14 @@ export function RidePreviewModal({
                       </div>
 
                       {/* Código de barras visual Code 128 y clave de acceso */}
-                      <div className="pt-2 border-t border-slate-200 space-y-1">
-                        <span className="font-bold text-[10px] text-slate-700 uppercase tracking-wider block">
+                      <div className="pt-1.5 border-t border-slate-200 space-y-1">
+                        <span className="font-bold text-[9.5px] text-slate-700 uppercase tracking-wider block">
                           CLAVE DE ACCESO
                         </span>
 
-                        <div className="w-full bg-white py-1 flex items-center justify-center overflow-hidden">
+                        <div className="w-full bg-white py-0.5 flex items-center justify-center overflow-hidden">
                           <svg
-                            className="w-full h-9"
+                            className="w-full h-8"
                             viewBox="0 0 320 40"
                             preserveAspectRatio="none"
                             fill="currentColor"
@@ -636,7 +636,7 @@ export function RidePreviewModal({
                           </svg>
                         </div>
 
-                        <p className="text-center font-mono font-bold text-[11px] tracking-widest text-slate-900 break-all select-all">
+                        <p className="text-center font-mono font-bold text-[10px] tracking-wider text-slate-900 break-all select-all">
                           {claveAcceso}
                         </p>
                       </div>
@@ -646,8 +646,8 @@ export function RidePreviewModal({
               </div>
 
               {/* Recuadro de Información del Comprador / Sujeto Pasivo / Transportista */}
-              <div className="p-4 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px]">
+              <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2 print-avoid-break">
+                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
                   <p>
                     <span className="font-bold text-slate-900">
                       {isRemissionGuide ? "Destinatario:" : isWithholding ? "Sujeto Pasivo Retenido:" : "Razón Social / Nombres y Apellidos:"}
@@ -672,7 +672,7 @@ export function RidePreviewModal({
                         {invoice.orderNumber || (invoice.notes?.includes("Guía") ? invoice.notes : "S/N")}
                       </p>
                       {invoice.clientAddress && (
-                        <p className="sm:col-span-2">
+                        <p className="sm:col-span-2 print:col-span-2">
                           <span className="font-bold text-slate-900">Dirección:</span>{" "}
                           {invoice.clientAddress}
                         </p>
@@ -681,40 +681,40 @@ export function RidePreviewModal({
                   )}
 
                   {isCreditNote && creditNote && (
-                    <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-amber-50 border border-amber-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-amber-50 border border-amber-200 mt-1">
                       <p className="font-bold text-amber-900">
                         Comprobante que se Modifica: Factura No. {creditNote.invoiceNumber}
                       </p>
-                      <p className="text-amber-800 text-[11px]">
+                      <p className="text-amber-800 text-[10.5px]">
                         Fecha Factura Origen: {creditNote.invoiceDate} | Motivo: {creditNote.reason}
                       </p>
                     </div>
                   )}
 
                   {isDebitNote && debitNote && (
-                    <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1">
                       <p className="font-bold text-indigo-950">
                         Comprobante que se Modifica: Factura No. {debitNote.modifiedInvoiceNumber}
                       </p>
-                      <p className="text-indigo-800 text-[11px]">
+                      <p className="text-indigo-800 text-[10.5px]">
                         Fecha Factura Origen: {debitNote.modifiedInvoiceDate}
                       </p>
                     </div>
                   )}
 
                   {isWithholding && withholding && (
-                    <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-sky-50 border border-sky-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-sky-50 border border-sky-200 mt-1">
                       <p className="font-bold text-sky-900">
                         Comprobante de Sustento: Factura No. {withholding.invoiceNumber}
                       </p>
-                      <p className="text-sky-800 text-[11px]">
+                      <p className="text-sky-800 text-[10.5px]">
                         Período Fiscal: {withholding.fiscalPeriod}
                       </p>
                     </div>
                   )}
 
                   {isRemissionGuide && remissionGuide && (
-                    <div className="sm:col-span-2 p-2.5 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-1.5 text-[10.5px]">
                       <p>
                         <strong className="text-indigo-950">Transportista:</strong> {remissionGuide.carrierName} (RUC: {remissionGuide.carrierRuc})
                       </p>
@@ -885,10 +885,10 @@ export function RidePreviewModal({
               )}
 
               {/* Sección Inferior: Info Adicional & Totales */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 print:grid-cols-12">
+              <div className="grid grid-cols-1 md:grid-cols-12 print:grid-cols-12 gap-4 print-avoid-break">
                 {/* Columna Izquierda: Información Adicional y Pagos */}
-                <div className="md:col-span-7 space-y-4">
-                  <div className="p-4 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2">
+                <div className="md:col-span-7 print:col-span-7 space-y-3">
+                  <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-1.5">
                     <h4 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider">
                       Información Adicional
                     </h4>
@@ -905,22 +905,78 @@ export function RidePreviewModal({
                           {invoice.clientPhone}
                         </p>
                       )}
-                      <p>
-                        <span className="font-semibold text-slate-900">Bodega de Despacho:</span>{" "}
-                        {(doc as any).warehouseName || "Bodega Central - Quito (NOC)"}
-                      </p>
+                      {Boolean((doc as any).warehouseName) && (
+                        <p>
+                          <span className="font-semibold text-slate-900">Bodega de Despacho:</span>{" "}
+                          {(doc as any).warehouseName}
+                        </p>
+                      )}
                       {invoice && invoice.notes && (
                         <p>
                           <span className="font-semibold text-slate-900">Observaciones:</span>{" "}
                           {invoice.notes}
                         </p>
                       )}
+                      {isCreditNote && creditNote && (
+                        <>
+                          <p>
+                            <span className="font-semibold text-slate-900">Comprobante Modificado:</span>{" "}
+                            Factura {creditNote.invoiceNumber} ({creditNote.invoiceDate})
+                          </p>
+                          <p>
+                            <span className="font-semibold text-slate-900">Motivo de Emisión:</span>{" "}
+                            {creditNote.reason}
+                          </p>
+                        </>
+                      )}
+                      {isDebitNote && debitNote && (
+                        <p>
+                          <span className="font-semibold text-slate-900">Comprobante Modificado:</span>{" "}
+                          Factura {debitNote.modifiedInvoiceNumber} ({debitNote.modifiedInvoiceDate})
+                        </p>
+                      )}
+                      {isWithholding && withholding && (
+                        <>
+                          <p>
+                            <span className="font-semibold text-slate-900">Comprobante Sustento:</span>{" "}
+                            Factura {withholding.invoiceNumber}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-slate-900">Ejercicio Fiscal:</span>{" "}
+                            {withholding.fiscalPeriod}
+                          </p>
+                        </>
+                      )}
+                      {isRemissionGuide && remissionGuide && (
+                        <>
+                          <p>
+                            <span className="font-semibold text-slate-900">Motivo de Traslado:</span>{" "}
+                            {(remissionGuide as any).transferReason || "Despacho de Equipos / Instalación"}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-slate-900">Vigencia de Transporte:</span>{" "}
+                            {remissionGuide.startDate} al {remissionGuide.endDate}
+                          </p>
+                        </>
+                      )}
+                      {!invoice?.clientEmail &&
+                        !invoice?.clientPhone &&
+                        !invoice?.notes &&
+                        !isCreditNote &&
+                        !isDebitNote &&
+                        !isWithholding &&
+                        !isRemissionGuide && (
+                          <p>
+                            <span className="font-semibold text-slate-900">Emisor:</span>{" "}
+                            {emisor.emailNotificaciones || "facturacion@inntelcorp.com"}
+                          </p>
+                        )}
                     </div>
                   </div>
 
                   {/* Formas de Pago */}
                   {invoice && (
-                    <div className="p-4 rounded-[6px] border border-slate-200 space-y-2">
+                    <div className="p-3.5 rounded-[6px] border border-slate-200 space-y-1.5">
                       <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
                         Formas de Pago
                       </h4>
@@ -936,16 +992,16 @@ export function RidePreviewModal({
                         <tbody className="divide-y divide-slate-100 font-medium">
                           {paymentRows.map((row, idx) => (
                             <tr key={idx}>
-                              <td className="py-1.5 text-slate-800">
+                              <td className="py-1 text-slate-800">
                                 {isNotaVenta ? row.label : row.sriLabel}
                               </td>
-                              <td className="py-1.5 text-right font-mono font-bold text-slate-900">
+                              <td className="py-1 text-right font-mono font-bold text-slate-900">
                                 ${safeNumber(row.amount)}
                               </td>
-                              <td className="py-1.5 text-center text-slate-600">
+                              <td className="py-1 text-center text-slate-600">
                                 {row.termDays}
                               </td>
-                              <td className="py-1.5 text-center text-slate-600">Días</td>
+                              <td className="py-1 text-center text-slate-600">Días</td>
                             </tr>
                           ))}
                         </tbody>
@@ -955,7 +1011,7 @@ export function RidePreviewModal({
                 </div>
 
                 {/* Columna Derecha: Cuadro Oficial de Totales */}
-                <div className="md:col-span-5">
+                <div className="md:col-span-5 print:col-span-5">
                   {(isInvoice || isCreditNote || isDebitNote) ? (
                     <div className="rounded-[6px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
@@ -990,7 +1046,7 @@ export function RidePreviewModal({
                         <span className="font-bold text-slate-700">PROPINA:</span>
                         <span className="font-mono font-semibold text-slate-900">$0.00</span>
                       </div>
-                      <div className="flex justify-between px-4 py-2.5 bg-slate-900 text-white text-xs font-black">
+                      <div className="flex justify-between px-4 py-2 bg-slate-900 text-white text-xs font-black">
                         <span>VALOR TOTAL:</span>
                         <span className="font-mono text-sm tracking-wide text-white">
                           ${safeNumber(total)}
@@ -1021,17 +1077,39 @@ export function RidePreviewModal({
                 </div>
               </div>
 
-              {/* Leyenda en letras y pie de página */}
-              <div className="p-3.5 rounded-[6px] bg-slate-100 border border-slate-200 text-center space-y-1">
-                <p className="font-mono font-bold text-xs text-slate-900 uppercase">
-                  {totalEnLetras}
-                </p>
-                <p className="text-[10px] text-slate-500">
-                  {isNotaVenta
-                    ? "Comprobante de venta interno emitido para registro y control administrativo local."
-                    : "Documento tributario electrónico emitido bajo normativa oficial del Servicio de Rentas Internas (SRI) del Ecuador."}
-                </p>
-              </div>
+              {/* Leyenda en letras o Firmas de Transporte y pie de página */}
+              {isRemissionGuide ? (
+                <div className="pt-6 print-avoid-break space-y-3">
+                  <div className="grid grid-cols-3 gap-6 text-center text-[10.5px]">
+                    <div className="border-t border-slate-400 pt-1.5">
+                      <p className="font-bold text-slate-900">Entregado por (Emisor)</p>
+                      <p className="text-slate-500">{emisor.razonSocial}</p>
+                    </div>
+                    <div className="border-t border-slate-400 pt-1.5">
+                      <p className="font-bold text-slate-900">Transportista Autorizado</p>
+                      <p className="text-slate-500">{remissionGuide?.carrierName}</p>
+                    </div>
+                    <div className="border-t border-slate-400 pt-1.5">
+                      <p className="font-bold text-slate-900">Recibí Conforme (Destinatario)</p>
+                      <p className="text-slate-500">{clienteNombre}</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 text-center">
+                    Documento tributario electrónico emitido bajo normativa oficial del Servicio de Rentas Internas (SRI) del Ecuador.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-[6px] bg-slate-100 border border-slate-200 text-center space-y-0.5 print-avoid-break">
+                  <p className="font-mono font-bold text-[11px] text-slate-900 uppercase">
+                    {totalEnLetras}
+                  </p>
+                  <p className="text-[10px] text-slate-500">
+                    {isNotaVenta
+                      ? "Comprobante de venta interno emitido para registro y control administrativo local."
+                      : "Documento tributario electrónico emitido bajo normativa oficial del Servicio de Rentas Internas (SRI) del Ecuador."}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

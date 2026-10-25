@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Image from "next/image";
 import { useApp } from "@/lib/state";
 import { Client } from "@/types";
 import { ClientTabHeader } from "./ClientTabHeader";
+import { printHtmlElement } from "@/lib/print-service";
 import {
   Printer,
   FileText,
@@ -34,9 +35,18 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
   const clientTickets = tickets.filter((t) => t.clientId === client.id);
 
   const totalMonthlySpend = services.reduce((sum, s) => sum + s.customPrice, 0);
+  const dossierPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
-    window.print();
+    if (dossierPrintRef.current) {
+      printHtmlElement(
+        dossierPrintRef.current,
+        `Expediente-${client.identificationNumber || client.id}`,
+        "a4"
+      );
+    } else {
+      window.print();
+    }
   };
 
   return (
@@ -59,7 +69,11 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
       </div>
 
       {/* Printable Sheet */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
+      <div
+        id="dossier-print-area"
+        ref={dossierPrintRef}
+        className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0"
+      >
         {/* Brand Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center gap-4">

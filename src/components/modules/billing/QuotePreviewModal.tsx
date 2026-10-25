@@ -147,51 +147,7 @@ export function QuotePreviewModal({
   const emisor = companyConfig || DEFAULT_INNTEL_SRI_CONFIG;
 
   return (
-    <>
-      {/* Reglas CSS de aislamiento para impresión exacta A4 Contífico Ecuador */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            @media print {
-              @page {
-                size: A4 portrait;
-                margin: 8mm 10mm 8mm 10mm;
-              }
-              html, body {
-                background: #ffffff !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                margin: 0 !important;
-                padding: 0 !important;
-              }
-              body * {
-                visibility: hidden;
-              }
-              #quote-print-area, #quote-print-area * {
-                visibility: visible;
-              }
-              #quote-print-area {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                border: none !important;
-                box-shadow: none !important;
-              }
-              .print-avoid-break {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-              }
-            }
-          `,
-        }}
-      />
-
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150 print:p-0 print:bg-white print:static print:overflow-visible print:block">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150 print:p-0 print:bg-white print:static print:overflow-visible print:block">
         <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none print:my-0 print:max-w-none print:w-full print:max-h-none print:overflow-visible flex flex-col">
           {/* Barra superior de herramientas - No se imprime */}
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-slate-900 text-white print:hidden">
@@ -492,9 +448,9 @@ export function QuotePreviewModal({
               {/* =========================================================
                   PIE DE PÁGINA: INFORMACIÓN ADICIONAL + TOTALES CONTÍFICO
                   ========================================================= */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 print:grid-cols-12 print-avoid-break">
+              <div className="grid grid-cols-1 md:grid-cols-12 print:grid-cols-12 gap-4 print-avoid-break">
                 {/* Columna Izquierda: Información Adicional y Condiciones Contífico */}
-                <div className="md:col-span-7 space-y-3">
+                <div className="md:col-span-7 print:col-span-7 space-y-3">
                   <div className="p-3 rounded-[4px] bg-slate-50 border border-slate-300 space-y-2 text-[11px] text-slate-700">
                     <h4 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider">
                       Información Adicional
@@ -547,7 +503,7 @@ export function QuotePreviewModal({
                 </div>
 
                 {/* Columna Derecha: Cuadro Oficial de Totales Estilo Contífico */}
-                <div className="md:col-span-5">
+                <div className="md:col-span-5 print:col-span-5">
                   <div className="rounded-[4px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
@@ -666,6 +622,5 @@ export function QuotePreviewModal({
           </div>
         </div>
       </div>
-    </>
   );
 }

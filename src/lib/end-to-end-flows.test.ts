@@ -1040,3 +1040,42 @@ test("Flujo E2E 18: Simplificación y Unificación del Módulo de Inventarios (P
     "InventoryManager debe soportar action=nuevo y usar encabezados claros"
   );
 });
+
+test("Flujo E2E 19: Impresión Correcta de Documentos (RIDE A4, Ticket 80mm, Cotizaciones, Retenciones y Expediente)", () => {
+  const rootDir = process.cwd();
+
+  const printServicePath = path.resolve(rootDir, "src/lib/print-service.ts");
+  const printServiceContent = fs.readFileSync(printServicePath, "utf8");
+  assert.ok(
+    printServiceContent.includes("element.outerHTML") &&
+      printServiceContent.includes("print\\\\:col-span-7") &&
+      printServiceContent.includes("print\\\\:col-span-5"),
+    "print-service debe usar element.outerHTML y forzar columnas 7/5 en grillas de 12 columnas para impresión A4"
+  );
+
+  const ridePreviewPath = path.resolve(rootDir, "src/components/modules/billing/RidePreviewModal.tsx");
+  const ridePreviewContent = fs.readFileSync(ridePreviewPath, "utf8");
+  assert.ok(
+    ridePreviewContent.includes("print:col-span-7") &&
+      ridePreviewContent.includes("print:col-span-5") &&
+      ridePreviewContent.includes("print:grid-cols-12"),
+    "RidePreviewModal debe definir explícitamente print:col-span-7 y print:col-span-5 para evitar columnas comprimidas"
+  );
+
+  const quotePreviewPath = path.resolve(rootDir, "src/components/modules/billing/QuotePreviewModal.tsx");
+  const quotePreviewContent = fs.readFileSync(quotePreviewPath, "utf8");
+  assert.ok(
+    !quotePreviewContent.includes("visibility: hidden") &&
+      quotePreviewContent.includes("print:col-span-7") &&
+      quotePreviewContent.includes("print:col-span-5"),
+    "QuotePreviewModal no debe inyectar visibility: hidden global que deje páginas en blanco al imprimir"
+  );
+
+  const purchaseWithholdingPath = path.resolve(rootDir, "src/components/modules/purchases/PurchaseWithholdingsTab.tsx");
+  const purchaseWithholdingContent = fs.readFileSync(purchaseWithholdingPath, "utf8");
+  assert.ok(
+    purchaseWithholdingContent.includes("printHtmlElement") &&
+      purchaseWithholdingContent.includes("withholding-print-area"),
+    "PurchaseWithholdingsTab debe usar printHtmlElement aislado para imprimir comprobantes de retención"
+  );
+});

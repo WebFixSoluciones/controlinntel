@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
   calculateWithholdingAmounts,
   generateWithholdingAccessKey,
 } from "@/lib/purchases-service";
+import { printHtmlElement } from "@/lib/print-service";
 import {
   FileText,
   Plus,
@@ -41,6 +42,7 @@ export function PurchaseWithholdingsTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWithholding, setSelectedWithholding] =
     useState<PurchaseWithholding | null>(null);
+  const withholdingPrintRef = useRef<HTMLDivElement>(null);
 
   // Form State
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>(
@@ -382,7 +384,13 @@ export function PurchaseWithholdingsTab({
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    printHtmlElement(
+                      withholdingPrintRef.current,
+                      `Retencion-${selectedWithholding.documentNumber}`,
+                      "a4"
+                    )
+                  }
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -397,7 +405,11 @@ export function PurchaseWithholdingsTab({
               </div>
             </div>
 
-            <div className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+            <div
+              id="withholding-print-area"
+              ref={withholdingPrintRef}
+              className="p-6 space-y-4 overflow-y-auto flex-1 text-xs bg-white"
+            >
               {/* Header con Logo INNTEL CORP */}
               <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#e2e8f0]">
                 <div className="flex items-center gap-3">
