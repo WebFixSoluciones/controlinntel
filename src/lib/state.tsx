@@ -238,7 +238,8 @@ interface AppContextType {
     method: string,
     reference?: string,
     paidAmount?: number,
-    remainingBalance?: number
+    remainingBalance?: number,
+    bankAccountId?: string
   ) => Promise<void>;
   addMonthlyCharge: (charge: Omit<MonthlyCharge, "id">) => Promise<void>;
 
@@ -2100,7 +2101,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     method: string,
     reference?: string,
     paidAmount?: number,
-    remainingBalance?: number
+    remainingBalance?: number,
+    bankAccountId?: string
   ) => {
     const charge = monthlyCharges.find((c) => c.id === chargeId);
     if (!charge) return;
@@ -2108,14 +2110,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const paymentAmount = paidAmount !== undefined ? paidAmount : charge.total;
     const currentPaid = charge.paidAmount || (charge.status === "pagado" ? charge.total : 0);
     const newTotalPaid = Math.min(charge.total, Math.round((currentPaid + paymentAmount) * 100) / 100);
-    const newRemaining = Math.max(0, Math.round((charge.total - newTotalPaid) * 100) / 100);
+    const newRemaining =
+      remainingBalance !== undefined
+        ? Math.max(0, Math.round(remainingBalance * 100) / 100)
+        : Math.max(0, Math.round((charge.total - newTotalPaid) * 100) / 100);
     const newStatus: "pagado" | "parcial" = newRemaining <= 0.009 ? "pagado" : "parcial";
 
     const updated: Partial<MonthlyCharge> = {
       status: newStatus,
       paymentDate: getEcuadorDate(),
       paymentMethod: method,
-      paymentReference: reference || "PAGO-INNTEL",
+      paymentReference: reference || "COBRO-CLIENTE",
       paidAmount: newTotalPaid,
       balanceRemaining: newRemaining,
     };
@@ -2125,10 +2130,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
     );
 
+    // Acreditar en la cuenta bancaria seleccionada (o la primera activa) y registrar en Movimientos
+    const targetBank =
+      bankAccounts.find((b) => b.id === bankAccountId) ||
+      bankAccounts.find((b) => b.status === "activa") ||
+      bankAccounts[0];
+    if (targetBank && paymentAmount > 0) {
+      const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
+        method.toLowerCase().includes("efectivo")
+          ? "efectivo"
+          : method.toLowerCase().includes("cheque")
+          ? "cheque"
+          : "transferencia";
+      await addFinancialMovement({
+        type: "ingreso",
+        date: getEcuadorDate(),
+        amount: paymentAmount,
+        category: "cobro_cliente",
+        description: `Cobro ${charge.invoiceNumber} - ${charge.clientName}`,
+        bankAccountId: targetBank.id,
+        bankAccountName: targetBank.bankName,
+        paymentMethod: normalizedMethod,
+        referenceNumber: reference || undefined,
+      });
+    }
+
     addAuditLog(
       "EXPORT_BILLING",
       `Cobro: ${charge.invoiceNumber}`,
-      `Registrado abono/pago de $${paymentAmount} USD (${newStatus.toUpperCase()}) vía ${method}`
+      `Registrado cobro de $${paymentAmount} USD (${newStatus.toUpperCase()}) vía ${method}`
     );
   };
 

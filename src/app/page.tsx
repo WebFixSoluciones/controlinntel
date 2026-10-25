@@ -51,9 +51,9 @@ export default function DashboardPage() {
             {/* Accesos directos super minimalistas */}
             <div className="flex flex-wrap items-center gap-2">
               <Link
-                href="/facturacion?sub=nueva_venta"
+                href="/ventas?sub=nueva_venta"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
-                title="Nueva Venta"
+                title="Nueva Nota de Venta"
               >
                 <Receipt className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
                 <span>Venta</span>

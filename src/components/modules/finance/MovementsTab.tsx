@@ -10,7 +10,7 @@ import {
   ArrowDownLeft,
   X,
 } from "lucide-react";
-import { FinancialMovement } from "@/types";
+import { formatFinanceCategory } from "./FinanceDashboard";
 
 export function MovementsTab() {
   const { financialMovements, bankAccounts, addFinancialMovement } = useApp();
@@ -23,7 +23,7 @@ export function MovementsTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [type, setType] = useState<"ingreso" | "egreso">("egreso");
   const [amount, setAmount] = useState<number>(0);
-  const [category, setCategory] = useState<string>("opex_servicios");
+  const [category, setCategory] = useState<string>("servicios_basicos");
   const [description, setDescription] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>(bankAccounts[0]?.id || "");
   const [paymentMethod, setPaymentMethod] = useState<"transferencia" | "cheque" | "efectivo">("transferencia");
@@ -33,17 +33,17 @@ export function MovementsTab() {
     e.preventDefault();
 
     if (amount <= 0) {
-      showError("Monto Inválido", "El monto debe ser mayor a 0.");
+      showError("Monto Inválido", "El monto debe ser mayor a $0.00.");
       return;
     }
     if (!description.trim()) {
-      showError("Descripción Requerida", "Ingresa el concepto del movimiento.");
+      showError("Concepto Requerido", "Ingresa el concepto del movimiento.");
       return;
     }
 
     const bank = bankAccounts.find((b) => b.id === bankAccountId) || bankAccounts[0];
     if (!bank) {
-      showError("Cuenta Requerida", "Debes seleccionar una cuenta bancaria o caja.");
+      showError("Cuenta Requerida", "Selecciona una cuenta bancaria o caja.");
       return;
     }
 
@@ -61,8 +61,8 @@ export function MovementsTab() {
       });
 
       showSuccess(
-        "Movimiento Registrado",
-        `${type === "ingreso" ? "Ingreso" : "Egreso"} por $${amount.toFixed(2)} registrado en ${bank.bankName}.`
+        "Movimiento Guardado",
+        `${type === "ingreso" ? "Ingreso" : "Egreso"} de $${amount.toFixed(2)} registrado en ${bank.bankName}.`
       );
 
       setIsModalOpen(false);
@@ -70,7 +70,7 @@ export function MovementsTab() {
       setDescription("");
       setReferenceNumber("");
     } catch (err: any) {
-      showError("Error al Guardar", err?.message || "No se pudo registrar el movimiento.");
+      showError("Error", err?.message || "No se pudo guardar el movimiento.");
     }
   };
 
@@ -78,7 +78,7 @@ export function MovementsTab() {
     const q = searchQuery.toLowerCase();
     const matchSearch =
       m.description.toLowerCase().includes(q) ||
-      m.category.toLowerCase().includes(q) ||
+      formatFinanceCategory(m.category).toLowerCase().includes(q) ||
       (m.referenceNumber && m.referenceNumber.toLowerCase().includes(q));
 
     const matchType = filterType === "todos" || m.type === filterType;
@@ -86,19 +86,19 @@ export function MovementsTab() {
 
     return matchSearch && matchType && matchBank;
   });
-  return (
-    <div className="space-y-6">
 
-      {/* Filter and Action Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+  return (
+    <div className="space-y-5">
+      {/* Barra de Búsqueda y Filtros */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Buscar por descripción, referencia o categoría..."
+            placeholder="Buscar concepto, referencia o categoría..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6]"
+            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
           />
         </div>
 
@@ -106,17 +106,17 @@ export function MovementsTab() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as any)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655]"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
           >
             <option value="todos">Todos los Tipos</option>
-            <option value="ingreso">Solo Ingresos</option>
-            <option value="egreso">Solo Egresos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="egreso">Egresos</option>
           </select>
 
           <select
             value={filterBank}
             onChange={(e) => setFilterBank(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655]"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
           >
             <option value="todos">Todas las Cuentas</option>
             {bankAccounts.map((b) => (
@@ -128,33 +128,33 @@ export function MovementsTab() {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Nuevo Movimiento</span>
           </button>
         </div>
       </div>
 
-      {/* Movements Table */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+      {/* Tabla de Movimientos */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+          <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold text-[11px]">
             <tr>
-              <th className="py-3 px-4 font-bold">Fecha</th>
-              <th className="py-3 px-4 font-bold text-center">Tipo</th>
-              <th className="py-3 px-4 font-bold">Descripción / Concepto</th>
-              <th className="py-3 px-4 font-bold">Categoría</th>
-              <th className="py-3 px-4 font-bold">Cuenta / Caja</th>
-              <th className="py-3 px-4 font-bold">Método / Ref</th>
-              <th className="py-3 px-4 font-bold text-right">Monto ($)</th>
+              <th className="py-3 px-4">Fecha</th>
+              <th className="py-3 px-4 text-center">Tipo</th>
+              <th className="py-3 px-4">Concepto</th>
+              <th className="py-3 px-4">Categoría</th>
+              <th className="py-3 px-4">Cuenta / Banco</th>
+              <th className="py-3 px-4">Forma de Pago / Ref.</th>
+              <th className="py-3 px-4 text-right">Monto ($)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#e2e8f0]">
+          <tbody className="divide-y divide-slate-100">
             {filteredMovements.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-xs text-[#737686]">
-                  No se encontraron movimientos financieros con los filtros aplicados.
+                <td colSpan={7} className="py-10 text-center text-xs text-slate-400">
+                  No se encontraron movimientos registrados.
                 </td>
               </tr>
             ) : (
@@ -162,14 +162,14 @@ export function MovementsTab() {
                 const isIngreso = m.type === "ingreso";
 
                 return (
-                  <tr key={m.id} className="hover:bg-[#f8f9ff]/60 transition-colors">
-                    <td className="py-3 px-4 font-medium text-[#0b1c30] whitespace-nowrap">{m.date}</td>
+                  <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">{m.date}</td>
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                           isIngreso
-                            ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
-                            : "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border-rose-200"
                         }`}
                       >
                         {isIngreso ? (
@@ -185,26 +185,26 @@ export function MovementsTab() {
                         )}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-[#0b1c30] max-w-sm truncate" title={m.description}>
+                    <td className="py-3 px-4 font-semibold text-slate-900 max-w-sm truncate" title={m.description}>
                       {m.description}
                     </td>
-                    <td className="py-3 px-4 text-[#434655] capitalize">
-                      {m.category.replace(/_/g, " ")}
+                    <td className="py-3 px-4 text-slate-600">
+                      {formatFinanceCategory(m.category)}
                     </td>
-                    <td className="py-3 px-4 font-medium text-[#0b1c30] whitespace-nowrap">
+                    <td className="py-3 px-4 font-medium text-slate-800 whitespace-nowrap">
                       {m.bankAccountName}
                     </td>
-                    <td className="py-3 px-4 text-[#737686] whitespace-nowrap">
+                    <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                       <span className="capitalize">{m.paymentMethod}</span>
                       {m.referenceNumber && (
-                        <span className="font-mono text-[10px] ml-1.5 px-1 py-0.2 bg-[#f1f5f9] rounded text-[#434655]">
+                        <span className="font-mono text-[10px] ml-1.5 px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">
                           {m.referenceNumber}
                         </span>
                       )}
                     </td>
                     <td
                       className={`py-3 px-4 text-right font-mono font-bold text-sm whitespace-nowrap ${
-                        isIngreso ? "text-[#059669]" : "text-[#dc2626]"
+                        isIngreso ? "text-emerald-600" : "text-rose-600"
                       }`}
                     >
                       {isIngreso ? "+" : "-"}${m.amount.toFixed(2)}
@@ -217,67 +217,71 @@ export function MovementsTab() {
         </table>
       </div>
 
-      {/* Modal Nuevo Movimiento Manual */}
+      {/* Modal Nuevo Movimiento */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div>
-                <h3 className="text-base font-bold text-[#0b1c30]">Registrar Movimiento Financiero</h3>
-                <p className="text-xs text-[#737686]">Asienta una entrada o salida directa de fondos</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0]">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-bold text-slate-900">Nuevo Movimiento</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Tipo *</label>
+            <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Tipo *</label>
                   <select
                     value={type}
-                    onChange={(e) => setType(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-bold"
+                    onChange={(e) => {
+                      const nextType = e.target.value as "ingreso" | "egreso";
+                      setType(nextType);
+                      setCategory(nextType === "ingreso" ? "cobro_cliente" : "servicios_basicos");
+                    }}
+                    className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold"
                   >
-                    <option value="egreso">Egreso (Gasto / Salida)</option>
-                    <option value="ingreso">Ingreso (Cobro / Entrada)</option>
+                    <option value="egreso">Egreso (Salida)</option>
+                    <option value="ingreso">Ingreso (Entrada)</option>
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Monto ($) *</label>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Monto ($) *</label>
                   <input
                     type="number"
                     min="0.01"
-                    step="any"
+                    step="0.01"
                     value={amount || ""}
                     onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                     required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono font-bold"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Descripción *</label>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Concepto *</label>
                 <input
                   type="text"
-                  placeholder="ej. Mantenimiento de aire acondicionado Nodo Central"
+                  placeholder="Ej: Pago de servicio eléctrico o cobro directo..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Cuenta Origen / Destino *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Cuenta / Banco *</label>
                   <select
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -287,56 +291,72 @@ export function MovementsTab() {
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Categoría</label>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Categoría</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                   >
-                    <option value="opex_servicios">OPEX Servicios</option>
-                    <option value="alquiler_nodo">Alquiler de Nodo / Torre</option>
-                    <option value="enlace_transito">Tránsito IP / Upstream</option>
-                    <option value="mantenimiento">Mantenimiento de Red</option>
-                    <option value="seguros">Seguros y Fianzas</option>
-                    <option value="ingreso_extraordinario">Ingreso Extraordinario</option>
-                    <option value="otro">Otro</option>
+                    {type === "ingreso" ? (
+                      <>
+                        <option value="cobro_cliente">Cobro a Cliente</option>
+                        <option value="ingreso_extraordinario">Otros Ingresos</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="servicios_basicos">Servicios Básicos</option>
+                        <option value="enlace_transito">Internet y Enlaces</option>
+                        <option value="alquiler_nodo">Alquiler de Nodos / Locales</option>
+                        <option value="mantenimiento">Mantenimiento y Técnicos</option>
+                        <option value="administrativos">Sueldos y Administrativos</option>
+                        <option value="seguros">Seguros y Pólizas</option>
+                        <option value="otro">Otros Gastos</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">Método de Pago</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Forma de Pago</label>
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                   >
-                    <option value="transferencia">Transferencia Bancaria</option>
-                    <option value="efectivo">Efectivo / Caja</option>
+                    <option value="transferencia">Transferencia</option>
+                    <option value="efectivo">Efectivo</option>
                     <option value="cheque">Cheque</option>
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">N° Referencia</label>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">N° Referencia</label>
                   <input
                     type="text"
-                    placeholder="TRF-001928"
+                    placeholder="Ej: 001928"
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-xs font-semibold text-[#434655]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
                   Cancelar
                 </button>
-                <button type="submit" className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer">
-                  Guardar Movimiento
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  Guardar
                 </button>
               </div>
             </form>

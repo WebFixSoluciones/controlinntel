@@ -41,7 +41,7 @@ const FINANCE_TABS: {
 }[] = [
   {
     id: "cobranzas_opex",
-    label: "Cobranzas & OPEX",
+    label: "Cobranzas y Gastos",
     icon: TrendingUp,
     submoduleKey: "movimientos",
     href: "/finanzas?sub=cobranzas_opex",
@@ -55,21 +55,21 @@ const FINANCE_TABS: {
   },
   {
     id: "bancos",
-    label: "Bancos & Cuentas",
+    label: "Bancos",
     icon: Building2,
     submoduleKey: "bancos",
     href: "/finanzas?sub=bancos",
   },
   {
     id: "cuentas_por_cobrar",
-    label: "Por Cobrar (CxC)",
+    label: "Por Cobrar",
     icon: Receipt,
     submoduleKey: "cuentas_por_cobrar",
     href: "/finanzas?sub=cuentas_por_cobrar",
   },
   {
     id: "cuentas_por_pagar",
-    label: "Por Pagar (CxP)",
+    label: "Por Pagar",
     icon: CreditCard,
     submoduleKey: "cuentas_por_pagar",
     href: "/finanzas?sub=cuentas_por_pagar",

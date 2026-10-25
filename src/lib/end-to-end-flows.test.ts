@@ -985,3 +985,23 @@ test("Flujo E2E 16: Separación Estricta de Ventas, Inventario y Finanzas respec
     "BillingManager debe permitir promover Notas de Venta pendientes a Factura SRI y anular Facturas SRI liberando la Nota de Venta origen"
   );
 });
+
+test("Flujo E2E 17: Simplificación del Módulo de Finanzas y Submódulos (Términos Claros y Procesos Directos)", () => {
+  const rootDir = process.cwd();
+
+  const financeDashboardPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeDashboardContent = fs.readFileSync(financeDashboardPath, "utf8");
+
+  assert.ok(
+    !financeDashboardContent.includes("Efectivo Dalmau") &&
+      !financeDashboardContent.includes("Efectivo Equinoccio") &&
+      !financeDashboardContent.includes("Factura Manual / Ocasional"),
+    "FinanceDashboard no debe contener métodos de pago extraños ni botones de emisión de facturas ajenos a Finanzas"
+  );
+  assert.ok(
+    financeDashboardContent.includes("Cobros de Clientes") &&
+      financeDashboardContent.includes("Nuevo Gasto") &&
+      financeDashboardContent.includes("formatFinanceCategory"),
+    "FinanceDashboard debe usar etiquetas claras y formateador de categorías reconocibles"
+  );
+});

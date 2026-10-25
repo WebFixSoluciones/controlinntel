@@ -187,21 +187,21 @@ export function BankAccountsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Liquidity Summary & Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      {/* Resumen de Saldo y Acciones */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-[#eff4ff] text-[#004ac6] rounded-xl">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#737686] font-semibold">Disponibilidad Total Activa:</span>
+              <span className="text-xs text-slate-600 font-semibold">Saldo Total Disponible:</span>
               <span className="text-base font-bold font-mono text-[#004ac6]">
-                ${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                ${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
-            <p className="text-[11px] text-[#737686]">
-              {activeAccounts.length} de {bankAccounts.length} cuentas bancarias y cajas operativas
+            <p className="text-[11px] text-slate-500">
+              {activeAccounts.length} cuentas activas
             </p>
           </div>
         </div>
@@ -211,17 +211,17 @@ export function BankAccountsTab() {
             <button
               type="button"
               onClick={() => setIsTransferModalOpen(true)}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] rounded-xl text-xs font-bold transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-blue-50 text-[#004ac6] border border-slate-200 rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <ArrowRightLeft className="w-4 h-4" />
-              <span>Transferir entre Cuentas</span>
+              <span>Transferir</span>
             </button>
           )}
 
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nueva Cuenta</span>
@@ -334,52 +334,47 @@ export function BankAccountsTab() {
       {/* Modal Nueva / Editar Cuenta */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div>
-                <h3 className="text-base font-bold text-[#0b1c30]">
-                  {editingAccount ? "Editar Cuenta Bancaria o Caja" : "Añadir Cuenta Bancaria o Caja"}
-                </h3>
-                <p className="text-xs text-[#737686]">
-                  {editingAccount ? "Actualiza los datos o saldo de la entidad" : "Registra una entidad financiera para los movimientos"}
-                </p>
-              </div>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingAccount ? "Editar Cuenta" : "Nueva Cuenta"}
+              </h3>
               <button
                 type="button"
                 onClick={() => {
                   setIsAddModalOpen(false);
                   setEditingAccount(null);
                 }}
-                className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0] cursor-pointer"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveAccount} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  Nombre de la Entidad / Caja *
+            <form onSubmit={handleSaveAccount} className="p-5 space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Nombre del Banco o Caja *
                 </label>
                 <input
                   type="text"
-                  placeholder="ej. Banco Internacional, Caja Chica Norte"
+                  placeholder="Ej: Banco Pichincha, Caja General..."
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
                   required
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
                     Tipo de Cuenta *
                   </label>
                   <select
                     value={accountType}
                     onChange={(e) => setAccountType(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs capitalize"
+                    className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                   >
                     <option value="corriente">Cuenta Corriente</option>
                     <option value="ahorros">Cuenta de Ahorros</option>
@@ -387,9 +382,9 @@ export function BankAccountsTab() {
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    N° de Cuenta / Identificador *
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    N° de Cuenta *
                   </label>
                   <input
                     type="text"
@@ -397,40 +392,40 @@ export function BankAccountsTab() {
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
                     required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono"
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  {editingAccount ? "Saldo Disponible Actual ($ USD)" : "Saldo Inicial ($ USD)"}
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  {editingAccount ? "Saldo Actual ($)" : "Saldo Inicial ($)"}
                 </label>
                 <input
                   type="number"
                   step="any"
                   value={initialBalance || ""}
                   onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono font-bold"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setIsAddModalOpen(false);
                     setEditingAccount(null);
                   }}
-                  className="px-4 py-2 text-xs font-semibold text-[#434655] cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                 >
-                  {editingAccount ? "Guardar Cambios" : "Guardar Cuenta"}
+                  Guardar
                 </button>
               </div>
             </form>
@@ -438,33 +433,30 @@ export function BankAccountsTab() {
         </div>
       )}
 
-      {/* Modal Transferencia entre Cuentas */}
+      {/* Modal Transferir entre Cuentas */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div>
-                <h3 className="text-base font-bold text-[#0b1c30]">Transferir entre Cuentas Propias</h3>
-                <p className="text-xs text-[#737686]">Mueve saldo entre bancos o reposición de caja chica</p>
-              </div>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="text-sm font-bold text-slate-900">Transferir entre Cuentas</h3>
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
-                className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0] cursor-pointer"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleTransfer} className="p-6 space-y-4">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  Cuenta de Origen (Debitar) *
+            <form onSubmit={handleTransfer} className="p-5 space-y-3.5 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Desde Cuenta *
                 </label>
                 <select
                   value={originBankId}
                   onChange={(e) => setOriginBankId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 >
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -474,14 +466,14 @@ export function BankAccountsTab() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  Cuenta de Destino (Acreditar) *
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Hacia Cuenta *
                 </label>
                 <select
                   value={destBankId}
                   onChange={(e) => setDestBankId(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 >
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -491,47 +483,49 @@ export function BankAccountsTab() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  Monto a Transferir ($) *
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  value={transferAmount || ""}
-                  onChange={(e) => setTransferAmount(parseFloat(e.target.value) || 0)}
-                  required
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono font-bold text-[#004ac6]"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Monto ($) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    value={transferAmount || ""}
+                    onChange={(e) => setTransferAmount(parseFloat(e.target.value) || 0)}
+                    required
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-[#004ac6]"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    N° Referencia
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: 009182"
+                    value={transferRef}
+                    onChange={(e) => setTransferRef(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  N° Comprobante / Referencia
-                </label>
-                <input
-                  type="text"
-                  placeholder="TRF-009182"
-                  value={transferRef}
-                  onChange={(e) => setTransferRef(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setIsTransferModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-[#434655] cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                 >
-                  Confirmar Transferencia
+                  Transferir
                 </button>
               </div>
             </form>
