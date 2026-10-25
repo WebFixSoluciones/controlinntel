@@ -18,16 +18,10 @@ import {
   X,
   Package,
   Wrench,
-  Tag,
-  Award,
   DollarSign,
   Building2,
-  Barcode,
-  Layers,
   CheckCircle,
   Plus,
-  AlertCircle,
-  Hash,
   ArrowLeft,
 } from "lucide-react";
 
@@ -47,7 +41,6 @@ export function ProductModal({
   embedded = false,
 }: ProductModalProps) {
   const {
-    inventoryProducts,
     inventoryCategories,
     inventoryBrands,
     inventoryWarehouses,
@@ -58,12 +51,12 @@ export function ProductModal({
 
   const [type, setType] = useState<InventoryItemType>(defaultType);
   const [sku, setSku] = useState("");
-  const [barcode, setBarcode] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [brandId, setBrandId] = useState("");
   const [unit, setUnit] = useState<UnitOfMeasure>("unidad");
+  const [status, setStatus] = useState<"activo" | "inactivo">("activo");
 
   // Precios e IVA
   const [baseCost, setBaseCost] = useState<number>(0);
@@ -72,19 +65,12 @@ export function ProductModal({
   const [taxMode, setTaxMode] = useState<TaxMode>("EXCLUIDO");
   const [ivaRate, setIvaRate] = useState<number>(15);
 
-  // Stock
+  // Stock (Solo para Productos)
   const [minStock, setMinStock] = useState<number>(5);
-  const [maxStock, setMaxStock] = useState<number>(100);
   const [defaultWarehouseId, setDefaultWarehouseId] = useState("");
   const [stockByWarehouse, setStockByWarehouse] = useState<Record<string, number>>({});
 
-  // Telecom Attributes
-  const [model, setModel] = useState("");
-  const [serialNumberRequired, setSerialNumberRequired] = useState(false);
-  const [fiberLengthMeters, setFiberLengthMeters] = useState<number | undefined>(undefined);
-  const [status, setStatus] = useState<"activo" | "inactivo">("activo");
-
-  // Sub-modal for category/brand
+  // Sub-modal para crear Categoría o Marca rápido
   const [isCatBrandOpen, setIsCatBrandOpen] = useState(false);
   const [catBrandMode, setCatBrandMode] = useState<"categoria" | "marca">("categoria");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,7 +79,6 @@ export function ProductModal({
     if (productToEdit) {
       setType(productToEdit.type);
       setSku(productToEdit.sku);
-      setBarcode(productToEdit.barcode || "");
       setName(productToEdit.name);
       setDescription(productToEdit.description || "");
       setCategoryId(productToEdit.categoryId);
@@ -105,18 +90,15 @@ export function ProductModal({
       setTaxMode(productToEdit.taxMode);
       setIvaRate(productToEdit.ivaRate);
       setMinStock(productToEdit.minStock);
-      setMaxStock(productToEdit.maxStock || 100);
-      setDefaultWarehouseId(productToEdit.defaultWarehouseId || inventoryWarehouses[0]?.id || "");
+      setDefaultWarehouseId(
+        productToEdit.defaultWarehouseId || inventoryWarehouses[0]?.id || ""
+      );
       setStockByWarehouse(productToEdit.stockByWarehouse || {});
-      setModel(productToEdit.model || "");
-      setSerialNumberRequired(!!productToEdit.serialNumberRequired);
-      setFiberLengthMeters(productToEdit.fiberLengthMeters);
       setStatus(productToEdit.status);
     } else {
       setType(defaultType);
-      const randomSku = defaultType === "servicio" ? `SRV-${Date.now().toString().slice(-4)}` : `ART-${Date.now().toString().slice(-4)}`;
-      setSku(randomSku);
-      setBarcode("");
+      const codeSuffix = Date.now().toString().slice(-4);
+      setSku(defaultType === "servicio" ? `SRV-${codeSuffix}` : `PRD-${codeSuffix}`);
       setName("");
       setDescription("");
       setCategoryId(inventoryCategories[0]?.id || "");
@@ -128,20 +110,40 @@ export function ProductModal({
       setTaxMode("EXCLUIDO");
       setIvaRate(15);
       setMinStock(5);
-      setMaxStock(100);
-      const defaultWh = inventoryWarehouses.find((w) => w.isDefault)?.id || inventoryWarehouses[0]?.id || "";
+      const defaultWh =
+        inventoryWarehouses.find((w) => w.isDefault)?.id ||
+        inventoryWarehouses[0]?.id ||
+        "";
       setDefaultWarehouseId(defaultWh);
       setStockByWarehouse(defaultWh ? { [defaultWh]: 0 } : {});
-      setModel("");
-      setSerialNumberRequired(false);
-      setFiberLengthMeters(undefined);
       setStatus("activo");
     }
-  }, [productToEdit, isOpen, defaultType, inventoryCategories, inventoryBrands, inventoryWarehouses]);
+  }, [
+    productToEdit,
+    isOpen,
+    defaultType,
+    inventoryCategories,
+    inventoryBrands,
+    inventoryWarehouses,
+  ]);
 
   if (!isOpen) return null;
 
-  // Reactively calculate prices
+  const handleTypeSwitch = (newType: InventoryItemType) => {
+    setType(newType);
+    if (newType === "servicio") {
+      setUnit("servicio");
+      if (sku.startsWith("PRD-") || sku.startsWith("ART-")) {
+        setSku(`SRV-${sku.slice(4)}`);
+      }
+    } else {
+      setUnit("unidad");
+      if (sku.startsWith("SRV-")) {
+        setSku(`PRD-${sku.slice(4)}`);
+      }
+    }
+  };
+
   const handleSalePriceChange = (val: number) => {
     setSalePrice(val);
     setSalePriceConIva(calculatePriceWithTax(val, ivaRate));
@@ -168,12 +170,15 @@ export function ProductModal({
     e.preventDefault();
 
     if (!name.trim()) {
-      showError("Campo Obligatorio", "Por favor ingresa el nombre comercial del ítem.");
+      showError(
+        "Nombre obligatorio",
+        `Por favor ingresa el nombre del ${type === "servicio" ? "servicio" : "producto"}.`
+      );
       return;
     }
 
     if (!sku.trim()) {
-      showError("Campo Obligatorio", "Por favor ingresa un código SKU interno.");
+      showError("Código obligatorio", "Por favor ingresa un código identificador.");
       return;
     }
 
@@ -184,14 +189,14 @@ export function ProductModal({
 
       const productPayload = {
         sku: sku.trim().toUpperCase(),
-        barcode: barcode.trim() || undefined,
+        barcode: productToEdit?.barcode,
         name: name.trim(),
         description: description.trim() || undefined,
         type,
         categoryId: categoryId || inventoryCategories[0]?.id || "cat-general",
         categoryName: categoryObj?.name,
-        brandId: brandId || undefined,
-        brandName: brandObj?.name,
+        brandId: type === "producto" ? brandId || undefined : undefined,
+        brandName: type === "producto" ? brandObj?.name : undefined,
         unit,
         baseCost: Math.max(0, Number(baseCost) || 0),
         salePrice: Math.max(0, Number(salePrice) || 0),
@@ -199,109 +204,133 @@ export function ProductModal({
         taxMode,
         ivaRate,
         tracksStock: type === "producto",
-        stock: type === "producto"
-          ? Object.values(stockByWarehouse).reduce((acc, v) => acc + (Number(v) || 0), 0)
-          : 0,
+        stock:
+          type === "producto"
+            ? Object.values(stockByWarehouse).reduce(
+                (acc, v) => acc + (Number(v) || 0),
+                0
+              )
+            : 0,
         minStock: type === "producto" ? Math.max(0, Number(minStock) || 0) : 0,
-        maxStock: type === "producto" ? Math.max(0, Number(maxStock) || 100) : undefined,
+        maxStock: productToEdit?.maxStock,
         stockByWarehouse: type === "producto" ? stockByWarehouse : {},
         defaultWarehouseId: type === "producto" ? defaultWarehouseId : undefined,
-        model: model.trim() || undefined,
-        serialNumberRequired: type === "producto" ? serialNumberRequired : false,
-        fiberLengthMeters: fiberLengthMeters ? Number(fiberLengthMeters) : undefined,
+        model: productToEdit?.model,
+        serialNumberRequired: productToEdit?.serialNumberRequired || false,
+        fiberLengthMeters: productToEdit?.fiberLengthMeters,
         status,
       };
 
       if (productToEdit) {
-        // En modo edición se preserva el stock físico y el costo ponderado (CPP) auditado por Kardex
         const updatePayload = {
           ...productPayload,
           stock: productToEdit.stock,
           stockByWarehouse: productToEdit.stockByWarehouse || {},
-          baseCost: productToEdit.baseCost,
         };
         await updateInventoryProduct(productToEdit.id, updatePayload);
-        showSuccess("Producto Actualizado", `"${name}" se actualizó exitosamente.`);
+        showSuccess(
+          type === "servicio" ? "Servicio actualizado" : "Producto actualizado",
+          `"${name}" se actualizó correctamente.`
+        );
       } else {
         await addInventoryProduct(productPayload);
-        showSuccess("Producto Registrado", `"${name}" ha sido añadido al inventario.`);
+        showSuccess(
+          type === "servicio" ? "Servicio creado" : "Producto creado",
+          `"${name}" se guardó correctamente.`
+        );
       }
 
       onClose();
     } catch (err: any) {
-      showError("Error al Guardar", err?.message || "No se pudo procesar el producto.");
+      showError("Error al guardar", err?.message || "No se pudo guardar el registro.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const totalStock = Object.values(stockByWarehouse).reduce(
+    (acc, v) => acc + (Number(v) || 0),
+    0
+  );
+
   const headerNode = embedded ? (
-    <div className="px-6 py-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-4 bg-white">
+    <div className="px-5 py-3.5 border-b border-[#e2e8f0] flex items-center justify-between gap-4 bg-white">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+          className="px-3 py-1.5 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] transition-all flex items-center gap-1.5 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Volver</span>
         </button>
-        <div className="h-6 w-px bg-slate-200" />
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-            {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+        <div className="h-5 w-px bg-slate-200" />
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+            {type === "servicio" ? (
+              <Wrench className="w-4 h-4" />
+            ) : (
+              <Package className="w-4 h-4" />
+            )}
           </div>
           <div>
-            <h2 className="text-base font-bold text-[#0b1c30]">
+            <h2 className="text-sm font-bold text-[#0b1c30]">
               {productToEdit
-                ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}: ${productToEdit.name}`
+                ? `Editar ${type === "servicio" ? "Servicio" : "Producto"}`
                 : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
             </h2>
-            <p className="text-xs text-[#737686]">
-              {type === "servicio" ? "Catálogo y tarifas de servicios" : "Catálogo y control de stock"}
-            </p>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#737686] hover:bg-slate-50 cursor-pointer"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          form="product-form-element"
-          disabled={isSubmitting}
-          className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
-        >
-          <CheckCircle className="w-4 h-4" />
-          <span>{isSubmitting ? "Guardando..." : productToEdit ? "Guardar Cambios" : "Guardar Ítem"}</span>
-        </button>
-      </div>
+
+      {/* Selector de Tipo cuando se está creando */}
+      {!productToEdit && (
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => handleTypeSwitch("producto")}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+              type === "producto"
+                ? "bg-white text-[#004ac6] shadow-2xs"
+                : "text-slate-600 hover:text-slate-800"
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            Producto
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTypeSwitch("servicio")}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+              type === "servicio"
+                ? "bg-white text-[#004ac6] shadow-2xs"
+                : "text-slate-600 hover:text-slate-800"
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            Servicio
+          </button>
+        </div>
+      )}
     </div>
   ) : (
-    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-[#eff4ff] text-[#004ac6]">
-          {type === "servicio" ? <Wrench className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+    <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+      <div className="flex items-center gap-2.5">
+        <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+          {type === "servicio" ? (
+            <Wrench className="w-4 h-4" />
+          ) : (
+            <Package className="w-4 h-4" />
+          )}
         </div>
-        <div>
-          <h3 className="text-sm font-bold text-slate-800">
-            {productToEdit
-              ? `Editar ${productToEdit.type === "servicio" ? "Servicio" : "Producto"}`
-              : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
-          </h3>
-          <p className="text-[11px] text-slate-500">
-            {type === "servicio"
-              ? "Mano de obra, enlaces y servicios sin control de existencias"
-              : "Catálogo de productos y control de stock"}
-          </p>
-        </div>
+        <h3 className="text-sm font-bold text-slate-800">
+          {productToEdit
+            ? `Editar ${type === "servicio" ? "Servicio" : "Producto"}`
+            : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
+        </h3>
       </div>
       <button
+        type="button"
         onClick={onClose}
         className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
       >
@@ -311,461 +340,384 @@ export function ProductModal({
   );
 
   const content = (
-    <div className={embedded ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full" : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]"}>
+    <div
+      className={
+        embedded
+          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full"
+          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]"
+      }
+    >
       {headerNode}
-      {/* Form Body */}
-      <form id="product-form-element" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-            <div className="p-6 space-y-5 text-xs">
-              {/* Type Switcher */}
-              {!productToEdit && (
-                <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100/80 rounded-xl">
+
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+        <div className="p-5 space-y-4 text-xs">
+          {/* Selector de Tipo en modo popup */}
+          {!embedded && !productToEdit && (
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => handleTypeSwitch("producto")}
+                className={`py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+                  type === "producto"
+                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                Producto
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTypeSwitch("servicio")}
+                className={`py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+                  type === "servicio"
+                    ? "bg-white text-[#004ac6] shadow-2xs"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                Servicio
+              </button>
+            </div>
+          )}
+
+          {/* 1. Datos Generales */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="md:col-span-6">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                {type === "servicio" ? "Nombre del Servicio *" : "Nombre del Producto *"}
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={
+                  type === "servicio"
+                    ? "Ej. Instalación de red o Soporte técnico"
+                    : "Ej. Router Wi-Fi Dual Band"
+                }
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              />
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Código *
+              </label>
+              <input
+                type="text"
+                required
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder={type === "servicio" ? "SRV-001" : "PRD-001"}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              />
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Estado
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "activo" | "inactivo")}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+              >
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div
+            className={`grid grid-cols-1 ${
+              type === "producto" ? "md:grid-cols-3" : "md:grid-cols-2"
+            } gap-3`}
+          >
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <span>Categoría</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCatBrandMode("categoria");
+                    setIsCatBrandOpen(true);
+                  }}
+                  className="text-[#004ac6] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Nueva
+                </button>
+              </label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+              >
+                {inventoryCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {type === "producto" && (
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Marca</span>
                   <button
                     type="button"
                     onClick={() => {
-                      setType("producto");
-                      setUnit("unidad");
+                      setCatBrandMode("marca");
+                      setIsCatBrandOpen(true);
                     }}
-                    className={`py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-bold text-xs transition-all ${
-                      type === "producto"
-                        ? "bg-white text-[#004ac6] shadow-2xs"
-                        : "text-slate-600 hover:text-slate-800"
-                    }`}
+                    className="text-[#004ac6] hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
                   >
-                    <Package className="w-4 h-4" />
-                    Producto Físico (Con Stock)
+                    <Plus className="w-3 h-3" /> Nueva
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setType("servicio");
-                      setUnit("servicio");
-                    }}
-                    className={`py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-bold text-xs transition-all ${
-                      type === "servicio"
-                        ? "bg-white text-[#004ac6] shadow-2xs"
-                        : "text-slate-600 hover:text-slate-800"
-                    }`}
+                </label>
+                <select
+                  value={brandId}
+                  onChange={(e) => setBrandId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                >
+                  <option value="">Sin marca</option>
+                  {inventoryBrands.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Unidad
+              </label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value as UnitOfMeasure)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+              >
+                {type === "servicio" ? (
+                  <>
+                    <option value="servicio">Servicio</option>
+                    <option value="hora">Hora</option>
+                    <option value="unidad">Unidad</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="unidad">Unidad</option>
+                    <option value="metro">Metro</option>
+                    <option value="rollo">Rollo</option>
+                    <option value="caja">Caja</option>
+                    <option value="kit">Kit</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              Descripción (Opcional)
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Detalle breve del producto o servicio..."
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+            />
+          </div>
+
+          {/* 2. Precios e Impuestos */}
+          <div className="pt-3 border-t border-slate-100 space-y-2.5">
+            <div className="font-bold text-[11px] uppercase tracking-wider text-[#004ac6] flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5" />
+              Precios
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Costo ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={baseCost}
+                  onChange={(e) => setBaseCost(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  IVA
+                </label>
+                <select
+                  value={ivaRate}
+                  onChange={(e) => handleIvaRateChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-bold text-slate-800"
+                >
+                  <option value={15}>15%</option>
+                  <option value={0}>0%</option>
+                  <option value={5}>5%</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Precio sin IVA ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={salePrice}
+                  onChange={(e) => handleSalePriceChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-[#004ac6] focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Precio Final con IVA ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={salePriceConIva}
+                  onChange={(e) => handleSalePriceConIvaChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/40 text-xs font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Stock y Bodegas (Solo Productos) */}
+          {type === "producto" && (
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[11px] uppercase tracking-wider text-[#004ac6] flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" />
+                  Stock y Bodegas
+                </span>
+                <span className="text-[11px] text-slate-600">
+                  Stock Total: <strong className="text-slate-900">{totalStock}</strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Bodega Principal
+                  </label>
+                  <select
+                    value={defaultWarehouseId}
+                    onChange={(e) => setDefaultWarehouseId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
                   >
-                    <Wrench className="w-4 h-4" />
-                    Servicio Técnico (Sin Stock)
-                  </button>
-                </div>
-              )}
-
-              {/* Datos Principales */}
-              <div className="space-y-3">
-                <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider text-[#004ac6] flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5" />
-                  Identificación & Nomenclatura
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="md:col-span-2">
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Nombre Comercial del Ítem *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={
-                        type === "servicio"
-                          ? "Ej. Instalación de Acometida FTTH 200m"
-                          : "Ej. ONT Huawei EchoLife EG8145V5 Dual Band GPON"
-                      }
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Código / SKU *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={sku}
-                      onChange={(e) => setSku(e.target.value)}
-                      placeholder="Ej. ONT-HW-EG8145V5"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Categoría</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCatBrandMode("categoria");
-                          setIsCatBrandOpen(true);
-                        }}
-                        className="text-[#004ac6] hover:underline font-bold flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> Nueva
-                      </button>
-                    </label>
-                    <select
-                      value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
-                    >
-                      {inventoryCategories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Marca / Fabricante</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCatBrandMode("marca");
-                          setIsCatBrandOpen(true);
-                        }}
-                        className="text-[#004ac6] hover:underline font-bold flex items-center gap-0.5"
-                      >
-                        <Plus className="w-3 h-3" /> Nueva
-                      </button>
-                    </label>
-                    <select
-                      value={brandId}
-                      onChange={(e) => setBrandId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
-                    >
-                      <option value="">(Sin Marca / Genérico)</option>
-                      {inventoryBrands.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Unidad de Medida
-                    </label>
-                    <select
-                      value={unit}
-                      onChange={(e) => setUnit(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white capitalize"
-                    >
-                      <option value="unidad">Unidad (u)</option>
-                      <option value="metro">Metro (m)</option>
-                      <option value="rollo">Rollo (Bobina)</option>
-                      <option value="caja">Caja</option>
-                      <option value="kit">Kit</option>
-                      <option value="servicio">Servicio / Evento</option>
-                      <option value="hora">Hora Técnica</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                      <Barcode className="w-3.5 h-3.5 text-slate-400" />
-                      Código de Barras / EAN13 (Opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                      placeholder="Ej. 786100120001"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Estado en Catálogo
-                    </label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
-                    >
-                      <option value="activo">Activo (Disponible para venta)</option>
-                      <option value="inactivo">Inactivo / Descontinuado</option>
-                    </select>
-                  </div>
+                    {inventoryWarehouses.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Descripción Técnica / Especificaciones
+                    Stock Mínimo (Alerta)
                   </label>
-                  <textarea
-                    rows={2}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Detalles sobre puertos, alimentación, estándares soportados..."
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] resize-none"
+                  <input
+                    type="number"
+                    min="0"
+                    value={minStock}
+                    onChange={(e) => setMinStock(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
                   />
                 </div>
               </div>
 
-              {/* Precios & Tributación SRI */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider text-[#004ac6] flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  Precios & Tributación SRI (Ecuador)
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-700">
+                    {productToEdit ? "Cantidad actual por bodega" : "Stock inicial por bodega"}
+                  </span>
+                  {productToEdit && (
+                    <span className="text-[10px] text-slate-500">
+                      Usa Ajustes o Transferencias para cambiar cantidades
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      {productToEdit ? "Costo Ponderado Actual (CPP)" : "Costo Base / Inicial ($ USD)"}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={baseCost}
-                      readOnly={!!productToEdit}
-                      disabled={!!productToEdit}
-                      onChange={(e) => setBaseCost(Number(e.target.value))}
-                      className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none ${
-                        productToEdit
-                          ? "bg-slate-100 text-slate-500 cursor-not-allowed border-dashed"
-                          : "focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                      }`}
-                    />
-                    {productToEdit && (
-                      <span className="text-[10px] text-slate-500 mt-1 block">
-                        Auditado por Kardex (NIIF / SRI)
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Tarifa IVA SRI
-                    </label>
-                    <select
-                      value={ivaRate}
-                      onChange={(e) => handleIvaRateChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-bold text-slate-800"
-                    >
-                      <option value={15}>15% (Vigente)</option>
-                      <option value={0}>0% (Exento)</option>
-                      <option value={5}>5% (Materiales)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      P. Venta Sin IVA ($)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={salePrice}
-                      onChange={(e) => handleSalePriceChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-[#004ac6] focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      P. Venta Con IVA ($)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={salePriceConIva}
-                      onChange={(e) => handleSalePriceConIvaChange(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50/30 text-xs font-bold text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {inventoryWarehouses.map((w) => {
+                    const whStock = stockByWarehouse[w.id] ?? 0;
+                    return (
+                      <div
+                        key={w.id}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-slate-200"
+                      >
+                        <span className="truncate text-[11px] font-semibold text-slate-700 pr-2">
+                          {w.name}
+                        </span>
+                        {productToEdit ? (
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold text-xs">
+                            {whStock}
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="0"
+                            value={whStock}
+                            onChange={(e) =>
+                              handleStockByWhChange(w.id, Number(e.target.value))
+                            }
+                            className="w-16 px-2 py-1 rounded border border-slate-200 text-right text-xs font-bold focus:outline-none focus:border-[#004ac6]"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              {/* Control de Stock & Multibodega (Solo para Productos Físicos) */}
-              {type === "producto" && (
-                <div className="space-y-3 pt-2 border-t border-slate-100">
-                  <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider text-[#004ac6] flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5" />
-                      Control de Stock & Existencias por Bodega
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-normal">
-                      Stock Total Consolidado:{" "}
-                      <strong className="text-slate-800">
-                        {Object.values(stockByWarehouse).reduce((acc, v) => acc + (Number(v) || 0), 0)}{" "}
-                        {unit}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Bodega Principal
-                      </label>
-                      <select
-                        value={defaultWarehouseId}
-                        onChange={(e) => setDefaultWarehouseId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
-                      >
-                        {inventoryWarehouses.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.code} - {w.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Alerta Stock Mínimo
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={minStock}
-                        onChange={(e) => setMinStock(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Stock Máximo Sugerido
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={maxStock}
-                        onChange={(e) => setMaxStock(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Desglose de Stock por Bodega */}
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-700 block">
-                        Existencias Físicas por Bodega ({unit}s):
-                      </span>
-                      {productToEdit && (
-                        <span className="text-[10px] bg-amber-50 text-amber-800 font-semibold px-2 py-0.5 rounded-md border border-amber-200">
-                          Solo lectura auditada (SRI/NIIF)
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                      {inventoryWarehouses.map((w) => {
-                        const whStock = stockByWarehouse[w.id] ?? 0;
-                        return (
-                          <div
-                            key={w.id}
-                            className="flex items-center justify-between p-2.5 rounded-lg bg-white border border-slate-200"
-                          >
-                            <div className="min-w-0 pr-2">
-                              <span className="truncate text-[11px] font-bold text-slate-700 block">
-                                {w.name}
-                              </span>
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                {w.code}
-                              </span>
-                            </div>
-                            {productToEdit ? (
-                              <div className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-bold text-xs whitespace-nowrap">
-                                {whStock} {unit}s
-                              </div>
-                            ) : (
-                              <input
-                                type="number"
-                                min="0"
-                                value={whStock}
-                                onChange={(e) => handleStockByWhChange(w.id, Number(e.target.value))}
-                                className="w-16 px-2 py-1 rounded border border-slate-200 text-right text-xs font-bold focus:outline-none focus:border-[#004ac6]"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {productToEdit && (
-                      <p className="text-[10px] text-slate-500 pt-1">
-                        ℹ️ Para modificar existencias físicas de este ítem, utilice <strong>Ajustes de Inventario</strong>, <strong>Traslados</strong>, o registre <strong>Facturas de Compra / Venta</strong>.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Opciones Especiales Telecom */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50">
-                      <input
-                        type="checkbox"
-                        id="serialRequired"
-                        checked={serialNumberRequired}
-                        onChange={(e) => setSerialNumberRequired(e.target.checked)}
-                        className="rounded text-[#004ac6] focus:ring-[#004ac6]"
-                      />
-                      <label htmlFor="serialRequired" className="text-xs cursor-pointer">
-                        <span className="font-bold text-slate-800 block">Requiere Número de Serie / MAC</span>
-                        <span className="text-[10px] text-slate-500">
-                          Obligatorio registrar serial en salidas (ONTs, Routers)
-                        </span>
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Metraje de Fibra (Metros)
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Ej. 1000m (para bobinas drop)"
-                        value={fiberLengthMeters || ""}
-                        onChange={(e) =>
-                          setFiberLengthMeters(e.target.value ? Number(e.target.value) : undefined)
-                        }
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
+          )}
+        </div>
 
-            {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50"
-              >
-                <CheckCircle className="w-4 h-4" />
-                {isSubmitting
-                  ? "Guardando..."
-                  : productToEdit
-                  ? "Actualizar Catálogo"
-                  : "Guardar en Catálogo"}
-              </button>
-            </div>
-          </form>
+        {/* Barra única de botones */}
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <CheckCircle className="w-4 h-4" />
+            {isSubmitting
+              ? "Guardando..."
+              : productToEdit
+              ? "Guardar Cambios"
+              : type === "servicio"
+              ? "Guardar Servicio"
+              : "Guardar Producto"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 
@@ -788,7 +740,6 @@ export function ProductModal({
         {content}
       </div>
 
-      {/* Submodal para Crear Categoría o Marca al Vuelo */}
       <CategoryBrandModal
         isOpen={isCatBrandOpen}
         onClose={() => setIsCatBrandOpen(false)}

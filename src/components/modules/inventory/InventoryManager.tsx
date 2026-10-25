@@ -232,7 +232,7 @@ export function InventoryManager() {
 
   const actionParam = searchParams.get("action");
   useEffect(() => {
-    if (actionParam === "new") {
+    if (actionParam === "new" || actionParam === "nuevo") {
       if (activeTab === "productos") {
         setProductModalDefaultType("producto");
         setIsProductModalOpen(true);
@@ -713,8 +713,45 @@ export function InventoryManager() {
     );
   }
 
+  const inventoryTabs: { id: InventoryTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "productos", label: "Productos", icon: Package },
+    { id: "servicios", label: "Servicios", icon: Wrench },
+    { id: "categorias", label: "Categorías y Marcas", icon: Tags },
+    { id: "kardex", label: "Kardex", icon: BookOpen },
+    { id: "transferencias", label: "Transferencias", icon: ArrowRightLeft },
+    { id: "bodegas", label: "Bodegas", icon: Building2 },
+    { id: "ajustes", label: "Ajustes", icon: SlidersHorizontal },
+  ];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Navegación rápida de Submódulos de Inventario */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+        {inventoryTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setActiveTab(tab.id);
+                router.push(`/inventarios?sub=${tab.id}`);
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                isActive
+                  ? "bg-[#004ac6] text-white shadow-xs"
+                  : "text-[#434655] hover:bg-[#f8f9ff] hover:text-[#0b1c30]"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* ========================================================= */}
       {/* 1. PRODUCTOS                                              */}
       {/* ========================================================= */}
@@ -728,7 +765,7 @@ export function InventoryManager() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por SKU, nombre, modelo o código..."
+                placeholder="Buscar producto por código o nombre..."
                 className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
@@ -742,7 +779,7 @@ export function InventoryManager() {
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.code} - {w.name}
+                    {w.name}
                   </option>
                 ))}
               </select>
@@ -765,16 +802,16 @@ export function InventoryManager() {
                 onChange={(e) => setProductStockFilter(e.target.value as any)}
                 className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
-                <option value="all">Todos los Estados</option>
-                <option value="normal">Stock Normal</option>
-                <option value="low">Stock Bajo (Crítico)</option>
-                <option value="out">Sin Existencias (Agotado)</option>
+                <option value="all">Todo el Stock</option>
+                <option value="normal">Con Stock</option>
+                <option value="low">Stock Bajo</option>
+                <option value="out">Sin Stock</option>
               </select>
 
               <button
                 onClick={handleExportProductsCsv}
                 className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#434655] text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Descargar catálogo en CSV"
+                title="Descargar productos en CSV"
               >
                 <Download className="w-3.5 h-3.5 text-[#737686]" />
                 <span>Exportar CSV</span>
@@ -802,13 +839,13 @@ export function InventoryManager() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">SKU / Código</th>
-                    <th className="py-3 px-4 font-bold">Producto / Equipo</th>
+                    <th className="py-3 px-4 font-bold">Código</th>
+                    <th className="py-3 px-4 font-bold">Producto</th>
                     <th className="py-3 px-4 font-bold">Categoría / Marca</th>
-                    <th className="py-3 px-4 font-bold text-center">Stock Global</th>
-                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo Promedio" : "—"}</th>
-                    <th className="py-3 px-4 font-bold text-right">P. Venta (Sin IVA)</th>
-                    <th className="py-3 px-4 font-bold text-right">P. Venta (Con IVA)</th>
+                    <th className="py-3 px-4 font-bold text-center">Stock</th>
+                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo" : "—"}</th>
+                    <th className="py-3 px-4 font-bold text-right">Precio sin IVA</th>
+                    <th className="py-3 px-4 font-bold text-right">Precio con IVA</th>
                     <th className="py-3 px-4 font-bold text-center">Estado</th>
                     <th className="py-3 px-4 font-bold text-right">Acciones</th>
                   </tr>
@@ -818,9 +855,9 @@ export function InventoryManager() {
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
                         <Package className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                        <p className="font-semibold text-[#434655]">No se encontraron productos físicos</p>
+                        <p className="font-semibold text-[#434655]">No se encontraron productos</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Ajusta los filtros de búsqueda o registra un nuevo producto en el catálogo.
+                          Haz clic en &quot;Nuevo Producto&quot; para registrar un producto en el inventario.
                         </p>
                       </td>
                     </tr>
@@ -833,19 +870,14 @@ export function InventoryManager() {
                         <tr key={p.id} className="hover:bg-[#f8f9ff] transition-colors">
                           <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">
                             {p.sku}
-                            {p.barcode && (
-                              <span className="block text-[10px] text-[#737686] font-normal">
-                                EAN: {p.barcode}
-                              </span>
-                            )}
                           </td>
                           <td className="py-3 px-4">
                             <div className="font-bold text-[#0b1c30] line-clamp-1">{p.name}</div>
-                            <div className="text-[11px] text-[#737686] line-clamp-1">
-                              {p.model ? `Modelo: ${p.model} | ` : ""}
-                              {p.fiberLengthMeters ? `Metraje: ${p.fiberLengthMeters}m | ` : ""}
-                              {p.description || "Sin especificaciones adicionales"}
-                            </div>
+                            {p.description && (
+                              <div className="text-[11px] text-[#737686] line-clamp-1">
+                                {p.description}
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold mb-0.5">
@@ -868,7 +900,7 @@ export function InventoryManager() {
                               }`}
                             >
                               <span>{p.stock}</span>
-                              <span className="text-[10px] font-normal">{p.unit}s</span>
+                              <span className="text-[10px] font-normal">{p.unit}</span>
                             </div>
                             {isLowStock && (
                               <span className="block text-[10px] text-amber-600 font-bold mt-0.5">
@@ -900,7 +932,7 @@ export function InventoryManager() {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleOpenKardexForProduct(p.id)}
-                                title="Consultar Kardex"
+                                title="Ver Kardex"
                                 className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
                               >
                                 <BookOpen className="w-3.5 h-3.5" />
@@ -914,7 +946,7 @@ export function InventoryManager() {
                               </button>
                               <button
                                 onClick={() => handleOpenAdjustmentForProduct(p.id)}
-                                title="Ajuste de Stock"
+                                title="Ajustar Stock"
                                 className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition-colors cursor-pointer"
                               >
                                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1014,13 +1046,13 @@ export function InventoryManager() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Código / SKU</th>
-                    <th className="py-3 px-4 font-bold">Servicio Técnico / Mano de Obra</th>
+                    <th className="py-3 px-4 font-bold">Código</th>
+                    <th className="py-3 px-4 font-bold">Servicio</th>
                     <th className="py-3 px-4 font-bold">Categoría</th>
                     <th className="py-3 px-4 font-bold text-center">Unidad</th>
-                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo Base ($)" : "—"}</th>
-                    <th className="py-3 px-4 font-bold text-right">P. Venta Sin IVA ($)</th>
-                    <th className="py-3 px-4 font-bold text-right">P. Venta Con IVA ($)</th>
+                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo" : "—"}</th>
+                    <th className="py-3 px-4 font-bold text-right">Precio sin IVA</th>
+                    <th className="py-3 px-4 font-bold text-right">Precio con IVA</th>
                     <th className="py-3 px-4 font-bold text-center">Estado</th>
                     <th className="py-3 px-4 font-bold text-right">Acciones</th>
                   </tr>
@@ -1030,9 +1062,9 @@ export function InventoryManager() {
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
                         <Wrench className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                        <p className="font-semibold text-[#434655]">No se encontraron servicios técnicos</p>
+                        <p className="font-semibold text-[#434655]">No se encontraron servicios</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en &quot;Nuevo Servicio&quot; para dar de alta conceptos de mano de obra o suscripciones.
+                          Haz clic en &quot;Nuevo Servicio&quot; para agregar un servicio al catálogo.
                         </p>
                       </td>
                     </tr>
@@ -1042,7 +1074,9 @@ export function InventoryManager() {
                         <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{s.sku}</td>
                         <td className="py-3 px-4">
                           <div className="font-bold text-[#0b1c30]">{s.name}</div>
-                          <div className="text-[11px] text-[#737686]">{s.description || "Sin descripción"}</div>
+                          {s.description && (
+                            <div className="text-[11px] text-[#737686]">{s.description}</div>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
@@ -1125,7 +1159,7 @@ export function InventoryManager() {
                 }`}
               >
                 <Award className="w-3.5 h-3.5" />
-                <span>Marcas & Fabricantes</span>
+                <span>Marcas</span>
               </button>
             </div>
 
@@ -1138,8 +1172,8 @@ export function InventoryManager() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={
                     categorySubView === "categorias"
-                      ? "Buscar por categoría o descripción..."
-                      : "Buscar marca o fabricante..."
+                      ? "Buscar categoría..."
+                      : "Buscar marca..."
                   }
                   className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
                 />
@@ -1153,8 +1187,8 @@ export function InventoryManager() {
                 >
                   <option value="all">Todos los Tipos</option>
                   <option value="ambos">Productos y Servicios</option>
-                  <option value="producto">Solo Productos Físicos</option>
-                  <option value="servicio">Solo Servicios Técnicos</option>
+                  <option value="producto">Solo Productos</option>
+                  <option value="servicio">Solo Servicios</option>
                 </select>
               )}
 
@@ -1191,10 +1225,10 @@ export function InventoryManager() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                     <tr>
-                      <th className="py-3 px-4 font-bold">Nombre de la Categoría</th>
-                      <th className="py-3 px-4 font-bold">Descripción / Alcance</th>
-                      <th className="py-3 px-4 font-bold text-center">Aplica a</th>
-                      <th className="py-3 px-4 font-bold text-center">Artículos Asociados</th>
+                      <th className="py-3 px-4 font-bold">Categoría</th>
+                      <th className="py-3 px-4 font-bold">Descripción</th>
+                      <th className="py-3 px-4 font-bold text-center">Tipo</th>
+                      <th className="py-3 px-4 font-bold text-center">Registros</th>
                       <th className="py-3 px-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
@@ -1205,7 +1239,7 @@ export function InventoryManager() {
                           <Tags className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                           <p className="font-semibold text-[#434655]">No se encontraron categorías</p>
                           <p className="text-[11px] text-[#737686] mt-0.5">
-                            Crea una nueva categoría para organizar equipos y servicios.
+                            Crea una nueva categoría para clasificar tus productos y servicios.
                           </p>
                         </td>
                       </tr>
@@ -1216,7 +1250,7 @@ export function InventoryManager() {
                           <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
                             <td className="py-3 px-4 font-bold text-[#0b1c30]">{c.name}</td>
                             <td className="py-3 px-4 text-[#737686] max-w-md truncate">
-                              {c.description || "Sin descripción registrada"}
+                              {c.description || "—"}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
@@ -1224,7 +1258,7 @@ export function InventoryManager() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-center font-bold text-[#434655]">
-                              {count} artículo{count !== 1 ? "s" : ""}
+                              {count}
                             </td>
                             <td className="py-3 px-4 text-right">
                               <button
@@ -1250,9 +1284,9 @@ export function InventoryManager() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                     <tr>
-                      <th className="py-3 px-4 font-bold">Marca / Fabricante</th>
-                      <th className="py-3 px-4 font-bold">País de Origen</th>
-                      <th className="py-3 px-4 font-bold text-center">Artículos Homologados</th>
+                      <th className="py-3 px-4 font-bold">Marca</th>
+                      <th className="py-3 px-4 font-bold">País</th>
+                      <th className="py-3 px-4 font-bold text-center">Productos</th>
                       <th className="py-3 px-4 font-bold text-right">Acciones</th>
                     </tr>
                   </thead>
@@ -1261,9 +1295,9 @@ export function InventoryManager() {
                       <tr>
                         <td colSpan={4} className="py-12 text-center text-xs text-[#737686]">
                           <Award className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                          <p className="font-semibold text-[#434655]">No se encontraron marcas registradas</p>
+                          <p className="font-semibold text-[#434655]">No se encontraron marcas</p>
                           <p className="text-[11px] text-[#737686] mt-0.5">
-                            Registra fabricantes homologados como MikroTik, Ubiquiti, Huawei, etc.
+                            Haz clic en &quot;Nueva Marca&quot; para agregar una marca de productos.
                           </p>
                         </td>
                       </tr>
@@ -1273,9 +1307,9 @@ export function InventoryManager() {
                         return (
                           <tr key={b.id} className="hover:bg-[#f8f9ff] transition-colors">
                             <td className="py-3 px-4 font-bold text-[#0b1c30]">{b.name}</td>
-                            <td className="py-3 px-4 text-[#737686]">{b.originCountry || "Internacional"}</td>
+                            <td className="py-3 px-4 text-[#737686]">{b.originCountry || "—"}</td>
                             <td className="py-3 px-4 text-center font-bold text-[#434655]">
-                              {count} artículo{count !== 1 ? "s" : ""}
+                              {count}
                             </td>
                             <td className="py-3 px-4 text-right">
                               <button
@@ -1311,7 +1345,7 @@ export function InventoryManager() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por concepto, producto o documento..."
+                placeholder="Buscar movimiento por producto o documento..."
                 className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
@@ -1325,7 +1359,7 @@ export function InventoryManager() {
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.code} - {w.name}
+                    {w.name}
                   </option>
                 ))}
               </select>
@@ -1340,7 +1374,7 @@ export function InventoryManager() {
                   .filter((p) => p.tracksStock)
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      [{p.sku}] {p.name}
+                      {p.name} ({p.sku})
                     </option>
                   ))}
               </select>
@@ -1350,7 +1384,7 @@ export function InventoryManager() {
                   onClick={() => setKardexProductFilter("all")}
                   className="text-xs font-semibold text-[#004ac6] hover:underline px-1 cursor-pointer"
                 >
-                  Limpiar Producto
+                  Ver Todos
                 </button>
               )}
 
@@ -1367,36 +1401,36 @@ export function InventoryManager() {
           {/* Kardex Quick Summary Banner */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col shadow-2xs">
-              <span className="text-[11px] font-bold text-emerald-800">Total Entradas</span>
+              <span className="text-[11px] font-bold text-emerald-800">Entradas</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-base font-black text-emerald-950">+{kardexSummary.totalInQty} un.</span>
+                <span className="text-base font-black text-emerald-950">+{kardexSummary.totalInQty}</span>
                 <span className="text-xs font-bold text-emerald-700">(${kardexSummary.totalInCost.toFixed(2)})</span>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-rose-50/60 border border-rose-200/80 flex flex-col shadow-2xs">
-              <span className="text-[11px] font-bold text-rose-800">Total Salidas</span>
+              <span className="text-[11px] font-bold text-rose-800">Salidas</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-base font-black text-rose-950">-{kardexSummary.totalOutQty} un.</span>
+                <span className="text-base font-black text-rose-950">-{kardexSummary.totalOutQty}</span>
                 <span className="text-xs font-bold text-rose-700">(${kardexSummary.totalOutCost.toFixed(2)})</span>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 flex flex-col shadow-2xs">
-              <span className="text-[11px] font-bold text-blue-800">Flujo Neto Valorado</span>
+              <span className="text-[11px] font-bold text-blue-800">Diferencia</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-base font-black text-blue-950">
                   ${(kardexSummary.totalInCost - kardexSummary.totalOutCost).toFixed(2)}
                 </span>
                 <span className="text-xs font-bold text-blue-700">
-                  {kardexSummary.totalInQty - kardexSummary.totalOutQty >= 0 ? "+" : ""}
-                  {kardexSummary.totalInQty - kardexSummary.totalOutQty} un.
+                  ({kardexSummary.totalInQty - kardexSummary.totalOutQty >= 0 ? "+" : ""}
+                  {kardexSummary.totalInQty - kardexSummary.totalOutQty})
                 </span>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col shadow-2xs">
-              <span className="text-[11px] font-bold text-slate-700">Asientos Contables</span>
+              <span className="text-[11px] font-bold text-slate-700">Movimientos</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-base font-black text-slate-900">{kardexSummary.movementCount}</span>
-                <span className="text-xs text-slate-500 font-medium">movimientos auditados</span>
+                <span className="text-xs text-slate-500 font-medium">registros</span>
               </div>
             </div>
           </div>
@@ -1407,20 +1441,20 @@ export function InventoryManager() {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-2.5 px-3 font-bold">Fecha & Hora</th>
-                    <th className="py-2.5 px-3 font-bold">Producto / Equipo</th>
+                    <th className="py-2.5 px-3 font-bold">Fecha</th>
+                    <th className="py-2.5 px-3 font-bold">Producto</th>
                     <th className="py-2.5 px-3 font-bold">Bodega</th>
-                    <th className="py-2.5 px-3 font-bold">Tipo / Concepto</th>
-                    <th className="py-2.5 px-3 font-bold">Documento Ref.</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Entrada (Cant)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Costo Unit ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Total Entrada ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Salida (Cant)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Costo Unit ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Total Salida ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Saldo (Cant)</th>
+                    <th className="py-2.5 px-3 font-bold">Movimiento</th>
+                    <th className="py-2.5 px-3 font-bold">Documento</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Entrada</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Costo ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Total ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Salida</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Costo ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Total ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Stock</th>
                     <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Costo Prom ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Saldo Total ($)</th>
+                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Valor Stock ($)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e2e8f0]">
@@ -1428,9 +1462,9 @@ export function InventoryManager() {
                     <tr>
                       <td colSpan={14} className="py-12 text-center text-xs text-[#737686]">
                         <BookOpen className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                        <p className="font-semibold text-[#434655]">No hay movimientos registrados en el Kardex</p>
+                        <p className="font-semibold text-[#434655]">No hay movimientos en el Kardex</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Las compras, ventas, transferencias y ajustes reflejarán sus asientos contables aquí.
+                          Aquí se registran todas las entradas y salidas de tus productos.
                         </p>
                       </td>
                     </tr>
@@ -1536,7 +1570,7 @@ export function InventoryManager() {
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.code} - {w.name}
+                    {w.name}
                   </option>
                 ))}
               </select>
@@ -1549,7 +1583,7 @@ export function InventoryManager() {
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                <span>Trasladar Stock</span>
+                <span>Nueva Transferencia</span>
               </button>
             </div>
           </div>
@@ -1562,12 +1596,12 @@ export function InventoryManager() {
                   <tr>
                     <th className="py-3 px-4 font-bold">Número</th>
                     <th className="py-3 px-4 font-bold">Fecha</th>
-                    <th className="py-3 px-4 font-bold">Bodega Origen</th>
-                    <th className="py-3 px-4 font-bold">Bodega Destino</th>
-                    <th className="py-3 px-4 font-bold">Producto Trasladado</th>
+                    <th className="py-3 px-4 font-bold">Desde Bodega</th>
+                    <th className="py-3 px-4 font-bold">Hacia Bodega</th>
+                    <th className="py-3 px-4 font-bold">Producto</th>
                     <th className="py-3 px-4 font-bold text-center">Cantidad</th>
-                    <th className="py-3 px-4 font-bold text-right">Valor Ponderado</th>
-                    <th className="py-3 px-4 font-bold">Motivo / Justificación</th>
+                    <th className="py-3 px-4 font-bold text-right">Costo Total</th>
+                    <th className="py-3 px-4 font-bold">Motivo</th>
                     <th className="py-3 px-4 font-bold">Responsable</th>
                   </tr>
                 </thead>
@@ -1578,7 +1612,7 @@ export function InventoryManager() {
                         <ArrowRightLeft className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No hay transferencias registradas</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en &quot;Trasladar Stock&quot; para movilizar insumos entre almacenes.
+                          Haz clic en &quot;Nueva Transferencia&quot; para mover productos entre bodegas.
                         </p>
                       </td>
                     </tr>
@@ -1625,7 +1659,7 @@ export function InventoryManager() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar bodega por código, nombre o custodio..."
+                placeholder="Buscar bodega por código, nombre o responsable..."
                 className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
@@ -1637,8 +1671,8 @@ export function InventoryManager() {
                 className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="todos">Todos los Estados</option>
-                <option value="activo">Operativas</option>
-                <option value="inactivo">Bloqueadas / Inactivas</option>
+                <option value="activo">Activas</option>
+                <option value="inactivo">Inactivas</option>
               </select>
 
               <button
@@ -1661,11 +1695,11 @@ export function InventoryManager() {
                 <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-4 font-bold">Código</th>
-                    <th className="py-3 px-4 font-bold">Nombre de Bodega</th>
-                    <th className="py-3 px-4 font-bold">Ubicación / Ciudad</th>
-                    <th className="py-3 px-4 font-bold">Custodio / Responsable</th>
-                    <th className="py-3 px-4 font-bold text-center">Existencias</th>
-                    <th className="py-3 px-4 font-bold text-right">Valorización ($)</th>
+                    <th className="py-3 px-4 font-bold">Bodega</th>
+                    <th className="py-3 px-4 font-bold">Ciudad</th>
+                    <th className="py-3 px-4 font-bold">Responsable</th>
+                    <th className="py-3 px-4 font-bold text-center">Unidades</th>
+                    <th className="py-3 px-4 font-bold text-right">Valor Stock ($)</th>
                     <th className="py-3 px-4 font-bold text-center">Estado</th>
                     <th className="py-3 px-4 font-bold text-right">Acciones</th>
                   </tr>
@@ -1675,9 +1709,9 @@ export function InventoryManager() {
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-xs text-[#737686]">
                         <Building2 className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                        <p className="font-semibold text-[#434655]">No se encontraron bodegas registradas</p>
+                        <p className="font-semibold text-[#434655]">No se encontraron bodegas</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en &quot;Nueva Bodega&quot; para registrar un centro de distribución o móvil técnico.
+                          Haz clic en &quot;Nueva Bodega&quot; para agregar una bodega.
                         </p>
                       </td>
                     </tr>
@@ -1702,7 +1736,7 @@ export function InventoryManager() {
                               <span className="font-bold text-[#0b1c30]">{w.name}</span>
                               {w.isDefault && (
                                 <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-                                  Predeterminada
+                                  Principal
                                 </span>
                               )}
                             </div>
@@ -1710,10 +1744,10 @@ export function InventoryManager() {
                               <div className="text-[11px] text-[#737686] line-clamp-1">{w.address}</div>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-[#434655] font-medium">{w.city || "Ecuador"}</td>
+                          <td className="py-3 px-4 text-[#434655] font-medium">{w.city || "—"}</td>
                           <td className="py-3 px-4 text-[#434655]">{w.responsibleName || "Sin asignar"}</td>
                           <td className="py-3 px-4 text-center font-bold text-[#0b1c30]">
-                            {totalUnitsInWh.toLocaleString()} u
+                            {totalUnitsInWh.toLocaleString()}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-emerald-700">
                             ${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1726,7 +1760,7 @@ export function InventoryManager() {
                                   : "bg-slate-100 text-slate-600"
                               }`}
                             >
-                              {w.status === "activo" ? "Operativa" : "Bloqueada"}
+                              {w.status === "activo" ? "Activa" : "Inactiva"}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
@@ -1737,7 +1771,7 @@ export function InventoryManager() {
                                   router.push("/inventarios?sub=productos");
                                   setActiveTab("productos");
                                 }}
-                                title="Ver Stock de esta Bodega"
+                                title="Ver Productos de esta Bodega"
                                 className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -1787,7 +1821,7 @@ export function InventoryManager() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por número, concepto o producto..."
+                placeholder="Buscar ajuste por número, motivo o producto..."
                 className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
@@ -1801,7 +1835,7 @@ export function InventoryManager() {
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.code} - {w.name}
+                    {w.name}
                   </option>
                 ))}
               </select>
@@ -1811,9 +1845,9 @@ export function InventoryManager() {
                 onChange={(e) => setAdjustmentTypeFilter(e.target.value as any)}
                 className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
-                <option value="todos">Todos los Sentidos</option>
-                <option value="ingreso">Ingreso (+)</option>
-                <option value="egreso">Egreso (-)</option>
+                <option value="todos">Todos los Tipos</option>
+                <option value="ingreso">Sumar (+)</option>
+                <option value="egreso">Restar (-)</option>
               </select>
 
               <button
@@ -1838,9 +1872,9 @@ export function InventoryManager() {
                     <th className="py-3 px-4 font-bold">Número</th>
                     <th className="py-3 px-4 font-bold">Fecha</th>
                     <th className="py-3 px-4 font-bold">Bodega</th>
-                    <th className="py-3 px-4 font-bold text-center">Sentido</th>
-                    <th className="py-3 px-4 font-bold">Concepto / Motivo</th>
-                    <th className="py-3 px-4 font-bold">Ítems Afectados</th>
+                    <th className="py-3 px-4 font-bold text-center">Tipo</th>
+                    <th className="py-3 px-4 font-bold">Motivo</th>
+                    <th className="py-3 px-4 font-bold">Producto y Cambio</th>
                     <th className="py-3 px-4 font-bold">Responsable</th>
                   </tr>
                 </thead>
@@ -1851,7 +1885,7 @@ export function InventoryManager() {
                         <SlidersHorizontal className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No hay ajustes registrados</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
-                          Haz clic en &quot;Nuevo Ajuste&quot; para corregir saldos físicos o registrar mermas.
+                          Haz clic en &quot;Nuevo Ajuste&quot; para sumar o restar unidades en bodega.
                         </p>
                       </td>
                     </tr>
@@ -1871,7 +1905,7 @@ export function InventoryManager() {
                                 : "bg-rose-100 text-rose-800"
                             }`}
                           >
-                            {a.type.includes("ingreso") ? "Ingreso (+)" : "Egreso (-)"}
+                            {a.type.includes("ingreso") ? "Sumar (+)" : "Restar (-)"}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-[#434655] font-medium">{a.concept}</td>
@@ -1884,7 +1918,7 @@ export function InventoryManager() {
                                   {it.type === "ingreso" ? "+" : "-"}
                                   {it.quantity}
                                 </span>{" "}
-                                <span className="text-[#737686]">(Saldo: {it.previousStock} &rarr; {it.newStock})</span>
+                                <span className="text-[#737686]">({it.previousStock} &rarr; {it.newStock})</span>
                               </div>
                             ))}
                           </div>

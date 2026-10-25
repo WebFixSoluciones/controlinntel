@@ -1005,3 +1005,36 @@ test("Flujo E2E 17: Simplificación del Módulo de Finanzas y Submódulos (Térm
     "FinanceDashboard debe usar etiquetas claras y formateador de categorías reconocibles"
   );
 });
+
+test("Flujo E2E 18: Simplificación y Unificación del Módulo de Inventarios (Productos, Servicios y Submódulos)", () => {
+  const rootDir = process.cwd();
+
+  const productModalPath = path.resolve(rootDir, "src/components/modules/inventory/ProductModal.tsx");
+  const productModalContent = fs.readFileSync(productModalPath, "utf8");
+
+  assert.ok(
+    !productModalContent.includes("Identificación & Nomenclatura") &&
+      !productModalContent.includes("Precios & Tributación SRI") &&
+      !productModalContent.includes("Solo lectura auditada (SRI/NIIF)") &&
+      !productModalContent.includes("EAN13"),
+    "ProductModal no debe mostrar títulos largos ni siglas confusas"
+  );
+  assert.ok(
+    productModalContent.includes("Nombre del Servicio *") &&
+      productModalContent.includes("Nombre del Producto *") &&
+      productModalContent.includes("Guardar Servicio") &&
+      productModalContent.includes("Guardar Producto"),
+    "ProductModal debe adaptar sus etiquetas claramente según se cree un Producto o un Servicio"
+  );
+
+  const inventoryManagerPath = path.resolve(rootDir, "src/components/modules/inventory/InventoryManager.tsx");
+  const inventoryManagerContent = fs.readFileSync(inventoryManagerPath, "utf8");
+
+  assert.ok(
+    inventoryManagerContent.includes("inventoryTabs") &&
+      inventoryManagerContent.includes('actionParam === "nuevo"') &&
+      !inventoryManagerContent.includes("Servicio Técnico / Mano de Obra") &&
+      !inventoryManagerContent.includes("Artículos Homologados"),
+    "InventoryManager debe incluir navegación superior de pestañas, soportar action=nuevo y usar encabezados claros"
+  );
+});
