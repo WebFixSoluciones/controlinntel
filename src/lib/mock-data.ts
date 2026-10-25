@@ -1,4 +1,4 @@
-﻿import {
+import {
   Client,
   ClientService,
   Plan,
@@ -1256,7 +1256,38 @@ export const INITIAL_CREDIT_NOTES: CreditNote[] = [];
 export const INITIAL_WITHHOLDINGS: WithholdingReceipt[] = [];
 export const INITIAL_REMISSION_GUIDES: RemissionGuide[] = [];
 export const INITIAL_SUPPLIERS: Supplier[] = [];
-export const INITIAL_BANK_ACCOUNTS: BankAccount[] = [];
+export const INITIAL_BANK_ACCOUNTS: BankAccount[] = [
+  {
+    id: "bank-pichincha-01",
+    bankName: "Banco Pichincha",
+    accountType: "corriente",
+    accountNumber: "2100234567",
+    currency: "USD",
+    initialBalance: 5000.0,
+    currentBalance: 5000.0,
+    status: "activa",
+  },
+  {
+    id: "bank-guayaquil-02",
+    bankName: "Banco Guayaquil",
+    accountType: "corriente",
+    accountNumber: "1140987654",
+    currency: "USD",
+    initialBalance: 3500.0,
+    currentBalance: 3500.0,
+    status: "activa",
+  },
+  {
+    id: "bank-caja-03",
+    bankName: "Caja Chica Central",
+    accountType: "caja_efectivo",
+    accountNumber: "CAJA-MATRIZ-01",
+    currency: "USD",
+    initialBalance: 500.0,
+    currentBalance: 500.0,
+    status: "activa",
+  },
+];
 export const INITIAL_PURCHASE_INVOICES: PurchaseInvoice[] = [];
 export const INITIAL_SUPPLIER_PAYMENTS: SupplierPaymentRecord[] = [];
 export const INITIAL_PURCHASE_WITHHOLDINGS: PurchaseWithholding[] = [];

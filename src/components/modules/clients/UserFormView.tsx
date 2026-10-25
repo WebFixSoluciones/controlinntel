@@ -861,32 +861,76 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                     </label>
                   </div>
                   {permissions.finanzas?.enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                      {[
-                        { key: "canViewBankBalances", label: "Ver Saldos de Cuentas Bancarias", critical: true },
-                        { key: "canRegisterReceipts", label: "Registrar Cobranzas / Recibos", critical: false },
-                        { key: "canRegisterExpenses", label: "Registrar Gastos Operativos", critical: false },
-                        { key: "canCancelPayments", label: "Anular Movimientos Financieros", critical: true },
-                        { key: "canExportReports", label: "Exportar Balances y Reportes", critical: false },
-                      ].map((act) => {
-                        const checked = !!permissions.finanzas?.actions?.[act.key as keyof typeof DEFAULT_FINANCE_ACTIONS];
-                        return (
-                          <label key={act.key} className="flex items-center justify-between p-2 rounded-xl border border-[#e2e8f0] bg-white cursor-pointer">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => handleToggleAction("finanzas", act.key)}
-                                className="rounded text-[#004ac6]"
-                              />
-                              <span className="text-xs">{act.label}</span>
-                            </div>
-                            {act.critical && (
-                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1 rounded">🔒</span>
-                            )}
-                          </label>
-                        );
-                      })}
+                    <div className="space-y-3 mt-2">
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          Submódulos Habilitados
+                        </span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {[
+                            { key: "cobranzas_opex", label: "Cobranzas & OPEX" },
+                            { key: "movimientos", label: "Movimientos Tesorería" },
+                            { key: "bancos", label: "Bancos & Cuentas" },
+                            { key: "cuentas_por_cobrar", label: "Por Cobrar (CxC)" },
+                            { key: "cuentas_por_pagar", label: "Por Pagar (CxP)" },
+                            { key: "reportes", label: "Reportes Financieros" },
+                          ].map((sub) => {
+                            const checked =
+                              (permissions.finanzas?.submodules as any)?.[sub.key] ?? true;
+                            return (
+                              <label
+                                key={sub.key}
+                                className={`flex items-center gap-2 p-2 rounded-xl border cursor-pointer transition-all ${
+                                  checked
+                                    ? "bg-blue-50/50 border-blue-200 text-[#004ac6] font-semibold"
+                                    : "bg-white border-[#e2e8f0] text-[#737686]"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => handleToggleSubmodule("finanzas", sub.key)}
+                                  className="rounded text-[#004ac6]"
+                                />
+                                <span className="text-xs">{sub.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                          Acciones Específicas
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {[
+                            { key: "canViewBankBalances", label: "Ver Saldos de Cuentas Bancarias", critical: true },
+                            { key: "canRegisterReceipts", label: "Registrar Cobranzas / Recibos", critical: false },
+                            { key: "canRegisterExpenses", label: "Registrar Gastos Operativos", critical: false },
+                            { key: "canCancelPayments", label: "Anular Movimientos Financieros", critical: true },
+                            { key: "canExportReports", label: "Exportar Balances y Reportes", critical: false },
+                          ].map((act) => {
+                            const checked = !!permissions.finanzas?.actions?.[act.key as keyof typeof DEFAULT_FINANCE_ACTIONS];
+                            return (
+                              <label key={act.key} className="flex items-center justify-between p-2 rounded-xl border border-[#e2e8f0] bg-white cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => handleToggleAction("finanzas", act.key)}
+                                    className="rounded text-[#004ac6]"
+                                  />
+                                  <span className="text-xs">{act.label}</span>
+                                </div>
+                                {act.critical && (
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1 rounded">🔒</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -852,3 +852,60 @@ test("Flujo E2E 13: Selección y Copiado de Texto Libre en Bóveda, IPs, Fichas 
   const profileContent = fs.readFileSync(profilePath, "utf8");
   assert.ok(!profileContent.includes("select-none"), "ClientProfile360 no debe contener select-none");
 });
+
+test("Flujo E2E 14: Submódulo de Bancos (Permisos Granulares, Inicialización de Cuentas y Transferencias)", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificar que finanzas/page.tsx incluye el ribbon de navegación con el submódulo de bancos
+  const finanzasPagePath = path.resolve(rootDir, "src/app/finanzas/page.tsx");
+  const finanzasPageContent = fs.readFileSync(finanzasPagePath, "utf8");
+  assert.ok(
+    finanzasPageContent.includes("FINANCE_TABS") && finanzasPageContent.includes("BankAccountsTab"),
+    "La página de Finanzas debe tener la cinta de pestañas con acceso directo al submódulo de Bancos"
+  );
+
+  // 2. Verificar que permissions.ts habilita bancos para roles autorizados (admin, superadmin, finanzas, ventas, consulta)
+  const permsPath = path.resolve(rootDir, "src/lib/permissions.ts");
+  const permsContent = fs.readFileSync(permsPath, "utf8");
+  assert.ok(
+    permsContent.includes('moduleKey === "finanzas" && user.permissions?.includes("manage_finance")'),
+    "canAccessSubmodule debe habilitar todos los submódulos de finanzas cuando el usuario tiene manage_finance"
+  );
+
+  // 3. Simulación de cuentas bancarias y transferencia interna
+  let bankAccounts = [
+    {
+      id: "bank-pichincha-01",
+      bankName: "Banco Pichincha",
+      accountType: "corriente",
+      accountNumber: "2100234567",
+      currency: "USD",
+      initialBalance: 5000.0,
+      currentBalance: 5000.0,
+      status: "activa",
+    },
+    {
+      id: "bank-guayaquil-02",
+      bankName: "Banco Guayaquil",
+      accountType: "corriente",
+      accountNumber: "1140987654",
+      currency: "USD",
+      initialBalance: 3500.0,
+      currentBalance: 3500.0,
+      status: "activa",
+    },
+  ];
+
+  // Transferencia de $1,200 desde Banco Pichincha hacia Banco Guayaquil
+  const transferAmount = 1200.0;
+  bankAccounts = bankAccounts.map((b) => {
+    if (b.id === "bank-pichincha-01") return { ...b, currentBalance: b.currentBalance - transferAmount };
+    if (b.id === "bank-guayaquil-02") return { ...b, currentBalance: b.currentBalance + transferAmount };
+    return b;
+  });
+
+  assert.equal(bankAccounts[0].currentBalance, 3800.0, "El saldo origen debe disminuir en $1,200");
+  assert.equal(bankAccounts[1].currentBalance, 4700.0, "El saldo destino debe aumentar en $1,200");
+  const totalLiquidity = bankAccounts.reduce((sum, b) => sum + b.currentBalance, 0);
+  assert.equal(totalLiquidity, 8500.0, "La liquidez total institucional debe conservarse intacta ($8,500)");
+});

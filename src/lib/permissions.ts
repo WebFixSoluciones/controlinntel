@@ -166,8 +166,8 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     },
     finanzas: {
       enabled: true,
-      submodules: { movimientos: false, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: false, reportes: false },
-      actions: { canViewBankBalances: false, canRegisterReceipts: true, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false },
+      submodules: { movimientos: false, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: false, reportes: false },
+      actions: { canViewBankBalances: true, canRegisterReceipts: true, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false },
     },
     facturacion: {
       enabled: true,
@@ -296,7 +296,7 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     clientes: { enabled: true, actions: { canCreateClient: false, canEditClient: false, canEditServicePrices: false, canUploadContracts: false, canDeleteContracts: false, canDeleteClient: false } },
     compras: { enabled: true, submodules: { historial_compras: true, registrar_compra: false, notas_credito: false, notas_debito: false, retenciones: false }, actions: { canCreateSupplier: false, canRegisterPurchase: false, canApprovePayments: false, canEmitWithholding: false, canViewSupplierBank: false } },
-    finanzas: { enabled: true, submodules: { movimientos: true, bancos: false, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
+    finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { canViewBankBalances: true, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } },
     facturacion: { enabled: true, submodules: { facturas: true, cotizaciones: true, notas_credito: false, retenciones: false, guias_remision: false }, actions: { ...DEFAULT_BILLING_ACTIONS, canCreateInvoice: false, canCancelInvoices: false, canEditPrices: false, canApplyDiscounts: false } },
     inventarios: { enabled: true, submodules: { productos: true, servicios: true, categorias: true, kardex: true, transferencias: false, bodegas: true, ajustes: false }, actions: { canCreateProduct: false, canCreateService: false, canEditProduct: false, canChangePrices: false, canViewCosts: false, canAdjustStock: false, canTransferWarehouses: false, canDeleteItems: false } },
     red: { enabled: true, submodules: { nodos: true, pools_ip: true }, actions: { canManageNodes: false, canAssignIps: false, canEditRouterCredentials: false } },
@@ -317,6 +317,8 @@ export function canAccessModule(user: UserProfile | undefined | null, moduleKey:
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
   if (moduleKey === "actions") return true;
+  if (user.permissions?.includes("all")) return true;
+  if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
 
   // Si tiene permisos granulares configurados explícitamente
   const modPerm = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
@@ -361,6 +363,12 @@ export function canAccessSubmodule(
 ): boolean {
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
+
+  // Permiso 'all' otorga acceso irrestricto a submódulos de módulos activos
+  if (user.permissions?.includes("all")) return true;
+
+  // Permiso 'manage_finance' otorga acceso irrestricto a los submódulos de finanzas (incluyendo bancos)
+  if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
 
   // Si el módulo general está deshabilitado, el submódulo tampoco es accesible
   if (!canAccessModule(user, moduleKey)) return false;

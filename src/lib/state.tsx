@@ -608,6 +608,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.expenses)) setExpenses(p.expenses);
           if (Array.isArray(p.monthlyCharges)) setMonthlyCharges(p.monthlyCharges);
           if (Array.isArray(p.auditLogs)) setAuditLogs(p.auditLogs);
+          if (Array.isArray(p.projects)) setProjects(p.projects);
           if (Array.isArray(p.clientProjects)) setClientProjects(p.clientProjects);
           if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
           if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems);
@@ -633,9 +634,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.supplierCreditNotes)) setSupplierCreditNotes(p.supplierCreditNotes);
           if (Array.isArray(p.supplierDebitNotes)) setSupplierDebitNotes(p.supplierDebitNotes);
           if (Array.isArray(p.purchaseWithholdings)) setPurchaseWithholdings(p.purchaseWithholdings);
-          if (Array.isArray(p.bankAccounts)) setBankAccounts(p.bankAccounts);
+          if (Array.isArray(p.bankAccounts)) {
+            setBankAccounts(p.bankAccounts.length > 0 ? p.bankAccounts : INITIAL_BANK_ACCOUNTS);
+          }
           if (Array.isArray(p.financialMovements)) setFinancialMovements(p.financialMovements);
           if (Array.isArray(p.supplierPayments)) setSupplierPayments(p.supplierPayments);
+          if (Array.isArray(p.hostingDomains)) setHostingDomains(p.hostingDomains);
+          if (Array.isArray(p.regulatoryTramites)) setRegulatoryTramites(p.regulatoryTramites);
         } catch (e) {}
       }
     } catch (e) {
@@ -745,6 +750,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           expenses,
           monthlyCharges,
           auditLogs,
+          projects,
           clientProjects,
           clientQuotes,
           clientVaultItems,
@@ -773,6 +779,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bankAccounts,
           financialMovements,
           supplierPayments,
+          hostingDomains,
+          regulatoryTramites,
         })
       );
       localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
@@ -789,6 +797,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     expenses,
     monthlyCharges,
     auditLogs,
+    projects,
     clientProjects,
     clientQuotes,
     clientVaultItems,
@@ -809,6 +818,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     billingWithholdings,
     billingRemissionGuides,
     sriCompanyConfig,
+    suppliers,
+    purchaseInvoices,
+    supplierCreditNotes,
+    supplierDebitNotes,
+    purchaseWithholdings,
+    bankAccounts,
+    financialMovements,
+    supplierPayments,
+    hostingDomains,
+    regulatoryTramites,
     systemUsers,
     isAuthLoaded,
   ]);

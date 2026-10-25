@@ -63,7 +63,7 @@ export function NewSaleModal({ isOpen, onClose, onSuccess }: NewSaleModalProps) 
       }
       setErrorMsg("");
     }
-  }, [isOpen, clients, inventoryWarehouses]);
+  }, [isOpen, clients, inventoryWarehouses, selectedClientId, warehouseId]);
 
   if (!isOpen) return null;
 
