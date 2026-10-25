@@ -713,45 +713,8 @@ export function InventoryManager() {
     );
   }
 
-  const inventoryTabs: { id: InventoryTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: "productos", label: "Productos", icon: Package },
-    { id: "servicios", label: "Servicios", icon: Wrench },
-    { id: "categorias", label: "Categorías y Marcas", icon: Tags },
-    { id: "kardex", label: "Kardex", icon: BookOpen },
-    { id: "transferencias", label: "Transferencias", icon: ArrowRightLeft },
-    { id: "bodegas", label: "Bodegas", icon: Building2 },
-    { id: "ajustes", label: "Ajustes", icon: SlidersHorizontal },
-  ];
-
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
-      {/* Navegación rápida de Submódulos de Inventario */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
-        {inventoryTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setSearchTerm("");
-                setActiveTab(tab.id);
-                router.push(`/inventarios?sub=${tab.id}`);
-              }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                isActive
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "text-[#434655] hover:bg-[#f8f9ff] hover:text-[#0b1c30]"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* ========================================================= */}
       {/* 1. PRODUCTOS                                              */}
       {/* ========================================================= */}

@@ -980,9 +980,12 @@ test("Flujo E2E 16: Separación Estricta de Ventas, Inventario y Finanzas respec
   const billingManagerPath = path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx");
   const billingManagerContent = fs.readFileSync(billingManagerPath, "utf8");
   assert.ok(
-    billingManagerContent.includes("Pasar Nota de Venta a Factura SRI") &&
-      billingManagerContent.includes("handleVoidSriInvoice"),
-    "BillingManager debe permitir promover Notas de Venta pendientes a Factura SRI y anular Facturas SRI liberando la Nota de Venta origen"
+    billingManagerContent.includes("Emitir Factura") &&
+      billingManagerContent.includes("handleVoidSriInvoice") &&
+      billingManagerContent.includes("batchFilter") &&
+      billingManagerContent.includes("dateFrom") &&
+      !billingManagerContent.includes("<th className=\"py-2.5 px-3\">Bodega</th>"),
+    "BillingManager debe mostrar el botón Emitir Factura, filtrar por lotes y fechas, y omitir la columna Bodega"
   );
 });
 
@@ -1031,10 +1034,9 @@ test("Flujo E2E 18: Simplificación y Unificación del Módulo de Inventarios (P
   const inventoryManagerContent = fs.readFileSync(inventoryManagerPath, "utf8");
 
   assert.ok(
-    inventoryManagerContent.includes("inventoryTabs") &&
-      inventoryManagerContent.includes('actionParam === "nuevo"') &&
+    inventoryManagerContent.includes('actionParam === "nuevo"') &&
       !inventoryManagerContent.includes("Servicio Técnico / Mano de Obra") &&
       !inventoryManagerContent.includes("Artículos Homologados"),
-    "InventoryManager debe incluir navegación superior de pestañas, soportar action=nuevo y usar encabezados claros"
+    "InventoryManager debe soportar action=nuevo y usar encabezados claros"
   );
 });

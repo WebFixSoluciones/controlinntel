@@ -45,10 +45,12 @@ function getPageTitle(pathname: string, subParam: string | null): string {
         return "Cotizaciones";
       case "notas_credito":
         return "Notas de Crédito";
+      case "notas_debito":
+        return "Notas de Débito";
       case "retenciones":
         return "Retenciones";
       case "guias_remision":
-        return "Guías";
+        return "Guías de Remisión";
       default:
         return "Facturas";
     }

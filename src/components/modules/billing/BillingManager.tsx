@@ -137,6 +137,9 @@ export function BillingManager() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [batchFilter, setBatchFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Modals state
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -159,7 +162,7 @@ export function BillingManager() {
   const [isEditSaleModalOpen, setIsEditSaleModalOpen] = useState(false);
   const [invoiceToEdit, setInvoiceToEdit] = useState<SriInvoice | null>(null);
 
-  // Selector de Nota de Venta para pasar a Factura Electrónica SRI (01)
+  // Selector de Nota de Venta para pasar a Factura Electrónica SRI
   const [isSelectSaleForSriOpen, setIsSelectSaleForSriOpen] = useState(false);
   const [saleToPromoteToSri, setSaleToPromoteToSri] = useState<SriInvoice | null>(null);
 
@@ -187,12 +190,56 @@ export function BillingManager() {
   );
   const [isConverting, setIsConverting] = useState(false);
 
+  const extractBatchPrefix = (docNum: string): string => {
+    const parts = (docNum || "").split("-");
+    if (parts.length >= 2) return `${parts[0]}-${parts[1]}`;
+    return docNum || "";
+  };
+
+  const availableBatches = useMemo(() => {
+    const set = new Set<string>();
+    const addDoc = (docNum?: string) => {
+      if (!docNum) return;
+      const prefix = extractBatchPrefix(docNum);
+      if (prefix) set.add(prefix);
+    };
+    if (activeTab === "facturas") {
+      billingInvoices
+        .filter((inv) => inv.documentType !== "nota_venta")
+        .forEach((inv) => addDoc(inv.documentNumber));
+    } else if (activeTab === "notas_credito") {
+      billingCreditNotes.forEach((nc) => addDoc(nc.documentNumber));
+    } else if (activeTab === "notas_debito") {
+      billingDebitNotes.forEach((nd) => addDoc(nd.documentNumber));
+    } else if (activeTab === "retenciones") {
+      billingWithholdings.forEach((ret) => addDoc(ret.documentNumber));
+    } else if (activeTab === "guias_remision") {
+      billingRemissionGuides.forEach((g) => addDoc(g.documentNumber));
+    }
+    return Array.from(set).sort();
+  }, [
+    activeTab,
+    billingInvoices,
+    billingCreditNotes,
+    billingDebitNotes,
+    billingWithholdings,
+    billingRemissionGuides,
+  ]);
+
+  const matchesDateAndBatch = (docDate: string, docNumber: string) => {
+    const matchBatch =
+      batchFilter === "all" || extractBatchPrefix(docNumber) === batchFilter;
+    const matchFrom = !dateFrom || docDate >= dateFrom;
+    const matchTo = !dateTo || docDate <= dateTo;
+    return matchBatch && matchFrom && matchTo;
+  };
+
   // ==========================================
   // Filtered Lists
   // ==========================================
   const filteredInvoices = useMemo(() => {
     return billingInvoices.filter((inv) => {
-      // En facturación SRI solo se muestran Facturas Electrónicas (Tipo 01)
+      // En facturación SRI solo se muestran Facturas Electrónicas
       if (inv.documentType === "nota_venta") return false;
 
       const q = searchTerm.toLowerCase();
@@ -203,9 +250,13 @@ export function BillingManager() {
         inv.claveAcceso.includes(q);
 
       const matchStatus = statusFilter === "all" || inv.status === statusFilter;
-      return matchSearch && matchStatus;
+      return (
+        matchSearch &&
+        matchStatus &&
+        matchesDateAndBatch(inv.date, inv.documentNumber)
+      );
     });
-  }, [billingInvoices, searchTerm, statusFilter]);
+  }, [billingInvoices, searchTerm, statusFilter, batchFilter, dateFrom, dateTo]);
 
   const filteredQuotes = useMemo(() => {
     return billingQuotes.filter((q) => {
@@ -216,58 +267,60 @@ export function BillingManager() {
         q.clientRuc.includes(search);
 
       const matchStatus = statusFilter === "all" || q.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchFrom = !dateFrom || q.date >= dateFrom;
+      const matchTo = !dateTo || q.date <= dateTo;
+      return matchSearch && matchStatus && matchFrom && matchTo;
     });
-  }, [billingQuotes, searchTerm, statusFilter]);
+  }, [billingQuotes, searchTerm, statusFilter, dateFrom, dateTo]);
 
   const filteredCreditNotes = useMemo(() => {
     return billingCreditNotes.filter((nc) => {
       const search = searchTerm.toLowerCase();
-      return (
+      const matchSearch =
         nc.documentNumber.toLowerCase().includes(search) ||
         nc.invoiceNumber.toLowerCase().includes(search) ||
         nc.clientName.toLowerCase().includes(search) ||
-        nc.clientRuc.includes(search)
-      );
+        nc.clientRuc.includes(search);
+      return matchSearch && matchesDateAndBatch(nc.date, nc.documentNumber);
     });
-  }, [billingCreditNotes, searchTerm]);
+  }, [billingCreditNotes, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const filteredDebitNotes = useMemo(() => {
     return billingDebitNotes.filter((nd) => {
       const search = searchTerm.toLowerCase();
-      return (
+      const matchSearch =
         nd.documentNumber.toLowerCase().includes(search) ||
         nd.modifiedInvoiceNumber.toLowerCase().includes(search) ||
         nd.clientName.toLowerCase().includes(search) ||
-        nd.clientRuc.includes(search)
-      );
+        nd.clientRuc.includes(search);
+      return matchSearch && matchesDateAndBatch(nd.date, nd.documentNumber);
     });
-  }, [billingDebitNotes, searchTerm]);
+  }, [billingDebitNotes, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const filteredWithholdings = useMemo(() => {
     return billingWithholdings.filter((ret) => {
       const search = searchTerm.toLowerCase();
-      return (
+      const matchSearch =
         ret.documentNumber.toLowerCase().includes(search) ||
         ret.invoiceNumber.toLowerCase().includes(search) ||
         ret.clientName.toLowerCase().includes(search) ||
-        ret.clientRuc.includes(search)
-      );
+        ret.clientRuc.includes(search);
+      return matchSearch && matchesDateAndBatch(ret.date, ret.documentNumber);
     });
-  }, [billingWithholdings, searchTerm]);
+  }, [billingWithholdings, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const filteredRemissionGuides = useMemo(() => {
     return billingRemissionGuides.filter((g) => {
       const search = searchTerm.toLowerCase();
-      return (
+      const matchSearch =
         g.documentNumber.toLowerCase().includes(search) ||
         g.carrierName.toLowerCase().includes(search) ||
         g.licensePlate.toLowerCase().includes(search) ||
         g.destClientName.toLowerCase().includes(search) ||
-        g.destClientRuc.includes(search)
-      );
+        g.destClientRuc.includes(search);
+      return matchSearch && matchesDateAndBatch(g.date, g.documentNumber);
     });
-  }, [billingRemissionGuides, searchTerm]);
+  }, [billingRemissionGuides, searchTerm, batchFilter, dateFrom, dateTo]);
 
   // Notas de Venta comerciales pendientes de pasar a Factura Electrónica SRI
   const pendingSalesForSri = useMemo(() => {
@@ -483,50 +536,19 @@ export function BillingManager() {
     );
   }
 
+  const hasActiveFilters =
+    Boolean(searchTerm) ||
+    statusFilter !== "all" ||
+    batchFilter !== "all" ||
+    Boolean(dateFrom) ||
+    Boolean(dateTo);
+
   return (
     <div className="space-y-6">
-      {/* Selector de los 5 Comprobantes Oficiales del SRI */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-thin">
-        {[
-          { key: "facturas", label: "Facturas (01)", icon: Receipt, count: filteredInvoices.length },
-          { key: "notas_credito", label: "Notas de Crédito (04)", icon: RotateCcw, count: billingCreditNotes.length },
-          { key: "notas_debito", label: "Notas de Débito (05)", icon: FileText, count: billingDebitNotes.length },
-          { key: "retenciones", label: "Retenciones (07)", icon: DollarSign, count: billingWithholdings.length },
-          { key: "guias_remision", label: "Guías Remisión (06)", icon: Truck, count: billingRemissionGuides.length },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key as BillingTab);
-                router.replace(`/facturacion?sub=${tab.key}`);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-                  isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Barra de Filtros (Oculta en vista Recurrentes porque tiene su propia barra de periodo/filtros) */}
       {activeTab !== "recurrentes" && (
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
-        <div className="relative flex-1 min-w-[240px]">
+        <div className="relative flex-1 min-w-[220px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -537,7 +559,44 @@ export function BillingManager() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Filtro por Lote / Serie */}
+          {activeTab !== "cotizaciones" && (
+            <select
+              value={batchFilter}
+              onChange={(e) => setBatchFilter(e.target.value)}
+              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+              title="Filtrar por lote o serie de emisión"
+            >
+              <option value="all">Todos los Lotes</option>
+              {availableBatches.map((batch) => (
+                <option key={batch} value={batch}>
+                  Lote {batch}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Filtro por Rango de Fechas */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-[6px] px-2.5 py-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              title="Fecha desde"
+              className="text-xs bg-transparent text-slate-700 outline-hidden"
+            />
+            <span className="text-slate-400 text-xs">—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              title="Fecha hasta"
+              className="text-xs bg-transparent text-slate-700 outline-hidden"
+            />
+          </div>
+
           {activeTab === "facturas" && (
             <select
               value={statusFilter}
@@ -565,18 +624,30 @@ export function BillingManager() {
             </select>
           )}
 
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setBatchFilter("all");
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="px-2.5 py-2 rounded-[6px] border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              title="Limpiar filtros"
+            >
+              Limpiar
+            </button>
+          )}
+
           {activeTab === "facturas" && (
             <button
               onClick={() => setIsSelectSaleForSriOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer whitespace-nowrap"
             >
               <FileCheck2 className="w-3.5 h-3.5" />
-              <span>Pasar Nota de Venta a Factura SRI</span>
-              {pendingSalesForSri.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-mono">
-                  {pendingSalesForSri.length}
-                </span>
-              )}
+              <span>Emitir Factura</span>
             </button>
           )}
 
@@ -602,7 +673,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Nota</span>
+              <span>Nueva Nota de Crédito</span>
             </button>
           )}
 
@@ -615,7 +686,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Nota Débito</span>
+              <span>Nueva Nota de Débito</span>
             </button>
           )}
 
@@ -628,7 +699,7 @@ export function BillingManager() {
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Retención (07)</span>
+              <span>Nueva Retención</span>
             </button>
           )}
 
@@ -665,7 +736,6 @@ export function BillingManager() {
                   <th className="py-2.5 px-3.5">Comprobante</th>
                   <th className="py-2.5 px-3.5">Fecha</th>
                   <th className="py-2.5 px-3.5">Cliente</th>
-                  <th className="py-2.5 px-3">Bodega</th>
                   <th className="py-2.5 px-3 text-right">Subtotal</th>
                   <th className="py-2.5 px-3 text-right">IVA</th>
                   <th className="py-2.5 px-3.5 text-right font-black">Total</th>
@@ -676,7 +746,7 @@ export function BillingManager() {
               <tbody className="divide-y divide-slate-100">
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400 italic text-xs">
+                    <td colSpan={8} className="py-12 text-center text-slate-400 italic text-xs">
                       No se encontraron comprobantes registrados.
                     </td>
                   </tr>
@@ -690,19 +760,8 @@ export function BillingManager() {
                     return (
                       <tr key={inv.id} className="hover:bg-slate-50/60 transition">
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-slate-900">
-                              {inv.documentNumber}
-                            </span>
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] uppercase ${
-                                isNotaVenta
-                                  ? "bg-slate-800 text-emerald-300"
-                                  : "bg-blue-50 text-[#004ac6] border border-blue-200"
-                              }`}
-                            >
-                              {isNotaVenta ? "Nota Venta" : "Factura"}
-                            </span>
+                          <div className="font-mono font-bold text-slate-900">
+                            {inv.documentNumber}
                           </div>
                           <span
                             className="text-[10px] font-mono text-slate-400 truncate max-w-[200px] block"
@@ -710,8 +769,6 @@ export function BillingManager() {
                           >
                             {originSale
                               ? `Origen: ${originSale.documentNumber} • Clave: ${(inv.claveAcceso || "").slice(-8)}`
-                              : isNotaVenta
-                              ? "Recibo Control Interno"
                               : isDraft
                               ? "Borrador Pendiente"
                               : `Clave: ${(inv.claveAcceso || "").slice(-10)}`}
@@ -726,12 +783,6 @@ export function BillingManager() {
                         <td className="py-3 px-4">
                           <div className="font-bold text-slate-900">{inv.clientName}</div>
                           <div className="text-[10px] font-mono text-slate-500">RUC: {inv.clientRuc}</div>
-                        </td>
-                        <td className="py-3 px-3 text-slate-600">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700">
-                            <Layers className="w-3 h-3 text-slate-400" />
-                            {inv.warehouseName}
-                          </span>
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-slate-700">
                           ${safeNumber(inv.subtotal15)}
@@ -754,9 +805,7 @@ export function BillingManager() {
                                 : "bg-slate-100 text-slate-600 border-slate-200"
                             }`}
                           >
-                            {isNotaVenta && inv.status === "autorizada"
-                              ? "REGISTRADO"
-                              : inv.status.toUpperCase()}
+                            {inv.status.toUpperCase()}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
@@ -764,7 +813,7 @@ export function BillingManager() {
                             <button
                               onClick={() => handleOpenRide(inv)}
                               className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
-                              title={isNotaVenta ? "Ver / Imprimir Nota de Venta" : "Ver / Imprimir RIDE PDF"}
+                              title="Ver / Imprimir RIDE PDF"
                             >
                               <Printer className="w-4 h-4" />
                             </button>
@@ -789,7 +838,7 @@ export function BillingManager() {
                                     <button
                                       onClick={() => handleEmitNcFromInvoice(inv)}
                                       className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                      title="Emitir Nota de Crédito (04)"
+                                      title="Emitir Nota de Crédito"
                                     >
                                       <RotateCcw className="w-4 h-4" />
                                     </button>
@@ -799,7 +848,7 @@ export function BillingManager() {
                                         setIsDebitNoteModalOpen(true);
                                       }}
                                       className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                      title="Emitir Nota de Débito (05)"
+                                      title="Emitir Nota de Débito"
                                     >
                                       <FileText className="w-4 h-4" />
                                     </button>
@@ -809,21 +858,21 @@ export function BillingManager() {
                                         setIsWithholdingModalOpen(true);
                                       }}
                                       className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                                      title="Emitir Comprobante de Retención (07)"
+                                      title="Emitir Retención"
                                     >
                                       <Percent className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => handleEmitRemissionFromInvoice(inv)}
                                       className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
-                                      title="Emitir Guía de Remisión (06)"
+                                      title="Emitir Guía de Remisión"
                                     >
                                       <Truck className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => handleVoidSriInvoice(inv)}
                                       className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                      title="Anular Factura Electrónica SRI (libera Nota de Venta)"
+                                      title="Anular Factura Electrónica"
                                     >
                                       <Ban className="w-4 h-4" />
                                     </button>
@@ -838,7 +887,7 @@ export function BillingManager() {
                                   setIsEditSaleModalOpen(true);
                                 }}
                                 className="p-1.5 rounded-[6px] text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
-                                title={isNotaVenta ? "Editar Nota de Venta" : "Editar Comprobante"}
+                                title="Editar Comprobante"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
@@ -846,7 +895,7 @@ export function BillingManager() {
                             <button
                               onClick={() => handleDeleteInvoice(inv)}
                               className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              title={isNotaVenta ? "Eliminar Nota de Venta" : "Eliminar Factura Electrónica SRI"}
+                              title="Eliminar Factura Electrónica"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1705,10 +1754,10 @@ export function BillingManager() {
                 <FileCheck2 className="w-4 h-4 text-sky-200" />
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider">
-                    Pasar Nota de Venta a Factura Electrónica SRI (01)
+                    Emitir Factura Electrónica
                   </h3>
                   <p className="text-[11px] text-sky-100">
-                    Selecciona la Nota de Venta comercial registrada para emitir su Factura Electrónica ante el SRI
+                    Selecciona la Nota de Venta registrada para emitir su Factura Electrónica
                   </p>
                 </div>
               </div>
@@ -1777,7 +1826,7 @@ export function BillingManager() {
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-[#004ac6] hover:bg-[#003ca3] text-white font-bold text-[11px] cursor-pointer"
                             >
                               <FileCheck2 className="w-3 h-3" />
-                              <span>Pasar a Factura SRI</span>
+                              <span>Emitir Factura</span>
                             </button>
                           </td>
                         </tr>
