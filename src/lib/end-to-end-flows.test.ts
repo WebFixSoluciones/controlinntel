@@ -1079,3 +1079,27 @@ test("Flujo E2E 19: Impresión Correcta de Documentos (RIDE A4, Ticket 80mm, Cot
     "PurchaseWithholdingsTab debe usar printHtmlElement aislado para imprimir comprobantes de retención"
   );
 });
+
+test("Flujo E2E 20: Simplificación del Módulo de Ventas (Título en Header, Barra Unificada con Botón y Menú Lateral Exclusivo)", () => {
+  const rootDir = process.cwd();
+
+  const headerPath = path.resolve(rootDir, "src/components/layout/Header.tsx");
+  const headerContent = fs.readFileSync(headerPath, "utf8");
+  assert.ok(
+    headerContent.includes('pathname === "/ventas"') &&
+      headerContent.includes('return "Notas de Venta"') &&
+      headerContent.includes('return "Cotizaciones"'),
+    "Header.tsx debe mapear el módulo /ventas para mostrar los títulos de submódulo arriba"
+  );
+
+  const salesManagerPath = path.resolve(rootDir, "src/components/modules/sales/SalesManager.tsx");
+  const salesManagerContent = fs.readFileSync(salesManagerPath, "utf8");
+  assert.ok(
+    !salesManagerContent.includes("Total Notas de Venta") &&
+      !salesManagerContent.includes("Comprobantes Registrados") &&
+      !salesManagerContent.includes("Venta Comercial (Pendiente SRI)") &&
+      salesManagerContent.includes("Nueva Nota de Venta") &&
+      salesManagerContent.includes("Nueva Cotización"),
+    "SalesManager debe unificar la barra de filtros con el botón de acción, sin tarjetas KPI ni redundancias"
+  );
+});

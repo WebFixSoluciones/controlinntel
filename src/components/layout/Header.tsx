@@ -20,6 +20,19 @@ function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/") return "Dashboard";
   if (pathname === "/abonados" || pathname === "/clientes") return "Clientes";
 
+  if (pathname === "/ventas") {
+    switch (subParam) {
+      case "nueva_venta":
+        return "Nueva Venta";
+      case "cotizaciones":
+        return "Cotizaciones";
+      case "recurrentes":
+        return "Recurrentes";
+      default:
+        return "Notas de Venta";
+    }
+  }
+
   if (pathname === "/compras") {
     switch (subParam) {
       case "registrar_compra":

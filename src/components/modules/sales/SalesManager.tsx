@@ -217,143 +217,48 @@ export function SalesManager() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-[#004ac6] text-white shadow-xs">
-              <Receipt className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Ventas Comerciales</h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Emisión de Notas de Venta operativas, cotizaciones y ventas recurrentes con pase selectivo a Facturación SRI.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={() => {
-              setActiveTab("nueva_venta");
-              router.push("/ventas?sub=nueva_venta");
-            }}
-            className="px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nueva Nota de Venta</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto scrollbar-thin">
-        {[
-          { key: "notas_venta", label: "Notas de Venta", icon: Receipt, count: salesList.length },
-          { key: "nueva_venta", label: "Nueva Venta", icon: Plus },
-          { key: "cotizaciones", label: "Cotizaciones", icon: FileText, count: billingQuotes.length },
-          { key: "recurrentes", label: "Recurrentes", icon: Clock },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key as SalesTab);
-                router.replace(`/ventas?sub=${tab.key}`);
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              {typeof tab.count === "number" && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
+    <div className="space-y-4 animate-fade-in">
       {/* TAB 1: NOTAS DE VENTA */}
       {activeTab === "notas_venta" && (
         <div className="space-y-4">
-          {/* Summary KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-500 font-medium block">Total Notas de Venta</span>
-                <span className="text-xl font-bold font-mono text-slate-900 mt-1 block">
-                  ${totalSalesAmount.toFixed(2)}
-                </span>
+          {/* Filters Bar Unificada con Botón de Acción */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar por cliente, RUC o número..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                />
               </div>
-              <div className="p-3 bg-blue-50 text-[#004ac6] rounded-xl">
-                <DollarSign className="w-5 h-5" />
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Estado SRI:</span>
+                <select
+                  value={sriFilter}
+                  onChange={(e) => setSriFilter(e.target.value as any)}
+                  className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
+                >
+                  <option value="todos">Todos los comprobantes</option>
+                  <option value="pendientes">Pendientes de Facturar SRI</option>
+                  <option value="facturadas">Facturadas al SRI</option>
+                </select>
               </div>
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-500 font-medium block">Comprobantes Registrados</span>
-                <span className="text-xl font-bold font-mono text-slate-900 mt-1 block">
-                  {salesList.length}
-                </span>
-              </div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                <Receipt className="w-5 h-5" />
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-500 font-medium block">Pendientes de Facturar SRI</span>
-                <span className="text-xl font-bold font-mono text-amber-600 mt-1 block">
-                  {pendingSriCount}
-                </span>
-              </div>
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                <FileCheck2 className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-
-          {/* Filters Bar */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder="Buscar por cliente, RUC o número..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-slate-500 font-medium">Estado SRI:</span>
-              <select
-                value={sriFilter}
-                onChange={(e) => setSriFilter(e.target.value as any)}
-                className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
-              >
-                <option value="todos">Todos los comprobantes</option>
-                <option value="pendientes">Pendientes de Facturar SRI</option>
-                <option value="facturadas">Facturadas al SRI</option>
-              </select>
-            </div>
+            <button
+              onClick={() => {
+                setActiveTab("nueva_venta");
+                router.push("/ventas?sub=nueva_venta");
+              }}
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Nota de Venta</span>
+            </button>
           </div>
 
           {/* Sales Table */}
@@ -413,16 +318,16 @@ export function SalesManager() {
                                   setIsRideOpen(true);
                                 }
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
                               title="Clic para ver Factura SRI vinculada"
                             >
-                              <CheckCircle2 className="w-3 h-3" />
-                              Facturada SRI ({sale.sriDocumentNumber || "01"})
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Facturada SRI ({sale.sriDocumentNumber || "01"})</span>
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
-                              <Clock className="w-3 h-3" />
-                              Venta Comercial (Pendiente SRI)
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10.5px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Pendiente SRI</span>
                             </span>
                           )}
                         </td>
@@ -489,56 +394,50 @@ export function SalesManager() {
 
       {/* TAB 2: COTIZACIONES */}
       {activeTab === "cotizaciones" && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Cotizaciones y Proformas Comerciales</h3>
-              <p className="text-xs text-slate-500">
-                Gestiona cotizaciones emitidas y conviértelas en Nota de Venta para despachar inventario y registrar cobro.
-              </p>
+        <div className="space-y-4">
+          {/* Quotes Filter Bar Unificada con Botón de Acción */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar cotización, cliente o RUC..."
+                  value={quoteSearchTerm}
+                  onChange={(e) => setQuoteSearchTerm(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Estado:</span>
+                <select
+                  value={quoteStatusFilter}
+                  onChange={(e) => setQuoteStatusFilter(e.target.value)}
+                  className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="enviada">Enviadas</option>
+                  <option value="aprobada">Aprobadas</option>
+                  <option value="facturada">Facturadas / Convertidas</option>
+                  <option value="rechazada">Rechazadas</option>
+                </select>
+              </div>
             </div>
+
             <button
               onClick={() => {
                 setQuoteToEdit(null);
                 setIsQuoteModalOpen(true);
               }}
-              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Cotización</span>
             </button>
           </div>
 
-          {/* Quotes Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="Buscar cotización, cliente o RUC..."
-                value={quoteSearchTerm}
-                onChange={(e) => setQuoteSearchTerm(e.target.value)}
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs text-slate-500 font-medium">Estado:</span>
-              <select
-                value={quoteStatusFilter}
-                onChange={(e) => setQuoteStatusFilter(e.target.value)}
-                className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="enviada">Enviadas</option>
-                <option value="aprobada">Aprobadas</option>
-                <option value="facturada">Facturadas / Convertidas</option>
-                <option value="rechazada">Rechazadas</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
