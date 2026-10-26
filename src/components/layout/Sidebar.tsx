@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   Users,
   ShieldCheck,
-  KeyRound,
   Kanban,
   Boxes,
   Receipt,
@@ -124,7 +123,6 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: "/proyectos", label: "Proyectos", icon: Kanban },
   { href: "/tickets", label: "Soporte", icon: TicketIcon },
-  { href: "/boveda", label: "Credenciales", icon: KeyRound },
   { href: "/plantillas", label: "Plantillas", icon: FileText },
   {
     href: "/personas",

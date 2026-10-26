@@ -1103,3 +1103,57 @@ test("Flujo E2E 20: Simplificación del Módulo de Ventas (Título en Header, Ba
     "SalesManager debe unificar la barra de filtros con el botón de acción, sin tarjetas KPI ni redundancias"
   );
 });
+
+test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de Credenciales en Barra Lateral", () => {
+  const rootDir = process.cwd();
+
+  const clientContractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const tabContent = fs.readFileSync(clientContractTabPath, "utf8");
+
+  // 1. Título de Servicios limpio sin contadores
+  assert.ok(
+    !tabContent.includes('badge=') &&
+      tabContent.includes('title="Servicios"'),
+    "ClientContractTab no debe incluir badges con contadores en el encabezado de Servicios"
+  );
+
+  // 2. Barra de monto mensual y alertas de origen removidas
+  assert.ok(
+    !tabContent.includes("Monto Mensual (IVA incl.)") &&
+      !tabContent.includes("servicio(s) asignado(s) manualmente sin Nota de Venta"),
+    "ClientContractTab no debe mostrar la barra de Monto Mensual ni avisos de asignación sin nota de venta"
+  );
+
+  // 3. Botones de filtro limpios sin números entre paréntesis
+  assert.ok(
+    tabContent.includes('{ id: "todos", label: "Todos" }') &&
+      tabContent.includes('{ id: "facturables", label: "Activos" }') &&
+      tabContent.includes('{ id: "por_renovar", label: "Por Renovar" }') &&
+      !tabContent.includes('Con Venta (') &&
+      !tabContent.includes('Pendiente Venta ('),
+    "ClientContractTab debe mostrar filtros limpios sin contadores entre paréntesis ni estados de venta confusos"
+  );
+
+  // 4. Columna Origen / Venta y botón Nota Venta eliminados de la tabla técnica
+  assert.ok(
+    !tabContent.includes("ORIGEN / VENTA") &&
+      !tabContent.includes("<span>Nota Venta</span>") &&
+      !tabContent.includes("+ Generar Nota de Venta"),
+    "ClientContractTab debe eliminar la columna Origen / Venta y botones de Nota de Venta de la tabla de servicios"
+  );
+
+  // 5. Encabezado de Documentos limpio sin badge de conteo
+  assert.ok(
+    !tabContent.includes("({docs.length})"),
+    "ClientContractTab debe mostrar el encabezado Documentos limpio sin número entre paréntesis"
+  );
+
+  // 6. Barra lateral (Sidebar) sin el acceso 'Credenciales'
+  const sidebarPath = path.resolve(rootDir, "src/components/layout/Sidebar.tsx");
+  const sidebarContent = fs.readFileSync(sidebarPath, "utf8");
+  assert.ok(
+    !sidebarContent.includes('label: "Credenciales"'),
+    "Sidebar.tsx no debe incluir el ítem Credenciales en el menú lateral principal"
+  );
+});
+
