@@ -1257,3 +1257,39 @@ test("Flujo E2E 22: Módulo de Plantillas Limpio y Directo (Sin Descripciones Re
   );
 });
 
+test("Flujo E2E 23: Soporte Técnico UX/UI — Clean Workspace (Caja al Pie, Panel Unificado y 0 Banners Redundantes)", () => {
+  const rootDir = process.cwd();
+  const ticketDetailPath = path.resolve(rootDir, "src/components/modules/tickets/TicketDetail.tsx");
+  const ticketDetailContent = fs.readFileSync(ticketDetailPath, "utf8");
+
+  // 1. Verificación de flujo natural: El historial de asistencia debe aparecer ANTES del formulario de respuesta
+  const historyIndex = ticketDetailContent.indexOf("Historial de Asistencia");
+  const replyBoxIndex = ticketDetailContent.indexOf("Clean Workspace Foot Reply Box");
+  assert.ok(historyIndex !== -1, "Debe contener la sección Historial de Asistencia");
+  assert.ok(replyBoxIndex !== -1, "Debe contener el cuadro de respuesta al pie");
+  assert.ok(
+    historyIndex < replyBoxIndex,
+    "El Historial de Asistencia debe preceder a la Caja de Respuesta para lectura natural cronológica"
+  );
+
+  // 2. Sin banners de advertencia redundantes de nota privada
+  assert.ok(
+    !ticketDetailContent.includes("Esta nota técnica es <strong>PRIVADA</strong>: visible únicamente para administradores"),
+    "No debe existir el banner redundante de advertencia de nota privada"
+  );
+
+  // 3. Panel de contexto derecho unificado en un solo contenedor con divisiones suaves
+  assert.ok(
+    ticketDetailContent.includes("Información del Caso") &&
+      ticketDetailContent.includes("divide-y divide-[#f1f5f9]"),
+    "El panel derecho debe estar unificado bajo 'Información del Caso' con divisiones suaves"
+  );
+
+  // 4. Soporte para atajo de teclado Ctrl+Enter / Cmd+Enter
+  assert.ok(
+    ticketDetailContent.includes("Ctrl + Enter") &&
+      ticketDetailContent.includes("e.ctrlKey || e.metaKey"),
+    "La caja de respuesta debe soportar el atajo Ctrl+Enter para agilizar el envío"
+  );
+});
+
