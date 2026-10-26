@@ -796,6 +796,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                             className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 cursor-pointer"
                           >
                             <option value="mensual">Mensual</option>
+                            <option value="trimestral">Trimestral</option>
+                            <option value="semestral">Semestral</option>
                             <option value="anual">Anual</option>
                           </select>
                         </td>

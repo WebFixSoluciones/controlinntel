@@ -5,6 +5,8 @@ import {
   addMonthsSafely,
   diffInCalendarDays,
   formatDateEC,
+  calculateContractEndDate,
+  calculateNextRenewalDate,
 } from "./date-utils.ts";
 
 test("Date Utils - getEcuadorDate avoids UTC tomorrow shift", () => {
@@ -39,3 +41,20 @@ test("Date Utils - formatDateEC", () => {
   assert.equal(formatDateEC("2026-10-23", "short"), "23/10/2026");
   assert.equal(formatDateEC("2026-10-23", "human"), "23 oct 2026");
 });
+
+test("Date Utils - calculateContractEndDate & calculateNextRenewalDate", () => {
+  // Contratos
+  assert.equal(calculateContractEndDate("2026-10-26", "mensual"), "2026-11-26");
+  assert.equal(calculateContractEndDate("2026-10-26", "trimestral"), "2027-01-26");
+  assert.equal(calculateContractEndDate("2026-10-26", "semestral"), "2027-04-26");
+  assert.equal(calculateContractEndDate("2026-10-26", "anual"), "2027-10-26");
+  assert.equal(calculateContractEndDate("2026-10-26", "bianual"), "2028-10-26");
+  assert.equal(calculateContractEndDate("2026-10-26", "indefinido"), "");
+
+  // Frecuencias de cobro
+  assert.equal(calculateNextRenewalDate("2026-10-26", "mensual"), "2026-11-26");
+  assert.equal(calculateNextRenewalDate("2026-10-26", "trimestral"), "2027-01-26");
+  assert.equal(calculateNextRenewalDate("2026-10-26", "semestral"), "2027-04-26");
+  assert.equal(calculateNextRenewalDate("2026-10-26", "anual"), "2027-10-26");
+});
+

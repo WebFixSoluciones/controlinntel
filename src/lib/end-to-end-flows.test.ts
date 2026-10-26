@@ -2150,6 +2150,112 @@ test("Flujo E2E 35: Permanencia en la Ficha de Cliente y Pestaña de Servicios a
   );
 });
 
+test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anuales (Hosting/Dominios) y Detección de Caducidad", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificación de Tipos en src/types/index.ts
+  const typesPath = path.resolve(rootDir, "src/types/index.ts");
+  const typesContent = fs.readFileSync(typesPath, "utf8");
+
+  assert.ok(
+    typesContent.includes('export type ServiceBillingFrequency = "mensual" | "trimestral" | "semestral" | "anual";'),
+    "Debe definir ServiceBillingFrequency con mensual, trimestral, semestral y anual"
+  );
+  assert.ok(
+    typesContent.includes('export type ServiceContractDuration =') &&
+      typesContent.includes('"mensual"') &&
+      typesContent.includes('"trimestral"') &&
+      typesContent.includes('"semestral"') &&
+      typesContent.includes('"anual"') &&
+      typesContent.includes('"bianual"') &&
+      typesContent.includes('"indefinido"'),
+    "Debe definir ServiceContractDuration con todas las opciones solicitadas"
+  );
+  assert.ok(
+    typesContent.includes('export type ServiceCategory =') &&
+      typesContent.includes('"hosting"') &&
+      typesContent.includes('"dominio"'),
+    "Debe definir ServiceCategory incluyendo hosting y dominio"
+  );
+  assert.ok(
+    typesContent.includes("contractDuration?: ServiceContractDuration;") &&
+      typesContent.includes("contractStartDate?: string;") &&
+      typesContent.includes("contractEndDate?: string;") &&
+      typesContent.includes("autoRenew?: boolean;") &&
+      typesContent.includes("serviceCategory?: ServiceCategory;"),
+    "ClientService debe incluir propiedades de contrato y ciclo recurrente"
+  );
+
+  // 2. Verificación de Lógica de Estado en src/lib/state.tsx
+  const statePath = path.resolve(rootDir, "src/lib/state.tsx");
+  const stateContent = fs.readFileSync(statePath, "utf8");
+
+  assert.ok(
+    stateContent.includes("calculateContractEndDate") &&
+      stateContent.includes("calculateNextRenewalDate"),
+    "state.tsx debe incluir funciones auxiliares para calcular fechas de contrato y próximo cobro"
+  );
+  assert.ok(
+    stateContent.includes("renewClientService") &&
+      stateContent.includes('billingFrequency === "anual"') &&
+      stateContent.includes("monthsToAdd = 12") &&
+      stateContent.includes("monthsToAdd = 6") &&
+      stateContent.includes("monthsToAdd = 3"),
+    "renewClientService debe avanzar la fecha según la frecuencia elegida (+1, +3, +6 o +12 meses)"
+  );
+  assert.ok(
+    stateContent.includes("emitRecurringInvoiceForClient") &&
+      stateContent.includes("addMonthsSafely(baseDate, monthsToAdd)") &&
+      stateContent.includes("contractExpired"),
+    "emitRecurringInvoiceForClient debe avanzar automáticamente la fecha de próximo cobro para servicios recurrentes"
+  );
+
+  // 3. Verificación de UI y Alertas en ClientContractTab.tsx
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractTabContent = fs.readFileSync(contractTabPath, "utf8");
+
+  assert.ok(
+    contractTabContent.includes("Alerta de Caducidad:") &&
+      contractTabContent.includes("serviceMetrics.expiringCount") &&
+      contractTabContent.includes('setServiceFilter("por_renovar")'),
+    "ClientContractTab debe mostrar banner superior de alerta cuando existan servicios por caducar o vencidos"
+  );
+  assert.ok(
+    contractTabContent.includes("Frecuencia de Facturación *") &&
+      contractTabContent.includes("Período de Contrato *") &&
+      contractTabContent.includes("Auto-Facturación Recurrente"),
+    "ClientContractTab debe permitir configurar frecuencia, período de contrato y auto-facturación recurrente"
+  );
+  assert.ok(
+    contractTabContent.includes("Auto-recurrente") &&
+      contractTabContent.includes("getRenewalStatus"),
+    "ClientContractTab debe indicar el estado de auto-recurrencia y el semáforo dinámico de caducidad"
+  );
+
+  // 4. Verificación de Integración Global en ExpirationsTimeline.tsx
+  const expirationsPath = path.resolve(rootDir, "src/components/modules/dashboard/ExpirationsTimeline.tsx");
+  const expirationsContent = fs.readFileSync(expirationsPath, "utf8");
+
+  assert.ok(
+    expirationsContent.includes("clientServiceExpirations") &&
+      expirationsContent.includes("combinedHostingList") &&
+      expirationsContent.includes("urgentHostingCount"),
+    "ExpirationsTimeline debe unificar servicios anuales, hosting y dominios de la ficha de clientes"
+  );
+
+  // 5. Verificación de Filtros en RecurringBillingView.tsx
+  const recurringViewPath = path.resolve(rootDir, "src/components/modules/billing/RecurringBillingView.tsx");
+  const recurringViewContent = fs.readFileSync(recurringViewPath, "utf8");
+
+  assert.ok(
+    recurringViewContent.includes('value="trimestral"') &&
+      recurringViewContent.includes('value="semestral"') &&
+      recurringViewContent.includes('value="anual"'),
+    "RecurringBillingView debe soportar frecuencias mensual, trimestral, semestral y anual"
+  );
+});
+
+
 
 
 

@@ -8,12 +8,22 @@ import {
   ClientService,
   ServiceStatus,
   ServiceBillingFrequency,
+  ServiceContractDuration,
+  ServiceCategory,
   InvoiceItem,
 } from "@/types";
 import { InventoryProduct } from "@/types/inventory";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
+import {
+  getEcuadorDate,
+  addMonthsSafely,
+  diffInCalendarDays,
+  formatDateEC,
+  calculateContractEndDate,
+  calculateNextRenewalDate,
+} from "@/lib/date-utils";
 import { NewSaleView } from "../billing/NewSaleView";
 import { ProductModal } from "../inventory/ProductModal";
 import { RidePreviewModal } from "../billing/RidePreviewModal";
@@ -40,6 +50,10 @@ import {
   Wrench,
   ExternalLink,
   Pencil,
+  Clock,
+  Globe,
+  Server,
+  Sparkles,
 } from "lucide-react";
 
 export function ClientContractTab({ client }: { client: Client }) {
@@ -75,11 +89,12 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcPriceConIva, setNewSvcPriceConIva] = useState("");
   const [newSvcIvaRate, setNewSvcIvaRate] = useState(15);
   const [newSvcFreq, setNewSvcFreq] = useState<ServiceBillingFrequency>("mensual");
-  const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    return d.toISOString().split("T")[0];
-  });
+  const [newSvcDuration, setNewSvcDuration] = useState<ServiceContractDuration>("anual");
+  const [newSvcCategory, setNewSvcCategory] = useState<ServiceCategory>("internet");
+  const [newSvcStartDate, setNewSvcStartDate] = useState(() => getEcuadorDate());
+  const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => addMonthsSafely(getEcuadorDate(), 1));
+  const [newSvcEndDate, setNewSvcEndDate] = useState(() => addMonthsSafely(getEcuadorDate(), 12));
+  const [newSvcAutoRenew, setNewSvcAutoRenew] = useState(true);
   const [savingService, setSavingService] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
@@ -91,7 +106,12 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [editPriceConIva, setEditPriceConIva] = useState("");
   const [editIvaRate, setEditIvaRate] = useState(15);
   const [editFreq, setEditFreq] = useState<ServiceBillingFrequency>("mensual");
+  const [editDuration, setEditDuration] = useState<ServiceContractDuration>("anual");
+  const [editCategory, setEditCategory] = useState<ServiceCategory>("internet");
+  const [editStartDate, setEditStartDate] = useState("");
   const [editRenewalDate, setEditRenewalDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
+  const [editAutoRenew, setEditAutoRenew] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
 
   const searchDropdownRef = useRef<HTMLDivElement>(null);
@@ -157,23 +177,103 @@ export function ClientContractTab({ client }: { client: Client }) {
     return clientServices.filter((s) => s.clientId === client.id && s.status !== "retirado");
   }, [clientServices, client.id]);
 
-  // Helper: calculate days until renewal
-  const getRenewalStatus = (nextDate?: string) => {
-    if (!nextDate) {
-      return { label: "Sin fecha", tone: "slate", daysLeft: 999 };
+  const getDurationLabel = (duration?: ServiceContractDuration): string => {
+    switch (duration) {
+      case "mensual":
+        return "1 Mes";
+      case "trimestral":
+        return "3 Meses (Trimestral)";
+      case "semestral":
+        return "6 Meses (Semestral)";
+      case "anual":
+        return "1 Año (Anual)";
+      case "bianual":
+        return "2 Años (Bianual)";
+      case "indefinido":
+        return "Indefinido";
+      default:
+        return "1 Año";
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(`${nextDate}T00:00:00`);
-    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const getFreqLabel = (freq?: ServiceBillingFrequency): string => {
+    switch (freq) {
+      case "mensual":
+        return "Mensual";
+      case "trimestral":
+        return "Trimestral";
+      case "semestral":
+        return "Semestral";
+      case "anual":
+        return "Anual";
+      default:
+        return "Mensual";
+    }
+  };
+
+  // Helper: cálculo preciso de días hasta renovación o caducidad del contrato
+  const getRenewalStatus = (nextDate?: string, contractEndDate?: string) => {
+    const today = getEcuadorDate();
+
+    // 1. Verificar si el contrato completo ya expiró o está a punto de caducar
+    if (contractEndDate) {
+      const contractDiff = diffInCalendarDays(today, contractEndDate);
+      if (contractDiff < 0) {
+        return {
+          label: `Contrato Caducado (${Math.abs(contractDiff)}d)`,
+          tone: "rose" as const,
+          daysLeft: contractDiff,
+          isContractExpired: true,
+          isExpiringSoon: true,
+        };
+      }
+      if (contractDiff <= 15) {
+        return {
+          label: `Contrato por caducar (${contractDiff}d)`,
+          tone: "amber" as const,
+          daysLeft: contractDiff,
+          isContractExpiringSoon: true,
+          isExpiringSoon: true,
+        };
+      }
+    }
+
+    // 2. Verificar fecha de próximo cobro / ciclo
+    if (!nextDate) {
+      return { label: "Sin fecha", tone: "slate" as const, daysLeft: 999, isExpiringSoon: false };
+    }
+    const diffDays = diffInCalendarDays(today, nextDate);
 
     if (diffDays < 0) {
-      return { label: `Vencido (${Math.abs(diffDays)}d)`, tone: "rose", daysLeft: diffDays };
+      return {
+        label: `Vencido (${Math.abs(diffDays)}d)`,
+        tone: "rose" as const,
+        daysLeft: diffDays,
+        isExpiringSoon: true,
+      };
     }
     if (diffDays <= 15) {
-      return { label: `Por renovar (${diffDays}d)`, tone: "amber", daysLeft: diffDays };
+      return {
+        label: `A punto de caducar (${diffDays}d)`,
+        tone: "amber" as const,
+        daysLeft: diffDays,
+        isExpiringSoon: true,
+      };
     }
-    return { label: `Al día (${diffDays}d)`, tone: "emerald", daysLeft: diffDays };
+    if (diffDays <= 30) {
+      return {
+        label: `Por renovar (${diffDays}d)`,
+        tone: "amber" as const,
+        daysLeft: diffDays,
+        isExpiringSoon: false,
+      };
+    }
+    return {
+      label: `Al día (${diffDays}d)`,
+      tone: "emerald" as const,
+      daysLeft: diffDays,
+      isExpiringSoon: false,
+    };
   };
 
   // Filtered recurring services
@@ -190,8 +290,8 @@ export function ClientContractTab({ client }: { client: Client }) {
       const hasSale = s.saleStatus === "emitida" || !!s.saleDocNumber;
       const isPendingSale = s.saleStatus === "pendiente_venta" || (!s.saleDocNumber && s.origin === "manual");
       const isBillable = s.status === "activo" && s.isBillableInCurrentCycle !== false;
-      const renewal = getRenewalStatus(s.nextRenewalDate);
-      const isDueSoon = renewal.daysLeft <= 15 || s.status === "por_renovar";
+      const renewal = getRenewalStatus(s.nextRenewalDate, s.contractEndDate);
+      const isDueSoon = renewal.isExpiringSoon || renewal.daysLeft <= 15 || s.status === "por_renovar";
 
       const matchesFilter =
         serviceFilter === "todos" ||
@@ -221,6 +321,11 @@ export function ClientContractTab({ client }: { client: Client }) {
       (sum, s) => sum + (s.customPrice ?? s.basePrice ?? 0),
       0
     );
+    const expiringList = servicesForClient.filter((s) => {
+      const renewal = getRenewalStatus(s.nextRenewalDate, s.contractEndDate);
+      return renewal.isExpiringSoon || s.status === "por_renovar";
+    });
+
     return {
       total,
       conVentaCount,
@@ -229,6 +334,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       nonBillableCount,
       subtotalBillable,
       totalWithTax: Math.round(subtotalBillable * 1.15 * 100) / 100,
+      expiringCount: expiringList.length,
     };
   }, [servicesForClient]);
 
@@ -263,6 +369,30 @@ export function ClientContractTab({ client }: { client: Client }) {
       setNewSvcPriceSinIva("");
       setNewSvcPriceConIva("");
     }
+
+    // 4. Autodetección de Hosting, Dominio o Servicios Anuales
+    const lower = (prod.name + " " + (prod.categoryName || "") + " " + prod.sku).toLowerCase();
+    const isHostingOrDom =
+      lower.includes("hosting") ||
+      lower.includes("dominio") ||
+      lower.includes("anual") ||
+      lower.includes("ssl") ||
+      lower.includes("web");
+
+    if (isHostingOrDom) {
+      const cat: ServiceCategory = lower.includes("dominio") ? "dominio" : "hosting";
+      setNewSvcCategory(cat);
+      setNewSvcFreq("anual");
+      setNewSvcDuration("anual");
+      setNewSvcRenewalDate(calculateNextRenewalDate(newSvcStartDate, "anual"));
+      setNewSvcEndDate(calculateContractEndDate(newSvcStartDate, "anual"));
+    } else {
+      setNewSvcCategory("internet");
+      setNewSvcFreq("mensual");
+      setNewSvcDuration("anual");
+      setNewSvcRenewalDate(calculateNextRenewalDate(newSvcStartDate, "mensual"));
+      setNewSvcEndDate(calculateContractEndDate(newSvcStartDate, "anual"));
+    }
   };
 
   const handleClearSelectedProduct = () => {
@@ -272,7 +402,30 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcDescription("");
     setNewSvcPriceSinIva("");
     setNewSvcPriceConIva("");
+    setNewSvcCategory("internet");
+    setNewSvcFreq("mensual");
+    setNewSvcDuration("anual");
+    setNewSvcStartDate(getEcuadorDate());
+    setNewSvcRenewalDate(addMonthsSafely(getEcuadorDate(), 1));
+    setNewSvcEndDate(addMonthsSafely(getEcuadorDate(), 12));
+    setNewSvcAutoRenew(true);
     setShowServiceDropdown(true);
+  };
+
+  const handleFreqChange = (freq: ServiceBillingFrequency) => {
+    setNewSvcFreq(freq);
+    setNewSvcRenewalDate(calculateNextRenewalDate(newSvcStartDate, freq));
+  };
+
+  const handleDurationChange = (dur: ServiceContractDuration) => {
+    setNewSvcDuration(dur);
+    setNewSvcEndDate(calculateContractEndDate(newSvcStartDate, dur));
+  };
+
+  const handleStartDateChange = (startDate: string) => {
+    setNewSvcStartDate(startDate);
+    setNewSvcRenewalDate(calculateNextRenewalDate(startDate, newSvcFreq));
+    setNewSvcEndDate(calculateContractEndDate(startDate, newSvcDuration));
   };
 
   const handlePriceSinIvaChange = (val: string) => {
@@ -336,6 +489,11 @@ export function ClientContractTab({ client }: { client: Client }) {
         status: "activo",
         billingType: "pospago",
         billingFrequency: newSvcFreq,
+        contractDuration: newSvcDuration,
+        contractStartDate: newSvcStartDate,
+        contractEndDate: newSvcEndDate || undefined,
+        autoRenew: newSvcAutoRenew,
+        serviceCategory: newSvcCategory,
         isBillableInCurrentCycle: true,
         nextRenewalDate: newSvcRenewalDate,
         basePrice: selectedService.salePrice,
@@ -352,11 +510,11 @@ export function ClientContractTab({ client }: { client: Client }) {
         ipv4Address: "DHCP",
         pppoeUser: `svc-${Date.now()}`,
         installationAddress: client.address || "Dirección Principal",
-        installationDate: new Date().toISOString().split("T")[0],
+        installationDate: newSvcStartDate || getEcuadorDate(),
       });
       showSuccess(
         "Servicio Asignado",
-        `Se vinculó "${finalName}" a la ficha del cliente.`
+        `Se vinculó "${finalName}" (${getFreqLabel(newSvcFreq)} / Contrato: ${getDurationLabel(newSvcDuration)}) a la ficha del cliente.`
       );
       setSelectedService(null);
       setServiceSearchQuery("");
@@ -384,7 +542,29 @@ export function ClientContractTab({ client }: { client: Client }) {
     const conIva = svc.priceConIva ?? Math.round(sinIva * (1 + rate / 100) * 100) / 100;
     setEditPriceConIva(conIva.toFixed(2));
     setEditFreq(svc.billingFrequency || "mensual");
+    setEditDuration(svc.contractDuration || "anual");
+    const lower = (svc.planName + " " + (svc.notes || "")).toLowerCase();
+    const defaultCat: ServiceCategory =
+      svc.serviceCategory || (lower.includes("hosting") ? "hosting" : lower.includes("dominio") ? "dominio" : "internet");
+    setEditCategory(defaultCat);
+    setEditStartDate(svc.contractStartDate || svc.installationDate || getEcuadorDate());
     setEditRenewalDate(svc.nextRenewalDate || "");
+    setEditEndDate(svc.contractEndDate || "");
+    setEditAutoRenew(svc.autoRenew ?? true);
+  };
+
+  const handleEditFreqChange = (freq: ServiceBillingFrequency) => {
+    setEditFreq(freq);
+    if (editStartDate) {
+      setEditRenewalDate(calculateNextRenewalDate(editStartDate, freq));
+    }
+  };
+
+  const handleEditDurationChange = (dur: ServiceContractDuration) => {
+    setEditDuration(dur);
+    if (editStartDate) {
+      setEditEndDate(calculateContractEndDate(editStartDate, dur));
+    }
   };
 
   const handleEditPriceSinIvaChange = (val: string) => {
@@ -440,9 +620,14 @@ export function ClientContractTab({ client }: { client: Client }) {
         priceConIva: priceConIvaNum,
         ivaRate: editIvaRate,
         billingFrequency: editFreq,
+        contractDuration: editDuration,
+        contractStartDate: editStartDate,
+        contractEndDate: editEndDate || undefined,
+        autoRenew: editAutoRenew,
+        serviceCategory: editCategory,
         nextRenewalDate: editRenewalDate,
       });
-      showSuccess("Servicio Actualizado", "Los cambios se guardaron correctamente.");
+      showSuccess("Servicio Actualizado", "Los cambios y el ciclo de renovación se guardaron correctamente.");
       setEditingService(null);
     } catch (err: any) {
       showError("Error", err?.message || "No se pudo actualizar el servicio.");
@@ -534,7 +719,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
-  // Notify via WhatsApp (1 click)
+  // Notify via WhatsApp (1 click) con soporte para hosting/dominios anuales y contratos
   const handleNotifyWhatsApp = async (svc: ClientService) => {
     const rawPhone = (client.phone || "").replace(/\D/g, "");
     const cleanPhone = rawPhone.startsWith("0")
@@ -544,41 +729,69 @@ export function ClientContractTab({ client }: { client: Client }) {
       : `593${rawPhone}`;
 
     const price = (svc.customPrice ?? svc.basePrice ?? 0).toFixed(2);
-    const freqLabel = svc.billingFrequency === "anual" ? "anual" : "mensual";
+    const freqLabel = getFreqLabel(svc.billingFrequency);
     const renewalDate = svc.nextRenewalDate || "próximo vencimiento";
+    const isHostingOrDom =
+      svc.serviceCategory === "hosting" ||
+      svc.serviceCategory === "dominio" ||
+      svc.planName.toLowerCase().includes("hosting") ||
+      svc.planName.toLowerCase().includes("dominio") ||
+      svc.billingFrequency === "anual";
 
-    const message = `Hola *${client.businessName}*, le saludamos de *Control Inntel*. Le informamos que su servicio *${svc.planName}* (ciclo ${freqLabel} - $${price} + IVA) tiene fecha de renovación para el *${renewalDate}*. Por favor confírmenos su renovación para mantener el servicio activo en el presente periodo.`;
+    const contractInfo = svc.contractEndDate ? ` (Vigencia de contrato hasta: ${svc.contractEndDate})` : "";
+
+    const message = isHostingOrDom
+      ? `Hola *${client.businessName}*, le saludamos de *Control Inntel*. Le recordamos que su servicio de Hosting/Dominio *${svc.planName}* ($${price} + IVA) tiene fecha de renovación/caducidad el *${renewalDate}*${contractInfo}. Por favor confírmenos su renovación para mantener el servicio y la continuidad de sus plataformas.`
+      : `Hola *${client.businessName}*, le saludamos de *Control Inntel*. Le informamos que su servicio *${svc.planName}* (modalidad ${freqLabel} - $${price} + IVA) registra fecha de renovación para el *${renewalDate}*${contractInfo}. Le recordamos su renovación para mantener el servicio activo en el presente ciclo.`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, "_blank");
     await updateClientService(svc.id, {
-      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+      lastNotificationSentAt: getEcuadorDate(),
     });
   };
 
-  // Notify via Email (1 click)
+  // Notify via Email (1 click) con soporte para hosting/dominios anuales y contratos
   const handleNotifyEmail = async (svc: ClientService) => {
     const price = (svc.customPrice ?? svc.basePrice ?? 0).toFixed(2);
-    const freqLabel = svc.billingFrequency === "anual" ? "Anual" : "Mensual";
+    const freqLabel = getFreqLabel(svc.billingFrequency);
     const renewalDate = svc.nextRenewalDate || "próximo periodo";
+    const isHostingOrDom =
+      svc.serviceCategory === "hosting" ||
+      svc.serviceCategory === "dominio" ||
+      svc.planName.toLowerCase().includes("hosting") ||
+      svc.planName.toLowerCase().includes("dominio") ||
+      svc.billingFrequency === "anual";
 
-    const subject = `Aviso de Renovación de Servicio (${freqLabel}): ${svc.planName}`;
-    const body = `Estimado(a) ${client.businessName},\n\nLe saludamos cordialmente. Le informamos que su servicio contratado "${svc.planName}" con tarifa ${freqLabel.toLowerCase()} de $${price} USD (+ IVA) registra fecha de renovación el ${renewalDate}.\n\nPor favor confírmenos la continuidad del servicio para proceder con la facturación correspondiente del periodo.\n\nAtentamente,\nDepartamento de Facturación y Cartera`;
+    const contractInfo = svc.contractEndDate ? `\nVigencia del contrato hasta: ${svc.contractEndDate}` : "";
+
+    const subject = isHostingOrDom
+      ? `Aviso de Caducidad / Renovación Anual: ${svc.planName} - ${client.businessName}`
+      : `Aviso de Renovación de Servicio (${freqLabel}): ${svc.planName}`;
+
+    const body = `Estimado(a) ${client.businessName},\n\nLe saludamos cordialmente de Control Inntel.\n\nLe notificamos que su servicio "${svc.planName}" con tarifa ${freqLabel.toLowerCase()} de $${price} USD (+ IVA) registra fecha de vencimiento/renovación el ${renewalDate}.${contractInfo}\n\nPor favor confírmenos la renovación o continuidad de su servicio para proceder con la emisión del comprobante y garantizar la disponibilidad continua.\n\nAtentamente,\nDepartamento de Facturación y Operaciones\nINNTEL CORP S.A.`;
 
     window.open(
       `mailto:${client.email || ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
       "_self"
     );
     await updateClientService(svc.id, {
-      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+      lastNotificationSentAt: getEcuadorDate(),
     });
   };
 
-  // Renew service (+1 month or +1 year)
+  // Renew service (+1 month, +3 months, +6 months, or +1 year)
   const handleRenewService = async (svc: ClientService) => {
     try {
       await renewClientService(svc.id);
-      const periodName = svc.billingFrequency === "anual" ? "1 año" : "1 mes";
-      showSuccess("Servicio Renovado", `Se extendió la vigencia de "${svc.planName}" por +${periodName} y quedó Activo/Facturable.`);
+      let periodName = "1 mes";
+      if (svc.billingFrequency === "anual") periodName = "1 año";
+      else if (svc.billingFrequency === "semestral") periodName = "6 meses";
+      else if (svc.billingFrequency === "trimestral") periodName = "3 meses";
+
+      showSuccess(
+        "Servicio Renovado",
+        `Se extendió la vigencia de "${svc.planName}" por +${periodName} y quedó Activo/Facturable.`
+      );
     } catch {
       showError("Error", "No se pudo renovar el servicio.");
     }
@@ -811,6 +1024,35 @@ export function ClientContractTab({ client }: { client: Client }) {
         }
       />
 
+      {/* Banner de alerta cuando existen servicios a punto de caducar o vencidos */}
+      {serviceMetrics.expiringCount > 0 && (
+        <div className="p-3.5 px-4 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950 shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 text-amber-700">
+              <AlertTriangle className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <p className="font-bold text-amber-950 text-xs">
+                Alerta de Caducidad: {serviceMetrics.expiringCount} servicio(s) están a punto de caducar o vencidos
+              </p>
+              <p className="text-[11px] text-amber-800">
+                Servicios de hosting, dominios o ciclos con vencimiento próximo (≤ 15 días) requieren confirmación o cobro para garantizar su continuidad.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setServiceFilter("por_renovar")}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shrink-0 cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Ver a punto de caducar ({serviceMetrics.expiringCount})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* 1.1 Si no hay servicios creados en inventario: Aviso guiado con acceso directo */}
         {isAddingService && availableServices.length === 0 && (
@@ -1019,8 +1261,8 @@ export function ClientContractTab({ client }: { client: Client }) {
               </div>
             </div>
 
-            {/* Tarifas Sincronizadas (Sin IVA / Con IVA), IVA Rate, Frecuencia y Renovación */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            {/* Tarifas Sincronizadas (Sin IVA / Con IVA) y Tasa SRI */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               {/* Tarifa sin IVA */}
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
@@ -1082,29 +1324,143 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </select>
                 <span className="text-[10px] text-slate-400 mt-0.5 block">Tasa impositiva</span>
               </div>
+            </div>
 
-              {/* Periodicidad y Próxima Renovación */}
-              <div>
-                <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Ciclo y Renovación
-                </label>
-                <div className="flex items-center gap-1.5">
+            {/* Configuración de Ciclo, Contrato y Facturación Recurrente */}
+            <div className="p-4 bg-white rounded-xl border border-[#cbd5e1] space-y-3 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-[#f1f5f9]">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#004ac6]" />
+                  <span className="font-bold text-[#0b1c30] uppercase tracking-wide text-xs">
+                    Ciclo de Facturación y Vigencia de Contrato
+                  </span>
+                </div>
+                <span className="text-[11px] text-[#64748b]">
+                  Facturación automática durante el período contratado sin requerir renovación manual
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Categoría de Servicio */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Tipo / Categoría
+                  </label>
+                  <select
+                    value={newSvcCategory}
+                    onChange={(e) => setNewSvcCategory(e.target.value as ServiceCategory)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-semibold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value="internet">Internet & Conectividad</option>
+                    <option value="hosting">Hosting Web (Anual)</option>
+                    <option value="dominio">Dominio Web (Anual)</option>
+                    <option value="telefonia">Telefonía IP / PBX</option>
+                    <option value="mantenimiento">Soporte Técnico</option>
+                    <option value="licencia">Licencia Software</option>
+                    <option value="otro">Otro Servicio</option>
+                  </select>
+                </div>
+
+                {/* Frecuencia de Cobro */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Frecuencia de Facturación *
+                  </label>
                   <select
                     value={newSvcFreq}
-                    onChange={(e) => setNewSvcFreq(e.target.value as ServiceBillingFrequency)}
-                    className="bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-semibold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    onChange={(e) => handleFreqChange(e.target.value as ServiceBillingFrequency)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                   >
-                    <option value="mensual">Mensual</option>
-                    <option value="anual">Anual</option>
+                    <option value="mensual">Mensual (Factura mes a mes)</option>
+                    <option value="trimestral">Trimestral (Cada 3 meses)</option>
+                    <option value="semestral">Semestral (Cada 6 meses)</option>
+                    <option value="anual">Anual (Hosting / Dominios)</option>
                   </select>
+                </div>
+
+                {/* Duración del Contrato */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Período de Contrato *
+                  </label>
+                  <select
+                    value={newSvcDuration}
+                    onChange={(e) => handleDurationChange(e.target.value as ServiceContractDuration)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value="mensual">1 Mes</option>
+                    <option value="trimestral">3 Meses (Trimestral)</option>
+                    <option value="semestral">6 Meses (Semestral)</option>
+                    <option value="anual">1 Año (Anual - 12 meses)</option>
+                    <option value="bianual">2 Años (Bianual - 24 meses)</option>
+                    <option value="indefinido">Indefinido / Permanente</option>
+                  </select>
+                </div>
+
+                {/* Fecha Inicio Contrato */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Fecha Inicio de Contrato
+                  </label>
                   <input
                     type="date"
-                    value={newSvcRenewalDate}
-                    onChange={(e) => setNewSvcRenewalDate(e.target.value)}
-                    className="bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] w-full focus:border-[#004ac6] focus:outline-hidden"
+                    value={newSvcStartDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                   />
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5 block">Frecuencia de cobro</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {/* Próximo Cobro */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Próximo Cobro / Facturación *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newSvcRenewalDate}
+                    onChange={(e) => setNewSvcRenewalDate(e.target.value)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Fecha de la siguiente emisión</span>
+                </div>
+
+                {/* Fecha Fin Contrato */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Vigencia de Contrato Hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={newSvcEndDate}
+                    onChange={(e) => setNewSvcEndDate(e.target.value)}
+                    disabled={newSvcDuration === "indefinido"}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] disabled:bg-slate-100 disabled:text-slate-400 focus:border-[#004ac6] focus:outline-hidden"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {newSvcDuration === "indefinido" ? "Sin fecha límite de vigencia" : "Fecha límite del compromiso contratado"}
+                  </span>
+                </div>
+
+                {/* Switch Auto-Renovación */}
+                <div className="flex items-center gap-2 pt-4">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newSvcAutoRenew}
+                      onChange={(e) => setNewSvcAutoRenew(e.target.checked)}
+                      className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6] w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-[#0b1c30] block">Auto-Facturación Recurrente</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        Factura mes a mes automáticamente durante el contrato
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -1200,20 +1556,34 @@ export function ClientContractTab({ client }: { client: Client }) {
               { id: "todos", label: "Todos" },
               { id: "facturables", label: "Activos" },
               { id: "por_renovar", label: "Por Renovar" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setServiceFilter(tab.id as any)}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
-                  serviceFilter === tab.id
-                    ? "bg-[#004ac6] text-white shadow-2xs"
-                    : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            ].map((tab) => {
+              const isActive = serviceFilter === tab.id;
+              const isWarningTab = tab.id === "por_renovar" && serviceMetrics.expiringCount > 0;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setServiceFilter(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? isWarningTab
+                        ? "bg-amber-600 text-white shadow-xs"
+                        : "bg-[#004ac6] text-white shadow-2xs"
+                      : isWarningTab
+                      ? "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
+                      : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                  }`}
+                >
+                  {isWarningTab && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+                  <span>{tab.label}</span>
+                  {tab.id === "por_renovar" && serviceMetrics.expiringCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                      {serviceMetrics.expiringCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1246,7 +1616,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               ) : (
                 filteredServices.map((svc) => {
                   const isBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
-                  const renewal = getRenewalStatus(svc.nextRenewalDate);
+                  const renewal = getRenewalStatus(svc.nextRenewalDate, svc.contractEndDate);
                   const price = svc.customPrice ?? svc.basePrice ?? 0;
 
                   return (
@@ -1258,42 +1628,69 @@ export function ClientContractTab({ client }: { client: Client }) {
                     >
                       {/* 1. Servicio Contratado */}
                       <td className="py-3.5 px-5">
-                        <span className={`font-bold block text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
-                          {svc.planName}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`font-bold text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
+                            {svc.planName}
+                          </span>
+                          {svc.serviceCategory && (
+                            <span className="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                              {svc.serviceCategory}
+                            </span>
+                          )}
+                          {svc.autoRenew && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>Auto-recurrente</span>
+                            </span>
+                          )}
+                        </div>
                         {(svc.description || svc.notes) && (
                           <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 font-normal">
                             {svc.description || svc.notes}
                           </p>
                         )}
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1 flex-wrap">
                           {svc.inventorySku && (
                             <span className="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-sm text-[9px] font-bold">
                               {svc.inventorySku}
                             </span>
                           )}
+                          <span className="text-slate-600">
+                            Contrato: <strong>{getDurationLabel(svc.contractDuration || "anual")}</strong>
+                          </span>
+                          {svc.contractEndDate && (
+                            <span className="text-slate-500 font-mono">
+                              • Fin: {formatDateEC(svc.contractEndDate)}
+                            </span>
+                          )}
                           <span>
                             {svc.lastBilledPeriod
-                              ? `Últ. facturado: ${svc.lastBilledPeriod}`
-                              : `Alta: ${svc.installationDate || "2026-01-15"}`}
+                              ? `• Últ. facturado: ${svc.lastBilledPeriod}`
+                              : `• Alta: ${svc.installationDate || "2026-01-15"}`}
                           </span>
                           {svc.lastNotificationSentAt && <span>• Avisado: {svc.lastNotificationSentAt}</span>}
                         </div>
                       </td>
 
-                      {/* 2. Frecuencia (Mensual / Anual) */}
+                      {/* 2. Frecuencia (Mensual / Trimestral / Semestral / Anual) */}
                       <td className="py-3.5 px-4">
                         <select
                           value={svc.billingFrequency || "mensual"}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const freq = e.target.value as ServiceBillingFrequency;
+                            const baseDate = svc.contractStartDate || svc.installationDate || getEcuadorDate();
+                            const nextDate = calculateNextRenewalDate(baseDate, freq);
                             updateClientService(svc.id, {
-                              billingFrequency: e.target.value as ServiceBillingFrequency,
-                            })
-                          }
-                          className="bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                              billingFrequency: freq,
+                              nextRenewalDate: nextDate,
+                            });
+                          }}
+                          className="bg-white border border-[#e2e8f0] rounded-lg px-2 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
                         >
-                          <option value="mensual">Mensual</option>
-                          <option value="anual">Anual</option>
+                          <option value="mensual">Mensual (1m)</option>
+                          <option value="trimestral">Trimestral (3m)</option>
+                          <option value="semestral">Semestral (6m)</option>
+                          <option value="anual">Anual (12m)</option>
                         </select>
                       </td>
 
@@ -1313,10 +1710,11 @@ export function ClientContractTab({ client }: { client: Client }) {
                               renewal.tone === "rose"
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : renewal.tone === "amber"
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                ? "bg-amber-50 text-amber-800 border border-amber-300 font-extrabold shadow-2xs animate-pulse"
                                 : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             }`}
                           >
+                            <Clock className="w-2.5 h-2.5" />
                             {renewal.label}
                           </span>
                         </div>
@@ -1745,29 +2143,130 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
-                    Ciclo de Facturación
+                    Tipo / Categoría
                   </label>
                   <select
-                    value={editFreq}
-                    onChange={(e) => setEditFreq(e.target.value as ServiceBillingFrequency)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value as ServiceCategory)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-semibold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                   >
-                    <option value="mensual">Mensual</option>
-                    <option value="anual">Anual</option>
+                    <option value="internet">Internet & Conectividad</option>
+                    <option value="hosting">Hosting Web (Anual)</option>
+                    <option value="dominio">Dominio Web (Anual)</option>
+                    <option value="telefonia">Telefonía IP / PBX</option>
+                    <option value="mantenimiento">Soporte Técnico</option>
+                    <option value="licencia">Licencia Software</option>
+                    <option value="otro">Otro Servicio</option>
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Próxima Fecha de Renovación
-                </label>
-                <input
-                  type="date"
-                  value={editRenewalDate}
-                  onChange={(e) => setEditRenewalDate(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
-                />
+              {/* Ciclo, Período de Contrato y Renovación */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                  <Clock className="w-3.5 h-3.5 text-[#004ac6]" />
+                  <span>Ciclo y Vigencia de Contrato</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Frecuencia de Facturación *
+                    </label>
+                    <select
+                      value={editFreq}
+                      onChange={(e) => handleEditFreqChange(e.target.value as ServiceBillingFrequency)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    >
+                      <option value="mensual">Mensual (Factura mes a mes)</option>
+                      <option value="trimestral">Trimestral (Cada 3 meses)</option>
+                      <option value="semestral">Semestral (Cada 6 meses)</option>
+                      <option value="anual">Anual (Hosting / Dominios)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Período de Contrato *
+                    </label>
+                    <select
+                      value={editDuration}
+                      onChange={(e) => handleEditDurationChange(e.target.value as ServiceContractDuration)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    >
+                      <option value="mensual">1 Mes</option>
+                      <option value="trimestral">3 Meses (Trimestral)</option>
+                      <option value="semestral">6 Meses (Semestral)</option>
+                      <option value="anual">1 Año (Anual - 12 meses)</option>
+                      <option value="bianual">2 Años (Bianual - 24 meses)</option>
+                      <option value="indefinido">Indefinido / Permanente</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Fecha Inicio de Contrato
+                    </label>
+                    <input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => {
+                        setEditStartDate(e.target.value);
+                        setEditRenewalDate(calculateNextRenewalDate(e.target.value, editFreq));
+                        setEditEndDate(calculateContractEndDate(e.target.value, editDuration));
+                      }}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Próximo Cobro / Facturación *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={editRenewalDate}
+                      onChange={(e) => setEditRenewalDate(e.target.value)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Vigencia de Contrato Hasta
+                  </label>
+                  <input
+                    type="date"
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    disabled={editDuration === "indefinido"}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] disabled:bg-slate-100 disabled:text-slate-400 focus:border-[#004ac6] focus:outline-hidden"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {editDuration === "indefinido" ? "Sin fecha límite de vigencia" : "Fecha límite del compromiso contratado"}
+                  </span>
+                </div>
+
+                <div className="pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editAutoRenew}
+                      onChange={(e) => setEditAutoRenew(e.target.checked)}
+                      className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6] w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-[#0b1c30] block">Auto-Facturación Recurrente</span>
+                      <span className="text-[10px] text-slate-500 block">
+                        Factura automáticamente mes a mes durante la vigencia del contrato
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0]">

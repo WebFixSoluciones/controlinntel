@@ -90,3 +90,35 @@ export function formatDateEC(dateStr: string, style: "short" | "human" = "short"
   const mIndex = Number(m) - 1;
   return `${d} ${months[mIndex] || m} ${y}`;
 }
+
+/**
+ * Calcula la fecha de finalización de un contrato a partir de la fecha de inicio y la duración
+ */
+export function calculateContractEndDate(
+  startDate: string,
+  duration: "mensual" | "trimestral" | "semestral" | "anual" | "bianual" | "indefinido"
+): string {
+  if (duration === "indefinido") return "";
+  let months = 12;
+  if (duration === "mensual") months = 1;
+  else if (duration === "trimestral") months = 3;
+  else if (duration === "semestral") months = 6;
+  else if (duration === "anual") months = 12;
+  else if (duration === "bianual") months = 24;
+  return addMonthsSafely(startDate, months);
+}
+
+/**
+ * Calcula la siguiente fecha de cobro recurrente a partir de la fecha base y la frecuencia
+ */
+export function calculateNextRenewalDate(
+  startDate: string,
+  frequency: "mensual" | "trimestral" | "semestral" | "anual"
+): string {
+  let months = 1;
+  if (frequency === "trimestral") months = 3;
+  else if (frequency === "semestral") months = 6;
+  else if (frequency === "anual") months = 12;
+  return addMonthsSafely(startDate, months);
+}
+

@@ -1,16 +1,63 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
-import { ArrowRight, Globe, ShieldCheck, Clock, Server } from "lucide-react";
+import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
+import { ArrowRight, Globe, ShieldCheck, Clock, Server, AlertCircle } from "lucide-react";
 
 export function ExpirationsTimeline() {
-  const { policies, hostingDomains } = useApp();
+  const { policies, hostingDomains, clientServices, clients } = useApp();
   const [activeTab, setActiveTab] = useState<"arcotel" | "hosting">("hosting");
+  const today = getEcuadorDate();
 
-  const urgentHostingCount = hostingDomains.filter(
-    (h) => h.status === "por_vencer" || h.daysUntilExpiration <= 30
+  // Integración de servicios anuales, hosting y dominios desde la ficha del cliente
+  const clientServiceExpirations = useMemo(() => {
+    return clientServices
+      .filter((s) => {
+        const isAnnualOrHosting =
+          s.serviceCategory === "hosting" ||
+          s.serviceCategory === "dominio" ||
+          s.billingFrequency === "anual" ||
+          s.planName.toLowerCase().includes("hosting") ||
+          s.planName.toLowerCase().includes("dominio");
+        return isAnnualOrHosting && (s.nextRenewalDate || s.contractEndDate);
+      })
+      .map((s) => {
+        const targetDate = s.nextRenewalDate || s.contractEndDate || today;
+        const days = diffInCalendarDays(today, targetDate);
+        const client = clients.find((c) => c.id === s.clientId);
+        const serviceType: "hosting" | "dominio" =
+          s.serviceCategory === "dominio" || s.planName.toLowerCase().includes("dominio")
+            ? "dominio"
+            : "hosting";
+
+        return {
+          id: s.id,
+          domainOrService: s.planName,
+          clientName: client?.businessName || client?.tradeName || "Cliente Corporativo",
+          daysUntilExpiration: days,
+          serviceType,
+          clientId: s.clientId,
+          status: (days < 0 ? "vencido" : days <= 15 ? "por_vencer" : "vigente") as "vencido" | "por_vencer" | "vigente",
+        };
+      });
+  }, [clientServices, clients, today]);
+
+  const combinedHostingList = useMemo(() => {
+    const list = [...hostingDomains, ...clientServiceExpirations];
+    const seen = new Set<string>();
+    const unique = list.filter((item) => {
+      const key = `${item.domainOrService}-${item.clientName}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return unique.sort((a, b) => a.daysUntilExpiration - b.daysUntilExpiration);
+  }, [hostingDomains, clientServiceExpirations]);
+
+  const urgentHostingCount = combinedHostingList.filter(
+    (h) => h.status === "por_vencer" || h.status === "vencido" || h.daysUntilExpiration <= 30
   ).length;
 
   return (
@@ -48,14 +95,15 @@ export function ExpirationsTimeline() {
 
         {activeTab === "hosting" ? (
           <div className="mt-3 space-y-2">
-            {hostingDomains.length === 0 ? (
+            {combinedHostingList.length === 0 ? (
               <p className="text-xs text-[#737686] italic py-4 text-center">
                 Sin servicios de hosting o dominios por vencer.
               </p>
             ) : (
-              hostingDomains.slice(0, 3).map((item) => {
-                const isUrgent = item.daysUntilExpiration <= 15;
-                const isWarning = item.daysUntilExpiration <= 30;
+              combinedHostingList.slice(0, 4).map((item) => {
+                const isExpired = item.daysUntilExpiration < 0;
+                const isUrgent = item.daysUntilExpiration >= 0 && item.daysUntilExpiration <= 15;
+                const isWarning = item.daysUntilExpiration > 15 && item.daysUntilExpiration <= 30;
 
                 return (
                   <div
@@ -81,15 +129,27 @@ export function ExpirationsTimeline() {
                     <div className="text-right shrink-0">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isUrgent
-                            ? "bg-rose-50 text-rose-700 border border-rose-200"
+                          isExpired
+                            ? "bg-rose-100 text-rose-800 border border-rose-300 font-extrabold"
+                            : isUrgent
+                            ? "bg-amber-100 text-amber-900 border border-amber-300 font-extrabold animate-pulse"
                             : isWarning
                             ? "bg-amber-50 text-amber-800 border border-amber-200"
                             : "bg-emerald-50 text-emerald-800 border border-emerald-200"
                         }`}
                       >
-                        <Clock className="w-2.5 h-2.5" />
-                        <span>{item.daysUntilExpiration}d</span>
+                        {isExpired ? (
+                          <AlertCircle className="w-2.5 h-2.5" />
+                        ) : (
+                          <Clock className="w-2.5 h-2.5" />
+                        )}
+                        <span>
+                          {isExpired
+                            ? `Vencido (${Math.abs(item.daysUntilExpiration)}d)`
+                            : item.daysUntilExpiration === 0
+                            ? "Vence Hoy"
+                            : `${item.daysUntilExpiration}d`}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -135,10 +195,10 @@ export function ExpirationsTimeline() {
 
       <div className="pt-2.5 border-t border-[#f1f5f9] text-center mt-2.5">
         <Link
-          href={activeTab === "hosting" ? "/inventarios?sub=servicios" : "/clientes"}
+          href="/clientes"
           className="text-xs font-bold text-[#004ac6] hover:underline inline-flex items-center gap-1"
         >
-          <span>Ver todos</span>
+          <span>Ver todos los clientes y servicios</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

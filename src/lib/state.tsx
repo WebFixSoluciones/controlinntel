@@ -128,7 +128,7 @@ import {
 } from "./sri-service";
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import { api } from "./api-client";
-import { getEcuadorDate, addMonthsSafely } from "./date-utils";
+import { getEcuadorDate, addMonthsSafely, calculateContractEndDate, calculateNextRenewalDate } from "./date-utils";
 import { sanitizeObjectTexts, cleanMojibake } from "./sanitize-text";
 import {
   signUserProfile,
@@ -1758,20 +1758,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addClientService = async (serviceData: Omit<ClientService, "id">): Promise<ClientService> => {
-    const today = new Date();
-    const defaultNextRenewal = new Date(today);
-    if (serviceData.billingFrequency === "anual") {
-      defaultNextRenewal.setFullYear(defaultNextRenewal.getFullYear() + 1);
-    } else {
-      defaultNextRenewal.setMonth(defaultNextRenewal.getMonth() + 1);
+    let defaultMonths = 1;
+    if (serviceData.billingFrequency === "anual") defaultMonths = 12;
+    else if (serviceData.billingFrequency === "semestral") defaultMonths = 6;
+    else if (serviceData.billingFrequency === "trimestral") defaultMonths = 3;
+
+    const startDate = serviceData.contractStartDate || serviceData.installationDate || getEcuadorDate();
+    let contractEndDate = serviceData.contractEndDate;
+    if (!contractEndDate && serviceData.contractDuration && serviceData.contractDuration !== "indefinido") {
+      contractEndDate = calculateContractEndDate(startDate, serviceData.contractDuration);
     }
 
     const newService: ClientService = {
       ...serviceData,
       id: "srv-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
       billingFrequency: serviceData.billingFrequency || "mensual",
+      contractDuration: serviceData.contractDuration || "anual",
+      contractStartDate: startDate,
+      contractEndDate,
+      autoRenew: serviceData.autoRenew ?? true,
       isBillableInCurrentCycle: serviceData.isBillableInCurrentCycle ?? true,
-      nextRenewalDate: serviceData.nextRenewalDate || addMonthsSafely(getEcuadorDate(), 1),
+      nextRenewalDate: serviceData.nextRenewalDate || addMonthsSafely(startDate, defaultMonths),
     };
 
     await syncToFirestore("clientServices", newService.id, newService);
@@ -1821,14 +1828,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!target) return;
 
     const baseDate = target.nextRenewalDate || getEcuadorDate();
-    const monthsToAdd = target.billingFrequency === "anual" ? 12 : 1;
+    let monthsToAdd = 1;
+    if (target.billingFrequency === "anual") monthsToAdd = 12;
+    else if (target.billingFrequency === "semestral") monthsToAdd = 6;
+    else if (target.billingFrequency === "trimestral") monthsToAdd = 3;
+
     const nextRenewalDate = addMonthsSafely(baseDate, monthsToAdd);
+
+    // Si el contrato tenía fecha de fin y ya venció o se renueva el contrato completo:
+    let newContractEndDate = target.contractEndDate;
+    if (target.contractEndDate && target.contractEndDate <= getEcuadorDate() && target.contractDuration && target.contractDuration !== "indefinido") {
+      newContractEndDate = calculateContractEndDate(getEcuadorDate(), target.contractDuration);
+    }
 
     await updateClientService(id, {
       status: "activo",
       isBillableInCurrentCycle: true,
       nonBillableReason: "",
       nextRenewalDate,
+      ...(newContractEndDate ? { contractEndDate: newContractEndDate } : {}),
     });
   };
 
@@ -2938,7 +2956,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await syncToFirestore("monthlyCharges", chargeId, newCharge);
 
     for (const srv of billableServices) {
-      await updateClientService(srv.id, { lastBilledPeriod: periodKey });
+      const baseDate = srv.nextRenewalDate || getEcuadorDate();
+      let monthsToAdd = 1;
+      if (srv.billingFrequency === "anual") monthsToAdd = 12;
+      else if (srv.billingFrequency === "semestral") monthsToAdd = 6;
+      else if (srv.billingFrequency === "trimestral") monthsToAdd = 3;
+      const nextDate = addMonthsSafely(baseDate, monthsToAdd);
+
+      // Si el contrato tenía fecha de fin y la nueva fecha supera la vigencia del contrato:
+      const contractExpired = Boolean(srv.contractEndDate && nextDate > srv.contractEndDate);
+
+      await updateClientService(srv.id, {
+        lastBilledPeriod: periodKey,
+        nextRenewalDate: nextDate,
+        ...(contractExpired ? { status: "por_renovar" } : { status: "activo" }),
+      });
     }
 
     return invoice;

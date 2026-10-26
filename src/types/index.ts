@@ -49,7 +49,22 @@ export interface SystemUser extends UserProfile {
 
 export type IdentificationType = "RUC" | "CEDULA" | "PASAPORTE";
 export type ServiceBillingType = "prepago" | "pospago";
-export type ServiceBillingFrequency = "mensual" | "anual";
+export type ServiceBillingFrequency = "mensual" | "trimestral" | "semestral" | "anual";
+export type ServiceContractDuration =
+  | "mensual"
+  | "trimestral"
+  | "semestral"
+  | "anual"
+  | "bianual"
+  | "indefinido";
+export type ServiceCategory =
+  | "internet"
+  | "hosting"
+  | "dominio"
+  | "telefonia"
+  | "mantenimiento"
+  | "licencia"
+  | "otro";
 export type ServiceStatus = "activo" | "inactivo" | "por_renovar" | "suspendido" | "retirado" | "en_instalacion";
 
 export interface ClientService {
@@ -62,7 +77,12 @@ export interface ClientService {
   basePrice: number;
   customPrice: number;
   billingType: ServiceBillingType;
-  billingFrequency?: ServiceBillingFrequency; // "mensual" (default) | "anual"
+  billingFrequency?: ServiceBillingFrequency; // "mensual" | "trimestral" | "semestral" | "anual"
+  contractDuration?: ServiceContractDuration; // "mensual" | "trimestral" | "semestral" | "anual" | "bianual" | "indefinido"
+  contractStartDate?: string;                 // YYYY-MM-DD: Fecha de inicio del contrato
+  contractEndDate?: string;                   // YYYY-MM-DD: Fecha de fin de vigencia del contrato
+  autoRenew?: boolean;                        // true = auto-facturación recurrente durante el periodo contratado
+  serviceCategory?: ServiceCategory;          // Categoría del servicio
   cutoffDay: number;
   nodeId: string;
   nodeName: string;
@@ -72,7 +92,7 @@ export interface ClientService {
   pppoePassword?: string;
   status: ServiceStatus;
   installationDate: string;
-  nextRenewalDate?: string;       // YYYY-MM-DD: Fecha de próxima renovación
+  nextRenewalDate?: string;       // YYYY-MM-DD: Fecha de próxima renovación / cobro
   lastBilledPeriod?: string;      // Ej: "2026-10" o "2026"
   isBillableInCurrentCycle?: boolean; // true = facturable, false = "No Facturado"
   nonBillableReason?: string;
