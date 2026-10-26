@@ -43,6 +43,7 @@ import {
   DollarSign,
   Calendar,
   Tag,
+  ExternalLink,
 } from "lucide-react";
 import {
   generarFacturaXml,
@@ -84,6 +85,43 @@ interface CartLineItem {
   discountType: "percentage" | "amount" | "no_iva";
   discountInput: number;
   serialNumbers: string[];
+}
+
+export const SALE_DRAFT_STORAGE_KEY = "inntel_new_sale_draft_v1";
+
+interface SaleDraftData {
+  updatedAt: string;
+  selectedClientId: string;
+  isConsumidorFinal: boolean;
+  clientSearch: string;
+  documentType: "factura" | "nota_venta";
+  issueDate: string;
+  selectedEstablecimiento: string;
+  warehouseId: string;
+  showAdditionalInfo: boolean;
+  orderNumber: string;
+  notes: string;
+  cartItems: CartLineItem[];
+  globalDiscountType: DiscountMode;
+  globalDiscountValue: number;
+  activeMethods: {
+    efectivo: boolean;
+    transferencia: boolean;
+    tarjeta: boolean;
+    credito: boolean;
+  };
+  paymentValues: {
+    efectivo: string;
+    transferencia: string;
+    tarjeta: string;
+    credito: string;
+  };
+  selectedBankAccountId: string;
+  transferenciaRef: string;
+  tarjetaRef: string;
+  paymentTermDays: number;
+  creditDueDate: string;
+  creditNotes: string;
 }
 
 export function NewSaleView({
@@ -263,6 +301,192 @@ export function NewSaleView({
   });
   const [creditNotes, setCreditNotes] = useState("");
   const [showCreditModal, setShowCreditModal] = useState(false);
+
+  // ==========================================
+  // AUTOGUARDADO Y RECUPERACIÓN DE BORRADOR (DRAFT)
+  // ==========================================
+  const [restoredDraftInfo, setRestoredDraftInfo] = useState<{
+    savedAt: string;
+    itemsCount: number;
+    clientName?: string;
+  } | null>(null);
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
+
+  // 1. Restaurar borrador al entrar si no se pasaron ítems iniciales
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) return;
+    if (typeof window === "undefined") return;
+
+    try {
+      const raw = localStorage.getItem(SALE_DRAFT_STORAGE_KEY);
+      if (!raw) return;
+      const draft: SaleDraftData = JSON.parse(raw);
+      if (!draft) return;
+
+      const hasRecoverableContent =
+        (draft.cartItems && draft.cartItems.length > 0) ||
+        Boolean(draft.selectedClientId) ||
+        draft.isConsumidorFinal ||
+        (draft.notes && draft.notes.trim().length > 0);
+
+      if (!hasRecoverableContent) return;
+
+      if (draft.selectedClientId) setSelectedClientId(draft.selectedClientId);
+      if (draft.isConsumidorFinal) setIsConsumidorFinal(draft.isConsumidorFinal);
+      if (draft.clientSearch) setClientSearch(draft.clientSearch);
+      if (draft.documentType) setDocumentType(draft.documentType);
+      if (draft.issueDate) setIssueDate(draft.issueDate);
+      if (draft.selectedEstablecimiento) setSelectedEstablecimiento(draft.selectedEstablecimiento);
+      if (draft.warehouseId) setWarehouseId(draft.warehouseId);
+      if (draft.showAdditionalInfo !== undefined) setShowAdditionalInfo(draft.showAdditionalInfo);
+      if (draft.orderNumber) setOrderNumber(draft.orderNumber);
+      if (draft.notes) setNotes(draft.notes);
+      if (draft.cartItems && draft.cartItems.length > 0) setCartItems(draft.cartItems);
+      if (draft.globalDiscountType) setGlobalDiscountType(draft.globalDiscountType);
+      if (draft.globalDiscountValue !== undefined) setGlobalDiscountValue(draft.globalDiscountValue);
+      if (draft.activeMethods) setActiveMethods(draft.activeMethods);
+      if (draft.paymentValues) setPaymentValues(draft.paymentValues);
+      if (draft.selectedBankAccountId) setSelectedBankAccountId(draft.selectedBankAccountId);
+      if (draft.transferenciaRef) setTransferenciaRef(draft.transferenciaRef);
+      if (draft.tarjetaRef) setTarjetaRef(draft.tarjetaRef);
+      if (draft.paymentTermDays) setPaymentTermDays(draft.paymentTermDays);
+      if (draft.creditDueDate) setCreditDueDate(draft.creditDueDate);
+      if (draft.creditNotes) setCreditNotes(draft.creditNotes);
+
+      const clientMatch = clients.find((c) => c.id === draft.selectedClientId);
+      setRestoredDraftInfo({
+        savedAt: draft.updatedAt,
+        itemsCount: draft.cartItems?.length || 0,
+        clientName: clientMatch?.businessName || (draft.isConsumidorFinal ? "Consumidor Final" : undefined),
+      });
+      if (draft.updatedAt) {
+        setLastSavedTime(
+          new Date(draft.updatedAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })
+        );
+      }
+    } catch (e) {
+      console.warn("No se pudo restaurar el borrador previo:", e);
+    }
+  }, []);
+
+  // 2. Guardar borrador automáticamente al cambiar cualquier parámetro
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (currentStep !== 1) return;
+
+    const hasContent =
+      cartItems.length > 0 ||
+      Boolean(selectedClientId) ||
+      isConsumidorFinal ||
+      notes.trim().length > 0 ||
+      orderNumber.trim().length > 0;
+
+    if (!hasContent) {
+      localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
+      setLastSavedTime(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        const draft: SaleDraftData = {
+          updatedAt: new Date().toISOString(),
+          selectedClientId,
+          isConsumidorFinal,
+          clientSearch,
+          documentType,
+          issueDate,
+          selectedEstablecimiento,
+          warehouseId,
+          showAdditionalInfo,
+          orderNumber,
+          notes,
+          cartItems,
+          globalDiscountType,
+          globalDiscountValue,
+          activeMethods,
+          paymentValues,
+          selectedBankAccountId,
+          transferenciaRef,
+          tarjetaRef,
+          paymentTermDays,
+          creditDueDate,
+          creditNotes,
+        };
+        localStorage.setItem(SALE_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+        const now = new Date();
+        setLastSavedTime(
+          now.toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })
+        );
+      } catch (e) {
+        console.warn("Error autoguardando borrador de venta:", e);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [
+    currentStep,
+    selectedClientId,
+    isConsumidorFinal,
+    clientSearch,
+    documentType,
+    issueDate,
+    selectedEstablecimiento,
+    warehouseId,
+    showAdditionalInfo,
+    orderNumber,
+    notes,
+    cartItems,
+    globalDiscountType,
+    globalDiscountValue,
+    activeMethods,
+    paymentValues,
+    selectedBankAccountId,
+    transferenciaRef,
+    tarjetaRef,
+    paymentTermDays,
+    creditDueDate,
+    creditNotes,
+  ]);
+
+  // 3. Descartar borrador y limpiar venta
+  const handleDiscardDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
+    }
+    setCartItems([]);
+    setSelectedClientId("");
+    setIsConsumidorFinal(false);
+    setClientSearch("");
+    setOrderNumber("");
+    setNotes("");
+    setGlobalDiscountType("none");
+    setGlobalDiscountValue(0);
+    setPaymentValues({ efectivo: "", transferencia: "", tarjeta: "", credito: "" });
+    setTransferenciaRef("");
+    setTarjetaRef("");
+    setCreditNotes("");
+    setRestoredDraftInfo(null);
+    setLastSavedTime(null);
+    showSuccess("Borrador Descartado", "El formulario de venta ha vuelto a estar en blanco.");
+  };
+
+  // 4. Advertencia antes de cerrar pestaña si hay venta activa
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (currentStep === 1 && (cartItems.length > 0 || selectedClientId)) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentStep, cartItems.length, selectedClientId]);
 
   // ==========================================
   // MODALES DE APOYO (CLIENTE, PRODUCTO, VALIDACIÓN, CONFIRMACIÓN)
@@ -1124,6 +1348,11 @@ export function NewSaleView({
           notes: notes.trim() || undefined,
         });
 
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
+        }
+        setRestoredDraftInfo(null);
+        setLastSavedTime(null);
         setIsProcessing(false);
         showSuccess("Borrador Guardado", `Comprobante guardado como ${draftInvoice.documentNumber}.`);
         onBack();
@@ -1172,6 +1401,11 @@ export function NewSaleView({
           notes: notes.trim() || undefined,
         });
 
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
+        }
+        setRestoredDraftInfo(null);
+        setLastSavedTime(null);
         setIsProcessing(false);
         setEmittedInvoice(nota);
         setCurrentStep(2);
@@ -1263,6 +1497,11 @@ export function NewSaleView({
         showWarning("Comprobante Emitido", `Estado SRI: ${wsResult.estado}. ${msg}`);
       }
 
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
+      }
+      setRestoredDraftInfo(null);
+      setLastSavedTime(null);
       setIsProcessing(false);
       setEmittedInvoice(finalInvoice);
       setCurrentStep(2);
@@ -1820,7 +2059,24 @@ export function NewSaleView({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {lastSavedTime && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <Save className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Borrador autoguardado {lastSavedTime}</span>
+            </span>
+          )}
+          {(cartItems.length > 0 || selectedClientId || isConsumidorFinal) && (
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+              title="Descartar borrador y limpiar venta"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Descartar</span>
+            </button>
+          )}
           <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono font-bold text-slate-700">
             Serie Activa: {selectedEstablecimiento || sriCompanyConfig.establecimiento || "010"}-
             {sriCompanyConfig.puntoEmision || "001"}
@@ -1830,6 +2086,38 @@ export function NewSaleView({
           </span>
         </div>
       </div>
+
+      {/* Banner de Borrador Recuperado */}
+      {restoredDraftInfo && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 rounded-xl bg-blue-50/90 border border-blue-200 text-xs text-blue-900 shadow-2xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#004ac6] shrink-0" />
+            <div>
+              <span className="font-bold text-[#004ac6]">Borrador automático recuperado:</span>{" "}
+              Se restauró tu venta en progreso
+              {restoredDraftInfo.clientName ? ` para "${restoredDraftInfo.clientName}"` : ""}{" "}
+              con {restoredDraftInfo.itemsCount} {restoredDraftInfo.itemsCount === 1 ? "ítem" : "ítems"}{" "}
+              (guardado a las {new Date(restoredDraftInfo.savedAt).toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" })}).
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRestoredDraftInfo(null)}
+              className="px-3 py-1 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+            >
+              Continuar Venta
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="px-3 py-1 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
+            >
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Layout Principal: 12 Columnas (8 Izquierda Operativa + 4 Derecha Resumen y Pago) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -1875,8 +2163,8 @@ export function NewSaleView({
                 </div>
 
                 {selectedClient ? (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50/50 border border-blue-200">
-                    <div className="min-w-0 pr-2">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 px-3 py-2 rounded-lg bg-blue-50/50 border border-blue-200">
+                    <div className="min-w-0 flex-1">
                       <div className="font-bold text-xs text-slate-900 truncate">
                         {selectedClient.businessName}
                       </div>
@@ -1884,17 +2172,41 @@ export function NewSaleView({
                         {selectedClient.identificationType}: {limpiarIdentificacion(selectedClient.identificationNumber)}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedClientId("");
-                        setIsConsumidorFinal(false);
-                      }}
-                      className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer shrink-0"
-                      title="Cambiar cliente"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`/clientes?id=${selectedClient.id}&tab=finanzas`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-[#004ac6] border border-blue-200 hover:bg-blue-50 shadow-2xs transition cursor-pointer"
+                        title="Abrir historial de facturación y cobros de este cliente en una nueva pestaña"
+                      >
+                        <DollarSign className="w-3 h-3 text-[#004ac6]" />
+                        <span>Historial de Facturación</span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </a>
+                      <a
+                        href={`/clientes?id=${selectedClient.id}&tab=contratos`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                        title="Abrir servicios técnicos del cliente en una nueva pestaña"
+                      >
+                        <ShieldCheck className="w-3 h-3 text-slate-500" />
+                        <span>Servicios</span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedClientId("");
+                          setIsConsumidorFinal(false);
+                        }}
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer"
+                        title="Cambiar cliente"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="relative" ref={clientDropdownRef}>

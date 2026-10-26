@@ -17,6 +17,7 @@ function ClientesContent() {
   const { currentUser, clients } = useApp();
   const searchParams = useSearchParams();
   const clientIdFromUrl = searchParams.get("id");
+  const tabFromUrl = searchParams.get("tab");
 
   // Selected client for 360 view
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -88,6 +89,7 @@ function ClientesContent() {
                     client={clients.find((c) => c.id === selectedClient.id) || selectedClient}
                     onClose={() => setSelectedClient(null)}
                     onEdit={() => handleEdit(clients.find((c) => c.id === selectedClient.id) || selectedClient)}
+                    initialTab={(tabFromUrl as any) || undefined}
                   />
                 ) : (
                   <ClientsTable

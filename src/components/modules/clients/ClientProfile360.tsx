@@ -48,6 +48,7 @@ interface ClientProfile360Props {
   client: Client | null;
   onClose: () => void;
   onEdit?: () => void;
+  initialTab?: ProfileTab;
 }
 
 type ProfileTab =
@@ -63,7 +64,7 @@ type ProfileTab =
   | "arcotel"
   | "dossier";
 
-export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Props) {
+export function ClientProfile360({ client, onClose, onEdit, initialTab }: ClientProfile360Props) {
   const {
     clientServices,
     monthlyCharges,
@@ -80,7 +81,16 @@ export function ClientProfile360({ client, onClose, onEdit }: ClientProfile360Pr
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
-  const [activeTab, setActiveTab] = useState<ProfileTab>("fiscal");
+  const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+    if (initialTab) return initialTab;
+    return "fiscal";
+  });
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

@@ -1984,6 +1984,60 @@ test("Flujo E2E 32: Cierre Automático de Seleccionadores al Dar Clic Afuera o P
   );
 });
 
+test("Flujo E2E 33: Autoguardado Continuo de Borrador en Ventas y Apertura de Historial en Nueva Pestaña", () => {
+  const rootDir = process.cwd();
+
+  // 1. NewSaleView: Implementación de Borrador Automático (Draft)
+  const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
+  const newSaleContent = fs.readFileSync(newSalePath, "utf8");
+
+  assert.ok(
+    newSaleContent.includes("SALE_DRAFT_STORAGE_KEY") &&
+      newSaleContent.includes("localStorage.setItem(SALE_DRAFT_STORAGE_KEY") &&
+      newSaleContent.includes("localStorage.getItem(SALE_DRAFT_STORAGE_KEY"),
+    "NewSaleView debe persistir y recuperar el borrador de venta automáticamente en localStorage"
+  );
+
+  assert.ok(
+    newSaleContent.includes("restoredDraftInfo") &&
+      newSaleContent.includes("Borrador automático recuperado") &&
+      newSaleContent.includes("handleDiscardDraft"),
+    "NewSaleView debe mostrar banner informativo de borrador recuperado y opción para descartarlo"
+  );
+
+  assert.ok(
+    newSaleContent.includes("beforeunload"),
+    "NewSaleView debe advertir antes de cerrar o recargar la pestaña si hay una venta activa"
+  );
+
+  // 2. Acceso directo a Historial de Facturación en Nueva Pestaña
+  assert.ok(
+    newSaleContent.includes('href={`/clientes?id=${selectedClient.id}&tab=finanzas`}') &&
+      newSaleContent.includes('target="_blank"') &&
+      newSaleContent.includes('rel="noopener noreferrer"') &&
+      newSaleContent.includes("Historial de Facturación"),
+    "NewSaleView debe incluir enlace para abrir el historial de facturación del cliente en una nueva pestaña"
+  );
+
+  // 3. Clientes: soporte de parámetro ?id=...&tab=finanzas para aterrizar directo en la pestaña
+  const clientPagePath = path.resolve(rootDir, "src/app/clientes/page.tsx");
+  const clientPageContent = fs.readFileSync(clientPagePath, "utf8");
+  assert.ok(
+    clientPageContent.includes('searchParams.get("tab")') &&
+      clientPageContent.includes("initialTab="),
+    "src/app/clientes/page.tsx debe leer el parámetro tab y pasarlo como initialTab a ClientProfile360"
+  );
+
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+  assert.ok(
+    profile360Content.includes("initialTab?: ProfileTab") &&
+      profile360Content.includes("initialTab"),
+    "ClientProfile360 debe admitir initialTab para abrir directamente la pestaña de cobros/finanzas"
+  );
+});
+
+
 
 
 
