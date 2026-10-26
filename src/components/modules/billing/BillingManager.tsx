@@ -1187,7 +1187,7 @@ export function BillingManager() {
                           <button
                             onClick={() => handleOpenDebitNoteRide(nd)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
-                            title="Ver / Imprimir RIDE (05)"
+                            title="Ver / Imprimir RIDE • 05"
                           >
                             <Printer className="w-4 h-4" />
                           </button>

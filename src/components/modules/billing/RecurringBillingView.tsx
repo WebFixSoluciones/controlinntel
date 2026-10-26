@@ -519,20 +519,20 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       {/* SUB-VISTA 1: LOTE DE FACTURACIÓN RECURRENTE POR CLIENTE                   */}
       {/* ========================================================================= */}
       {subView === "lote" && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-3">Ciclo</th>
-                  <th className="py-3 px-3 text-center">Activos</th>
-                  <th className="py-3 px-3 text-center">Pausados</th>
-                  <th className="py-3 px-3 text-right">Subtotal</th>
-                  <th className="py-3 px-3 text-right">IVA</th>
-                  <th className="py-3 px-4 text-right font-black">Total</th>
-                  <th className="py-3 px-3 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                  <th className="py-3 px-4 w-3/12">Cliente</th>
+                  <th className="py-3 px-3 w-1/12">Ciclo</th>
+                  <th className="py-3 px-3 text-center w-1/12">Activos</th>
+                  <th className="py-3 px-3 text-center w-1/12">Pausados</th>
+                  <th className="py-3 px-3 text-right w-1/12">Subtotal</th>
+                  <th className="py-3 px-3 text-right w-1/12">IVA</th>
+                  <th className="py-3 px-4 text-right font-black w-1/12">Total</th>
+                  <th className="py-3 px-3 text-center w-1/12">Estado</th>
+                  <th className="py-3 px-4 text-right w-2/12">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -735,19 +735,19 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       {/* SUB-VISTA 2: SEGUIMIENTO GLOBAL DE SERVICIOS & ALERTAS DE RENOVACIÓN      */}
       {/* ========================================================================= */}
       {subView === "renovaciones" && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden shadow-2xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Servicio</th>
-                  <th className="py-3 px-3">Ciclo</th>
-                  <th className="py-3 px-3">Renovación</th>
-                  <th className="py-3 px-3 text-center">Estado</th>
-                  <th className="py-3 px-3 text-center">Facturar</th>
-                  <th className="py-3 px-3 text-right">Tarifa</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                  <th className="py-3 px-4 w-3/12">Cliente</th>
+                  <th className="py-3 px-4 w-3/12">Servicio</th>
+                  <th className="py-3 px-3 w-1/12">Ciclo</th>
+                  <th className="py-3 px-3 w-1/12">Renovación</th>
+                  <th className="py-3 px-3 text-center w-1/12">Estado</th>
+                  <th className="py-3 px-3 text-center w-1/12">Facturar</th>
+                  <th className="py-3 px-3 text-right w-1/12">Tarifa</th>
+                  <th className="py-3 px-4 text-right w-1/12">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

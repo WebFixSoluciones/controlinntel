@@ -423,39 +423,39 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-[8px] border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-[6px] bg-[#004ac6] text-white">
-              <Receipt className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
+              <Receipt className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold leading-tight">
+                <h2 className="text-base font-bold leading-tight text-white">
                   Editar {docTitle}
                 </h2>
-                <span className="px-2 py-0.5 rounded-[4px] text-[11px] font-medium bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/10 text-white border border-white/20">
                   {invoice.documentNumber}
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-[4px] text-[11px] font-medium capitalize ${
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold capitalize ${
                     invoice.status === "autorizada" || invoice.status === "emitida"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
-                      : "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+                      ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"
+                      : "bg-amber-500/20 text-amber-200 border border-amber-400/30"
                   }`}
                 >
                   {invoice.status}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-blue-100 mt-0.5">
                 Modifica precios, cantidades, ítems o datos del cliente. Los saldos e inventarios se recalcularán automáticamente.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-[6px] text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -463,7 +463,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
 
         {/* Error message */}
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 rounded-[6px] bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 shrink-0">
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>
           </div>
@@ -472,20 +472,20 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
         {/* Form Body */}
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Section: Client & General Info */}
-          <div className="bg-slate-50 p-4 rounded-[6px] border border-slate-200/80 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                <User className="w-4 h-4 text-slate-500" />
+          <div className="bg-[#f8f9ff] p-4 rounded-lg border border-[#e2e8f0] space-y-4">
+            <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-2">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <User className="w-4 h-4 text-[#004ac6]" />
                 Información del Cliente y Emisión
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setClientMode("registered")}
-                  className={`px-2.5 py-1 text-xs rounded-[4px] font-medium transition cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs rounded-md font-bold transition cursor-pointer ${
                     clientMode === "registered"
                       ? "bg-[#004ac6] text-white"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      : "bg-white text-slate-600 border border-[#e2e8f0] hover:bg-slate-100"
                   }`}
                 >
                   Registrado
@@ -493,10 +493,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 <button
                   type="button"
                   onClick={() => setClientMode("final")}
-                  className={`px-2.5 py-1 text-xs rounded-[4px] font-medium transition cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs rounded-md font-bold transition cursor-pointer ${
                     clientMode === "final"
                       ? "bg-[#004ac6] text-white"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      : "bg-white text-slate-600 border border-[#e2e8f0] hover:bg-slate-100"
                   }`}
                 >
                   Consumidor Final
@@ -504,10 +504,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 <button
                   type="button"
                   onClick={() => setClientMode("custom")}
-                  className={`px-2.5 py-1 text-xs rounded-[4px] font-medium transition cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs rounded-md font-bold transition cursor-pointer ${
                     clientMode === "custom"
                       ? "bg-[#004ac6] text-white"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      : "bg-white text-slate-600 border border-[#e2e8f0] hover:bg-slate-100"
                   }`}
                 >
                   Manual / Ocasional
@@ -519,13 +519,13 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {clientMode === "registered" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Seleccionar Cliente
                   </label>
                   <select
                     value={selectedClientId}
                     onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                    className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   >
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -534,7 +534,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     ))}
                   </select>
                 </div>
-                <div className="text-xs text-slate-600 flex flex-col justify-center bg-white p-2.5 rounded-[6px] border border-slate-200">
+                <div className="text-xs text-slate-600 flex flex-col justify-center bg-white p-2.5 rounded-lg border border-[#e2e8f0]">
                   <p className="font-semibold text-slate-800">{finalClientName}</p>
                   <p>RUC / CI: {finalClientRuc} | {finalClientEmail}</p>
                 </div>
@@ -544,7 +544,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {clientMode === "custom" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Nombre / Razón Social *
                   </label>
                   <input
@@ -552,12 +552,12 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     required
                     value={customClientName}
                     onChange={(e) => setCustomClientName(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                    className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     placeholder="Juan Pérez"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     RUC / Cédula *
                   </label>
                   <input
@@ -565,19 +565,19 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     required
                     value={customClientRuc}
                     onChange={(e) => setCustomClientRuc(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                    className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     placeholder="1790000000001"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Correo Electrónico
                   </label>
                   <input
                     type="email"
                     value={customClientEmail}
                     onChange={(e) => setCustomClientEmail(e.target.value)}
-                    className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                    className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     placeholder="cliente@ejemplo.com"
                   />
                 </div>
@@ -585,7 +585,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             )}
 
             {clientMode === "final" && (
-              <div className="text-xs text-slate-600 bg-white p-2.5 rounded-[6px] border border-slate-200">
+              <div className="text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-[#e2e8f0]">
                 <span className="font-semibold text-slate-800">CONSUMIDOR FINAL</span> (RUC: 9999999999999)
               </div>
             )}
@@ -593,13 +593,13 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {/* Warehouse & Date row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Bodega de Despacho
                 </label>
                 <select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                 >
                   {inventoryWarehouses.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -609,14 +609,14 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Fecha de Emisión
                 </label>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
             </div>
@@ -625,8 +625,8 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
           {/* Section: Items Table */}
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-[#004ac6]" />
                 Detalle de Productos y Servicios
               </span>
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -642,10 +642,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     }}
                     onFocus={() => setShowProductDropdown(true)}
                     placeholder="Buscar producto o SKU..."
-                    className="w-full text-xs bg-white border border-slate-300 rounded-[6px] pl-8 pr-3 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                    className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-3 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   />
                   {showProductDropdown && filteredProducts.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-[6px] shadow-lg max-h-48 overflow-y-auto z-20">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e2e8f0] rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
                       {filteredProducts.map((p) => {
                         const available = Number(p.stockByWarehouse?.[warehouseId || invoice.warehouseId] || 0);
                         return (
@@ -653,14 +653,14 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                             key={p.id}
                             type="button"
                             onClick={() => handleAddItem(p)}
-                            className="w-full text-left px-3 py-2 hover:bg-blue-50 text-xs border-b border-slate-100 flex items-center justify-between cursor-pointer"
+                            className="w-full text-left px-3 py-2 hover:bg-[#f8f9ff] text-xs border-b border-slate-100 flex items-center justify-between cursor-pointer"
                           >
                             <div>
-                              <span className="font-medium text-slate-800">{p.name}</span>
-                              <span className="text-[10px] text-slate-400 block">SKU: {p.sku || "N/A"}</span>
+                              <span className="font-semibold text-slate-800">{p.name}</span>
+                              <span className="text-[10px] text-slate-400 block font-mono">SKU: {p.sku || "N/A"}</span>
                             </div>
                             <div className="text-right">
-                              <span className="font-semibold text-slate-700">${(p.salePrice || 0).toFixed(2)}</span>
+                              <span className="font-bold text-slate-700">${(p.salePrice || 0).toFixed(2)}</span>
                               <span className="text-[10px] text-slate-400 block">Disp: {available}</span>
                             </div>
                           </button>
@@ -673,7 +673,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 <button
                   type="button"
                   onClick={handleAddManualItem}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-[6px] transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Línea Manual
@@ -682,20 +682,20 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             </div>
 
             {/* Table */}
-            <div className="border border-slate-200/80 rounded-[6px] overflow-hidden">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="border border-[#e2e8f0] rounded-xl overflow-hidden bg-white shadow-2xs">
+              <table className="table-fixed w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-100/80 text-slate-600 border-b border-slate-200">
-                    <th className="py-2 px-3 font-semibold">Descripción / Producto</th>
-                    <th className="py-2 px-2 font-semibold text-center w-20">Cant.</th>
-                    <th className="py-2 px-2 font-semibold text-right w-24">Precio Unit.</th>
-                    <th className="py-2 px-2 font-semibold text-right w-20">Desc. ($)</th>
-                    <th className="py-2 px-2 font-semibold text-center w-20">IVA</th>
-                    <th className="py-2 px-3 font-semibold text-right w-24">Total</th>
-                    <th className="py-2 px-2 text-center w-10"></th>
+                  <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                    <th className="py-2.5 px-3 w-5/12">Descripción / Producto</th>
+                    <th className="py-2.5 px-2 font-bold text-center w-20">Cant.</th>
+                    <th className="py-2.5 px-2 font-bold text-right w-24">Precio Unit.</th>
+                    <th className="py-2.5 px-2 font-bold text-right w-20">Desc. ($)</th>
+                    <th className="py-2.5 px-2 font-bold text-center w-20">IVA</th>
+                    <th className="py-2.5 px-3 font-bold text-right w-24">Total</th>
+                    <th className="py-2.5 px-2 text-center w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {items.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-6 text-center text-slate-400">
@@ -704,16 +704,16 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     </tr>
                   ) : (
                     items.map((it) => (
-                      <tr key={it.id} className="hover:bg-slate-50/50">
-                        <td className="py-2 px-3">
+                      <tr key={it.id} className="hover:bg-[#f8f9ff] transition-colors">
+                        <td className="py-2 px-3 truncate">
                           <input
                             type="text"
                             value={it.name}
                             onChange={(e) => handleUpdateDescription(it.id, e.target.value)}
-                            className="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-[#004ac6] focus:bg-white px-1 py-0.5 rounded-[2px] text-xs font-medium text-slate-800"
+                            className="w-full bg-transparent border-0 border-b border-transparent hover:border-slate-300 focus:border-[#004ac6] focus:bg-white px-1 py-0.5 rounded-sm text-xs font-semibold text-slate-800"
                           />
                           {it.sku && (
-                            <span className="text-[10px] text-slate-400 px-1">SKU: {it.sku}</span>
+                            <span className="text-[10px] text-slate-400 px-1 font-mono">SKU: {it.sku}</span>
                           )}
                         </td>
                         <td className="py-2 px-2 text-center">
@@ -723,7 +723,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                             step="1"
                             value={it.quantity}
                             onChange={(e) => handleUpdateQuantity(it.id, parseFloat(e.target.value) || 1)}
-                            className="w-16 text-center bg-white border border-slate-300 rounded-[4px] px-1 py-1 text-xs focus:outline-none focus:border-[#004ac6]"
+                            className="w-16 text-center bg-white border border-[#e2e8f0] rounded-md px-1 py-1 text-xs font-bold focus:outline-hidden focus:border-[#004ac6]"
                           />
                         </td>
                         <td className="py-2 px-2 text-right">
@@ -735,7 +735,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                               step="0.01"
                               value={it.unitPrice}
                               onChange={(e) => handleUpdatePrice(it.id, parseFloat(e.target.value) || 0)}
-                              className="w-full text-right bg-white border border-slate-300 rounded-[4px] pl-4 pr-1 py-1 text-xs font-mono focus:outline-none focus:border-[#004ac6]"
+                              className="w-full text-right bg-white border border-[#e2e8f0] rounded-md pl-4 pr-1 py-1 text-xs font-mono focus:outline-hidden focus:border-[#004ac6]"
                             />
                           </div>
                         </td>
@@ -746,27 +746,27 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                             step="0.01"
                             value={it.discount || 0}
                             onChange={(e) => handleUpdateDiscount(it.id, parseFloat(e.target.value) || 0)}
-                            className="w-16 text-right bg-white border border-slate-300 rounded-[4px] px-1 py-1 text-xs font-mono focus:outline-none focus:border-[#004ac6]"
+                            className="w-16 text-right bg-white border border-[#e2e8f0] rounded-md px-1 py-1 text-xs font-mono focus:outline-hidden focus:border-[#004ac6]"
                           />
                         </td>
                         <td className="py-2 px-2 text-center">
                           <select
                             value={it.ivaRate}
                             onChange={(e) => handleUpdateIvaRate(it.id, parseInt(e.target.value, 10))}
-                            className="bg-white border border-slate-300 rounded-[4px] px-1 py-1 text-xs text-slate-700 focus:outline-none focus:border-[#004ac6]"
+                            className="bg-white border border-[#e2e8f0] rounded-md px-1 py-1 text-xs text-slate-700 font-bold focus:outline-hidden focus:border-[#004ac6]"
                           >
                             <option value={0}>0%</option>
                             <option value={15}>15%</option>
                           </select>
                         </td>
-                        <td className="py-2 px-3 text-right font-semibold font-mono text-slate-800">
+                        <td className="py-2 px-3 text-right font-bold font-mono text-slate-800">
                           ${it.total.toFixed(2)}
                         </td>
                         <td className="py-2 px-2 text-center">
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(it.id)}
-                            className="p-1 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Quitar ítem"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -785,7 +785,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {/* Left: Payment Method & Notes */}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Método de Pago
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -794,10 +794,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                       key={m}
                       type="button"
                       onClick={() => setPaymentMethod(m)}
-                      className={`px-3 py-2 rounded-[6px] text-xs font-medium capitalize border transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-2 rounded-lg text-xs font-bold capitalize border transition flex items-center justify-center gap-1.5 cursor-pointer ${
                         paymentMethod === m
                           ? "bg-blue-50 border-[#004ac6] text-[#004ac6]"
-                          : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                          : "bg-white border-[#e2e8f0] text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <CreditCard className="w-3.5 h-3.5" />
@@ -808,15 +808,15 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               </div>
 
               {(paymentMethod === "transferencia" || paymentMethod === "tarjeta") && (
-                <div className="space-y-2 bg-slate-50 p-3 rounded-[6px] border border-slate-200">
+                <div className="space-y-2 bg-[#f8f9ff] p-3 rounded-lg border border-[#e2e8f0]">
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                       Cuenta Bancaria de Destino
                     </label>
                     <select
                       value={bankAccountId}
                       onChange={(e) => setBankAccountId(e.target.value)}
-                      className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                      className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     >
                       {bankAccounts.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -826,7 +826,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                       Nro. de Referencia / Comprobante
                     </label>
                     <input
@@ -838,14 +838,14 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                           : setTarjetaRef(e.target.value)
                       }
                       placeholder="Ej. DEP-9823412"
-                      className="w-full text-xs bg-white border border-slate-300 rounded-[6px] px-2.5 py-1.5 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                      className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Notas / Observaciones
                 </label>
                 <textarea
@@ -853,14 +853,14 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Detalles adicionales, referencias de entrega..."
-                  className="w-full text-xs bg-white border border-slate-300 rounded-[6px] p-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg p-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
             </div>
 
             {/* Right: Summary Card */}
-            <div className="bg-slate-50 rounded-[6px] border border-slate-200 p-4 space-y-2.5 h-fit">
-              <span className="text-xs font-semibold text-slate-800 block border-b border-slate-200 pb-1.5">
+            <div className="bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] p-4 space-y-2.5 h-fit">
+              <span className="text-xs font-bold text-slate-800 block border-b border-[#e2e8f0] pb-1.5 uppercase tracking-wider">
                 Resumen de Valores
               </span>
               <div className="flex justify-between text-xs text-slate-600">
@@ -881,9 +881,9 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 <span>IVA 15%:</span>
                 <span className="font-mono font-medium">${ivaTotal.toFixed(2)}</span>
               </div>
-              <div className="border-t border-slate-300 pt-2 flex justify-between items-center">
-                <span className="text-sm font-bold text-slate-900">Total a Pagar:</span>
-                <span className="text-lg font-bold font-mono text-[#004ac6]">
+              <div className="border-t border-[#e2e8f0] pt-2 flex justify-between items-center">
+                <span className="text-sm font-black text-slate-900">Total a Pagar:</span>
+                <span className="text-lg font-black font-mono text-[#004ac6]">
                   ${total.toFixed(2)}
                 </span>
               </div>
@@ -891,19 +891,19 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
+          <div className="pt-4 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-[6px] border border-slate-200 bg-white text-slate-700 text-xs font-medium hover:bg-slate-50 transition cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-[#e2e8f0] bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ea8] text-white text-xs font-medium transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003ea8] text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               {isSubmitting
@@ -917,7 +917,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => executeSave("autorizada")}
-                className="px-5 py-2 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {isSubmitting ? "Emitiendo..." : "Guardar y Emitir Comprobante"}

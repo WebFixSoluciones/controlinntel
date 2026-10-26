@@ -90,7 +90,7 @@ export function MovementsTab() {
   return (
     <div className="space-y-5">
       {/* Barra de Búsqueda y Filtros */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -98,7 +98,7 @@ export function MovementsTab() {
             placeholder="Buscar concepto, referencia o categoría..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+            className="w-full pl-9 pr-3 py-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
           />
         </div>
 
@@ -106,7 +106,7 @@ export function MovementsTab() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as any)}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
+            className="px-3 py-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-semibold text-slate-700 focus:bg-white focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
           >
             <option value="todos">Todos los Tipos</option>
             <option value="ingreso">Ingresos</option>
@@ -116,7 +116,7 @@ export function MovementsTab() {
           <select
             value={filterBank}
             onChange={(e) => setFilterBank(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
+            className="px-3 py-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-semibold text-slate-700 focus:bg-white focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
           >
             <option value="todos">Todas las Cuentas</option>
             {bankAccounts.map((b) => (
@@ -137,20 +137,20 @@ export function MovementsTab() {
       </div>
 
       {/* Tabla de Movimientos */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold text-[11px]">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th className="py-3 px-4">Fecha</th>
-              <th className="py-3 px-4 text-center">Tipo</th>
-              <th className="py-3 px-4">Concepto</th>
-              <th className="py-3 px-4">Categoría</th>
-              <th className="py-3 px-4">Cuenta / Banco</th>
-              <th className="py-3 px-4">Forma de Pago / Ref.</th>
-              <th className="py-3 px-4 text-right">Monto ($)</th>
+              <th className="w-1/12 py-3 px-4">Fecha</th>
+              <th className="w-1/12 py-3 px-4 text-center">Tipo</th>
+              <th className="w-4/12 py-3 px-4">Concepto</th>
+              <th className="w-2/12 py-3 px-4">Categoría</th>
+              <th className="w-2/12 py-3 px-4">Cuenta / Banco</th>
+              <th className="w-1/12 py-3 px-4">Forma de Pago / Ref.</th>
+              <th className="w-1/12 py-3 px-4 text-right">Monto ($)</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[#f1f5f9]">
             {filteredMovements.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-10 text-center text-xs text-slate-400">
@@ -162,7 +162,7 @@ export function MovementsTab() {
                 const isIngreso = m.type === "ingreso";
 
                 return (
-                  <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={m.id} className="hover:bg-[#f8f9ff] transition-colors">
                     <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">{m.date}</td>
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       <span
@@ -185,13 +185,13 @@ export function MovementsTab() {
                         )}
                       </span>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-slate-900 max-w-sm truncate" title={m.description}>
+                    <td className="py-3 px-4 font-semibold text-slate-900 truncate" title={m.description}>
                       {m.description}
                     </td>
-                    <td className="py-3 px-4 text-slate-600">
+                    <td className="py-3 px-4 text-slate-600 truncate">
                       {formatFinanceCategory(m.category)}
                     </td>
-                    <td className="py-3 px-4 font-medium text-slate-800 whitespace-nowrap">
+                    <td className="py-3 px-4 font-medium text-slate-800 whitespace-nowrap truncate">
                       {m.bankAccountName}
                     </td>
                     <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
@@ -203,7 +203,7 @@ export function MovementsTab() {
                       )}
                     </td>
                     <td
-                      className={`py-3 px-4 text-right font-mono font-bold text-sm whitespace-nowrap ${
+                      className={`py-3 px-4 text-right font-mono font-bold whitespace-nowrap ${
                         isIngreso ? "text-emerald-600" : "text-rose-600"
                       }`}
                     >

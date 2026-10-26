@@ -83,13 +83,13 @@ export function ExpensesManager() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Total Egresos OPEX</span>
           <span className="text-2xl font-black text-[#ef4444] mt-1 block font-tnum">${totalOpex.toFixed(2)} USD</span>
           <span className="text-[11px] text-[#737686]">{filteredExpenses.length} egresos contabilizados</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Tránsito IP & Conectividad</span>
           <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
             ${expenses.filter((e) => e.category === "enlace_transito").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
@@ -97,7 +97,7 @@ export function ExpensesManager() {
           <span className="text-[11px] text-[#737686]">Enlaces dedicados BGP / Carriers</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Infraestructura & Nodos</span>
           <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
             ${expenses.filter((e) => e.category === "alquiler_nodo" || e.category === "mantenimiento").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
@@ -107,16 +107,16 @@ export function ExpensesManager() {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* Search & Filters */}
-        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-white">
+        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#fcfdff]">
           <div className="relative flex-1 max-w-sm">
             <input
               type="text"
               placeholder="Buscar por proveedor o detalle..."
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              className="w-full bg-white text-xs text-[#0b1c30] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#712ae2]"
+              className="w-full bg-[#f8f9ff] text-xs text-[#0b1c30] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
             />
           </div>
 
@@ -124,7 +124,7 @@ export function ExpensesManager() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+              className="bg-[#f8f9ff] text-xs font-semibold text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:bg-white focus:outline-hidden cursor-pointer"
             >
               <option value="todas">Todas las Categorías</option>
               <option value="enlace_transito">Tránsito IP</option>
@@ -137,15 +137,15 @@ export function ExpensesManager() {
 
         {/* Expenses Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#f8f9ff] text-[#712ae2] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3.5 px-5">Fecha</th>
-                <th className="py-3.5 px-5">Proveedor / Beneficiario</th>
-                <th className="py-3.5 px-5">Categoría</th>
-                <th className="py-3.5 px-5">Descripción / Concepto</th>
-                <th className="py-3.5 px-5 text-center">Método de Pago</th>
-                <th className="py-3.5 px-5 text-right font-tnum">Monto ($ USD)</th>
+                <th className="w-2/12 py-3 px-4">Fecha</th>
+                <th className="w-3/12 py-3 px-4">Proveedor / Beneficiario</th>
+                <th className="w-2/12 py-3 px-4">Categoría</th>
+                <th className="w-3/12 py-3 px-4">Descripción / Concepto</th>
+                <th className="w-1/12 py-3 px-4 text-center">Método de Pago</th>
+                <th className="w-1/12 py-3 px-4 text-right font-mono font-bold">Monto ($ USD)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -158,20 +158,20 @@ export function ExpensesManager() {
               ) : (
                 filteredExpenses.map((exp) => (
                   <tr key={exp.id} className="hover:bg-[#f8f9ff] transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-[11px] text-[#737686]">{exp.expenseDate}</td>
-                    <td className="py-3.5 px-5 font-bold text-[#0b1c30]">{exp.supplierName}</td>
-                    <td className="py-3.5 px-5">
+                    <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">{exp.expenseDate}</td>
+                    <td className="py-3 px-4 font-bold text-[#0b1c30] truncate">{exp.supplierName}</td>
+                    <td className="py-3 px-4">
                       <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] border border-[#dce9ff] text-[#004ac6]">
                         {exp.category.replace("_", " ")}
                       </span>
                     </td>
-                    <td className="py-3.5 px-5 text-[#434655] max-w-sm">{exp.description}</td>
-                    <td className="py-3.5 px-5 text-center">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <td className="py-3 px-4 text-[#434655] truncate">{exp.description}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                         {exp.paymentMethod || "Transferencia"}
                       </span>
                     </td>
-                    <td className="py-3.5 px-5 text-right font-mono font-bold text-[#ef4444] text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-[#ef4444] whitespace-nowrap">
                       ${exp.amount.toFixed(2)} USD
                     </td>
                   </tr>
@@ -184,7 +184,7 @@ export function ExpensesManager() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Gasto de Operación</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">

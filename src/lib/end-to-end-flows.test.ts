@@ -1494,6 +1494,109 @@ test("Flujo E2E 26: Estandarización Global de Diseño UI/UX Fase 3 (Tablas Maes
   );
 });
 
+test("Flujo E2E 27: Validación Clean Enterprise Fase 4 en Finanzas y Modales de Emisión Detallada SRI", () => {
+  const rootDir = process.cwd();
+
+  // 1. FinanceDashboard.tsx
+  const finDashPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const finDashContent = fs.readFileSync(finDashPath, "utf8");
+  assert.ok(
+    finDashContent.includes("table-fixed w-full text-left text-xs border-collapse") &&
+      finDashContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "FinanceDashboard debe utilizar table-fixed y thead corporativo"
+  );
+  assert.ok(!finDashContent.includes("rounded-2xl"), "FinanceDashboard no debe tener rounded-2xl");
+
+  // 2. BankAccountsTab.tsx
+  const bankTabPath = path.resolve(rootDir, "src/components/modules/finance/BankAccountsTab.tsx");
+  const bankTabContent = fs.readFileSync(bankTabPath, "utf8");
+  assert.ok(!bankTabContent.includes("rounded-2xl"), "BankAccountsTab no debe tener rounded-2xl");
+  assert.ok(bankTabContent.includes("rounded-xl"), "BankAccountsTab debe usar rounded-xl moderado");
+
+  // 3. AccountsReceivableTab & AccountsPayableTab
+  const cxcPath = path.resolve(rootDir, "src/components/modules/finance/AccountsReceivableTab.tsx");
+  const cxcContent = fs.readFileSync(cxcPath, "utf8");
+  assert.ok(
+    cxcContent.includes("table-fixed") && cxcContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "AccountsReceivableTab debe usar table-fixed y cabecera corporativa"
+  );
+  assert.ok(!cxcContent.includes("rounded-2xl"), "AccountsReceivableTab no debe tener rounded-2xl");
+
+  const cxpPath = path.resolve(rootDir, "src/components/modules/finance/AccountsPayableTab.tsx");
+  const cxpContent = fs.readFileSync(cxpPath, "utf8");
+  assert.ok(
+    cxpContent.includes("table-fixed") && cxpContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "AccountsPayableTab debe usar table-fixed y cabecera corporativa"
+  );
+  assert.ok(!cxpContent.includes("rounded-2xl"), "AccountsPayableTab no debe tener rounded-2xl");
+
+  // 4. MovementsTab & ExpensesManager
+  const movPath = path.resolve(rootDir, "src/components/modules/finance/MovementsTab.tsx");
+  const movContent = fs.readFileSync(movPath, "utf8");
+  assert.ok(
+    movContent.includes("table-fixed") && movContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "MovementsTab debe implementar table-fixed y cabecera corporativa"
+  );
+  assert.ok(!movContent.includes("rounded-2xl"), "MovementsTab no debe tener rounded-2xl");
+
+  const expPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
+  const expContent = fs.readFileSync(expPath, "utf8");
+  assert.ok(
+    expContent.includes("table-fixed") && expContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "ExpensesManager debe implementar table-fixed y thead corporativo"
+  );
+  assert.ok(!expContent.includes("rounded-2xl"), "ExpensesManager no debe tener rounded-2xl");
+
+  // 5. Billing Modals (CreditNote, DebitNote, NewSaleModal, BillingQuoteModal, RemissionGuide, Withholding, EditSale, SriConfig)
+  const ncPath = path.resolve(rootDir, "src/components/modules/billing/CreditNoteModal.tsx");
+  const ncContent = fs.readFileSync(ncPath, "utf8");
+  assert.ok(
+    ncContent.includes("table-fixed") && ncContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "CreditNoteModal debe implementar table-fixed y thead corporativo"
+  );
+  assert.ok(!ncContent.includes("rounded-2xl") && !ncContent.includes("rounded-3xl"), "CreditNoteModal no debe tener rounded-2xl/3xl");
+
+  const ndPath = path.resolve(rootDir, "src/components/modules/billing/DebitNoteModal.tsx");
+  const ndContent = fs.readFileSync(ndPath, "utf8");
+  assert.ok(!ndContent.includes("rounded-2xl") && !ndContent.includes("rounded-3xl"), "DebitNoteModal no debe tener rounded-2xl/3xl");
+
+  const newSaleModalPath = path.resolve(rootDir, "src/components/modules/billing/NewSaleModal.tsx");
+  const newSaleModalContent = fs.readFileSync(newSaleModalPath, "utf8");
+  assert.ok(!newSaleModalContent.includes("rounded-2xl") && !newSaleModalContent.includes("rounded-3xl"), "NewSaleModal no debe tener rounded-2xl/3xl");
+
+  const quoteModalPath = path.resolve(rootDir, "src/components/modules/billing/BillingQuoteModal.tsx");
+  const quoteModalContent = fs.readFileSync(quoteModalPath, "utf8");
+  assert.ok(!quoteModalContent.includes("rounded-2xl") && !quoteModalContent.includes("rounded-3xl"), "BillingQuoteModal no debe tener rounded-2xl/3xl");
+
+  const guiaPath = path.resolve(rootDir, "src/components/modules/billing/RemissionGuideModal.tsx");
+  const guiaContent = fs.readFileSync(guiaPath, "utf8");
+  assert.ok(
+    guiaContent.includes("table-fixed") && guiaContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "RemissionGuideModal debe implementar table-fixed y thead corporativo"
+  );
+  assert.ok(!guiaContent.includes("rounded-2xl") && !guiaContent.includes("rounded-3xl"), "RemissionGuideModal no debe tener rounded-2xl/3xl");
+
+  const retPath = path.resolve(rootDir, "src/components/modules/billing/WithholdingModal.tsx");
+  const retContent = fs.readFileSync(retPath, "utf8");
+  assert.ok(!retContent.includes("rounded-[6px]") && !retContent.includes("rounded-2xl"), "WithholdingModal no debe tener rounded-[6px] ni rounded-2xl");
+
+  const editSalePath = path.resolve(rootDir, "src/components/modules/billing/EditSaleModal.tsx");
+  const editSaleContent = fs.readFileSync(editSalePath, "utf8");
+  assert.ok(!editSaleContent.includes("rounded-[8px]") && !editSaleContent.includes("rounded-2xl"), "EditSaleModal no debe tener rounded-[8px] ni rounded-2xl");
+
+  const sriConfigPath = path.resolve(rootDir, "src/components/modules/billing/SriConfigModal.tsx");
+  const sriConfigContent = fs.readFileSync(sriConfigPath, "utf8");
+  assert.ok(!sriConfigContent.includes("rounded-[6px]") && !sriConfigContent.includes("rounded-2xl"), "SriConfigModal no debe tener rounded-[6px] ni rounded-2xl");
+
+  const recurringPath = path.resolve(rootDir, "src/components/modules/billing/RecurringBillingView.tsx");
+  const recurringContent = fs.readFileSync(recurringPath, "utf8");
+  assert.ok(
+    recurringContent.includes("table-fixed") && recurringContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
+    "RecurringBillingView debe implementar table-fixed y thead corporativo"
+  );
+  assert.ok(!recurringContent.includes("rounded-2xl"), "RecurringBillingView no debe tener rounded-2xl");
+});
+
 
 
 

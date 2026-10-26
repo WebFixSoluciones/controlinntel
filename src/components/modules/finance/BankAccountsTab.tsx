@@ -231,7 +231,7 @@ export function BankAccountsTab() {
 
       {/* Grid of Bank Accounts */}
       {bankAccounts.length === 0 ? (
-        <div className="p-10 text-center bg-white rounded-2xl border border-dashed border-[#cbd5e1] space-y-3">
+        <div className="p-10 text-center bg-white rounded-xl border border-dashed border-[#cbd5e1] space-y-3">
           <Building2 className="w-10 h-10 text-slate-300 mx-auto" />
           <h4 className="font-bold text-slate-800 text-sm">No hay cuentas bancarias registradas</h4>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -240,7 +240,7 @@ export function BankAccountsTab() {
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Crear Primera Cuenta</span>
@@ -255,7 +255,7 @@ export function BankAccountsTab() {
             return (
               <div
                 key={account.id}
-                className={`p-5 bg-white rounded-2xl border transition-all flex flex-col justify-between ${
+                className={`p-5 bg-white rounded-xl border transition-all flex flex-col justify-between ${
                   isActive
                     ? "border-[#e2e8f0] shadow-2xs hover:shadow-md"
                     : "border-slate-200/70 opacity-75 bg-slate-50/50"
@@ -264,7 +264,7 @@ export function BankAccountsTab() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div
-                      className={`p-2.5 rounded-xl ${
+                      className={`p-2.5 rounded-lg ${
                         isCash ? "bg-[#fffbeb] text-[#b45309]" : "bg-[#eff4ff] text-[#004ac6]"
                       }`}
                     >
@@ -273,7 +273,7 @@ export function BankAccountsTab() {
 
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase ${
                           isActive
                             ? "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
                             : "bg-slate-100 text-slate-500 border-slate-300"
@@ -460,7 +460,7 @@ export function BankAccountsTab() {
                 >
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName} (${b.currentBalance.toFixed(2)})
+                      {b.bankName} • ${b.currentBalance.toFixed(2)}
                     </option>
                   ))}
                 </select>
@@ -477,7 +477,7 @@ export function BankAccountsTab() {
                 >
                   {bankAccounts.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName} (${b.currentBalance.toFixed(2)})
+                      {b.bankName} • ${b.currentBalance.toFixed(2)}
                     </option>
                   ))}
                 </select>

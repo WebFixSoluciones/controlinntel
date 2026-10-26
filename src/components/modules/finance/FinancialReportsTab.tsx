@@ -63,7 +63,7 @@ export function FinancialReportsTab() {
   return (
     <div className="space-y-5">
       {/* Encabezado y Exportar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-[#004ac6]" />
           <h2 className="text-sm font-bold text-slate-900">Resumen Financiero</h2>
@@ -81,7 +81,7 @@ export function FinancialReportsTab() {
       {/* 3 Tarjetas de Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Ingresos vs Egresos */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-4">
+        <div className="p-5 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4">
           <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-[#004ac6]" />
             Ingresos vs Egresos
@@ -115,7 +115,7 @@ export function FinancialReportsTab() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+            <div className="pt-3 border-t border-[#e2e8f0] flex justify-between items-center">
               <span className="text-xs font-bold text-slate-900">Saldo Neto:</span>
               <span className={`text-base font-mono font-bold ${flujoNeto >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                 {flujoNeto >= 0 ? "+" : "-"}${Math.abs(flujoNeto).toFixed(2)}
@@ -125,7 +125,7 @@ export function FinancialReportsTab() {
         </div>
 
         {/* Gastos por Categoría */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-4">
+        <div className="p-5 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4">
           <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2">
             <PieChart className="w-4 h-4 text-[#004ac6]" />
             Gastos por Categoría
@@ -152,7 +152,7 @@ export function FinancialReportsTab() {
         </div>
 
         {/* Saldos en Bancos */}
-        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-4">
+        <div className="p-5 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4">
           <h3 className="text-xs font-bold text-slate-700 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
             Saldos en Bancos

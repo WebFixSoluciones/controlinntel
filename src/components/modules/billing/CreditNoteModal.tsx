@@ -150,22 +150,25 @@ export function CreditNoteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#004ac6] text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-400">
-              <RotateCcw className="w-5 h-5 text-rose-400" />
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
+              <RotateCcw className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">
-                Nueva Nota de Crédito
+              <h2 className="text-base font-bold text-white leading-tight">
+                Nueva Nota de Crédito SRI • 04
               </h2>
+              <p className="text-xs text-blue-100">
+                Emisión de comprobante tributario de modificación / anulación ante el SRI
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -174,22 +177,22 @@ export function CreditNoteModal({
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Fila 1: Factura Electrónica que Modifica */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Factura Electrónica que Modifica (01):
+                Factura Electrónica que Modifica • 01:
               </label>
               <select
                 value={selectedInvoiceId}
                 onChange={(e) => handleInvoiceChange(e.target.value)}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900"
+                className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2.5 bg-white text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
               >
                 {sriInvoices.map((inv) => (
                   <option key={inv.id} value={inv.id}>
@@ -204,9 +207,9 @@ export function CreditNoteModal({
               )}
             </div>
 
-            <div className="flex flex-col justify-center bg-blue-50/70 p-3 rounded-xl border border-blue-200/80 text-[11px] text-slate-700">
+            <div className="flex flex-col justify-center bg-white p-3 rounded-lg border border-[#e2e8f0] text-[11px] text-slate-700">
               <span className="font-bold text-[#004ac6] block mb-0.5">
-                Comprobante Tributario SRI (Cod. 04)
+                Comprobante Tributario SRI • 04
               </span>
               <span>
                 Modifica o anula tributariamente la Factura Electrónica ante el SRI. No altera el inventario ni los movimientos bancarios del módulo comercial.
@@ -222,7 +225,7 @@ export function CreditNoteModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-lg border border-[#e2e8f0] p-2.5 bg-white focus:outline-hidden focus:border-[#004ac6]"
                 placeholder="Ej. Anulación o descuento sobre Factura Electrónica..."
               />
             </div>
@@ -231,28 +234,28 @@ export function CreditNoteModal({
           {/* Fila 2: Ítems a Devolver */}
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-              <Package className="w-4 h-4 text-rose-600" />
+              <Package className="w-4 h-4 text-[#004ac6]" />
               Ítems a Devolver / Descontar
             </h3>
 
-            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
-              <table className="w-full text-left border-collapse text-xs">
+            <div className="rounded-xl border border-[#e2e8f0] overflow-hidden bg-white shadow-2xs">
+              <table className="table-fixed w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                    <th className="py-2.5 px-3">Producto / Servicio</th>
-                    <th className="py-2.5 px-2 text-center w-20">Cant. Devuelta</th>
-                    <th className="py-2.5 px-3 text-right w-24">Precio ($)</th>
-                    <th className="py-2.5 px-2 text-center w-20">IVA</th>
-                    <th className="py-2.5 px-3 text-right w-24">Total ($)</th>
+                  <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                    <th className="py-2.5 px-3 w-5/12">Producto / Servicio</th>
+                    <th className="py-2.5 px-2 text-center w-2/12">Cant. Devuelta</th>
+                    <th className="py-2.5 px-3 text-right w-2/12">Precio ($)</th>
+                    <th className="py-2.5 px-2 text-center w-1/12">IVA</th>
+                    <th className="py-2.5 px-3 text-right w-2/12">Total ($)</th>
                     <th className="py-2.5 px-2 text-center w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {items.map((it) => (
-                    <tr key={it.id} className="hover:bg-slate-50/50">
-                      <td className="py-2 px-3">
-                        <p className="font-bold text-slate-900">{it.name}</p>
-                        <p className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</p>
+                    <tr key={it.id} className="hover:bg-[#f8f9ff] transition-colors">
+                      <td className="py-2 px-3 truncate">
+                        <p className="font-bold text-slate-900 truncate">{it.name}</p>
+                        <p className="text-[10px] text-slate-500 font-mono truncate">SKU: {it.sku}</p>
                       </td>
                       <td className="py-2 px-2 text-center">
                         <input
@@ -260,11 +263,11 @@ export function CreditNoteModal({
                           min="1"
                           value={it.quantity}
                           onChange={(e) => handleUpdateQuantity(it.id, parseFloat(e.target.value) || 1)}
-                          className="w-16 text-center text-xs font-bold rounded-lg border border-slate-300 p-1"
+                          className="w-16 text-center text-xs font-bold rounded-md border border-[#e2e8f0] p-1 bg-white"
                         />
                       </td>
-                      <td className="py-2 px-3 text-right font-mono">${it.unitPrice.toFixed(2)}</td>
-                      <td className="py-2 px-2 text-center font-bold">{it.ivaRate}%</td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-700">${it.unitPrice.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-center font-bold text-slate-700">{it.ivaRate}%</td>
                       <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
                         ${it.total.toFixed(2)}
                       </td>
@@ -272,7 +275,7 @@ export function CreditNoteModal({
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(it.id)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -285,7 +288,7 @@ export function CreditNoteModal({
           </div>
 
           {/* Resumen */}
-          <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2">
+          <div className="p-4 rounded-xl bg-slate-900 text-white space-y-2">
             <div className="flex justify-between text-xs text-slate-300">
               <span>Subtotal 15%:</span>
               <span className="font-mono">${subtotal15.toFixed(2)}</span>
@@ -305,11 +308,11 @@ export function CreditNoteModal({
           </div>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="pt-4 border-t border-[#e2e8f0] flex items-center justify-between">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               Cancelar
             </button>
@@ -317,7 +320,7 @@ export function CreditNoteModal({
             <button
               type="submit"
               disabled={isSubmitting || items.length === 0}
-              className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2"
+              className="px-6 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Emitir Nota de Crédito SRI</span>

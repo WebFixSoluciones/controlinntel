@@ -259,7 +259,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
   return (
     <div className="w-full space-y-5">
       {/* Selector Simple: Cobros vs Gastos + Resumen Compacto */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -267,7 +267,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeFinanceTab === "ingresos"
                 ? "bg-[#004ac6] text-white shadow-xs"
-                : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200"
+                : "bg-[#f8f9ff] text-slate-700 hover:bg-slate-100 border border-[#e2e8f0]"
             }`}
           >
             <DollarSign className="w-4 h-4" />
@@ -280,7 +280,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeFinanceTab === "gastos"
                 ? "bg-[#004ac6] text-white shadow-xs"
-                : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200"
+                : "bg-[#f8f9ff] text-slate-700 hover:bg-slate-100 border border-[#e2e8f0]"
             }`}
           >
             <Receipt className="w-4 h-4" />
@@ -302,7 +302,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
             <span className="text-slate-500 mr-1.5">Gastos:</span>
             <span className="font-mono font-bold text-rose-600">${totalExpenses.toFixed(2)}</span>
           </div>
-          <div className="pl-4 border-l border-slate-200 flex items-center gap-1.5">
+          <div className="pl-4 border-l border-[#e2e8f0] flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-[#004ac6]" />
             <span className="text-slate-600 font-semibold">Saldo Neto:</span>
             <span className={`font-mono font-black ${netBalance >= 0 ? "text-[#004ac6]" : "text-rose-600"}`}>
@@ -314,8 +314,8 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       {/* VISTA 1: COBROS DE CLIENTES */}
       {activeFinanceTab === "ingresos" && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="p-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#fcfdff]">
             <div className="flex flex-wrap items-center gap-2.5 flex-1">
               <div className="relative min-w-[220px]">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -324,7 +324,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   placeholder="Buscar cliente, RUC o comprobante..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 text-xs text-slate-900 rounded-lg pl-8 pr-3 py-1.5 border border-slate-200 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="w-full bg-[#f8f9ff] text-xs text-slate-900 rounded-lg pl-8 pr-3 py-1.5 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
@@ -334,7 +334,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800"
+                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
@@ -344,14 +344,14 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800"
+                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700"
+                className="px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-slate-700 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="todos">Todos los Estados</option>
                 <option value="pendiente">Pendientes</option>
@@ -377,7 +377,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
             <button
               type="button"
               onClick={handleExportBatch}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
               <span>Exportar Excel</span>
@@ -385,18 +385,18 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-[11px] text-slate-600 border-b border-slate-200 font-bold">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Servicio / Concepto</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                  <th className="py-3 px-4 text-right">Saldo</th>
-                  <th className="py-3 px-4 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acción</th>
+                  <th className="w-3/12 py-3 px-4">Cliente</th>
+                  <th className="w-3/12 py-3 px-4">Servicio / Concepto</th>
+                  <th className="w-1/12 py-3 px-4 text-right">Total</th>
+                  <th className="w-1/12 py-3 px-4 text-right">Saldo</th>
+                  <th className="w-2/12 py-3 px-4 text-center">Estado</th>
+                  <th className="w-2/12 py-3 px-4 text-right">Acción</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredCharges.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-slate-400">
@@ -414,16 +414,16 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                         : charge.total;
 
                     return (
-                      <tr key={charge.id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr key={charge.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block">{charge.clientName}</span>
+                          <span className="font-bold text-slate-900 block truncate">{charge.clientName}</span>
                           <span className="text-[11px] font-mono text-slate-500">
                             {charge.clientRuc} · #{charge.invoiceNumber}
                           </span>
                         </td>
 
                         <td className="py-3 px-4">
-                          <span className="text-slate-800 block">{charge.serviceDescription}</span>
+                          <span className="text-slate-800 block truncate">{charge.serviceDescription}</span>
                           {charge.maxPaymentDate && !isPaid && (
                             <span className="text-[10px] text-amber-700 font-semibold">
                               Vence: {charge.maxPaymentDate}
@@ -456,7 +456,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                             <div className="text-[11px] font-mono text-slate-500">
                               <span>{charge.paymentDate?.slice(0, 10) || "Pagado"}</span>
                               {charge.paymentReference && (
-                                <span className="block text-[10px] text-emerald-700 font-semibold">
+                                <span className="block text-[10px] text-emerald-700 font-semibold truncate">
                                   Ref: {charge.paymentReference}
                                 </span>
                               )}
@@ -465,7 +465,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                             <button
                               type="button"
                               onClick={() => openPaymentModal(charge)}
-                              className="px-3 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg font-bold text-xs transition cursor-pointer"
+                              className="px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold text-xs transition cursor-pointer shadow-xs"
                             >
                               Registrar Cobro
                             </button>
@@ -483,8 +483,8 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
       {/* VISTA 2: GASTOS */}
       {activeFinanceTab === "gastos" && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="p-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#fcfdff]">
             <div className="flex flex-wrap items-center gap-2.5 flex-1">
               <div className="relative min-w-[200px]">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -493,7 +493,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   placeholder="Buscar proveedor o concepto..."
                   value={expenseSearchQuery}
                   onChange={(e) => setExpenseSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 rounded-lg pl-8 pr-3 py-1.5 border border-slate-200 text-xs focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="w-full bg-[#f8f9ff] rounded-lg pl-8 pr-3 py-1.5 border border-[#e2e8f0] text-xs focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
@@ -503,7 +503,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   type="date"
                   value={expenseStartDate}
                   onChange={(e) => setExpenseStartDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800"
+                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
@@ -513,14 +513,14 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   type="date"
                   value={expenseEndDate}
                   onChange={(e) => setExpenseEndDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800"
+                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
               <select
                 value={expenseCategoryFilter}
                 onChange={(e) => setExpenseCategoryFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700"
+                className="px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-slate-700 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="todas">Todas las Categorías</option>
                 {EXPENSE_CATEGORIES.map((c) => (
@@ -553,7 +553,7 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                 setIsExpenseModalOpen(true);
                 if (onOpenNewExpense) onOpenNewExpense();
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nuevo Gasto</span>
@@ -561,18 +561,18 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-[11px] text-slate-600 border-b border-slate-200 font-bold">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Proveedor / Beneficiario</th>
-                  <th className="py-3 px-4">Categoría</th>
-                  <th className="py-3 px-4">Concepto</th>
-                  <th className="py-3 px-4">Forma de Pago</th>
-                  <th className="py-3 px-4 text-right">Monto ($)</th>
+                  <th className="w-2/12 py-3 px-4">Fecha</th>
+                  <th className="w-3/12 py-3 px-4">Proveedor / Beneficiario</th>
+                  <th className="w-2/12 py-3 px-4">Categoría</th>
+                  <th className="w-2/12 py-3 px-4">Concepto</th>
+                  <th className="w-1/12 py-3 px-4">Forma de Pago</th>
+                  <th className="w-2/12 py-3 px-4 text-right">Monto ($)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredExpenses.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-10 text-center text-slate-400">
@@ -581,16 +581,16 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                   </tr>
                 ) : (
                   filteredExpenses.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={exp.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3 px-4 font-mono text-slate-600">{exp.expenseDate}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{exp.supplierName}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 truncate">{exp.supplierName}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                           {formatFinanceCategory(exp.category)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-700">{exp.description}</td>
-                      <td className="py-3 px-4 capitalize text-slate-600">
+                      <td className="py-3 px-4 text-slate-700 truncate">{exp.description}</td>
+                      <td className="py-3 px-4 capitalize text-slate-600 truncate">
                         {exp.paymentMethod.replace(/_/g, " ")}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">

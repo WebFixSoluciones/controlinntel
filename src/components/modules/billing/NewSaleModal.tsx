@@ -327,22 +327,22 @@ export function NewSaleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 overflow-y-auto">
-      <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Cabecera */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#004ac6] text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#004ac6] flex items-center justify-center text-white shadow-md">
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">
+              <h2 className="text-base font-bold text-white">
                 Nueva Factura
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -351,7 +351,7 @@ export function NewSaleModal({
         {/* Contenido scrolleable */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {errorMsg && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMsg}</span>
             </div>
@@ -360,17 +360,17 @@ export function NewSaleModal({
           {/* Fila 1: Cliente & Bodega de Despacho */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             {/* Sección Cliente */}
-            <div className="md:col-span-8 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="md:col-span-8 p-4 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-[#004ac6]" />
                   Comprador / Cliente
                 </span>
-                <div className="flex bg-slate-200/80 p-0.5 rounded-xl text-xs font-medium">
+                <div className="flex bg-slate-200/80 p-0.5 rounded-lg text-xs font-medium">
                   <button
                     type="button"
                     onClick={() => setClientMode("registered")}
-                    className={`px-3 py-1 rounded-lg transition ${
+                    className={`px-3 py-1 rounded-md transition cursor-pointer ${
                       clientMode === "registered"
                         ? "bg-white text-slate-900 shadow-2xs font-bold"
                         : "text-slate-600 hover:text-slate-900"
@@ -453,14 +453,14 @@ export function NewSaleModal({
                     placeholder="Teléfono"
                     value={customClientPhone}
                     onChange={(e) => setCustomClientPhone(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-white"
+                    className="w-full text-xs rounded-lg border border-[#e2e8f0] p-2.5 bg-white"
                   />
                 </div>
               )}
             </div>
 
             {/* Sección Bodega de Despacho & Pago */}
-            <div className="md:col-span-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="md:col-span-4 p-4 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] space-y-3">
               <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-[#004ac6]" />
                 Bodega & Pago
@@ -471,11 +471,11 @@ export function NewSaleModal({
                 <select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2 bg-white text-slate-900"
+                  className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2 bg-white text-slate-900"
                 >
                   {inventoryWarehouses.map((w) => (
                     <option key={w.id} value={w.id}>
-                      {w.name} ({w.code})
+                      {w.name} • {w.code}
                     </option>
                   ))}
                 </select>
@@ -558,10 +558,10 @@ export function NewSaleModal({
             </div>
 
             {/* Tabla de Carrito */}
-            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-2xs">
+            <div className="rounded-lg border border-[#e2e8f0] overflow-hidden bg-white shadow-2xs">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                  <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                     <th className="py-2.5 px-3">Producto / Servicio</th>
                     <th className="py-2.5 px-2 text-center w-20">Cant.</th>
                     <th className="py-2.5 px-2 text-right w-24">Precio ($)</th>
@@ -571,7 +571,7 @@ export function NewSaleModal({
                     <th className="py-2.5 px-2 text-center w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {items.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-slate-400">
@@ -580,7 +580,7 @@ export function NewSaleModal({
                     </tr>
                   ) : (
                     items.map((it) => (
-                      <tr key={it.id} className="hover:bg-slate-50/50">
+                      <tr key={it.id} className="hover:bg-[#f8f9ff]">
                         <td className="py-2 px-3">
                           <p className="font-bold text-slate-900">{it.name}</p>
                           <p className="text-[10px] text-slate-500 font-mono">SKU: {it.sku}</p>
@@ -619,7 +619,7 @@ export function NewSaleModal({
                           <select
                             value={it.ivaRate}
                             onChange={(e) => handleUpdateIvaRate(it.id, parseInt(e.target.value, 10))}
-                            className="text-xs font-bold rounded-lg border border-slate-300 p-1 bg-white"
+                            className="text-xs font-bold rounded-lg border border-slate-300 p-1 bg-white cursor-pointer"
                           >
                             <option value={15}>15%</option>
                             <option value={0}>0%</option>
@@ -632,7 +632,7 @@ export function NewSaleModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(it.id)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -654,11 +654,11 @@ export function NewSaleModal({
                 placeholder="Observaciones adicionales, datos de despacho o guías..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white transition"
+                className="w-full text-xs rounded-lg border border-[#e2e8f0] p-2.5 bg-slate-50 focus:bg-white transition"
               />
             </div>
 
-            <div className="md:col-span-5 p-4 rounded-2xl bg-slate-900 text-white space-y-2 shadow-md">
+            <div className="md:col-span-5 p-4 rounded-lg bg-slate-900 text-white space-y-2 shadow-md">
               <div className="flex justify-between text-xs text-slate-300">
                 <span>Subtotal 15%:</span>
                 <span className="font-mono">${subtotal15.toFixed(2)}</span>
@@ -689,7 +689,7 @@ export function NewSaleModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               Cancelar
             </button>
@@ -697,7 +697,7 @@ export function NewSaleModal({
             <button
               type="submit"
               disabled={isSubmitting || items.length === 0}
-              className="px-6 py-2.5 rounded-xl bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2"
+              className="px-6 py-2.5 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -707,7 +707,7 @@ export function NewSaleModal({
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Registrar Venta (SRI)</span>
+                  <span>Registrar Venta • SRI</span>
                 </>
               )}
             </button>

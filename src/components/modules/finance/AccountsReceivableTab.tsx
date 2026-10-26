@@ -94,7 +94,7 @@ export function AccountsReceivableTab() {
     <div className="space-y-5">
       {/* 3 Tarjetas Directas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
           <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
             <span>Total por Cobrar</span>
             <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
@@ -106,7 +106,7 @@ export function AccountsReceivableTab() {
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
           <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
             <span>Total Cobrado</span>
             <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
@@ -118,7 +118,7 @@ export function AccountsReceivableTab() {
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
           <div className="flex items-center justify-between text-slate-600 text-xs font-semibold">
             <span>Total Emitido</span>
             <div className="p-1.5 bg-blue-50 text-[#004ac6] rounded-lg">
@@ -132,7 +132,7 @@ export function AccountsReceivableTab() {
       </div>
 
       {/* Búsqueda y Filtro */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -140,14 +140,14 @@ export function AccountsReceivableTab() {
             placeholder="Buscar cliente, RUC o N° comprobante..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+            className="w-full pl-9 pr-3 py-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
           />
         </div>
 
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"
+          className="px-3 py-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-semibold text-slate-700 focus:bg-white focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
         >
           <option value="todos">Todos los Estados</option>
           <option value="pendiente">Pendientes</option>
@@ -156,21 +156,21 @@ export function AccountsReceivableTab() {
       </div>
 
       {/* Tabla */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold text-[11px]">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th className="py-3 px-4">Comprobante</th>
-              <th className="py-3 px-4">Cliente</th>
-              <th className="py-3 px-4">Servicio</th>
-              <th className="py-3 px-4 text-center">Periodo</th>
-              <th className="py-3 px-4 text-right">Total</th>
-              <th className="py-3 px-4 text-right">Saldo</th>
-              <th className="py-3 px-4 text-center">Estado</th>
-              <th className="py-3 px-4 text-center">Acción</th>
+              <th className="w-2/12 py-3 px-4">Comprobante</th>
+              <th className="w-3/12 py-3 px-4">Cliente</th>
+              <th className="w-2/12 py-3 px-4">Servicio</th>
+              <th className="w-1/12 py-3 px-4 text-center">Periodo</th>
+              <th className="w-1/12 py-3 px-4 text-right">Total</th>
+              <th className="w-1/12 py-3 px-4 text-right">Saldo</th>
+              <th className="w-1/12 py-3 px-4 text-center">Estado</th>
+              <th className="w-1/12 py-3 px-4 text-center">Acción</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[#f1f5f9]">
             {filteredCharges.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-10 text-center text-xs text-slate-400">
@@ -183,14 +183,14 @@ export function AccountsReceivableTab() {
                 const balance = c.balanceRemaining !== undefined ? c.balanceRemaining : isPaid ? 0 : c.total;
 
                 return (
-                  <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{c.invoiceNumber}</td>
                     <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900">{c.clientName}</div>
+                      <div className="font-bold text-slate-900 truncate">{c.clientName}</div>
                       <div className="text-[11px] font-mono text-slate-500">{c.clientRuc}</div>
                     </td>
-                    <td className="py-3 px-4 text-slate-700">{c.serviceDescription}</td>
-                    <td className="py-3 px-4 text-center text-slate-500">
+                    <td className="py-3 px-4 text-slate-700 truncate">{c.serviceDescription}</td>
+                    <td className="py-3 px-4 text-center text-slate-500 font-mono">
                       {c.month}/{c.year}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-700">

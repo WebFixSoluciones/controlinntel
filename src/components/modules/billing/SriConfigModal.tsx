@@ -159,22 +159,25 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-auto max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#004ac6] text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[6px] bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
-              <Settings className="w-5 h-5 text-sky-400" />
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
+              <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-black text-white">
+              <h2 className="text-base font-bold text-white leading-tight">
                 Configuración SRI
               </h2>
+              <p className="text-xs text-blue-100">
+                Parámetros de facturación electrónica, credenciales de firma y puntos de emisión
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-[6px] text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -183,7 +186,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
         {/* Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
           {successMsg && (
-            <div className="p-3.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+            <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>Configuración SRI y secuencias guardadas con éxito.</span>
             </div>
@@ -199,18 +202,18 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
           />
 
           {/* 1. SECCIÓN DE FIRMA ELECTRÓNICA */}
-          <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#e2e8f0]">
               <div className="flex items-center gap-2 font-bold text-slate-800">
                 <Key className="w-4 h-4 text-[#004ac6]" />
                 <span>Certificado de Firma Electrónica (.p12 / .pfx)</span>
               </div>
               {form.certificadoCargado && form.certificadoNombre ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                   FIRMA VINCULADA
                 </span>
               ) : (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                   SIN FIRMA CARGADA
                 </span>
               )}
@@ -219,7 +222,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             {!form.certificadoCargado || !form.certificadoNombre ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="p-6 border-2 border-dashed border-[#bfdbfe] hover:border-[#004ac6] bg-white rounded-[6px] text-center cursor-pointer transition-all space-y-2"
+                className="p-6 border-2 border-dashed border-[#bfdbfe] hover:border-[#004ac6] bg-white rounded-lg text-center cursor-pointer transition-all space-y-2"
               >
                 <Upload className="w-6 h-6 text-[#004ac6] mx-auto" />
                 <p className="font-bold text-slate-800">
@@ -231,7 +234,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-[6px] border border-slate-200">
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-[#e2e8f0]">
                   <div className="flex items-center gap-2 font-mono text-slate-800">
                     <FileCode2 className="w-4 h-4 text-emerald-600" />
                     <span className="font-bold">{form.certificadoNombre}</span>
@@ -240,14 +243,14 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-[4px] text-[11px] font-semibold text-slate-700 transition cursor-pointer"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-md text-[11px] font-bold text-slate-700 transition cursor-pointer"
                     >
                       Reemplazar
                     </button>
                     <button
                       type="button"
                       onClick={handleRemoveCertificate}
-                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 rounded-[4px] text-[11px] font-semibold text-rose-700 transition cursor-pointer"
+                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 rounded-md text-[11px] font-bold text-rose-700 transition cursor-pointer"
                     >
                       Quitar
                     </button>
@@ -265,7 +268,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                         required
                         value={form.certificadoClave || ""}
                         onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
-                        className="w-full rounded-[6px] border border-slate-300 p-2 pr-8 bg-white font-mono"
+                        className="w-full rounded-lg border border-[#e2e8f0] p-2 pr-8 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                         placeholder="Contraseña del P12"
                       />
                       <button
@@ -286,7 +289,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                       type="date"
                       value={form.certificadoVencimiento || ""}
                       onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
-                      className="w-full rounded-[6px] border border-slate-300 p-2 bg-white font-mono font-semibold"
+                      className="w-full rounded-lg border border-[#e2e8f0] p-2 bg-white font-mono font-semibold focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
@@ -295,10 +298,10 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
           </div>
 
           {/* 2. SUCURSAL, PUNTO DE EMISIÓN & SERIE */}
-          <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#e2e8f0]">
               <span className="font-bold text-slate-800">Sucursal (Establecimiento) & Punto de Emisión</span>
-              <span className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">
+              <span className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
                 Serie: {String(form.establecimiento || "010").padStart(3, "0")}-{String(form.puntoEmision || "001").padStart(3, "0")}
               </span>
             </div>
@@ -315,19 +318,19 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                     maxLength={3}
                     value={form.establecimiento}
                     onChange={(e) => setForm({ ...form, establecimiento: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-                    className="w-20 text-center font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-white text-[#004ac6]"
+                    className="w-20 text-center font-mono font-bold rounded-lg border border-[#e2e8f0] p-2 bg-white text-[#004ac6]"
                   />
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, establecimiento: "010" })}
-                    className={`px-2 py-1.5 rounded-[4px] text-[11px] font-bold border ${form.establecimiento === "010" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-slate-300"}`}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition cursor-pointer ${form.establecimiento === "010" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-[#e2e8f0] hover:bg-slate-50"}`}
                   >
                     010 (Sucursal 10)
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, establecimiento: "011" })}
-                    className={`px-2 py-1.5 rounded-[4px] text-[11px] font-bold border ${form.establecimiento === "011" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-slate-300"}`}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition cursor-pointer ${form.establecimiento === "011" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-[#e2e8f0] hover:bg-slate-50"}`}
                   >
                     011 (Sucursal 11)
                   </button>
@@ -345,19 +348,19 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                     maxLength={3}
                     value={form.puntoEmision}
                     onChange={(e) => setForm({ ...form, puntoEmision: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-                    className="w-20 text-center font-mono font-bold rounded-[6px] border border-slate-300 p-2 bg-white text-[#004ac6]"
+                    className="w-20 text-center font-mono font-bold rounded-lg border border-[#e2e8f0] p-2 bg-white text-[#004ac6]"
                   />
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, puntoEmision: "001" })}
-                    className={`px-2 py-1.5 rounded-[4px] text-[11px] font-bold border ${form.puntoEmision === "001" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-slate-300"}`}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition cursor-pointer ${form.puntoEmision === "001" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-[#e2e8f0] hover:bg-slate-50"}`}
                   >
                     001 (Punto Principal)
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, puntoEmision: "002" })}
-                    className={`px-2 py-1.5 rounded-[4px] text-[11px] font-bold border ${form.puntoEmision === "002" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-slate-300"}`}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-bold border transition cursor-pointer ${form.puntoEmision === "002" ? "bg-[#004ac6] text-white border-[#004ac6]" : "bg-white text-slate-700 border-[#e2e8f0] hover:bg-slate-50"}`}
                   >
                     002 (Web)
                   </button>
@@ -367,49 +370,49 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
           </div>
 
           {/* 3. CONTROL DE SECUENCIAS NUMÉRICAS */}
-          <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+          <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#e2e8f0]">
               <span className="font-bold text-slate-800">Secuencias Numéricas de Comprobantes SRI</span>
               <span className="text-[11px] text-slate-500">Consecutivos a generar</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
+              <div className="p-2.5 bg-white rounded-lg border border-[#e2e8f0]">
                 <span className="font-bold text-slate-800 block text-[11px]">Facturas</span>
                 <input
                   type="number"
                   min="1"
                   value={form.secuencialFactura ?? 1}
                   onChange={(e) => setForm({ ...form, secuencialFactura: Math.max(1, parseInt(e.target.value) || 1) })}
-                  className="w-full text-xs font-mono font-bold rounded-[4px] border border-slate-300 p-1.5 my-1"
+                  className="w-full text-xs font-mono font-bold rounded-md border border-[#e2e8f0] p-1.5 my-1"
                 />
                 <span className="font-mono text-[10px] text-[#004ac6] block">
                   {formatearSecuencialSRI(form.secuencialFactura || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </span>
               </div>
 
-              <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
+              <div className="p-2.5 bg-white rounded-lg border border-[#e2e8f0]">
                 <span className="font-bold text-slate-800 block text-[11px]">Notas de Crédito</span>
                 <input
                   type="number"
                   min="1"
                   value={form.secuencialNotaCredito ?? 1}
                   onChange={(e) => setForm({ ...form, secuencialNotaCredito: Math.max(1, parseInt(e.target.value) || 1) })}
-                  className="w-full text-xs font-mono font-bold rounded-[4px] border border-slate-300 p-1.5 my-1"
+                  className="w-full text-xs font-mono font-bold rounded-md border border-[#e2e8f0] p-1.5 my-1"
                 />
                 <span className="font-mono text-[10px] text-[#004ac6] block">
                   {formatearSecuencialSRI(form.secuencialNotaCredito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </span>
               </div>
 
-              <div className="p-2.5 bg-white rounded-[6px] border border-slate-200">
+              <div className="p-2.5 bg-white rounded-lg border border-[#e2e8f0]">
                 <span className="font-bold text-slate-800 block text-[11px]">Retenciones</span>
                 <input
                   type="number"
                   min="1"
                   value={form.secuencialRetencion ?? 1}
                   onChange={(e) => setForm({ ...form, secuencialRetencion: Math.max(1, parseInt(e.target.value) || 1) })}
-                  className="w-full text-xs font-mono font-bold rounded-[4px] border border-slate-300 p-1.5 my-1"
+                  className="w-full text-xs font-mono font-bold rounded-md border border-[#e2e8f0] p-1.5 my-1"
                 />
                 <span className="font-mono text-[10px] text-[#004ac6] block">
                   {formatearSecuencialSRI(form.secuencialRetencion || 1, form.establecimiento || "010", form.puntoEmision || "001")}
@@ -427,7 +430,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.ruc}
                 onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-[6px] border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-mono font-bold rounded-lg border border-[#e2e8f0] p-2.5 bg-white focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
 
@@ -436,7 +439,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               <select
                 value={form.ambiente}
                 onChange={(e) => setForm({ ...form, ambiente: e.target.value as any })}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2.5 bg-white focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="1">Pruebas / Homologación SRI</option>
                 <option value="2">Producción Oficial SRI</option>
@@ -450,7 +453,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2.5 bg-white focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
 
@@ -461,17 +464,17 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 required
                 value={form.direccionMatriz}
                 onChange={(e) => setForm({ ...form, direccionMatriz: e.target.value })}
-                className="w-full text-xs rounded-[6px] border border-slate-300 p-2.5 bg-white"
+                className="w-full text-xs rounded-lg border border-[#e2e8f0] p-2.5 bg-white focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="pt-4 border-t border-[#e2e8f0] flex items-center justify-between">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-[6px] text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
             >
               Cerrar
             </button>
@@ -479,7 +482,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
+              className="px-6 py-2.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isSubmitting ? "Guardando..." : "Guardar Configuración SRI"}</span>
