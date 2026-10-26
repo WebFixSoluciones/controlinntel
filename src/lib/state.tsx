@@ -129,6 +129,7 @@ import {
 import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import { api } from "./api-client";
 import { getEcuadorDate, addMonthsSafely } from "./date-utils";
+import { sanitizeObjectTexts, cleanMojibake } from "./sanitize-text";
 import {
   signUserProfile,
   verifyUserProfileIntegrity,
@@ -427,7 +428,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [clientQuotes, setClientQuotes] = useState<ClientQuoteOrder[]>(INITIAL_QUOTES);
   const [clientVaultItems, setClientVaultItems] = useState<ClientVaultItem[]>(INITIAL_CLIENT_VAULT);
   const [clientContracts, setClientContracts] = useState<ClientContractInfo[]>(INITIAL_CONTRACTS);
-  const [arcotelConcession, setArcotelConcession] = useState<ArcotelConcessionInfo>(INITIAL_CONCESSION_INFO);
+  const [arcotelConcession, setArcotelConcession] = useState<ArcotelConcessionInfo>(() => sanitizeObjectTexts(INITIAL_CONCESSION_INFO));
   const [arcotelFiles, setArcotelFiles] = useState<ArcotelPeriodicFile[]>(INITIAL_ARCOTEL_FILES);
   const [clientDocuments, setClientDocuments] = useState<ClientDocumentFile[]>(INITIAL_CLIENT_DOCUMENTS);
 
@@ -615,7 +616,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
           if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems);
           if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
-          if (p.arcotelConcession) setArcotelConcession(p.arcotelConcession);
+          if (p.arcotelConcession) setArcotelConcession(sanitizeObjectTexts(p.arcotelConcession));
           if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
           if (Array.isArray(p.clientDocuments)) setClientDocuments(p.clientDocuments);
           if (Array.isArray(p.inventoryProducts)) setInventoryProducts(p.inventoryProducts);
@@ -1888,7 +1889,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateArcotelConcession = async (updates: Partial<ArcotelConcessionInfo>) => {
-    setArcotelConcession((prev) => ({ ...prev, ...updates }));
+    setArcotelConcession((prev) => sanitizeObjectTexts({ ...prev, ...updates }));
   };
 
   const addArcotelFile = async (fileData: Omit<ArcotelPeriodicFile, "id" | "uploadedAt">) => {

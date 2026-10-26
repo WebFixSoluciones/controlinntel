@@ -1174,5 +1174,19 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
       !modalContent.includes("Endoso número 3 remitido por QUIPUX"),
     "PolicyModal no debe incluir el campo de Notas u Observaciones"
   );
+
+  // 9. Corrección de caracteres corruptos / mojibake en datos y formulario de concesión ARCOTEL
+  const mockDataPath = path.resolve(rootDir, "src/lib/mock-data.ts");
+  const mockDataContent = fs.readFileSync(mockDataPath, "utf8");
+  assert.ok(
+    !mockDataContent.includes("\u00C3") &&
+      !mockDataContent.includes("Permiso Ãšnico") &&
+      !mockDataContent.includes("NÃºmero de TrÃ¡mite") &&
+      !mockDataContent.includes("ResoluciÃ³n ARCOTEL") &&
+      mockDataContent.includes("Permiso Único para Prestación de Servicios del Régimen General de Telecomunicaciones") &&
+      mockDataContent.includes("Número de Trámite Quipux") &&
+      mockDataContent.includes("Resolución ARCOTEL Matriz"),
+    "mock-data.ts debe contener caracteres limpios en español sin mojibake"
+  );
 });
 

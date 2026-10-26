@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem, Client } from "@/types";
+import { cleanMojibake, sanitizeObjectTexts } from "@/lib/sanitize-text";
 import { PoliciesList } from "./PoliciesList";
 import { PolicyModal } from "./PolicyModal";
 import { ClientTabHeader } from "../clients/ClientTabHeader";
@@ -63,7 +64,12 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   >("sietel_lopam");
 
   // Concession Form State
-  const [concessionForm, setConcessionForm] = useState(arcotelConcession);
+  const [concessionForm, setConcessionForm] = useState(() => sanitizeObjectTexts(arcotelConcession));
+
+  useEffect(() => {
+    setConcessionForm(sanitizeObjectTexts(arcotelConcession));
+  }, [arcotelConcession]);
+
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [isAddingCustomField, setIsAddingCustomField] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
@@ -132,7 +138,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   const handleSaveConcession = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await updateArcotelConcession(concessionForm);
+      await updateArcotelConcession(sanitizeObjectTexts(concessionForm));
       showSuccess("Concesión Actualizada", "Datos del título habilitante ARCOTEL guardados.");
     } catch {
       showError("Error", "No se pudieron guardar los datos.");
@@ -653,7 +659,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                     {concessionForm.additionalFields.map((field) => (
                       <div key={field.id} className="flex items-center gap-2">
                         <div className="flex-1">
-                          <label className="text-[10px] text-[#737686] font-bold block mb-0.5">{field.label}</label>
+                          <label className="text-[10px] text-[#737686] font-bold block mb-0.5">{cleanMojibake(field.label)}</label>
                           <input
                             type="text"
                             value={field.value}
