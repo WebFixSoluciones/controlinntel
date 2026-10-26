@@ -1916,6 +1916,75 @@ test("Flujo E2E 31: Submódulo Bancos Anti-Cuelgue, Cobranzas OPEX y Blindaje In
   assert.ok(fs.existsSync(errorBoundaryPath), "FinanceErrorBoundary.tsx debe existir en components/modules/finance");
 });
 
+test("Flujo E2E 32: Cierre Automático de Seleccionadores al Dar Clic Afuera o Presionar Escape en Ventas y Modales", () => {
+  const rootDir = process.cwd();
+
+  // 1. Nueva Venta / Nueva Nota de Venta (NewSaleView.tsx)
+  const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
+  const newSaleContent = fs.readFileSync(newSalePath, "utf8");
+
+  assert.ok(
+    newSaleContent.includes("clientDropdownRef") &&
+      newSaleContent.includes("productDropdownRef") &&
+      newSaleContent.includes("handleClickOutside") &&
+      newSaleContent.includes("setShowClientDropdown(false)") &&
+      newSaleContent.includes("setShowProductDropdown(false)"),
+    "NewSaleView debe implementar refs y listener de clic afuera para cerrar los seleccionadores de cliente y producto"
+  );
+
+  assert.ok(
+    newSaleContent.includes('ref={clientDropdownRef}') &&
+      newSaleContent.includes('ref={productDropdownRef}'),
+    "NewSaleView debe enlazar los refs a los contenedores relativos de cliente y producto"
+  );
+
+  assert.ok(
+    newSaleContent.includes('event.key === "Escape"'),
+    "NewSaleView debe permitir cerrar los desplegables presionando la tecla Escape"
+  );
+
+  // 2. Edición de Venta (EditSaleModal.tsx)
+  const editSalePath = path.resolve(rootDir, "src/components/modules/billing/EditSaleModal.tsx");
+  const editSaleContent = fs.readFileSync(editSalePath, "utf8");
+  assert.ok(
+    editSaleContent.includes("productDropdownRef") &&
+      editSaleContent.includes("handleClickOutside") &&
+      editSaleContent.includes("ref={productDropdownRef}"),
+    "EditSaleModal debe cerrar el buscador de productos al hacer clic afuera"
+  );
+
+  // 3. Modal de Tickets (TicketModal.tsx)
+  const ticketModalPath = path.resolve(rootDir, "src/components/modules/tickets/TicketModal.tsx");
+  const ticketModalContent = fs.readFileSync(ticketModalPath, "utf8");
+  assert.ok(
+    ticketModalContent.includes("clientDropdownRef") &&
+      ticketModalContent.includes("handleClickOutside") &&
+      ticketModalContent.includes("ref={clientDropdownRef}"),
+    "TicketModal debe cerrar el seleccionador de clientes al hacer clic afuera"
+  );
+
+  // 4. Modal de Cotizaciones (BillingQuoteModal.tsx)
+  const quoteModalPath = path.resolve(rootDir, "src/components/modules/billing/BillingQuoteModal.tsx");
+  const quoteModalContent = fs.readFileSync(quoteModalPath, "utf8");
+  assert.ok(
+    quoteModalContent.includes("productDropdownRef") &&
+      quoteModalContent.includes("handleClickOutside") &&
+      quoteModalContent.includes("ref={productDropdownRef}"),
+    "BillingQuoteModal debe cerrar el desplegable de productos al hacer clic afuera"
+  );
+
+  // 5. Modal de Nueva Venta Directa (NewSaleModal.tsx)
+  const newSaleModalPath = path.resolve(rootDir, "src/components/modules/billing/NewSaleModal.tsx");
+  const newSaleModalContent = fs.readFileSync(newSaleModalPath, "utf8");
+  assert.ok(
+    newSaleModalContent.includes("productDropdownRef") &&
+      newSaleModalContent.includes("handleClickOutside") &&
+      newSaleModalContent.includes("ref={productDropdownRef}"),
+    "NewSaleModal debe cerrar el desplegable de productos al hacer clic afuera"
+  );
+});
+
+
 
 
 

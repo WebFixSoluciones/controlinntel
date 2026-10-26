@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck, Search, ChevronDown, Check } from "lucide-react";
@@ -32,6 +32,31 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
   const [clientId, setClientId] = useState(() => initialClientId || clients[0]?.id || "");
   const [clientSearch, setClientSearch] = useState("");
   const [isClientSearchOpen, setIsClientSearchOpen] = useState(false);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        clientDropdownRef.current &&
+        !clientDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsClientSearchOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsClientSearchOpen(false);
+      }
+    };
+    if (isClientSearchOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isClientSearchOpen]);
   const [selectedTopic, setSelectedTopic] = useState(ISP_FAULT_TOPICS[0].topic);
   const [customTitle, setCustomTitle] = useState("");
   const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
@@ -161,7 +186,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                   {selectedClient?.businessName || "Cliente Asignado"}
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative" ref={clientDropdownRef}>
                   <div className="flex items-center">
                     <input
                       type="text"
@@ -172,6 +197,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                         setIsClientSearchOpen(true);
                       }}
                       onFocus={() => setIsClientSearchOpen(true)}
+                      onClick={() => setIsClientSearchOpen(true)}
                       className="w-full bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-8 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
                     />
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />

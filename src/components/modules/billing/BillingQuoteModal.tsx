@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   FileText,
@@ -40,8 +40,34 @@ export function BillingQuoteModal({
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<ClientQuote["status"]>("enviada");
   const [searchProductTerm, setSearchProductTerm] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowProductDropdown(false);
+      }
+    };
+    if (showProductDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showProductDropdown]);
 
   useEffect(() => {
     if (isOpen) {
@@ -76,6 +102,8 @@ export function BillingQuoteModal({
     const existing = items.find((it) => it.productId === product.id);
     if (existing) {
       handleUpdateQuantity(existing.id, existing.quantity + 1);
+      setSearchProductTerm("");
+      setShowProductDropdown(false);
       return;
     }
 
@@ -105,6 +133,7 @@ export function BillingQuoteModal({
 
     setItems((prev) => [...prev, newItem]);
     setSearchProductTerm("");
+    setShowProductDropdown(false);
   };
 
   const handleUpdateQuantity = (itemId: string, newQty: number) => {
@@ -314,17 +343,22 @@ export function BillingQuoteModal({
                 Ítems Cotizados
               </h3>
 
-              <div className="relative min-w-[280px]">
+              <div className="relative min-w-[280px]" ref={productDropdownRef}>
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar en inventario y servicios..."
                   value={searchProductTerm}
-                  onChange={(e) => setSearchProductTerm(e.target.value)}
+                  onFocus={() => setShowProductDropdown(true)}
+                  onClick={() => setShowProductDropdown(true)}
+                  onChange={(e) => {
+                    setSearchProductTerm(e.target.value);
+                    setShowProductDropdown(true);
+                  }}
                   className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-[#e2e8f0] bg-white"
                 />
 
-                {searchProductTerm.trim() && (
+                {showProductDropdown && searchProductTerm.trim() && (
                   <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-[#e2e8f0] max-h-56 overflow-y-auto z-20 divide-y divide-[#f1f5f9]">
                     {filteredProducts.slice(0, 6).map((p) => (
                       <div

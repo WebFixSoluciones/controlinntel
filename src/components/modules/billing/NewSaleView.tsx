@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
@@ -118,6 +118,35 @@ export function NewSaleView({
 
   const clientSearchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdowns de búsqueda al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(target)) {
+        setShowClientDropdown(false);
+      }
+      if (productDropdownRef.current && !productDropdownRef.current.contains(target)) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowClientDropdown(false);
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // ==========================================
   // PASO DEL FLUJO (1 = Registro, 2 = Comprobante Emitido)
@@ -1868,7 +1897,7 @@ export function NewSaleView({
                     </button>
                   </div>
                 ) : (
-                  <div className="relative">
+                  <div className="relative" ref={clientDropdownRef}>
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       ref={clientSearchInputRef}
@@ -1876,6 +1905,7 @@ export function NewSaleView({
                       placeholder="Buscar por nombre, RUC o cédula..."
                       value={clientSearch}
                       onFocus={() => setShowClientDropdown(true)}
+                      onClick={() => setShowClientDropdown(true)}
                       onChange={(e) => {
                         setClientSearch(e.target.value);
                         setShowClientDropdown(true);
@@ -2011,7 +2041,7 @@ export function NewSaleView({
                   Buscar Producto / Servicio
                 </label>
                 <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
+                  <div className="relative flex-1" ref={productDropdownRef}>
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       ref={productSearchInputRef}
@@ -2019,6 +2049,7 @@ export function NewSaleView({
                       placeholder="Escribe nombre, SKU o escanea código de barras..."
                       value={productSearch}
                       onFocus={() => setShowProductDropdown(true)}
+                      onClick={() => setShowProductDropdown(true)}
                       onChange={(e) => {
                         setProductSearch(e.target.value);
                         setShowProductDropdown(true);

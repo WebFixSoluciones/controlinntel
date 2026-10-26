@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Plus,
@@ -60,6 +60,31 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
   // Search product picker
   const [searchProductTerm, setSearchProductTerm] = useState("");
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowProductDropdown(false);
+      }
+    };
+    if (showProductDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showProductDropdown]);
 
   // Initialize form when invoice is passed
   useEffect(() => {
@@ -631,7 +656,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               </span>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 {/* Search Product Input */}
-                <div className="relative flex-1 sm:w-64">
+                <div className="relative flex-1 sm:w-64" ref={productDropdownRef}>
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                   <input
                     type="text"
@@ -641,6 +666,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                       setShowProductDropdown(true);
                     }}
                     onFocus={() => setShowProductDropdown(true)}
+                    onClick={() => setShowProductDropdown(true)}
                     placeholder="Buscar producto o SKU..."
                     className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-3 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   />

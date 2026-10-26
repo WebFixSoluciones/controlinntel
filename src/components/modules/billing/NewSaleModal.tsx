@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Plus,
@@ -57,6 +57,32 @@ export function NewSaleModal({
 
   // Search & add product
   const [searchProductTerm, setSearchProductTerm] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const productDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        productDropdownRef.current &&
+        !productDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowProductDropdown(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowProductDropdown(false);
+      }
+    };
+    if (showProductDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showProductDropdown]);
 
   // Initialize defaults
   useEffect(() => {
@@ -121,6 +147,8 @@ export function NewSaleModal({
     const existing = items.find((it) => it.productId === product.id);
     if (existing) {
       handleUpdateQuantity(existing.id, existing.quantity + 1);
+      setSearchProductTerm("");
+      setShowProductDropdown(false);
       return;
     }
 
@@ -155,6 +183,7 @@ export function NewSaleModal({
 
     setItems((prev) => [...prev, newItem]);
     setSearchProductTerm("");
+    setShowProductDropdown(false);
   };
 
   const handleUpdateQuantity = (itemId: string, newQty: number) => {
@@ -506,18 +535,23 @@ export function NewSaleModal({
               </h3>
 
               {/* Buscador de catálogo rápido */}
-              <div className="relative min-w-[280px]">
+              <div className="relative min-w-[280px]" ref={productDropdownRef}>
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar producto o servicio para agregar..."
                   value={searchProductTerm}
-                  onChange={(e) => setSearchProductTerm(e.target.value)}
-                  className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 bg-white"
+                  onFocus={() => setShowProductDropdown(true)}
+                  onClick={() => setShowProductDropdown(true)}
+                  onChange={(e) => {
+                    setSearchProductTerm(e.target.value);
+                    setShowProductDropdown(true);
+                  }}
+                  className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-slate-300 bg-white"
                 />
 
-                {searchProductTerm.trim() && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-200 max-h-56 overflow-y-auto z-20 divide-y divide-slate-100">
+                {showProductDropdown && searchProductTerm.trim() && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 max-h-56 overflow-y-auto z-20 divide-y divide-slate-100">
                     {filteredProducts.slice(0, 8).map((p) => {
                       const stockInWh = p.tracksStock ? (p.stockByWarehouse?.[warehouseId] || 0) : null;
                       return (
