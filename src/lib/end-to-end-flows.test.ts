@@ -1223,3 +1223,37 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
   );
 });
 
+test("Flujo E2E 22: Módulo de Plantillas Limpio y Directo (Sin Descripciones Redundantes ni Columnas Inútiles)", () => {
+  const rootDir = process.cwd();
+  const templateGenPath = path.resolve(rootDir, "src/components/modules/templates/TemplateGenerator.tsx");
+  const templateGenContent = fs.readFileSync(templateGenPath, "utf8");
+
+  // Barra de búsqueda sin badge de conteo total
+  assert.ok(
+    !templateGenContent.includes("<span>Total:</span>") &&
+      !templateGenContent.includes("plantillas</span>"),
+    "TemplateGenerator no debe mostrar el badge redundante de conteo total en la barra superior"
+  );
+
+  // Plantillas del Sistema: sin subtítulo, sin badge de activas, sin icono, sin descripciones, sin Módulo de Origen, sin Estado
+  assert.ok(
+    !templateGenContent.includes("Documentos generados automáticamente con datos del sistema") &&
+      !templateGenContent.includes("activas</span>") &&
+      !templateGenContent.includes(">Módulo de Origen<") &&
+      !templateGenContent.includes(">Estado<") &&
+      !templateGenContent.includes("Listo para Generación") &&
+      !templateGenContent.includes("{tmpl.desc}"),
+    "Plantillas del Sistema debe mostrar únicamente títulos directos, formato y botón de acción, sin descripciones ni columnas innecesarias"
+  );
+
+  // Plantillas Institucionales: sin subtítulo, sin badge de conteo, sin descripciones, sin columna Tamaño, sin columna Responsable
+  assert.ok(
+    !templateGenContent.includes("Archivos descargables y editables (Word, Excel y PDF)") &&
+      !templateGenContent.includes("documentos</span>") &&
+      !templateGenContent.includes(">Tamaño<") &&
+      !templateGenContent.includes(">Responsable<") &&
+      !templateGenContent.includes("{item.description}"),
+    "Plantillas Institucionales no debe mostrar descripciones bajo títulos, ni columnas Tamaño ni Responsable"
+  );
+});
+

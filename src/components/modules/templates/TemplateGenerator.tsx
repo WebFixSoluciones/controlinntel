@@ -520,11 +520,6 @@ export function TemplateGenerator() {
             <option value="Legal / ARCOTEL">Legal / ARCOTEL</option>
             <option value="Finanzas">Finanzas</option>
           </select>
-
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-[#434655]">
-            <span>Total:</span>
-            <span className="text-[#004ac6]">{SYSTEM_TEMPLATES.length + customTemplates.length} plantillas</span>
-          </div>
         </div>
 
         {/* Upload / New Template Button */}
@@ -542,17 +537,9 @@ export function TemplateGenerator() {
       {/* ========================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <div>
-            <h2 className="text-sm font-bold text-[#0b1c30]">
-              Plantillas del Sistema
-            </h2>
-            <p className="text-xs text-[#737686]">
-              Documentos generados automáticamente con datos del sistema
-            </p>
-          </div>
-          <span className="text-xs font-bold text-[#737686] bg-white px-2.5 py-1 rounded-lg border border-[#e2e8f0]">
-            {filteredSystemTemplates.length} activas
-          </span>
+          <h2 className="text-sm font-bold text-[#0b1c30]">
+            Plantillas del Sistema
+          </h2>
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-2xs">
@@ -561,50 +548,26 @@ export function TemplateGenerator() {
               <tr>
                 <th className="py-3 px-4">Plantilla / Documento</th>
                 <th className="py-3 px-4">Formato</th>
-                <th className="py-3 px-4">Módulo de Origen</th>
-                <th className="py-3 px-4">Estado</th>
                 <th className="py-3 px-4 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {filteredSystemTemplates.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-[#737686] italic">
+                  <td colSpan={3} className="py-8 text-center text-[#737686] italic">
                     No se encontraron plantillas dinámicas con el filtro especificado.
                   </td>
                 </tr>
               ) : (
                 filteredSystemTemplates.map((tmpl) => {
-                  const Icon = tmpl.icon;
                   return (
                     <tr key={tmpl.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2.5 rounded-xl border shrink-0 ${tmpl.badgeBg}`}>
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-[#0b1c30] text-xs">{tmpl.title}</p>
-                            <span className="text-[11px] text-[#737686] block mt-0.5 max-w-xl leading-relaxed">
-                              {tmpl.desc}
-                            </span>
-                          </div>
-                        </div>
+                        <p className="font-bold text-[#0b1c30] text-xs">{tmpl.title}</p>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${tmpl.badgeBg}`}>
                           {tmpl.format}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                          {tmpl.module}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          Listo para Generación
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
@@ -630,18 +593,10 @@ export function TemplateGenerator() {
       {/* ========================================================= */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between px-1">
-          <div>
-            <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-2">
-              <FileCheck className="w-4 h-4 text-[#004ac6]" />
-              Plantillas Institucionales
-            </h2>
-            <p className="text-xs text-[#737686]">
-              Archivos descargables y editables (Word, Excel y PDF)
-            </p>
-          </div>
-          <span className="text-xs font-bold text-[#737686] bg-white px-2.5 py-1 rounded-lg border border-[#e2e8f0]">
-            {filteredCustomTemplates.length} documentos
-          </span>
+          <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-2">
+            <FileCheck className="w-4 h-4 text-[#004ac6]" />
+            Plantillas Institucionales
+          </h2>
         </div>
 
         <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-2xs">
@@ -651,16 +606,14 @@ export function TemplateGenerator() {
                 <th className="py-3 px-4">Documento / Título</th>
                 <th className="py-3 px-4">Categoría</th>
                 <th className="py-3 px-4">Archivo & Formato</th>
-                <th className="py-3 px-4">Tamaño</th>
                 <th className="py-3 px-4">Última Actualización</th>
-                <th className="py-3 px-4">Responsable</th>
                 <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
               {filteredCustomTemplates.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-[#737686] italic">
+                  <td colSpan={5} className="py-10 text-center text-[#737686] italic">
                     {customTemplates.length === 0
                       ? 'No hay plantillas o archivos subidos aún. Presiona "Subir Archivo / Plantilla".'
                       : "No se encontraron plantillas con los filtros aplicados."}
@@ -683,9 +636,6 @@ export function TemplateGenerator() {
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-[#737686] block mt-0.5 max-w-sm line-clamp-1">
-                          {item.description}
-                        </span>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
@@ -702,7 +652,6 @@ export function TemplateGenerator() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-[#737686] whitespace-nowrap">{item.fileSize}</td>
                       <td className="py-3.5 px-4 font-mono text-[11px] text-[#737686] whitespace-nowrap">
                         {item.updatedAt ? (
                           <span title={`Actualizado el ${item.updatedAt}`}>
@@ -711,9 +660,6 @@ export function TemplateGenerator() {
                         ) : (
                           item.uploadedAt
                         )}
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-[#434655] whitespace-nowrap truncate max-w-[140px]">
-                        {item.updatedBy || item.uploadedBy}
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
