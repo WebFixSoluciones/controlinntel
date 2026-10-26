@@ -1842,6 +1842,81 @@ test("Flujo E2E 30: Buscador Predictivo de Servicios con Nombre y Descripción E
   );
 });
 
+test("Flujo E2E 31: Submódulo Bancos Anti-Cuelgue, Cobranzas OPEX y Blindaje Integral de Submódulos Financieros", () => {
+  const rootDir = process.cwd();
+
+  // 1. Bancos: Eliminación de useEffect cíclico que causaba congelamiento / cuelgue
+  const bankAccountsPath = path.resolve(rootDir, "src/components/modules/finance/BankAccountsTab.tsx");
+  const bankAccountsContent = fs.readFileSync(bankAccountsPath, "utf8");
+  
+  // No debe existir el useEffect cíclico dependiente de [bankAccounts, originBankId, destBankId]
+  assert.ok(
+    !bankAccountsContent.includes("useEffect(() => {\n    if (bankAccounts.length > 0) {\n      if (!originBankId)"),
+    "BankAccountsTab no debe tener un useEffect que modifique originBankId/destBankId provocando un bucle infinito"
+  );
+  assert.ok(
+    bankAccountsContent.includes("handleOpenTransfer") &&
+      bankAccountsContent.includes("handleOriginChange") &&
+      bankAccountsContent.includes("safeNumber"),
+    "BankAccountsTab debe usar apertura determinista y formateo seguro safeNumber"
+  );
+
+  // 2. Cobranzas OPEX (FinanceDashboard): Protección contra campos nulos y excepciones de cliente
+  const financeDashPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeDashContent = fs.readFileSync(financeDashPath, "utf8");
+  assert.ok(
+    financeDashContent.includes("(c.clientName || \"\").toLowerCase()") &&
+      financeDashContent.includes("safeFloat") &&
+      financeDashContent.includes("safeNumber"),
+    "FinanceDashboard debe proteger filtros y totales contra nulos/indefinidos con safeFloat y safeNumber"
+  );
+
+  // 3. Movimientos: Tolerancia a datos corruptos
+  const movementsPath = path.resolve(rootDir, "src/components/modules/finance/MovementsTab.tsx");
+  const movementsContent = fs.readFileSync(movementsPath, "utf8");
+  assert.ok(
+    movementsContent.includes("(m.description || \"\").toLowerCase()") &&
+      movementsContent.includes("safeNumber"),
+    "MovementsTab debe formatear montos y buscar conceptos de forma segura"
+  );
+
+  // 4. Cuentas por Cobrar y por Pagar
+  const cxcPath = path.resolve(rootDir, "src/components/modules/finance/AccountsReceivableTab.tsx");
+  const cxcContent = fs.readFileSync(cxcPath, "utf8");
+  assert.ok(
+    cxcContent.includes("safeFloat") && cxcContent.includes("safeNumber"),
+    "AccountsReceivableTab debe calcular saldos con safeFloat y safeNumber"
+  );
+
+  const cxpPath = path.resolve(rootDir, "src/components/modules/finance/AccountsPayableTab.tsx");
+  const cxpContent = fs.readFileSync(cxpPath, "utf8");
+  assert.ok(
+    cxpContent.includes("safeFloat") && cxpContent.includes("safeNumber"),
+    "AccountsPayableTab debe calcular saldos con safeFloat y safeNumber"
+  );
+
+  // 5. Reportes Financieros
+  const reportsPath = path.resolve(rootDir, "src/components/modules/finance/FinancialReportsTab.tsx");
+  const reportsContent = fs.readFileSync(reportsPath, "utf8");
+  assert.ok(
+    reportsContent.includes("safeFloat") && reportsContent.includes("safeNumber"),
+    "FinancialReportsTab debe totalizar y exportar con safeFloat y safeNumber"
+  );
+
+  // 6. Error Boundary en Finanzas
+  const finanzasPagePath = path.resolve(rootDir, "src/app/finanzas/page.tsx");
+  const finanzasPageContent = fs.readFileSync(finanzasPagePath, "utf8");
+  assert.ok(
+    finanzasPageContent.includes("FinanceErrorBoundary") &&
+      finanzasPageContent.includes("<FinanceErrorBoundary key={resolvedTab}>"),
+    "FinanzasPage debe envolver las vistas con FinanceErrorBoundary para prevenir caídas globales"
+  );
+
+  const errorBoundaryPath = path.resolve(rootDir, "src/components/modules/finance/FinanceErrorBoundary.tsx");
+  assert.ok(fs.existsSync(errorBoundaryPath), "FinanceErrorBoundary.tsx debe existir en components/modules/finance");
+});
+
+
 
 
 

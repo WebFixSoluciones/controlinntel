@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
   DollarSign,
   FileSpreadsheet,
@@ -103,19 +104,25 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
   // Filtrado de Cobros
   const filteredCharges = useMemo(() => {
-    return monthlyCharges.filter((c) => {
-      const q = searchQuery.toLowerCase().trim();
+    return (monthlyCharges || []).filter((c) => {
+      if (!c) return false;
+      const q = (searchQuery || "").toLowerCase().trim();
+      const clientName = (c.clientName || "").toLowerCase();
+      const clientRuc = String(c.clientRuc || "");
+      const invoiceNumber = (c.invoiceNumber || "").toLowerCase();
+      const serviceDescription = (c.serviceDescription || "").toLowerCase();
+
       const matchesSearch =
         !q ||
-        c.clientName.toLowerCase().includes(q) ||
-        c.clientRuc.includes(q) ||
-        c.invoiceNumber.toLowerCase().includes(q) ||
-        c.serviceDescription.toLowerCase().includes(q);
+        clientName.includes(q) ||
+        clientRuc.includes(q) ||
+        invoiceNumber.includes(q) ||
+        serviceDescription.includes(q);
 
       const matchesStatus = statusFilter === "todos" || c.status === statusFilter;
 
       let matchesDate = true;
-      const chargeDate = c.paymentDate || `${c.year}-${String(c.month).padStart(2, "0")}-01`;
+      const chargeDate = c.paymentDate || `${c.year || 2026}-${String(c.month || 1).padStart(2, "0")}-01`;
       if (startDate && chargeDate < startDate) matchesDate = false;
       if (endDate && chargeDate > endDate) matchesDate = false;
 
@@ -125,31 +132,36 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
 
   // Filtrado de Gastos
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((e) => {
-      const q = expenseSearchQuery.toLowerCase().trim();
+    return (expenses || []).filter((e) => {
+      if (!e) return false;
+      const q = (expenseSearchQuery || "").toLowerCase().trim();
+      const supplierName = (e.supplierName || "").toLowerCase();
+      const description = (e.description || "").toLowerCase();
+
       const matchesText =
         !q ||
-        e.supplierName.toLowerCase().includes(q) ||
-        e.description.toLowerCase().includes(q);
+        supplierName.includes(q) ||
+        description.includes(q);
 
       const matchesCat =
         expenseCategoryFilter === "todas" || e.category === expenseCategoryFilter;
 
       let matchesDate = true;
-      if (expenseStartDate && e.expenseDate < expenseStartDate) matchesDate = false;
-      if (expenseEndDate && e.expenseDate > expenseEndDate) matchesDate = false;
+      const expDate = e.expenseDate || "";
+      if (expenseStartDate && expDate && expDate < expenseStartDate) matchesDate = false;
+      if (expenseEndDate && expDate && expDate > expenseEndDate) matchesDate = false;
 
       return matchesText && matchesCat && matchesDate;
     });
   }, [expenses, expenseSearchQuery, expenseCategoryFilter, expenseStartDate, expenseEndDate]);
 
   // Totales
-  const totalBilled = filteredCharges.reduce((sum, c) => sum + c.total, 0);
+  const totalBilled = filteredCharges.reduce((sum, c) => sum + (safeFloat(c.total) || 0), 0);
   const totalPaid = filteredCharges
-    .filter((c) => c.status === "pagado" || (c.paidAmount && c.paidAmount > 0))
-    .reduce((sum, c) => sum + (c.paidAmount ?? (c.status === "pagado" ? c.total : 0)), 0);
+    .filter((c) => c.status === "pagado" || safeFloat(c.paidAmount) > 0)
+    .reduce((sum, c) => sum + (safeFloat(c.paidAmount) || (c.status === "pagado" ? safeFloat(c.total) : 0)), 0);
   const totalPending = Math.max(0, totalBilled - totalPaid);
-  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (safeFloat(e.amount) || 0), 0);
   const netBalance = totalPaid - totalExpenses;
 
   const handleExportBatch = async () => {
@@ -292,21 +304,21 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
         <div className="flex flex-wrap items-center gap-5 text-xs">
           <div>
             <span className="text-slate-500 mr-1.5">Cobrado:</span>
-            <span className="font-mono font-bold text-emerald-600">${totalPaid.toFixed(2)}</span>
+            <span className="font-mono font-bold text-emerald-600">${safeNumber(totalPaid)}</span>
           </div>
           <div>
             <span className="text-slate-500 mr-1.5">Por Cobrar:</span>
-            <span className="font-mono font-bold text-amber-600">${totalPending.toFixed(2)}</span>
+            <span className="font-mono font-bold text-amber-600">${safeNumber(totalPending)}</span>
           </div>
           <div>
             <span className="text-slate-500 mr-1.5">Gastos:</span>
-            <span className="font-mono font-bold text-rose-600">${totalExpenses.toFixed(2)}</span>
+            <span className="font-mono font-bold text-rose-600">${safeNumber(totalExpenses)}</span>
           </div>
           <div className="pl-4 border-l border-[#e2e8f0] flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-[#004ac6]" />
             <span className="text-slate-600 font-semibold">Saldo Neto:</span>
             <span className={`font-mono font-black ${netBalance >= 0 ? "text-[#004ac6]" : "text-rose-600"}`}>
-              ${netBalance.toFixed(2)}
+              ${safeNumber(netBalance)}
             </span>
           </div>
         </div>
@@ -432,11 +444,11 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                         </td>
 
                         <td className="py-3 px-4 text-right font-mono text-slate-700">
-                          ${charge.total.toFixed(2)}
+                          ${safeNumber(charge.total)}
                         </td>
 
                         <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                          ${balance.toFixed(2)}
+                          ${safeNumber(balance)}
                         </td>
 
                         <td className="py-3 px-4 text-center">
@@ -591,10 +603,10 @@ export function FinanceDashboard({ onOpenNewExpense }: FinanceDashboardProps) {
                       </td>
                       <td className="py-3 px-4 text-slate-700 truncate">{exp.description}</td>
                       <td className="py-3 px-4 capitalize text-slate-600 truncate">
-                        {exp.paymentMethod.replace(/_/g, " ")}
+                        {(exp.paymentMethod || "transferencia").replace(/_/g, " ")}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
-                        ${exp.amount.toFixed(2)}
+                        ${safeNumber(exp.amount)}
                       </td>
                     </tr>
                   ))

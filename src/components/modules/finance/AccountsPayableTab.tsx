@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
   CreditCard,
   Search,
@@ -107,16 +108,21 @@ export function AccountsPayableTab() {
     }
   };
 
-  const pendingInvoices = purchaseInvoices.filter(
-    (inv) => inv.balanceRemaining > 0 || inv.paymentStatus !== "pagado"
+  const pendingInvoices = (purchaseInvoices || []).filter(
+    (inv) => inv && (safeFloat(inv.balanceRemaining) > 0 || inv.paymentStatus !== "pagado")
   );
 
   const filteredInvoices = pendingInvoices.filter((inv) => {
-    const q = searchQuery.toLowerCase();
+    if (!inv) return false;
+    const q = (searchQuery || "").toLowerCase();
+    const supName = (inv.supplierName || "").toLowerCase();
+    const supRuc = String(inv.supplierRuc || "");
+    const docNum = (inv.documentNumber || "").toLowerCase();
+
     const matchSearch =
-      inv.supplierName.toLowerCase().includes(q) ||
-      inv.supplierRuc.includes(q) ||
-      inv.documentNumber.toLowerCase().includes(q);
+      supName.includes(q) ||
+      supRuc.includes(q) ||
+      docNum.includes(q);
 
     const dueInfo = getDueStatus(inv.dueDate);
     const matchDue =
@@ -128,11 +134,11 @@ export function AccountsPayableTab() {
     return matchSearch && matchDue;
   });
 
-  const totalCxP = pendingInvoices.reduce((sum, inv) => sum + inv.balanceRemaining, 0);
+  const totalCxP = pendingInvoices.reduce((sum, inv) => sum + (safeFloat(inv.balanceRemaining) || 0), 0);
   const totalVencidas = pendingInvoices
     .filter((inv) => getDueStatus(inv.dueDate).color === "red")
-    .reduce((sum, inv) => sum + inv.balanceRemaining, 0);
-  const totalPagadoHistorico = purchaseInvoices.reduce((sum, inv) => sum + inv.paidAmount, 0);
+    .reduce((sum, inv) => sum + (safeFloat(inv.balanceRemaining) || 0), 0);
+  const totalPagadoHistorico = (purchaseInvoices || []).reduce((sum, inv) => sum + (safeFloat(inv.paidAmount) || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -146,7 +152,7 @@ export function AccountsPayableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-amber-600">
-            ${totalCxP.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalCxP)}
           </div>
         </div>
 
@@ -158,7 +164,7 @@ export function AccountsPayableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-rose-600">
-            ${totalVencidas.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalVencidas)}
           </div>
         </div>
 
@@ -170,7 +176,7 @@ export function AccountsPayableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-emerald-600">
-            ${totalPagadoHistorico.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalPagadoHistorico)}
           </div>
         </div>
       </div>
@@ -254,13 +260,13 @@ export function AccountsPayableTab() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-700">
-                      ${inv.total.toFixed(2)}
+                      ${safeNumber(inv.total)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-emerald-600">
-                      ${inv.paidAmount.toFixed(2)}
+                      ${safeNumber(inv.paidAmount)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-amber-700">
-                      ${inv.balanceRemaining.toFixed(2)}
+                      ${safeNumber(inv.balanceRemaining)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <button
@@ -282,14 +288,14 @@ export function AccountsPayableTab() {
       {selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div className="px-5 py-3.5 border-b border-blue-900/20 flex items-center justify-between bg-[#004ac6] text-white">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Registrar Pago a Proveedor</h3>
-                <p className="text-xs text-slate-500">{selectedInvoice.supplierName}</p>
+                <h3 className="text-sm font-bold text-white">Registrar Pago a Proveedor</h3>
+                <p className="text-xs text-blue-100">{selectedInvoice.supplierName}</p>
               </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -299,7 +305,7 @@ export function AccountsPayableTab() {
               <div className="p-3 bg-blue-50/70 rounded-lg border border-blue-200/80 flex justify-between">
                 <span className="text-slate-600">Factura {selectedInvoice.documentNumber}</span>
                 <span className="font-mono font-bold text-amber-700">
-                  Saldo: ${selectedInvoice.balanceRemaining.toFixed(2)}
+                  Saldo: ${safeNumber(selectedInvoice.balanceRemaining)}
                 </span>
               </div>
 
@@ -346,7 +352,7 @@ export function AccountsPayableTab() {
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.bankName} (${b.currentBalance.toFixed(2)})
+                        {b.bankName} (${safeNumber(b.currentBalance)})
                       </option>
                     ))}
                   </select>

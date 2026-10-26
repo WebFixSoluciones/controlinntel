@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
   Search,
   CheckCircle,
@@ -69,12 +70,14 @@ export function AccountsReceivableTab() {
     }
   };
 
-  const filteredCharges = monthlyCharges.filter((c) => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      c.clientName.toLowerCase().includes(q) ||
-      c.clientRuc.includes(q) ||
-      c.invoiceNumber.toLowerCase().includes(q);
+  const filteredCharges = (monthlyCharges || []).filter((c) => {
+    if (!c) return false;
+    const q = (searchQuery || "").toLowerCase();
+    const name = (c.clientName || "").toLowerCase();
+    const ruc = String(c.clientRuc || "");
+    const inv = (c.invoiceNumber || "").toLowerCase();
+
+    const matchSearch = name.includes(q) || ruc.includes(q) || inv.includes(q);
 
     const matchStatus =
       filterStatus === "todos" ||
@@ -84,10 +87,10 @@ export function AccountsReceivableTab() {
     return matchSearch && matchStatus;
   });
 
-  const totalFacturado = monthlyCharges.reduce((sum, c) => sum + c.total, 0);
-  const totalCobrado = monthlyCharges
-    .filter((c) => c.status === "pagado" || (c.paidAmount && c.paidAmount > 0))
-    .reduce((sum, c) => sum + (c.paidAmount ?? (c.status === "pagado" ? c.total : 0)), 0);
+  const totalFacturado = (monthlyCharges || []).reduce((sum, c) => sum + (safeFloat(c.total) || 0), 0);
+  const totalCobrado = (monthlyCharges || [])
+    .filter((c) => c && (c.status === "pagado" || safeFloat(c.paidAmount) > 0))
+    .reduce((sum, c) => sum + (safeFloat(c.paidAmount) || (c.status === "pagado" ? safeFloat(c.total) : 0)), 0);
   const totalPorCobrar = Math.max(0, totalFacturado - totalCobrado);
 
   return (
@@ -102,7 +105,7 @@ export function AccountsReceivableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-amber-600">
-            ${totalPorCobrar.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalPorCobrar)}
           </div>
         </div>
 
@@ -114,7 +117,7 @@ export function AccountsReceivableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-emerald-600">
-            ${totalCobrado.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalCobrado)}
           </div>
         </div>
 
@@ -126,7 +129,7 @@ export function AccountsReceivableTab() {
             </div>
           </div>
           <div className="mt-1.5 text-xl font-bold font-mono text-[#004ac6]">
-            ${totalFacturado.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${safeNumber(totalFacturado)}
           </div>
         </div>
       </div>
@@ -194,10 +197,10 @@ export function AccountsReceivableTab() {
                       {c.month}/{c.year}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-700">
-                      ${c.total.toFixed(2)}
+                      ${safeNumber(c.total)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
-                      ${balance.toFixed(2)}
+                      ${safeNumber(balance)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span

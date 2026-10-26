@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
   Plus,
   Search,
@@ -74,13 +75,14 @@ export function MovementsTab() {
     }
   };
 
-  const filteredMovements = financialMovements.filter((m) => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      m.description.toLowerCase().includes(q) ||
-      formatFinanceCategory(m.category).toLowerCase().includes(q) ||
-      (m.referenceNumber && m.referenceNumber.toLowerCase().includes(q));
+  const filteredMovements = (financialMovements || []).filter((m) => {
+    if (!m) return false;
+    const q = (searchQuery || "").toLowerCase();
+    const desc = (m.description || "").toLowerCase();
+    const cat = formatFinanceCategory(m.category).toLowerCase();
+    const ref = (m.referenceNumber ? String(m.referenceNumber) : "").toLowerCase();
 
+    const matchSearch = desc.includes(q) || cat.includes(q) || ref.includes(q);
     const matchType = filterType === "todos" || m.type === filterType;
     const matchBank = filterBank === "todos" || m.bankAccountId === filterBank;
 
@@ -207,7 +209,7 @@ export function MovementsTab() {
                         isIngreso ? "text-emerald-600" : "text-rose-600"
                       }`}
                     >
-                      {isIngreso ? "+" : "-"}${m.amount.toFixed(2)}
+                      {isIngreso ? "+" : "-"}${safeNumber(m.amount)}
                     </td>
                   </tr>
                 );

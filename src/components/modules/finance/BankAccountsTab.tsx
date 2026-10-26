@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
   Building2,
   Plus,
@@ -15,7 +16,7 @@ import {
 import { BankAccount } from "@/types";
 
 export function BankAccountsTab() {
-  const { bankAccounts, addBankAccount, updateBankAccount, addFinancialMovement } = useApp();
+  const { bankAccounts = [], addBankAccount, updateBankAccount, addFinancialMovement } = useApp();
   const { showSuccess, showError } = useToast();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -29,20 +30,30 @@ export function BankAccountsTab() {
   const [initialBalance, setInitialBalance] = useState<number>(0);
 
   // Transfer State
-  const [originBankId, setOriginBankId] = useState<string>(bankAccounts[0]?.id || "");
-  const [destBankId, setDestBankId] = useState<string>(bankAccounts[1]?.id || "");
+  const [originBankId, setOriginBankId] = useState<string>("");
+  const [destBankId, setDestBankId] = useState<string>("");
   const [transferAmount, setTransferAmount] = useState<number>(0);
   const [transferRef, setTransferRef] = useState<string>("");
 
-  useEffect(() => {
-    if (bankAccounts.length > 0 && !originBankId) {
-      setOriginBankId(bankAccounts[0].id);
+  const handleOpenTransfer = () => {
+    const list = bankAccounts || [];
+    const firstId = list[0]?.id || "";
+    const secondId = list.find((b) => b.id !== firstId)?.id || list[1]?.id || "";
+    setOriginBankId(firstId);
+    setDestBankId(secondId);
+    setTransferAmount(0);
+    setTransferRef("");
+    setIsTransferModalOpen(true);
+  };
+
+  const handleOriginChange = (id: string) => {
+    setOriginBankId(id);
+    if (destBankId === id) {
+      const list = bankAccounts || [];
+      const alternative = list.find((b) => b.id !== id)?.id || "";
+      setDestBankId(alternative);
     }
-    if (bankAccounts.length > 1 && (!destBankId || destBankId === originBankId)) {
-      const second = bankAccounts.find((b) => b.id !== (originBankId || bankAccounts[0].id));
-      if (second) setDestBankId(second.id);
-    }
-  }, [bankAccounts, originBankId, destBankId]);
+  };
 
   const handleOpenCreate = () => {
     setEditingAccount(null);
@@ -129,13 +140,14 @@ export function BankAccountsTab() {
       return;
     }
 
-    const origin = bankAccounts.find((b) => b.id === originBankId);
-    const dest = bankAccounts.find((b) => b.id === destBankId);
+    const origin = (bankAccounts || []).find((b) => b.id === originBankId);
+    const dest = (bankAccounts || []).find((b) => b.id === destBankId);
 
     if (!origin || !dest) return;
 
-    if (origin.currentBalance < transferAmount) {
-      showError("Saldo Insuficiente", `La cuenta ${origin.bankName} solo dispone de $${origin.currentBalance.toFixed(2)}.`);
+    const originBalance = safeFloat(origin.currentBalance);
+    if (originBalance < transferAmount) {
+      showError("Saldo Insuficiente", `La cuenta ${origin.bankName} solo dispone de $${safeNumber(originBalance)}.`);
       return;
     }
 
@@ -171,7 +183,7 @@ export function BankAccountsTab() {
 
       showSuccess(
         "Transferencia Realizada",
-        `Se transfirieron $${transferAmount.toFixed(2)} desde ${origin.bankName} hacia ${dest.bankName}.`
+        `Se transfirieron $${safeNumber(transferAmount)} desde ${origin.bankName} hacia ${dest.bankName}.`
       );
 
       setIsTransferModalOpen(false);
@@ -182,8 +194,8 @@ export function BankAccountsTab() {
     }
   };
 
-  const activeAccounts = bankAccounts.filter((b) => b.status === "activa");
-  const totalBalance = activeAccounts.reduce((sum, b) => sum + b.currentBalance, 0);
+  const activeAccounts = (bankAccounts || []).filter((b) => b && b.status === "activa");
+  const totalBalance = activeAccounts.reduce((sum, b) => sum + (safeFloat(b.currentBalance) || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -197,7 +209,7 @@ export function BankAccountsTab() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-600 font-semibold">Saldo Total Disponible:</span>
               <span className="text-base font-bold font-mono text-[#004ac6]">
-                ${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${safeNumber(totalBalance)}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
@@ -210,7 +222,7 @@ export function BankAccountsTab() {
           {bankAccounts.length >= 2 && (
             <button
               type="button"
-              onClick={() => setIsTransferModalOpen(true)}
+              onClick={handleOpenTransfer}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-blue-50 text-[#004ac6] border border-slate-200 rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -251,6 +263,8 @@ export function BankAccountsTab() {
           {bankAccounts.map((account) => {
             const isCash = account.accountType === "caja_efectivo";
             const isActive = account.status === "activa";
+            const balanceNum = safeFloat(account.currentBalance);
+            const typeLabel = (account.accountType || "corriente").replace(/_/g, " ");
 
             return (
               <div
@@ -308,7 +322,7 @@ export function BankAccountsTab() {
                     {account.bankName}
                   </h3>
                   <p className="text-[11px] text-[#737686] font-mono mt-0.5 capitalize">
-                    {account.accountType.replace(/_/g, " ")} • {account.accountNumber}
+                    {typeLabel} • {account.accountNumber}
                   </p>
                 </div>
 
@@ -318,7 +332,7 @@ export function BankAccountsTab() {
                       Saldo Disponible
                     </div>
                     <div className="text-xl font-bold font-mono text-[#004ac6] mt-0.5">
-                      ${account.currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ${safeNumber(balanceNum)}
                     </div>
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 font-mono">
@@ -334,18 +348,21 @@ export function BankAccountsTab() {
       {/* Modal Nueva / Editar Cuenta */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h3 className="text-sm font-bold text-slate-900">
-                {editingAccount ? "Editar Cuenta" : "Nueva Cuenta"}
-              </h3>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 bg-[#004ac6] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                <h3 className="text-sm font-bold">
+                  {editingAccount ? "Editar Cuenta Bancaria" : "Nueva Cuenta Bancaria / Caja"}
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => {
                   setIsAddModalOpen(false);
                   setEditingAccount(null);
                 }}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -436,13 +453,16 @@ export function BankAccountsTab() {
       {/* Modal Transferir entre Cuentas */}
       {isTransferModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h3 className="text-sm font-bold text-slate-900">Transferir entre Cuentas</h3>
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
+            <div className="px-5 py-4 bg-[#004ac6] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4" />
+                <h3 className="text-sm font-bold">Transferir entre Cuentas</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -455,12 +475,12 @@ export function BankAccountsTab() {
                 </label>
                 <select
                   value={originBankId}
-                  onChange={(e) => setOriginBankId(e.target.value)}
+                  onChange={(e) => handleOriginChange(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 >
-                  {bankAccounts.map((b) => (
+                  {(bankAccounts || []).map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName} • ${b.currentBalance.toFixed(2)}
+                      {b.bankName || "Cuenta"} • ${safeNumber(b.currentBalance)}
                     </option>
                   ))}
                 </select>
@@ -475,9 +495,9 @@ export function BankAccountsTab() {
                   onChange={(e) => setDestBankId(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
                 >
-                  {bankAccounts.map((b) => (
+                  {(bankAccounts || []).map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName} • ${b.currentBalance.toFixed(2)}
+                      {b.bankName || "Cuenta"} • ${safeNumber(b.currentBalance)}
                     </option>
                   ))}
                 </select>

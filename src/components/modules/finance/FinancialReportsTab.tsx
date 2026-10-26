@@ -13,39 +13,43 @@ import {
   Building2,
 } from "lucide-react";
 import { formatFinanceCategory } from "./FinanceDashboard";
+import { safeFloat, safeNumber } from "@/lib/print-service";
 
 export function FinancialReportsTab() {
-  const { financialMovements, bankAccounts } = useApp();
+  const { financialMovements = [], bankAccounts = [] } = useApp();
   const { showSuccess } = useToast();
 
-  const totalIngresos = financialMovements
-    .filter((m) => m.type === "ingreso")
-    .reduce((sum, m) => sum + m.amount, 0);
+  const movementsList = financialMovements || [];
+  const accountsList = bankAccounts || [];
 
-  const totalEgresos = financialMovements
+  const totalIngresos = movementsList
+    .filter((m) => m.type === "ingreso")
+    .reduce((sum, m) => sum + safeFloat(m.amount), 0);
+
+  const totalEgresos = movementsList
     .filter((m) => m.type === "egreso")
-    .reduce((sum, m) => sum + m.amount, 0);
+    .reduce((sum, m) => sum + safeFloat(m.amount), 0);
 
   const flujoNeto = totalIngresos - totalEgresos;
 
   const expensesByCategory: Record<string, number> = {};
-  financialMovements
+  movementsList
     .filter((m) => m.type === "egreso")
     .forEach((m) => {
       const cat = m.category || "otro";
-      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + m.amount;
+      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + safeFloat(m.amount);
     });
 
   const handleExportCsv = () => {
     const headers = ["Fecha", "Tipo", "Categoria", "Concepto", "Cuenta Bancaria", "Forma de Pago", "Monto USD"];
-    const rows = financialMovements.map((m) => [
-      m.date,
-      m.type,
+    const rows = movementsList.map((m) => [
+      m.date || "",
+      m.type || "",
       `"${formatFinanceCategory(m.category)}"`,
-      `"${m.description.replace(/"/g, '""')}"`,
-      `"${m.bankAccountName}"`,
-      m.paymentMethod,
-      m.amount.toFixed(2),
+      `"${String(m.description || "").replace(/"/g, '""')}"`,
+      `"${String(m.bankAccountName || "")}"`,
+      m.paymentMethod || "",
+      safeNumber(m.amount),
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -93,7 +97,7 @@ export function FinancialReportsTab() {
                 <span className="text-emerald-600 font-medium flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5" /> Ingresos
                 </span>
-                <span className="font-mono font-bold text-emerald-600">${totalIngresos.toFixed(2)}</span>
+                <span className="font-mono font-bold text-emerald-600">${safeNumber(totalIngresos)}</span>
               </div>
               <div className="w-full bg-emerald-50 h-2 rounded-full overflow-hidden">
                 <div className="bg-emerald-600 h-full rounded-full" style={{ width: "100%" }} />
@@ -105,7 +109,7 @@ export function FinancialReportsTab() {
                 <span className="text-rose-600 font-medium flex items-center gap-1">
                   <TrendingDown className="w-3.5 h-3.5" /> Egresos
                 </span>
-                <span className="font-mono font-bold text-rose-600">${totalEgresos.toFixed(2)}</span>
+                <span className="font-mono font-bold text-rose-600">${safeNumber(totalEgresos)}</span>
               </div>
               <div className="w-full bg-rose-50 h-2 rounded-full overflow-hidden">
                 <div
@@ -118,7 +122,7 @@ export function FinancialReportsTab() {
             <div className="pt-3 border-t border-[#e2e8f0] flex justify-between items-center">
               <span className="text-xs font-bold text-slate-900">Saldo Neto:</span>
               <span className={`text-base font-mono font-bold ${flujoNeto >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                {flujoNeto >= 0 ? "+" : "-"}${Math.abs(flujoNeto).toFixed(2)}
+                {flujoNeto >= 0 ? "+" : "-"}${safeNumber(Math.abs(flujoNeto))}
               </span>
             </div>
           </div>
@@ -142,7 +146,7 @@ export function FinancialReportsTab() {
                     <span className="text-slate-700 truncate max-w-[150px]">{formatFinanceCategory(cat)}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500 font-mono text-[11px]">{pct}%</span>
-                      <span className="font-mono font-bold text-slate-900">${val.toFixed(2)}</span>
+                      <span className="font-mono font-bold text-slate-900">${safeNumber(val)}</span>
                     </div>
                   </div>
                 );
@@ -159,14 +163,14 @@ export function FinancialReportsTab() {
           </h3>
 
           <div className="space-y-2 pt-1 text-xs">
-            {bankAccounts.map((b) => (
+            {accountsList.map((b) => (
               <div key={b.id} className="flex items-center justify-between py-1 border-b border-slate-100">
                 <div>
                   <div className="font-bold text-slate-900">{b.bankName}</div>
                   <div className="text-[10px] text-slate-500 font-mono">{b.accountNumber}</div>
                 </div>
                 <div className="font-mono font-bold text-[#004ac6] text-sm">
-                  ${b.currentBalance.toFixed(2)}
+                  ${safeNumber(b.currentBalance)}
                 </div>
               </div>
             ))}
