@@ -20,7 +20,12 @@ function ClientesContent() {
   const tabFromUrl = searchParams.get("tab");
 
   // Selected client for 360 view
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(() => {
+    if (clientIdFromUrl) {
+      return clients.find((c) => c.id === clientIdFromUrl) || null;
+    }
+    return null;
+  });
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
 
@@ -29,7 +34,7 @@ function ClientesContent() {
     const handleReset = () => {
       setSelectedClient(null);
       setClientToEdit(null);
-      if (typeof window !== "undefined" && window.location.search) {
+      if (typeof window !== "undefined") {
         window.history.pushState({}, "", "/clientes");
       }
     };
@@ -40,17 +45,49 @@ function ClientesContent() {
     };
   }, []);
 
-  // Cargar cliente desde parámetro de URL si existe (?id=...)
+  // Cargar cliente desde parámetro de URL si cambia (?id=...) sin desmontar por cambios en otros estados
   useEffect(() => {
     if (clientIdFromUrl) {
       const match = clients.find((c) => c.id === clientIdFromUrl);
       if (match) {
-        setSelectedClient(match);
+        setSelectedClient((prev) => (prev?.id === match.id ? prev : match));
       }
     } else {
       setSelectedClient(null);
     }
-  }, [clientIdFromUrl, clients]);
+  }, [clientIdFromUrl]);
+
+  // Mantener datos del cliente actualizados si cambia en la base de datos o estado global
+  // (por ejemplo al agregar/editar servicios) SIN desmontar la pantalla ni cerrar la ficha
+  useEffect(() => {
+    if (selectedClient) {
+      const updated = clients.find((c) => c.id === selectedClient.id);
+      if (updated && updated !== selectedClient) {
+        setSelectedClient(updated);
+      }
+    }
+  }, [clients, selectedClient?.id]);
+
+  const handleSelectClient = (c: Client) => {
+    setSelectedClient(c);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.pathname = "/clientes";
+      url.searchParams.set("id", c.id);
+      window.history.pushState({}, "", url.toString());
+    }
+  };
+
+  const handleCloseProfile = () => {
+    setSelectedClient(null);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.pathname = "/clientes";
+      url.searchParams.delete("id");
+      url.searchParams.delete("tab");
+      window.history.pushState({}, "", url.pathname);
+    }
+  };
 
   const canAccessClientes = canAccessModule(currentUser, "abonados");
 
@@ -87,13 +124,20 @@ function ClientesContent() {
                 {selectedClient ? (
                   <ClientProfile360
                     client={clients.find((c) => c.id === selectedClient.id) || selectedClient}
-                    onClose={() => setSelectedClient(null)}
+                    onClose={handleCloseProfile}
                     onEdit={() => handleEdit(clients.find((c) => c.id === selectedClient.id) || selectedClient)}
                     initialTab={(tabFromUrl as any) || undefined}
+                    onTabChange={(tab) => {
+                      if (typeof window !== "undefined") {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set("tab", tab);
+                        window.history.replaceState({}, "", url.toString());
+                      }
+                    }}
                   />
                 ) : (
                   <ClientsTable
-                    onSelectClient={(c) => setSelectedClient(c)}
+                    onSelectClient={handleSelectClient}
                     onOpenNewModal={() => {
                       setClientToEdit(null);
                       setIsNewModalOpen(true);

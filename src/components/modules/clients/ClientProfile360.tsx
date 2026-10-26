@@ -44,6 +44,7 @@ import {
   Trash2,
   UserPlus,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -51,6 +52,7 @@ interface ClientProfile360Props {
   onClose: () => void;
   onEdit?: () => void;
   initialTab?: ProfileTab;
+  onTabChange?: (tab: ProfileTab) => void;
 }
 
 type ProfileTab =
@@ -67,7 +69,7 @@ type ProfileTab =
   | "arcotel"
   | "dossier";
 
-export function ClientProfile360({ client, onClose, onEdit, initialTab }: ClientProfile360Props) {
+export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabChange }: ClientProfile360Props) {
   const {
     clientServices,
     monthlyCharges,
@@ -88,6 +90,16 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
     if (initialTab) return initialTab;
     return "fiscal";
   });
+
+  const handleTabChange = (tabId: ProfileTab) => {
+    setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabId);
+      window.history.replaceState({}, "", url.toString());
+    }
+    onTabChange?.(tabId);
+  };
 
   useEffect(() => {
     if (initialTab) {
@@ -201,6 +213,15 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
         {/* Hub Header Elegante y Limpio */}
         <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] border border-slate-200 rounded-lg transition-colors cursor-pointer mr-1"
+              title="Volver al Listado de Clientes"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Volver</span>
+            </button>
             <h1 className="text-base font-semibold text-slate-800 tracking-normal">
               {client.businessName}
             </h1>
@@ -253,7 +274,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"

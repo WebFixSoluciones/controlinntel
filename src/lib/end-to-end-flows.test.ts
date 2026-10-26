@@ -2085,6 +2085,71 @@ test("Flujo E2E 34: Pestaña 'Archivos' (Mini Drive) en Perfil del Cliente para 
   );
 });
 
+test("Flujo E2E 35: Permanencia en la Ficha de Cliente y Pestaña de Servicios al Guardar/Editar Servicios", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificación en src/app/clientes/page.tsx
+  const clientesPagePath = path.resolve(rootDir, "src/app/clientes/page.tsx");
+  assert.ok(fs.existsSync(clientesPagePath), "src/app/clientes/page.tsx debe existir");
+  const clientesPageContent = fs.readFileSync(clientesPagePath, "utf8");
+
+  // Verificar que el efecto de clientIdFromUrl NO resetea selectedClient por cambios en clients
+  assert.ok(
+    clientesPageContent.includes("}, [clientIdFromUrl]);"),
+    "El efecto de URL no debe depender de clients para evitar resetear selectedClient al mutar servicios"
+  );
+
+  // Verificar sincronización de selectedClient sin desmontar la pantalla
+  assert.ok(
+    clientesPageContent.includes("updated && updated !== selectedClient") &&
+      clientesPageContent.includes("setSelectedClient(updated)"),
+    "Debe sincronizar los datos del cliente sin desmontar ni cerrar la ficha"
+  );
+
+  // Verificar handleSelectClient y persistencia en URL
+  assert.ok(
+    clientesPageContent.includes("handleSelectClient") &&
+      clientesPageContent.includes('url.searchParams.set("id", c.id)'),
+    "handleSelectClient debe persistir el ID en la URL"
+  );
+
+  // Verificar sincronización de pestañas en ClientProfile360
+  assert.ok(
+    clientesPageContent.includes("onTabChange") &&
+      clientesPageContent.includes('url.searchParams.set("tab", tab)'),
+    "ClientProfile360 debe sincronizar la pestaña activa en la URL"
+  );
+
+  // 2. Verificación en ClientProfile360.tsx
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+
+  assert.ok(
+    profile360Content.includes("onTabChange?: (tab: ProfileTab) => void;") &&
+      profile360Content.includes("handleTabChange"),
+    "ClientProfile360 debe soportar onTabChange y sincronización de pestaña"
+  );
+
+  assert.ok(
+    profile360Content.includes("Volver") &&
+      profile360Content.includes("ArrowLeft") &&
+      profile360Content.includes("onClick={onClose}"),
+    "ClientProfile360 debe incluir botón 'Volver' con ArrowLeft para regresar explícitamente al listado"
+  );
+
+  // 3. Verificación en ClientContractTab.tsx
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractTabContent = fs.readFileSync(contractTabPath, "utf8");
+
+  assert.ok(
+    contractTabContent.includes("handleCreateService") &&
+      contractTabContent.includes("handleSaveEditService") &&
+      contractTabContent.includes("addClientService") &&
+      contractTabContent.includes("updateClientService"),
+    "ClientContractTab debe contener los manejadores de creación y edición de servicios"
+  );
+});
+
 
 
 
