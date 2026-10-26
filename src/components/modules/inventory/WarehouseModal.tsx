@@ -134,8 +134,8 @@ export function WarehouseModal({
     <div
       className={
         embedded
-          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-2xl"
-          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
+          ? "bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden w-full max-w-2xl"
+          : "bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
       }
     >
       {headerNode}
@@ -152,7 +152,7 @@ export function WarehouseModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ej. Bodega Principal, Móvil 1"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
 
@@ -166,7 +166,7 @@ export function WarehouseModal({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="BOD-01"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono uppercase focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
 
@@ -177,7 +177,7 @@ export function WarehouseModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as "activo" | "inactivo")}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 <option value="activo">Activa</option>
                 <option value="inactivo">Inactiva</option>
@@ -195,7 +195,7 @@ export function WarehouseModal({
                 value={responsibleName}
                 onChange={(e) => setResponsibleName(e.target.value)}
                 placeholder="Nombre del encargado"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
 
@@ -208,7 +208,7 @@ export function WarehouseModal({
                 value={responsiblePhone}
                 onChange={(e) => setResponsiblePhone(e.target.value)}
                 placeholder="099..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
 
@@ -221,7 +221,7 @@ export function WarehouseModal({
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Ej. Quito"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
           </div>
@@ -235,11 +235,11 @@ export function WarehouseModal({
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Ubicación o referencia de la bodega"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
             />
           </div>
 
-          <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
+          <label className="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-50 transition-colors">
             <input
               type="checkbox"
               checked={isDefault}
@@ -257,14 +257,14 @@ export function WarehouseModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <CheckCircle className="w-4 h-4" />
             {isSubmitting

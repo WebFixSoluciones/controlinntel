@@ -313,7 +313,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -377,7 +377,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
 
       {/* XML Upload Banner (when mode === 'xml') */}
       {mode === "xml" && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+        <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <UploadCloud className="w-4 h-4 text-[#004ac6]" />
@@ -414,7 +414,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
       {/* Section 1 & 2: Proveedor, Comprobante y Forma de Pago */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Datos del Proveedor y Factura */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -513,7 +513,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
         </div>
 
         {/* Condiciones de Pago e Inventario */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
             <CreditCard className="w-4 h-4 text-[#004ac6]" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -627,7 +627,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
       </div>
 
       {/* Items Section */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+      <div className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Boxes className="w-4 h-4 text-[#004ac6]" />
@@ -811,7 +811,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
       </div>
 
       {/* Bottom Action Footer */}
-      <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
         <button
           type="button"
           onClick={onBack}

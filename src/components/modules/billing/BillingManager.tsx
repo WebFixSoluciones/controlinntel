@@ -547,15 +547,15 @@ export function BillingManager() {
     <div className="space-y-6">
       {/* Barra de Filtros (Oculta en vista Recurrentes porque tiene su propia barra de periodo/filtros) */}
       {activeTab !== "recurrentes" && (
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative flex-1 min-w-[220px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Buscar cliente, RUC o comprobante..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full text-xs pl-9 pr-3 py-2 rounded-[6px] border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
+            className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:ring-1 focus:ring-[#004ac6] focus:border-[#004ac6] outline-hidden transition-colors"
           />
         </div>
 
@@ -565,7 +565,7 @@ export function BillingManager() {
             <select
               value={batchFilter}
               onChange={(e) => setBatchFilter(e.target.value)}
-              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+              className="text-xs font-semibold rounded-lg border border-[#e2e8f0] py-2 px-3 bg-[#f8f9ff] text-[#434655] focus:bg-white focus:border-[#004ac6] outline-hidden cursor-pointer"
               title="Filtrar por lote o serie de emisión"
             >
               <option value="all">Todos los Lotes</option>
@@ -578,14 +578,14 @@ export function BillingManager() {
           )}
 
           {/* Filtro por Rango de Fechas */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-[6px] px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-2.5 py-1.5">
             <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <input
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               title="Fecha desde"
-              className="text-xs bg-transparent text-slate-700 outline-hidden"
+              className="text-xs bg-transparent text-[#0b1c30] outline-hidden"
             />
             <span className="text-slate-400 text-xs">—</span>
             <input
@@ -593,7 +593,7 @@ export function BillingManager() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               title="Fecha hasta"
-              className="text-xs bg-transparent text-slate-700 outline-hidden"
+              className="text-xs bg-transparent text-[#0b1c30] outline-hidden"
             />
           </div>
 
@@ -601,7 +601,7 @@ export function BillingManager() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+              className="text-xs font-semibold rounded-lg border border-[#e2e8f0] py-2 px-3 bg-[#f8f9ff] text-[#434655] focus:bg-white focus:border-[#004ac6] outline-hidden cursor-pointer"
             >
               <option value="all">Estado</option>
               <option value="autorizada">Autorizadas</option>
@@ -615,7 +615,7 @@ export function BillingManager() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-semibold rounded-[6px] border border-slate-300 py-2 px-3 bg-white text-slate-700"
+              className="text-xs font-semibold rounded-lg border border-[#e2e8f0] py-2 px-3 bg-[#f8f9ff] text-[#434655] focus:bg-white focus:border-[#004ac6] outline-hidden cursor-pointer"
             >
               <option value="all">Estado</option>
               <option value="enviada">Enviadas</option>
@@ -634,7 +634,7 @@ export function BillingManager() {
                 setDateFrom("");
                 setDateTo("");
               }}
-              className="px-2.5 py-2 rounded-[6px] border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="px-2.5 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] bg-[#f8f9ff] hover:bg-white cursor-pointer"
               title="Limpiar filtros"
             >
               Limpiar
@@ -644,7 +644,7 @@ export function BillingManager() {
           {activeTab === "facturas" && (
             <button
               onClick={() => setIsSelectSaleForSriOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer whitespace-nowrap"
             >
               <FileCheck2 className="w-3.5 h-3.5" />
               <span>Emitir Factura</span>
@@ -657,7 +657,7 @@ export function BillingManager() {
                 setQuoteToEdit(null);
                 setIsQuoteModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Cotización</span>
@@ -670,7 +670,7 @@ export function BillingManager() {
                 setCreditNoteInitialInvoice(null);
                 setIsCreditNoteModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Nota de Crédito</span>
@@ -683,7 +683,7 @@ export function BillingManager() {
                 setDebitNoteInitialInvoice(null);
                 setIsDebitNoteModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Nota de Débito</span>
@@ -696,7 +696,7 @@ export function BillingManager() {
                 setWithholdingInitialInvoice(null);
                 setIsWithholdingModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Retención</span>
@@ -709,7 +709,7 @@ export function BillingManager() {
                 setRemissionInitialInvoice(null);
                 setIsRemissionModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[6px] text-xs font-bold shadow-sm transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Nueva Guía</span>
@@ -728,25 +728,25 @@ export function BillingManager() {
 
       {/* 1. Facturas */}
       {activeTab === "facturas" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
-                  <th className="py-2.5 px-3.5">Comprobante</th>
-                  <th className="py-2.5 px-3.5">Fecha</th>
-                  <th className="py-2.5 px-3.5">Cliente</th>
-                  <th className="py-2.5 px-3 text-right">Subtotal</th>
-                  <th className="py-2.5 px-3 text-right">IVA</th>
-                  <th className="py-2.5 px-3.5 text-right font-black">Total</th>
-                  <th className="py-2.5 px-3 text-center">Estado</th>
-                  <th className="py-2.5 px-3.5 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">Comprobante</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
+                  <th className="py-3 px-3 w-1/12 text-right">Subtotal</th>
+                  <th className="py-3 px-3 w-1/12 text-right">IVA</th>
+                  <th className="py-3 px-4 w-1/12 text-right font-black">Total</th>
+                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
+                  <th className="py-3 px-4 w-2/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400 italic text-xs">
+                    <td colSpan={8} className="py-12 text-center text-[#737686] italic text-xs">
                       No se encontraron comprobantes registrados.
                     </td>
                   </tr>
@@ -758,13 +758,13 @@ export function BillingManager() {
                       ? billingInvoices.find((b) => b.id === inv.relatedSaleId)
                       : undefined;
                     return (
-                      <tr key={inv.id} className="hover:bg-slate-50/60 transition">
+                      <tr key={inv.id} className="hover:bg-[#f8f9ff] transition">
                         <td className="py-3 px-4">
-                          <div className="font-mono font-bold text-slate-900">
+                          <div className="font-mono font-bold text-[#0b1c30]">
                             {inv.documentNumber}
                           </div>
                           <span
-                            className="text-[10px] font-mono text-slate-400 truncate max-w-[200px] block"
+                            className="text-xs font-mono text-[#737686] truncate max-w-[200px] block"
                             title={inv.claveAcceso}
                           >
                             {originSale
@@ -774,28 +774,28 @@ export function BillingManager() {
                               : `Clave: ${(inv.claveAcceso || "").slice(-10)}`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
+                        <td className="py-3 px-4 text-[#475569] whitespace-nowrap">
                           <div className="flex items-center gap-1.5 font-medium">
-                            <Calendar className="w-3 h-3 text-slate-400" />
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
                             <span>{inv.date}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{inv.clientName}</div>
-                          <div className="text-[10px] font-mono text-slate-500">RUC: {inv.clientRuc}</div>
+                          <div className="font-bold text-[#0b1c30]">{inv.clientName}</div>
+                          <div className="text-xs font-mono text-[#737686]">RUC: {inv.clientRuc}</div>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono text-slate-700">
+                        <td className="py-3 px-3 text-right font-mono text-[#0b1c30]">
                           ${safeNumber(inv.subtotal15)}
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
                           ${safeNumber(inv.ivaTotal)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900 text-sm">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30] text-sm">
                           ${safeNumber(inv.total)}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
+                            className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
                               inv.status === "autorizada" || inv.status === "registrado"
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                                 : inv.status === "anulada"
@@ -812,7 +812,7 @@ export function BillingManager() {
                           <div className="inline-flex items-center gap-1">
                             <button
                               onClick={() => handleOpenRide(inv)}
-                              className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                               title="Ver / Imprimir RIDE PDF"
                             >
                               <Printer className="w-4 h-4" />
@@ -821,14 +821,14 @@ export function BillingManager() {
                               <>
                                 <button
                                   onClick={() => handleDownloadXmlDirect(inv)}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                  className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                                   title="Descargar XML SRI Firmado"
                                 >
                                   <FileCode className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleConsultarSri(inv.claveAcceso, inv.documentNumber)}
-                                  className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                                  className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                                   title="Consultar Estado en SRI"
                                 >
                                   <ShieldCheck className="w-4 h-4" />
@@ -837,7 +837,7 @@ export function BillingManager() {
                                   <>
                                     <button
                                       onClick={() => handleEmitNcFromInvoice(inv)}
-                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                      className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                       title="Emitir Nota de Crédito"
                                     >
                                       <RotateCcw className="w-4 h-4" />
@@ -847,7 +847,7 @@ export function BillingManager() {
                                         setDebitNoteInitialInvoice(inv);
                                         setIsDebitNoteModalOpen(true);
                                       }}
-                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                      className="p-1.5 rounded-lg text-[#737686] hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                                       title="Emitir Nota de Débito"
                                     >
                                       <FileText className="w-4 h-4" />
@@ -857,21 +857,21 @@ export function BillingManager() {
                                         setWithholdingInitialInvoice(inv);
                                         setIsWithholdingModalOpen(true);
                                       }}
-                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                                      className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                                       title="Emitir Retención"
                                     >
                                       <Percent className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => handleEmitRemissionFromInvoice(inv)}
-                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                                      className="p-1.5 rounded-lg text-[#737686] hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                                       title="Emitir Guía de Remisión"
                                     >
                                       <Truck className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => handleVoidSriInvoice(inv)}
-                                      className="p-1.5 rounded-[6px] text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                      className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                                       title="Anular Factura Electrónica"
                                     >
                                       <Ban className="w-4 h-4" />
@@ -886,7 +886,7 @@ export function BillingManager() {
                                   setInvoiceToEdit(inv);
                                   setIsEditSaleModalOpen(true);
                                 }}
-                                className="p-1.5 rounded-[6px] text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                                className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
                                 title="Editar Comprobante"
                               >
                                 <Edit2 className="w-4 h-4" />
@@ -894,7 +894,7 @@ export function BillingManager() {
                             )}
                             <button
                               onClick={() => handleDeleteInvoice(inv)}
-                              className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                               title="Eliminar Factura Electrónica"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -913,42 +913,42 @@ export function BillingManager() {
 
       {/* 2. Cotizaciones */}
       {activeTab === "cotizaciones" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Cotización</th>
-                  <th className="py-3 px-4">Emisión</th>
-                  <th className="py-3 px-4">Vigencia</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-3 text-right">Subtotal</th>
-                  <th className="py-3 px-3 text-right">IVA 15%</th>
-                  <th className="py-3 px-4 text-right font-black">Total ($)</th>
-                  <th className="py-3 px-3 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">No. Cotización</th>
+                  <th className="py-3 px-4 w-1/12">Emisión</th>
+                  <th className="py-3 px-4 w-1/12">Vigencia</th>
+                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
+                  <th className="py-3 px-3 w-1/12 text-right">Subtotal</th>
+                  <th className="py-3 px-3 w-1/12 text-right">IVA 15%</th>
+                  <th className="py-3 px-4 w-1/12 text-right font-black">Total</th>
+                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredQuotes.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-[#737686] italic text-xs">
                       No se encontraron cotizaciones registradas.
                     </td>
                   </tr>
                 ) : (
                   filteredQuotes.map((q) => (
-                    <tr key={q.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                    <tr key={q.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {q.quoteNumber}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{q.date}</td>
-                      <td className="py-3 px-4 text-slate-600">{q.validUntil}</td>
+                      <td className="py-3 px-4 text-[#475569]">{q.date}</td>
+                      <td className="py-3 px-4 text-[#475569]">{q.validUntil}</td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{q.clientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">{q.clientRuc}</div>
+                        <div className="font-bold text-[#0b1c30]">{q.clientName}</div>
+                        <div className="text-xs font-mono text-[#737686]">{q.clientRuc}</div>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700">
+                      <td className="py-3 px-3 text-right font-mono text-[#0b1c30]">
                         ${safeNumber((q.subtotal15 || 0) + (q.subtotal0 || 0))}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
@@ -959,7 +959,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] border ${
+                          className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
                             q.status === "facturada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                               : q.status === "aprobada"
@@ -975,20 +975,20 @@ export function BillingManager() {
                           {q.status !== "facturada" ? (
                             <button
                               onClick={() => setQuoteToConvert(q)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition cursor-pointer"
                             >
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Convertir a Factura</span>
                             </button>
                           ) : (
-                            <span className="text-[10px] text-slate-500 font-mono">
+                            <span className="text-xs text-[#737686] font-mono">
                               {q.invoiceNumber}
                             </span>
                           )}
 
                           <button
                             onClick={() => setQuoteToPreview(q)}
-                            className="p-1 rounded-[6px] text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            className="p-1 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Ver / Imprimir Cotización Formal PDF"
                           >
                             <Printer className="w-3.5 h-3.5" />
@@ -999,7 +999,7 @@ export function BillingManager() {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
                             }}
-                            className="p-1 rounded-[6px] text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
+                            className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 cursor-pointer"
                             title="Editar Cotización"
                           >
                             <FileText className="w-3.5 h-3.5" />
@@ -1017,7 +1017,7 @@ export function BillingManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            className="p-1 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                             title="Eliminar Cotización"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1035,50 +1035,50 @@ export function BillingManager() {
 
       {/* 3. Notas de Crédito */}
       {activeTab === "notas_credito" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Comprobante</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Factura Modificada</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Motivo</th>
-                  <th className="py-3 px-4 text-right font-black">Valor Acreditado</th>
-                  <th className="py-3 px-3 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">No. Comprobante</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-2/12">Factura Modificada</th>
+                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
+                  <th className="py-3 px-4 w-1/12">Motivo</th>
+                  <th className="py-3 px-4 w-1/12 text-right font-black">Valor Acreditado</th>
+                  <th className="py-3 px-3 w-1/12 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredCreditNotes.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={8} className="py-12 text-center text-[#737686] italic text-xs">
                       No hay notas de crédito emitidas.
                     </td>
                   </tr>
                 ) : (
                   filteredCreditNotes.map((nc) => (
-                    <tr key={nc.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                    <tr key={nc.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {nc.documentNumber}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{nc.date}</td>
+                      <td className="py-3 px-4 text-[#475569]">{nc.date}</td>
                       <td className="py-3 px-4 font-mono font-semibold text-[#004ac6]">
                         {nc.invoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{nc.clientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">{nc.clientRuc}</div>
+                        <div className="font-bold text-[#0b1c30]">{nc.clientName}</div>
+                        <div className="text-xs font-mono text-[#737686]">{nc.clientRuc}</div>
                       </td>
-                      <td className="py-3 px-4 text-slate-700 max-w-[220px] truncate" title={nc.reason}>
+                      <td className="py-3 px-4 text-[#475569] max-w-[220px] truncate" title={nc.reason}>
                         {nc.reason}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 text-sm">
                         ${safeNumber(nc.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
                           {nc.status.toUpperCase()}
                         </span>
                       </td>
@@ -1086,21 +1086,21 @@ export function BillingManager() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenNcRide(nc)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                             title="Ver RIDE PDF"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadXmlCreditNote(nc)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Nota de Crédito"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleConsultarSri(nc.claveAcceso, nc.documentNumber)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
@@ -1117,7 +1117,7 @@ export function BillingManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Eliminar Nota de Crédito"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1135,50 +1135,50 @@ export function BillingManager() {
 
       {/* 3.5. Notas de Débito (Tipo 05) */}
       {activeTab === "notas_debito" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Nota Débito</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Factura Modificada</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Motivos</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                  <th className="py-3 px-4 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">No. Nota Débito</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-2/12">Factura Modificada</th>
+                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
+                  <th className="py-3 px-4 w-1/12">Motivos</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Total</th>
+                  <th className="py-3 px-4 w-1/12 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredDebitNotes.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-[#737686] italic text-xs">
                       No se encontraron Notas de Débito registradas.
                     </td>
                   </tr>
                 ) : (
                   filteredDebitNotes.map((nd) => (
-                    <tr key={nd.id} className="hover:bg-slate-50/50">
-                      <td className="py-3 px-4 font-mono font-semibold text-slate-900">
+                    <tr key={nd.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-semibold text-[#0b1c30]">
                         {nd.documentNumber}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{nd.date}</td>
-                      <td className="py-3 px-4 font-mono text-slate-700">
+                      <td className="py-3 px-4 text-[#475569]">{nd.date}</td>
+                      <td className="py-3 px-4 font-mono text-[#475569]">
                         {nd.modifiedInvoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-800 block">{nd.clientName}</span>
-                        <span className="text-[11px] font-mono text-slate-500">{nd.clientRuc}</span>
+                        <span className="font-bold text-[#0b1c30] block">{nd.clientName}</span>
+                        <span className="text-xs font-mono text-[#737686]">{nd.clientRuc}</span>
                       </td>
-                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
+                      <td className="py-3 px-4 text-[#475569] max-w-xs truncate">
                         {nd.reasons.map((r) => r.reason).join(", ")}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                         ${safeNumber(nd.total)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           {nd.status.toUpperCase()}
                         </span>
                       </td>
@@ -1186,7 +1186,7 @@ export function BillingManager() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenDebitNoteRide(nd)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                             title="Ver / Imprimir RIDE (05)"
                           >
                             <Printer className="w-4 h-4" />
@@ -1202,14 +1202,14 @@ export function BillingManager() {
                                 showError("Error al generar XML", e?.message || "No se pudo generar el XML");
                               }
                             }}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML SRI"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleConsultarSri(nd.claveAcceso, nd.documentNumber)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
@@ -1226,7 +1226,7 @@ export function BillingManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Eliminar Nota de Débito"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1244,48 +1244,48 @@ export function BillingManager() {
 
       {/* 4. Retenciones */}
       {activeTab === "retenciones" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Retención</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Factura Origen</th>
-                  <th className="py-3 px-4">Cliente Sujeto Retenido</th>
-                  <th className="py-3 px-4">Impuestos Retenidos</th>
-                  <th className="py-3 px-4 text-right font-black">Total Retenido ($)</th>
-                  <th className="py-3 px-3 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">No. Retención</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-2/12">Factura Origen</th>
+                  <th className="py-3 px-4 w-3/12">Cliente Sujeto Retenido</th>
+                  <th className="py-3 px-4 w-1/12">Impuestos Retenidos</th>
+                  <th className="py-3 px-4 w-1/12 text-right font-black">Total Retenido</th>
+                  <th className="py-3 px-3 w-1/12 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredWithholdings.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={8} className="py-12 text-center text-[#737686] italic text-xs">
                       No hay comprobantes de retención registrados.
                     </td>
                   </tr>
                 ) : (
                   filteredWithholdings.map((ret) => (
-                    <tr key={ret.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                    <tr key={ret.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {ret.documentNumber}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{ret.date}</td>
+                      <td className="py-3 px-4 text-[#475569]">{ret.date}</td>
                       <td className="py-3 px-4 font-mono font-semibold text-[#004ac6]">
                         {ret.invoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{ret.clientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">{ret.clientRuc}</div>
+                        <div className="font-bold text-[#0b1c30]">{ret.clientName}</div>
+                        <div className="text-xs font-mono text-[#737686]">{ret.clientRuc}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="space-y-0.5 text-[11px]">
+                        <div className="space-y-0.5 text-xs">
                           {ret.items.map((it, idx) => (
                             <span
                               key={idx}
-                              className="inline-block mr-2 px-2 py-0.5 rounded-[4px] bg-slate-100 text-slate-700 font-mono text-[10px]"
+                              className="inline-block mr-2 px-2 py-0.5 rounded-md bg-slate-100 text-[#475569] font-mono text-xs"
                             >
                               {it.taxType} {it.percentage}%: ${safeNumber(it.retainedAmount)}
                             </span>
@@ -1296,7 +1296,7 @@ export function BillingManager() {
                         ${safeNumber(ret.totalRetained)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
                           {ret.status.toUpperCase()}
                         </span>
                       </td>
@@ -1304,21 +1304,21 @@ export function BillingManager() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenWithholdingRide(ret)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                             title="Ver RIDE PDF"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadXmlWithholding(ret)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Retención"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleConsultarSri(ret.claveAcceso, ret.documentNumber)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
@@ -1335,7 +1335,7 @@ export function BillingManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Eliminar Retención"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1353,59 +1353,59 @@ export function BillingManager() {
 
       {/* 5. Guías de Remisión */}
       {activeTab === "guias_remision" && (
-        <div className="bg-white rounded-[6px] border border-slate-200/80 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                  <th className="py-3 px-4">No. Guía</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Transportista & Placa</th>
-                  <th className="py-3 px-4">Ruta</th>
-                  <th className="py-3 px-4">Destinatario</th>
-                  <th className="py-3 px-4">Mercadería</th>
-                  <th className="py-3 px-3 text-center">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">No. Guía</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-2/12">Transportista & Placa</th>
+                  <th className="py-3 px-4 w-2/12">Ruta</th>
+                  <th className="py-3 px-4 w-2/12">Destinatario</th>
+                  <th className="py-3 px-4 w-1/12">Mercadería</th>
+                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredRemissionGuides.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={8} className="py-12 text-center text-[#737686] italic text-xs">
                       No hay guías de remisión registradas.
                     </td>
                   </tr>
                 ) : (
                   filteredRemissionGuides.map((g) => (
-                    <tr key={g.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                    <tr key={g.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {g.documentNumber}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">{g.date}</td>
+                      <td className="py-3 px-4 text-[#475569]">{g.date}</td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{g.carrierName}</div>
-                        <div className="text-[10px] font-mono text-indigo-700 font-semibold">
+                        <div className="font-bold text-[#0b1c30]">{g.carrierName}</div>
+                        <div className="text-xs font-mono text-indigo-700 font-semibold">
                           Placa: {g.licensePlate}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-700 max-w-[200px] truncate" title={g.route}>
+                      <td className="py-3 px-4 text-[#475569] max-w-[200px] truncate" title={g.route}>
                         {g.route}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{g.destClientName}</div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[180px]">
+                        <div className="font-bold text-[#0b1c30]">{g.destClientName}</div>
+                        <div className="text-xs text-[#737686] truncate max-w-[180px]">
                           {g.destAddress}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-700">
+                      <td className="py-3 px-4 text-[#475569]">
                         {g.items.map((it, idx) => (
-                          <span key={idx} className="block text-[11px]">
+                          <span key={idx} className="block text-xs">
                             • {it.quantity} {it.unit} - {it.name}
                           </span>
                         ))}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {g.status.toUpperCase()}
                         </span>
                       </td>
@@ -1413,21 +1413,21 @@ export function BillingManager() {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenRemissionRide(g)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                             title="Ver RIDE PDF"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadXmlRemission(g)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Guía"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleConsultarSri(g.claveAcceso, g.documentNumber)}
-                            className="p-1.5 rounded-[6px] text-slate-600 hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
@@ -1444,7 +1444,7 @@ export function BillingManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1.5 rounded-[6px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Eliminar Guía de Remisión"
                           >
                             <Trash2 className="w-4 h-4" />

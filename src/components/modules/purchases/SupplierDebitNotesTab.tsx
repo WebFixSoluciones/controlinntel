@@ -82,7 +82,7 @@ export function SupplierDebitNotesTab() {
   return (
     <div className="space-y-6">
       {/* Unified Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -90,13 +90,13 @@ export function SupplierDebitNotesTab() {
             placeholder="Buscar por proveedor o número de nota de débito..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
           />
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto justify-center"
+          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar Nota de Débito</span>
@@ -104,15 +104,15 @@ export function SupplierDebitNotesTab() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th className="py-3 px-4 font-bold">Fecha</th>
-              <th className="py-3 px-4 font-bold">N° Nota Débito</th>
-              <th className="py-3 px-4 font-bold">Proveedor</th>
-              <th className="py-3 px-4 font-bold">Concepto / Motivo</th>
-              <th className="py-3 px-4 font-bold text-right">Valor Incrementado</th>
+              <th className="py-3 px-4 w-2/12">Fecha</th>
+              <th className="py-3 px-4 w-2/12">N° Nota Débito</th>
+              <th className="py-3 px-4 w-4/12">Proveedor</th>
+              <th className="py-3 px-4 w-2/12">Concepto / Motivo</th>
+              <th className="py-3 px-4 w-2/12 text-right">Valor Incrementado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#e2e8f0]">
@@ -144,7 +144,7 @@ export function SupplierDebitNotesTab() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-150">
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div>
                 <h3 className="text-base font-bold text-[#0b1c30]">

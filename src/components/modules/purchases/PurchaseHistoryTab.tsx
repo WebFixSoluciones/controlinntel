@@ -56,7 +56,7 @@ export function PurchaseHistoryTab({
   return (
     <div className="space-y-6">
       {/* Filter and Search Bar with Action Button */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -64,7 +64,7 @@ export function PurchaseHistoryTab({
             placeholder="Buscar por proveedor, RUC, factura o clave..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
           />
         </div>
 
@@ -73,7 +73,7 @@ export function PurchaseHistoryTab({
           <select
             value={filterSupplier}
             onChange={(e) => setFilterSupplier(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
           >
             <option value="todos">Todos los Proveedores</option>
             {suppliers.map((s) => (
@@ -87,7 +87,7 @@ export function PurchaseHistoryTab({
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
           >
             <option value="todos">Todos los Estados</option>
             <option value="pagado">Pagado</option>
@@ -97,7 +97,7 @@ export function PurchaseHistoryTab({
 
           <button
             onClick={onOpenNewPurchase}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Registrar Compra</span>
@@ -106,27 +106,27 @@ export function PurchaseHistoryTab({
       </div>
 
       {/* Table of Invoices */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4 font-bold">Fecha</th>
-                <th className="py-3 px-4 font-bold">N° Comprobante</th>
-                <th className="py-3 px-4 font-bold">Proveedor / RUC</th>
-                <th className="py-3 px-4 font-bold text-center">Condición</th>
-                <th className="py-3 px-4 font-bold text-right">Subtotal</th>
-                <th className="py-3 px-4 font-bold text-right">IVA</th>
-                <th className="py-3 px-4 font-bold text-right">Total Factura</th>
-                <th className="py-3 px-4 font-bold text-center">Estado Pago</th>
-                <th className="py-3 px-4 font-bold text-center">Inventario</th>
-                <th className="py-3 px-4 font-bold text-center">Acciones</th>
+                <th className="py-3 px-4 w-1/12">Fecha</th>
+                <th className="py-3 px-4 w-2/12">N° Comprobante</th>
+                <th className="py-3 px-4 w-3/12">Proveedor / RUC</th>
+                <th className="py-3 px-4 w-1/12 text-center">Condición</th>
+                <th className="py-3 px-4 w-1/12 text-right">Subtotal</th>
+                <th className="py-3 px-4 w-1/12 text-right">IVA</th>
+                <th className="py-3 px-4 w-1/12 text-right font-black">Total Factura</th>
+                <th className="py-3 px-4 w-1/12 text-center">Estado Pago</th>
+                <th className="py-3 px-4 w-1/12 text-center">Inventario</th>
+                <th className="py-3 px-4 w-1/12 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0]">
+            <tbody className="divide-y divide-[#f1f5f9]">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-xs text-[#737686]">
+                  <td colSpan={10} className="py-12 text-center text-xs text-[#737686] italic">
                     No se encontraron comprobantes de compra con los filtros seleccionados.
                   </td>
                 </tr>
@@ -136,7 +136,7 @@ export function PurchaseHistoryTab({
                   const isPartial = inv.paymentStatus === "abono_parcial";
 
                   return (
-                    <tr key={inv.id} className="hover:bg-[#f8f9ff]/60 transition-colors">
+                    <tr key={inv.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3 px-4 font-medium text-[#0b1c30] whitespace-nowrap">
                         {inv.date}
                       </td>
@@ -149,14 +149,14 @@ export function PurchaseHistoryTab({
                         <div className="font-bold text-[#0b1c30] truncate" title={inv.supplierName}>
                           {inv.supplierName}
                         </div>
-                        <div className="text-[11px] font-mono text-[#737686]">
+                        <div className="text-xs font-mono text-[#737686]">
                           {inv.supplierRuc}
                         </div>
                       </td>
 
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
                             inv.paymentCondition === "contado"
                               ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
                               : "bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]"
@@ -180,7 +180,7 @@ export function PurchaseHistoryTab({
 
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
                             isPaid
                               ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
                               : isPartial
@@ -194,7 +194,7 @@ export function PurchaseHistoryTab({
 
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
                             inv.inventoryStatus === "ingresado"
                               ? "bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]"
                               : "bg-[#f1f5f9] text-[#64748b] border border-[#cbd5e1]"
@@ -208,7 +208,7 @@ export function PurchaseHistoryTab({
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => setSelectedInvoice(inv)}
-                            className="p-1.5 rounded-lg text-[#004ac6] hover:bg-[#eff4ff] transition-colors"
+                            className="p-1.5 rounded-lg text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
                             title="Ver Detalle"
                           >
                             <Eye className="w-4 h-4" />
@@ -217,7 +217,7 @@ export function PurchaseHistoryTab({
                           {onOpenWithholdingForInvoice && (
                             <button
                               onClick={() => onOpenWithholdingForInvoice(inv)}
-                              className="p-1.5 rounded-lg text-[#059669] hover:bg-[#ecfdf5] transition-colors"
+                              className="p-1.5 rounded-lg text-[#059669] hover:bg-[#ecfdf5] transition-colors cursor-pointer"
                               title="Emitir Retención SRI"
                             >
                               <Percent className="w-4 h-4" />
@@ -227,7 +227,7 @@ export function PurchaseHistoryTab({
                           {onOpenCreditNoteForInvoice && (
                             <button
                               onClick={() => onOpenCreditNoteForInvoice(inv)}
-                              className="p-1.5 rounded-lg text-[#b45309] hover:bg-[#fffbeb] transition-colors"
+                              className="p-1.5 rounded-lg text-[#b45309] hover:bg-[#fffbeb] transition-colors cursor-pointer"
                               title="Registrar Nota de Crédito"
                             >
                               <Layers className="w-4 h-4" />
@@ -247,19 +247,19 @@ export function PurchaseHistoryTab({
       {/* Invoice Detail Modal */}
       {selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div>
                 <h3 className="text-base font-bold text-[#0b1c30]">
                   Factura de Proveedor: {selectedInvoice.documentNumber}
                 </h3>
                 <p className="text-xs text-[#737686]">
-                  {selectedInvoice.supplierName} (RUC: {selectedInvoice.supplierRuc})
+                  {selectedInvoice.supplierName} • <span className="font-mono">RUC: {selectedInvoice.supplierRuc}</span>
                 </p>
               </div>
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0] transition-colors"
+                className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0] transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -268,8 +268,8 @@ export function PurchaseHistoryTab({
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {/* Clave de Acceso */}
               {selectedInvoice.claveAcceso && (
-                <div className="p-3 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] text-xs">
-                  <div className="text-[10px] font-bold text-[#737686] uppercase tracking-wider">
+                <div className="p-3 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] text-xs">
+                  <div className="text-xs font-bold text-[#737686] uppercase tracking-wider">
                     Clave de Acceso SRI (49 dígitos)
                   </div>
                   <div className="font-mono text-xs text-[#004ac6] break-all select-all font-medium mt-0.5">
@@ -279,26 +279,26 @@ export function PurchaseHistoryTab({
               )}
 
               {/* Items List */}
-              <div className="border border-[#e2e8f0] rounded-xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <div className="border border-[#e2e8f0] rounded-lg overflow-hidden">
+                <table className="table-fixed w-full text-left text-xs">
+                  <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                     <tr>
-                      <th className="py-2 px-3 font-bold">Ítem / Descripción</th>
-                      <th className="py-2 px-3 font-bold text-center">Cant.</th>
-                      <th className="py-2 px-3 font-bold text-right">Costo Unit.</th>
-                      <th className="py-2 px-3 font-bold text-right">Total</th>
+                      <th className="py-2.5 px-3 w-6/12">Ítem / Descripción</th>
+                      <th className="py-2.5 px-3 w-2/12 text-center">Cant.</th>
+                      <th className="py-2.5 px-3 w-2/12 text-right">Costo Unit.</th>
+                      <th className="py-2.5 px-3 w-2/12 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#e2e8f0]">
+                  <tbody className="divide-y divide-[#f1f5f9]">
                     {selectedInvoice.items?.map((it, idx) => (
-                      <tr key={idx}>
-                        <td className="py-2 px-3">
+                      <tr key={idx} className="hover:bg-[#f8f9ff]">
+                        <td className="py-2.5 px-3">
                           <div className="font-medium text-[#0b1c30]">{it.name}</div>
-                          {it.sku && <div className="text-[10px] text-[#737686] font-mono">SKU: {it.sku}</div>}
+                          {it.sku && <div className="text-xs text-[#737686] font-mono">SKU: {it.sku}</div>}
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">{it.quantity}</td>
-                        <td className="py-2 px-3 text-right font-mono">${it.unitCost.toFixed(2)}</td>
-                        <td className="py-2 px-3 text-right font-mono font-bold">${it.total.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 text-center font-mono">{it.quantity}</td>
+                        <td className="py-2.5 px-3 text-right font-mono">${it.unitCost.toFixed(2)}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">${it.total.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -306,7 +306,7 @@ export function PurchaseHistoryTab({
               </div>
 
               {/* Financial State */}
-              <div className="p-4 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] grid grid-cols-2 gap-3 text-xs">
+              <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[#737686]">Condición:</span>{" "}
                   <strong className="text-[#0b1c30] capitalize">{selectedInvoice.paymentCondition}</strong>
@@ -329,7 +329,7 @@ export function PurchaseHistoryTab({
             <div className="px-6 py-3 border-t border-[#e2e8f0] flex justify-end">
               <button
                 onClick={() => setSelectedInvoice(null)}
-                className="px-4 py-2 bg-[#0b1c30] text-white rounded-xl text-xs font-bold hover:bg-[#1a2e47] transition-colors"
+                className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
               >
                 Cerrar
               </button>

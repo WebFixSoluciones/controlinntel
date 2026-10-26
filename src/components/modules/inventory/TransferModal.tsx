@@ -165,14 +165,14 @@ export function TransferModal({
     <div
       className={
         embedded
-          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-2xl"
-          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
+          ? "bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden w-full max-w-2xl"
+          : "bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
       }
     >
       {headerNode}
       <form onSubmit={handleSubmit}>
         <div className="p-5 space-y-3.5 text-xs">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 rounded-lg bg-slate-50 border border-slate-200/80">
             <div>
               <label className="block text-[11px] font-bold text-slate-700 mb-1">
                 Desde Bodega *
@@ -180,7 +180,7 @@ export function TransferModal({
               <select
                 value={originWhId}
                 onChange={(e) => setOriginWhId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryWarehouses
                   .filter((w) => w.status === "activo")
@@ -202,7 +202,7 @@ export function TransferModal({
               <select
                 value={destWhId}
                 onChange={(e) => setDestWhId(e.target.value)}
-                className={`w-full px-3 py-2 rounded-xl border text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 bg-white font-medium ${
+                className={`w-full px-3 py-2 rounded-lg border text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 bg-white font-medium ${
                   isSameWarehouse
                     ? "border-rose-300 focus:border-rose-500 bg-rose-50/20"
                     : "border-slate-200 focus:border-[#004ac6]"
@@ -223,7 +223,7 @@ export function TransferModal({
           </div>
 
           {isSameWarehouse && (
-            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
+            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>Selecciona dos bodegas diferentes.</span>
             </div>
@@ -237,7 +237,7 @@ export function TransferModal({
               <select
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryProducts
                   .filter((p) => p.tracksStock && p.status === "activo")
@@ -259,7 +259,7 @@ export function TransferModal({
                 max={Math.max(1, availableOriginStock)}
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className={`w-full px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 ${
+                className={`w-full px-3 py-2 rounded-lg border text-xs font-bold focus:outline-hidden focus:ring-2 ${
                   !isStockSufficient
                     ? "border-rose-300 bg-rose-50/30 text-rose-700"
                     : "border-slate-200 focus:ring-[#004ac6]/20 focus:border-[#004ac6] text-slate-800"
@@ -269,7 +269,7 @@ export function TransferModal({
           </div>
 
           {!isStockSufficient && (
-            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between text-xs">
+            <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between text-xs">
               <span className="flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
                 Cantidad supera el stock disponible en la bodega origen
@@ -288,7 +288,7 @@ export function TransferModal({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ej. Reposición de materiales"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
             />
           </div>
         </div>
@@ -298,14 +298,14 @@ export function TransferModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !isStockSufficient || isSameWarehouse}
-            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCircle2 className="w-4 h-4" />
             {isSubmitting ? "Transferiendo..." : "Guardar Transferencia"}

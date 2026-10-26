@@ -343,8 +343,8 @@ export function ProductModal({
     <div
       className={
         embedded
-          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full"
-          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]"
+          ? "bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden w-full"
+          : "bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 flex flex-col max-h-[90vh]"
       }
     >
       {headerNode}

@@ -1409,5 +1409,91 @@ test("Flujo E2E 25: Estandarización Global de Diseño UI/UX Fase 2 (Tableros Ka
   );
 });
 
+test("Flujo E2E 26: Estandarización Global de Diseño UI/UX Fase 3 (Tablas Maestras y Barras de Filtros en Módulos Comerciales y Operativos)", () => {
+  const rootDir = process.cwd();
+
+  // 1. ClientsTable.tsx
+  const clientsTablePath = path.resolve(rootDir, "src/components/modules/clients/ClientsTable.tsx");
+  const clientsContent = fs.readFileSync(clientsTablePath, "utf8");
+  assert.ok(
+    clientsContent.includes("table-fixed w-full text-left text-xs") &&
+      clientsContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "ClientsTable debe usar estructura table-fixed con cabecera corporativa estandarizada"
+  );
+  assert.ok(
+    !clientsContent.includes("rounded-2xl") && !clientsContent.includes("rounded-3xl"),
+    "ClientsTable debe respetar la regla de esquinas moderadas rounded-xl/rounded-lg"
+  );
+
+  // 2. SalesManager.tsx
+  const salesPath = path.resolve(rootDir, "src/components/modules/sales/SalesManager.tsx");
+  const salesContent = fs.readFileSync(salesPath, "utf8");
+  assert.ok(
+    salesContent.includes("table-fixed w-full text-left text-xs border-collapse") &&
+      salesContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "SalesManager debe unificar tablas de notas de venta y cotizaciones en table-fixed con cabecera estándar"
+  );
+  assert.ok(
+    salesContent.includes("Facturada SRI •"),
+    "SalesManager debe purgar paréntesis ruidosos en los badges de estado"
+  );
+  assert.ok(
+    !salesContent.includes("rounded-2xl"),
+    "SalesManager no debe contener rounded-2xl"
+  );
+
+  // 3. BillingManager.tsx
+  const billingPath = path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx");
+  const billingContent = fs.readFileSync(billingPath, "utf8");
+  assert.ok(
+    billingContent.includes("table-fixed") &&
+      billingContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "BillingManager debe normalizar las 6 tablas de comprobantes con table-fixed y cabecera corporativa"
+  );
+  assert.ok(
+    !billingContent.includes("rounded-2xl"),
+    "BillingManager no debe contener rounded-2xl"
+  );
+
+  // 4. Purchases (PurchaseHistoryTab.tsx & NewPurchaseView.tsx)
+  const purchaseHistoryPath = path.resolve(rootDir, "src/components/modules/purchases/PurchaseHistoryTab.tsx");
+  const purchaseHistoryContent = fs.readFileSync(purchaseHistoryPath, "utf8");
+  assert.ok(
+    purchaseHistoryContent.includes("table-fixed w-full text-left text-xs border-collapse") &&
+      purchaseHistoryContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "PurchaseHistoryTab debe implementar table-fixed y cabecera corporativa azul"
+  );
+  assert.ok(
+    !purchaseHistoryContent.includes("rounded-2xl"),
+    "PurchaseHistoryTab no debe contener rounded-2xl"
+  );
+
+  const newPurchasePath = path.resolve(rootDir, "src/components/modules/purchases/NewPurchaseView.tsx");
+  const newPurchaseContent = fs.readFileSync(newPurchasePath, "utf8");
+  assert.ok(
+    !newPurchaseContent.includes("rounded-2xl"),
+    "NewPurchaseView no debe contener rounded-2xl"
+  );
+
+  // 5. InventoryManager.tsx
+  const inventoryPath = path.resolve(rootDir, "src/components/modules/inventory/InventoryManager.tsx");
+  const inventoryContent = fs.readFileSync(inventoryPath, "utf8");
+  assert.ok(
+    inventoryContent.includes("table-fixed") &&
+      inventoryContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    "InventoryManager debe estandarizar tablas con table-fixed y thead corporativo"
+  );
+  assert.ok(
+    inventoryContent.includes("• ${kardexSummary.totalInCost.toFixed(2)}") &&
+      inventoryContent.includes("• ${kardexSummary.totalOutCost.toFixed(2)}"),
+    "InventoryManager debe purgar paréntesis ruidosos en los balances del Kardex"
+  );
+  assert.ok(
+    !inventoryContent.includes("rounded-2xl"),
+    "InventoryManager no debe contener rounded-2xl"
+  );
+});
+
+
 
 

@@ -178,8 +178,8 @@ export function AdjustmentModal({
     <div
       className={
         embedded
-          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-2xl"
-          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
+          ? "bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden w-full max-w-2xl"
+          : "bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95"
       }
     >
       {headerNode}
@@ -189,7 +189,7 @@ export function AdjustmentModal({
             <button
               type="button"
               onClick={() => setType("manual_ingreso")}
-              className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-lg border flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
                 type === "manual_ingreso"
                   ? "bg-emerald-50 border-emerald-300 text-emerald-800"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -201,7 +201,7 @@ export function AdjustmentModal({
             <button
               type="button"
               onClick={() => setType("manual_egreso")}
-              className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-lg border flex items-center justify-center gap-1.5 font-bold text-xs transition-all cursor-pointer ${
                 type === "manual_egreso"
                   ? "bg-rose-50 border-rose-300 text-rose-800"
                   : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -220,7 +220,7 @@ export function AdjustmentModal({
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryWarehouses
                   .filter((w) => w.status === "activo")
@@ -239,7 +239,7 @@ export function AdjustmentModal({
               <select
                 value={productId}
                 onChange={(e) => handleProductChange(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
                 {inventoryProducts
                   .filter((p) => p.tracksStock && p.status === "activo")
@@ -262,7 +262,7 @@ export function AdjustmentModal({
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
 
@@ -276,7 +276,7 @@ export function AdjustmentModal({
                 disabled={type === "manual_egreso"}
                 value={type === "manual_ingreso" ? unitCost : selectedProduct?.baseCost || 0}
                 onChange={(e) => setUnitCost(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] disabled:bg-slate-100 disabled:text-slate-500"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] disabled:bg-slate-100 disabled:text-slate-500"
               />
             </div>
 
@@ -285,7 +285,7 @@ export function AdjustmentModal({
                 Nuevo Stock
               </label>
               <div
-                className={`px-3 py-2 rounded-xl border font-bold flex items-center justify-between ${
+                className={`px-3 py-2 rounded-lg border font-bold flex items-center justify-between ${
                   isEgresoExceeding
                     ? "bg-rose-50 border-rose-200 text-rose-700"
                     : "bg-slate-50 border-slate-200 text-slate-800"
@@ -300,7 +300,7 @@ export function AdjustmentModal({
           </div>
 
           {isEgresoExceeding && (
-            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
+            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 flex items-center gap-2 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>No puedes restar más unidades de las que hay en esta bodega.</span>
             </div>
@@ -316,7 +316,7 @@ export function AdjustmentModal({
               value={concept}
               onChange={(e) => setConcept(e.target.value)}
               placeholder="Ej. Conteo físico, daño o reposición"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
             />
           </div>
         </div>
@@ -326,14 +326,14 @@ export function AdjustmentModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting || isEgresoExceeding}
-            className={`px-5 py-2 rounded-xl text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`px-5 py-2 rounded-lg text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
               type === "manual_ingreso"
                 ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-rose-600 hover:bg-rose-700"

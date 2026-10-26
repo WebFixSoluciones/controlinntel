@@ -10,7 +10,7 @@ import { ClientProfile360 } from "@/components/modules/clients/ClientProfile360"
 import { ClientModal } from "@/components/modules/clients/ClientModal";
 import { useApp } from "@/lib/state";
 import { canAccessModule } from "@/lib/permissions";
-import { Plus, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { Client } from "@/types";
 
 function ClientesContent() {
@@ -81,22 +81,6 @@ function ClientesContent() {
             </div>
           ) : (
             <>
-              {/* Action Toolbar */}
-              {!selectedClient && (
-                <div className="flex items-center justify-end">
-                  <button
-                    onClick={() => {
-                      setClientToEdit(null);
-                      setIsNewModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Nuevo Cliente</span>
-                  </button>
-                </div>
-              )}
-
               {/* Main Content */}
               <div className="w-full">
                 {selectedClient ? (

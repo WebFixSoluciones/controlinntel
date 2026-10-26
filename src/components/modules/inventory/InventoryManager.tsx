@@ -622,7 +622,7 @@ export function InventoryManager() {
 
   if (!hasAccess) {
     return (
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-12 text-center shadow-2xs">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-12 text-center shadow-2xs">
         <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-3" />
         <h3 className="text-base font-bold text-[#0b1c30]">Acceso Restringido</h3>
         <p className="text-xs text-[#737686] mt-1 max-w-md mx-auto">
@@ -721,7 +721,7 @@ export function InventoryManager() {
       {activeTab === "productos" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -729,7 +729,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar producto por código o nombre..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
               />
             </div>
 
@@ -737,7 +737,7 @@ export function InventoryManager() {
               <select
                 value={productWarehouseFilter}
                 onChange={(e) => setProductWarehouseFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
               >
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
@@ -750,7 +750,7 @@ export function InventoryManager() {
               <select
                 value={productCategoryFilter}
                 onChange={(e) => setProductCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
               >
                 <option value="all">Todas las Categorías</option>
                 {inventoryCategories.map((c) => (
@@ -763,7 +763,7 @@ export function InventoryManager() {
               <select
                 value={productStockFilter}
                 onChange={(e) => setProductStockFilter(e.target.value as any)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
               >
                 <option value="all">Todo el Stock</option>
                 <option value="normal">Con Stock</option>
@@ -773,7 +773,7 @@ export function InventoryManager() {
 
               <button
                 onClick={handleExportProductsCsv}
-                className="px-3.5 py-2 rounded-xl border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#434655] text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border border-[#e2e8f0] bg-white hover:bg-slate-50 text-[#434655] text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Descargar productos en CSV"
               >
                 <Download className="w-3.5 h-3.5 text-[#737686]" />
@@ -787,7 +787,7 @@ export function InventoryManager() {
                     setProductModalDefaultType("producto");
                     setIsProductModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Nuevo Producto</span>
@@ -797,20 +797,20 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Código</th>
-                    <th className="py-3 px-4 font-bold">Producto</th>
-                    <th className="py-3 px-4 font-bold">Categoría / Marca</th>
-                    <th className="py-3 px-4 font-bold text-center">Stock</th>
-                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo" : "—"}</th>
-                    <th className="py-3 px-4 font-bold text-right">Precio sin IVA</th>
-                    <th className="py-3 px-4 font-bold text-right">Precio con IVA</th>
-                    <th className="py-3 px-4 font-bold text-center">Estado</th>
-                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    <th className="py-3 px-4 w-1/12">Código</th>
+                    <th className="py-3 px-4 w-3/12">Producto</th>
+                    <th className="py-3 px-4 w-2/12">Categoría / Marca</th>
+                    <th className="py-3 px-4 w-1/12 text-center">Stock</th>
+                    <th className="py-3 px-4 w-1/12 text-right">{canViewCosts ? "Costo" : "—"}</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Precio sin IVA</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Precio con IVA</th>
+                    <th className="py-3 px-4 w-1/12 text-center">Estado</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e2e8f0]">
@@ -951,7 +951,7 @@ export function InventoryManager() {
       {activeTab === "servicios" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -959,7 +959,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar servicio por código o nombre..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
               />
             </div>
 
@@ -967,7 +967,7 @@ export function InventoryManager() {
               <select
                 value={serviceCategoryFilter}
                 onChange={(e) => setServiceCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
               >
                 <option value="all">Todas las Categorías</option>
                 {inventoryCategories.map((c) => (
@@ -980,7 +980,7 @@ export function InventoryManager() {
               <select
                 value={serviceStatusFilter}
                 onChange={(e) => setServiceStatusFilter(e.target.value as any)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
               >
                 <option value="todos">Todos los Estados</option>
                 <option value="activo">Activos</option>
@@ -994,7 +994,7 @@ export function InventoryManager() {
                     setProductModalDefaultType("servicio");
                     setIsProductModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Nuevo Servicio</span>
@@ -1004,20 +1004,20 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Código</th>
-                    <th className="py-3 px-4 font-bold">Servicio</th>
-                    <th className="py-3 px-4 font-bold">Categoría</th>
-                    <th className="py-3 px-4 font-bold text-center">Unidad</th>
-                    <th className="py-3 px-4 font-bold text-right">{canViewCosts ? "Costo" : "—"}</th>
-                    <th className="py-3 px-4 font-bold text-right">Precio sin IVA</th>
-                    <th className="py-3 px-4 font-bold text-right">Precio con IVA</th>
-                    <th className="py-3 px-4 font-bold text-center">Estado</th>
-                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    <th className="py-3 px-4 w-1/12">Código</th>
+                    <th className="py-3 px-4 w-3/12">Servicio</th>
+                    <th className="py-3 px-4 w-2/12">Categoría</th>
+                    <th className="py-3 px-4 w-1/12 text-center">Unidad</th>
+                    <th className="py-3 px-4 w-1/12 text-right">{canViewCosts ? "Costo" : "—"}</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Precio sin IVA</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Precio con IVA</th>
+                    <th className="py-3 px-4 w-1/12 text-center">Estado</th>
+                    <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e2e8f0]">
@@ -1099,12 +1099,12 @@ export function InventoryManager() {
       {activeTab === "categorias" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             {/* View Sub-tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] w-full sm:w-auto">
               <button
                 onClick={() => setCategorySubView("categorias")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
                   categorySubView === "categorias"
                     ? "bg-[#004ac6] text-white shadow-xs"
                     : "text-[#434655] hover:text-[#0b1c30]"
@@ -1115,7 +1115,7 @@ export function InventoryManager() {
               </button>
               <button
                 onClick={() => setCategorySubView("marcas")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer ${
                   categorySubView === "marcas"
                     ? "bg-[#004ac6] text-white shadow-xs"
                     : "text-[#434655] hover:text-[#0b1c30]"
@@ -1138,7 +1138,7 @@ export function InventoryManager() {
                       ? "Buscar categoría..."
                       : "Buscar marca..."
                   }
-                  className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                  className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
                 />
               </div>
 
@@ -1146,7 +1146,7 @@ export function InventoryManager() {
                 <select
                   value={categoryTypeFilter}
                   onChange={(e) => setCategoryTypeFilter(e.target.value as any)}
-                  className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                  className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
                 >
                   <option value="all">Todos los Tipos</option>
                   <option value="ambos">Productos y Servicios</option>
@@ -1161,7 +1161,7 @@ export function InventoryManager() {
                     setCatBrandMode("categoria");
                     setIsCatBrandOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Nueva Categoría</span>
@@ -1172,7 +1172,7 @@ export function InventoryManager() {
                     setCatBrandMode("marca");
                     setIsCatBrandOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Nueva Marca</span>
@@ -1183,16 +1183,16 @@ export function InventoryManager() {
 
           {/* Sub-view: Categorías Table */}
           {categorySubView === "categorias" ? (
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                <table className="table-fixed w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                     <tr>
-                      <th className="py-3 px-4 font-bold">Categoría</th>
-                      <th className="py-3 px-4 font-bold">Descripción</th>
-                      <th className="py-3 px-4 font-bold text-center">Tipo</th>
-                      <th className="py-3 px-4 font-bold text-center">Registros</th>
-                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                      <th className="py-3 px-4 w-3/12">Categoría</th>
+                      <th className="py-3 px-4 w-4/12">Descripción</th>
+                      <th className="py-3 px-4 w-2/12 text-center">Tipo</th>
+                      <th className="py-3 px-4 w-2/12 text-center">Registros</th>
+                      <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#e2e8f0]">
@@ -1216,7 +1216,7 @@ export function InventoryManager() {
                               {c.description || "—"}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                              <span className="px-2 py-0.5 rounded-md text-xs font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
                                 {c.itemType || "ambos"}
                               </span>
                             </td>
@@ -1242,15 +1242,15 @@ export function InventoryManager() {
             </div>
           ) : (
             /* Sub-view: Marcas Table */
-            <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                <table className="table-fixed w-full text-left text-xs border-collapse">
+                  <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                     <tr>
-                      <th className="py-3 px-4 font-bold">Marca</th>
-                      <th className="py-3 px-4 font-bold">País</th>
-                      <th className="py-3 px-4 font-bold text-center">Productos</th>
-                      <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                      <th className="py-3 px-4 w-4/12">Marca</th>
+                      <th className="py-3 px-4 w-3/12">País</th>
+                      <th className="py-3 px-4 w-3/12 text-center">Productos</th>
+                      <th className="py-3 px-4 w-2/12 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#e2e8f0]">
@@ -1301,7 +1301,7 @@ export function InventoryManager() {
       {activeTab === "kardex" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1309,7 +1309,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar movimiento por producto o documento..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
 
@@ -1317,7 +1317,7 @@ export function InventoryManager() {
               <select
                 value={kardexWarehouseFilter}
                 onChange={(e) => setKardexWarehouseFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
@@ -1330,7 +1330,7 @@ export function InventoryManager() {
               <select
                 value={kardexProductFilter}
                 onChange={(e) => setKardexProductFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] max-w-xs truncate"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] max-w-xs truncate"
               >
                 <option value="all">Todos los Productos</option>
                 {inventoryProducts
@@ -1353,7 +1353,7 @@ export function InventoryManager() {
 
               <button
                 onClick={handleExportKardexCsv}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <Download className="w-4 h-4" />
                 <span>Exportar CSV</span>
@@ -1367,14 +1367,14 @@ export function InventoryManager() {
               <span className="text-[11px] font-bold text-emerald-800">Entradas</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-base font-black text-emerald-950">+{kardexSummary.totalInQty}</span>
-                <span className="text-xs font-bold text-emerald-700">(${kardexSummary.totalInCost.toFixed(2)})</span>
+                <span className="text-xs font-bold text-emerald-700">• ${kardexSummary.totalInCost.toFixed(2)}</span>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-rose-50/60 border border-rose-200/80 flex flex-col shadow-2xs">
               <span className="text-[11px] font-bold text-rose-800">Salidas</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-base font-black text-rose-950">-{kardexSummary.totalOutQty}</span>
-                <span className="text-xs font-bold text-rose-700">(${kardexSummary.totalOutCost.toFixed(2)})</span>
+                <span className="text-xs font-bold text-rose-700">• ${kardexSummary.totalOutCost.toFixed(2)}</span>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 flex flex-col shadow-2xs">
@@ -1384,8 +1384,8 @@ export function InventoryManager() {
                   ${(kardexSummary.totalInCost - kardexSummary.totalOutCost).toFixed(2)}
                 </span>
                 <span className="text-xs font-bold text-blue-700">
-                  ({kardexSummary.totalInQty - kardexSummary.totalOutQty >= 0 ? "+" : ""}
-                  {kardexSummary.totalInQty - kardexSummary.totalOutQty})
+                  • {kardexSummary.totalInQty - kardexSummary.totalOutQty >= 0 ? "+" : ""}
+                  {kardexSummary.totalInQty - kardexSummary.totalOutQty} unid.
                 </span>
               </div>
             </div>
@@ -1399,28 +1399,28 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-2.5 px-3 font-bold">Fecha</th>
-                    <th className="py-2.5 px-3 font-bold">Producto</th>
-                    <th className="py-2.5 px-3 font-bold">Bodega</th>
-                    <th className="py-2.5 px-3 font-bold">Movimiento</th>
-                    <th className="py-2.5 px-3 font-bold">Documento</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Entrada</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Costo ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-emerald-50/40 text-emerald-800">Total ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Salida</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Costo ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-rose-50/40 text-rose-800">Total ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Stock</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Costo Prom ($)</th>
-                    <th className="py-2.5 px-3 font-bold text-right bg-sky-50/40 text-sky-800">Valor Stock ($)</th>
+                    <th className="py-2.5 px-3">Fecha</th>
+                    <th className="py-2.5 px-3">Producto</th>
+                    <th className="py-2.5 px-3">Bodega</th>
+                    <th className="py-2.5 px-3">Movimiento</th>
+                    <th className="py-2.5 px-3">Documento</th>
+                    <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Entrada</th>
+                    <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Costo ($)</th>
+                    <th className="py-2.5 px-3 text-right bg-emerald-50/40 text-emerald-800">Total ($)</th>
+                    <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Salida</th>
+                    <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Costo ($)</th>
+                    <th className="py-2.5 px-3 text-right bg-rose-50/40 text-rose-800">Total ($)</th>
+                    <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Stock</th>
+                    <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Costo Prom ($)</th>
+                    <th className="py-2.5 px-3 text-right bg-sky-50/40 text-sky-800">Valor Stock ($)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {filteredKardex.length === 0 ? (
                     <tr>
                       <td colSpan={14} className="py-12 text-center text-xs text-[#737686]">
@@ -1452,7 +1452,7 @@ export function InventoryManager() {
                             const badge = getKardexBadge(k.type);
                             return (
                               <span
-                                className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badge.className}`}
+                                className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${badge.className}`}
                               >
                                 {badge.label}
                               </span>
@@ -1512,7 +1512,7 @@ export function InventoryManager() {
       {activeTab === "transferencias" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1520,7 +1520,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar por número, producto o motivo..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
 
@@ -1528,7 +1528,7 @@ export function InventoryManager() {
               <select
                 value={transferWarehouseFilter}
                 onChange={(e) => setTransferWarehouseFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
@@ -1543,7 +1543,7 @@ export function InventoryManager() {
                   setTransferDefaultProduct(undefined);
                   setIsTransferModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nueva Transferencia</span>
@@ -1552,23 +1552,23 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Número</th>
-                    <th className="py-3 px-4 font-bold">Fecha</th>
-                    <th className="py-3 px-4 font-bold">Desde Bodega</th>
-                    <th className="py-3 px-4 font-bold">Hacia Bodega</th>
-                    <th className="py-3 px-4 font-bold">Producto</th>
-                    <th className="py-3 px-4 font-bold text-center">Cantidad</th>
-                    <th className="py-3 px-4 font-bold text-right">Costo Total</th>
-                    <th className="py-3 px-4 font-bold">Motivo</th>
-                    <th className="py-3 px-4 font-bold">Responsable</th>
+                    <th className="w-1/12 py-3 px-4">Número</th>
+                    <th className="w-1/12 py-3 px-4">Fecha</th>
+                    <th className="w-2/12 py-3 px-4">Desde Bodega</th>
+                    <th className="w-2/12 py-3 px-4">Hacia Bodega</th>
+                    <th className="w-2/12 py-3 px-4">Producto</th>
+                    <th className="w-1/12 py-3 px-4 text-center">Cantidad</th>
+                    <th className="w-1/12 py-3 px-4 text-right">Costo Total</th>
+                    <th className="w-1/12 py-3 px-4">Motivo</th>
+                    <th className="w-1/12 py-3 px-4">Responsable</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {filteredTransfers.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
@@ -1590,7 +1590,7 @@ export function InventoryManager() {
                         <td className="py-3 px-4 font-medium text-emerald-700">{t.destWarehouseName}</td>
                         <td className="py-3 px-4 font-bold text-[#0b1c30]">{t.productName}</td>
                         <td className="py-3 px-4 text-center">
-                          <span className="px-2.5 py-0.5 rounded-full font-black bg-[#eff4ff] text-[#004ac6] text-xs">
+                          <span className="px-2.5 py-0.5 rounded-md font-bold bg-[#eff4ff] text-[#004ac6] text-xs">
                             {t.quantity}
                           </span>
                         </td>
@@ -1615,7 +1615,7 @@ export function InventoryManager() {
       {activeTab === "bodegas" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1623,7 +1623,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar bodega por código, nombre o responsable..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
 
@@ -1631,7 +1631,7 @@ export function InventoryManager() {
               <select
                 value={warehouseStatusFilter}
                 onChange={(e) => setWarehouseStatusFilter(e.target.value as any)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="todos">Todos los Estados</option>
                 <option value="activo">Activas</option>
@@ -1643,7 +1643,7 @@ export function InventoryManager() {
                   setWarehouseToEdit(null);
                   setIsWarehouseModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nueva Bodega</span>
@@ -1652,22 +1652,22 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Código</th>
-                    <th className="py-3 px-4 font-bold">Bodega</th>
-                    <th className="py-3 px-4 font-bold">Ciudad</th>
-                    <th className="py-3 px-4 font-bold">Responsable</th>
-                    <th className="py-3 px-4 font-bold text-center">Unidades</th>
-                    <th className="py-3 px-4 font-bold text-right">Valor Stock ($)</th>
-                    <th className="py-3 px-4 font-bold text-center">Estado</th>
-                    <th className="py-3 px-4 font-bold text-right">Acciones</th>
+                    <th className="w-1/12 py-3 px-4">Código</th>
+                    <th className="w-3/12 py-3 px-4">Bodega</th>
+                    <th className="w-1/12 py-3 px-4">Ciudad</th>
+                    <th className="w-2/12 py-3 px-4">Responsable</th>
+                    <th className="w-1/12 py-3 px-4 text-center">Unidades</th>
+                    <th className="w-2/12 py-3 px-4 text-right">Valor Stock ($)</th>
+                    <th className="w-1/12 py-3 px-4 text-center">Estado</th>
+                    <th className="w-1/12 py-3 px-4 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {filteredWarehouses.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-xs text-[#737686]">
@@ -1698,7 +1698,7 @@ export function InventoryManager() {
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-[#0b1c30]">{w.name}</span>
                               {w.isDefault && (
-                                <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
                                   Principal
                                 </span>
                               )}
@@ -1717,7 +1717,7 @@ export function InventoryManager() {
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                                 w.status === "activo"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                   : "bg-slate-100 text-slate-600"
@@ -1777,7 +1777,7 @@ export function InventoryManager() {
       {activeTab === "ajustes" && (
         <div className="space-y-4">
           {/* Top Filter and Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -1785,7 +1785,7 @@ export function InventoryManager() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar ajuste por número, motivo o producto..."
-                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
               />
             </div>
 
@@ -1793,7 +1793,7 @@ export function InventoryManager() {
               <select
                 value={adjustmentWarehouseFilter}
                 onChange={(e) => setAdjustmentWarehouseFilter(e.target.value)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="all">Todas las Bodegas</option>
                 {inventoryWarehouses.map((w) => (
@@ -1806,7 +1806,7 @@ export function InventoryManager() {
               <select
                 value={adjustmentTypeFilter}
                 onChange={(e) => setAdjustmentTypeFilter(e.target.value as any)}
-                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
+                className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="todos">Todos los Tipos</option>
                 <option value="ingreso">Sumar (+)</option>
@@ -1818,7 +1818,7 @@ export function InventoryManager() {
                   setAdjustmentDefaultProduct(undefined);
                   setIsAdjustmentModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nuevo Ajuste</span>
@@ -1827,21 +1827,21 @@ export function InventoryManager() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Número</th>
-                    <th className="py-3 px-4 font-bold">Fecha</th>
-                    <th className="py-3 px-4 font-bold">Bodega</th>
-                    <th className="py-3 px-4 font-bold text-center">Tipo</th>
-                    <th className="py-3 px-4 font-bold">Motivo</th>
-                    <th className="py-3 px-4 font-bold">Producto y Cambio</th>
-                    <th className="py-3 px-4 font-bold">Responsable</th>
+                    <th className="w-1/12 py-3 px-4">Número</th>
+                    <th className="w-1/12 py-3 px-4">Fecha</th>
+                    <th className="w-2/12 py-3 px-4">Bodega</th>
+                    <th className="w-1/12 py-3 px-4 text-center">Tipo</th>
+                    <th className="w-2/12 py-3 px-4">Motivo</th>
+                    <th className="w-3/12 py-3 px-4">Producto y Cambio</th>
+                    <th className="w-2/12 py-3 px-4">Responsable</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#e2e8f0]">
+                <tbody className="divide-y divide-[#f1f5f9]">
                   {filteredAdjustments.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-xs text-[#737686]">
@@ -1862,7 +1862,7 @@ export function InventoryManager() {
                         <td className="py-3 px-4 font-semibold text-[#0b1c30]">{a.warehouseName}</td>
                         <td className="py-3 px-4 text-center">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                               a.type.includes("ingreso")
                                 ? "bg-emerald-100 text-emerald-800"
                                 : "bg-rose-100 text-rose-800"
@@ -1881,7 +1881,7 @@ export function InventoryManager() {
                                   {it.type === "ingreso" ? "+" : "-"}
                                   {it.quantity}
                                 </span>{" "}
-                                <span className="text-[#737686]">({it.previousStock} &rarr; {it.newStock})</span>
+                                <span className="text-[#737686]">[{it.previousStock} &rarr; {it.newStock}]</span>
                               </div>
                             ))}
                           </div>

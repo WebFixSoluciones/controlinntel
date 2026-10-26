@@ -222,25 +222,25 @@ export function SalesManager() {
       {activeTab === "notas_venta" && (
         <div className="space-y-4">
           {/* Filters Bar Unificada con Botón de Acción */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar por cliente, RUC o número..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  className="w-full text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg pl-9 pr-3 py-2 text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Estado SRI:</span>
+                <span className="text-xs text-[#737686] font-medium whitespace-nowrap">Estado SRI:</span>
                 <select
                   value={sriFilter}
                   onChange={(e) => setSriFilter(e.target.value as any)}
-                  className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
+                  className="text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
                 >
                   <option value="todos">Todos los comprobantes</option>
                   <option value="pendientes">Pendientes de Facturar SRI</option>
@@ -254,7 +254,7 @@ export function SalesManager() {
                 setActiveTab("nueva_venta");
                 router.push("/ventas?sub=nueva_venta");
               }}
-              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Nota de Venta</span>
@@ -262,23 +262,23 @@ export function SalesManager() {
           </div>
 
           {/* Sales Table */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
-                  <th className="py-3 px-4">Nro. Comprobante</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Método de Pago</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                  <th className="py-3 px-4 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">Nro. Comprobante</th>
+                  <th className="py-3 px-4 w-1/12">Fecha</th>
+                  <th className="py-3 px-4 w-4/12">Cliente / RUC</th>
+                  <th className="py-3 px-4 w-2/12">Método de Pago</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Total</th>
+                  <th className="py-3 px-4 w-1/12 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredSales.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 italic">
+                    <td colSpan={7} className="py-12 text-center text-[#737686] italic">
                       No se encontraron notas de venta registradas.
                     </td>
                   </tr>
@@ -289,26 +289,26 @@ export function SalesManager() {
                       ? billingInvoices.find((i) => i.id === sale.sriInvoiceId)
                       : null;
                     return (
-                      <tr key={sale.id} className="hover:bg-slate-50/70 transition">
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                      <tr key={sale.id} className="hover:bg-[#f8f9ff] transition">
+                        <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                           {sale.documentNumber}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-600">
+                        <td className="py-3 px-4 text-[#475569]">
                           {sale.date}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-bold text-slate-900 block">{sale.clientName}</span>
-                          <span className="text-[11px] font-mono text-slate-500">RUC: {sale.clientRuc}</span>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-[#0b1c30] block">{sale.clientName}</span>
+                          <span className="text-xs font-mono text-[#737686]">RUC: {sale.clientRuc}</span>
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span className="capitalize font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                        <td className="py-3 px-4">
+                          <span className="capitalize font-medium text-[#475569] bg-slate-100 px-2 py-0.5 rounded-md text-xs">
                             {sale.paymentMethod || "transferencia"}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
+                        <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                           ${(sale.total || 0).toFixed(2)}
                         </td>
-                        <td className="py-3.5 px-4 text-center">
+                        <td className="py-3 px-4 text-center">
                           {isFacturada ? (
                             <button
                               type="button"
@@ -318,20 +318,20 @@ export function SalesManager() {
                                   setIsRideOpen(true);
                                 }
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
                               title="Clic para ver Factura SRI vinculada"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Facturada SRI ({sale.sriDocumentNumber || "01"})</span>
+                              <span>Facturada SRI • {sale.sriDocumentNumber || "01"}</span>
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[6px] text-[10.5px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                               <Clock className="w-3.5 h-3.5 text-amber-500" />
                               <span>Pendiente SRI</span>
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5">
                             {/* Ver / Imprimir RIDE */}
                             <button
@@ -339,7 +339,7 @@ export function SalesManager() {
                                 setRideSale(sale);
                                 setIsRideOpen(true);
                               }}
-                              className="p-1.5 rounded-lg text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
                               title="Ver / Imprimir Nota de Venta"
                             >
                               <Printer className="w-4 h-4" />
@@ -351,7 +351,7 @@ export function SalesManager() {
                                 setSaleToEdit(sale);
                                 setIsEditSaleOpen(true);
                               }}
-                              className="p-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
                               title="Editar Nota de Venta"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -364,7 +364,7 @@ export function SalesManager() {
                                   setSaleToConvert(sale);
                                   setIsConvertModalOpen(true);
                                 }}
-                                className="p-1.5 rounded-lg text-[#004ac6] hover:text-white hover:bg-[#004ac6] bg-blue-50 transition cursor-pointer font-bold flex items-center gap-1 text-[11px] px-2"
+                                className="p-1.5 rounded-lg text-[#004ac6] hover:text-white hover:bg-[#004ac6] bg-blue-50 transition cursor-pointer font-bold flex items-center gap-1 text-xs px-2"
                                 title="Pasar a Factura Electrónica SRI"
                               >
                                 <FileCheck2 className="w-3.5 h-3.5" />
@@ -375,7 +375,7 @@ export function SalesManager() {
                             {/* Eliminar Nota de Venta */}
                             <button
                               onClick={() => handleDeleteSale(sale)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                               title="Eliminar Nota de Venta"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -396,25 +396,25 @@ export function SalesManager() {
       {activeTab === "cotizaciones" && (
         <div className="space-y-4">
           {/* Quotes Filter Bar Unificada con Botón de Acción */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Buscar cotización, cliente o RUC..."
                   value={quoteSearchTerm}
                   onChange={(e) => setQuoteSearchTerm(e.target.value)}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                  className="w-full text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg pl-9 pr-3 py-2 text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Estado:</span>
+                <span className="text-xs text-[#737686] font-medium whitespace-nowrap">Estado:</span>
                 <select
                   value={quoteStatusFilter}
                   onChange={(e) => setQuoteStatusFilter(e.target.value)}
-                  className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:border-[#004ac6]"
+                  className="text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
                 >
                   <option value="all">Todos los estados</option>
                   <option value="enviada">Enviadas</option>
@@ -430,50 +430,50 @@ export function SalesManager() {
                 setQuoteToEdit(null);
                 setIsQuoteModalOpen(true);
               }}
-              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Cotización</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
-                  <th className="py-2.5 px-4">Nro. Cotización</th>
-                  <th className="py-2.5 px-4">Emisión / Vigencia</th>
-                  <th className="py-2.5 px-4">Cliente</th>
-                  <th className="py-2.5 px-4 text-right">Total</th>
-                  <th className="py-2.5 px-4 text-center">Estado</th>
-                  <th className="py-2.5 px-4 text-right">Acciones</th>
+                <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                  <th className="py-3 px-4 w-2/12">Nro. Cotización</th>
+                  <th className="py-3 px-4 w-2/12">Emisión / Vigencia</th>
+                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
+                  <th className="py-3 px-4 w-2/12 text-right">Total</th>
+                  <th className="py-3 px-4 w-1/12 text-center">Estado</th>
+                  <th className="py-3 px-4 w-2/12 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#f1f5f9]">
                 {filteredQuotes.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                    <td colSpan={6} className="py-8 text-center text-[#737686] italic">
                       No hay cotizaciones registradas.
                     </td>
                   </tr>
                 ) : (
                   filteredQuotes.map((q) => (
-                    <tr key={q.id} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">{q.quoteNumber}</td>
-                      <td className="py-3 px-4 text-slate-600">
+                    <tr key={q.id} className="hover:bg-[#f8f9ff] transition">
+                      <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">{q.quoteNumber}</td>
+                      <td className="py-3 px-4 text-[#475569]">
                         <div>{q.date}</div>
-                        <div className="text-[10px] text-slate-400">Vence: {q.validUntil}</div>
+                        <div className="text-xs text-[#737686]">Vence: {q.validUntil}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-slate-800">{q.clientName}</div>
-                        <div className="text-[10px] font-mono text-slate-500">RUC: {q.clientRuc}</div>
+                        <div className="font-bold text-[#0b1c30]">{q.clientName}</div>
+                        <div className="text-xs font-mono text-[#737686]">RUC: {q.clientRuc}</div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                      <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                         ${q.total.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span
-                          className={`uppercase px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          className={`uppercase px-2 py-0.5 rounded-md text-xs font-bold border ${
                             q.status === "facturada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                               : q.status === "aprobada"
@@ -492,20 +492,20 @@ export function SalesManager() {
                                 setConvertDocType("nota_venta");
                                 setQuoteToConvert(q);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-[#004ac6] text-[#004ac6] hover:text-white font-bold text-[11px] transition cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-[#004ac6] text-[#004ac6] hover:text-white font-bold text-xs transition cursor-pointer"
                               title="Convertir a Nota de Venta Comercial"
                             >
                               Pasar a Nota de Venta
                             </button>
                           ) : (
-                            <span className="text-[10px] font-mono text-slate-500 mr-1">
+                            <span className="text-xs font-mono text-[#737686] mr-1">
                               {q.invoiceNumber}
                             </span>
                           )}
 
                           <button
                             onClick={() => setQuoteToPreview(q)}
-                            className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                             title="Ver / Imprimir Cotización"
                           >
                             <Printer className="w-4 h-4" />
@@ -516,7 +516,7 @@ export function SalesManager() {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
                             }}
-                            className="p-1.5 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-[#737686] hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
                             title="Editar Cotización"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -534,7 +534,7 @@ export function SalesManager() {
                                 "Eliminar"
                               );
                             }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Eliminar Cotización"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -563,34 +563,34 @@ export function SalesManager() {
       {/* Modal: Convertir Cotización a Nota de Venta */}
       {quoteToConvert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-[#e2e8f0] p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-[#0b1c30]">
                   Convertir a Nota de Venta
                 </h3>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#737686]">
                   Cotización {quoteToConvert.quoteNumber} • {quoteToConvert.clientName} (${quoteToConvert.total.toFixed(2)})
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-[#475569] leading-relaxed">
               Se generará la <strong>Nota de Venta Comercial</strong> descontando el inventario de la bodega seleccionada y registrando el ingreso en finanzas. Posteriormente podrás pasar la Nota de Venta a Factura Electrónica SRI.
             </p>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-800 mb-1">
+                <label className="block font-bold text-[#0b1c30] mb-1">
                   Bodega de Despacho de Mercadería:
                 </label>
                 <select
                   value={convertWarehouseId}
                   onChange={(e) => setConvertWarehouseId(e.target.value)}
-                  className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 text-slate-900"
+                  className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2.5 bg-[#f8f9ff] text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
                 >
                   {inventoryWarehouses.map((w) => (
                     <option key={w.id} value={w.id}>
@@ -601,11 +601,11 @@ export function SalesManager() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-[#e2e8f0] flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setQuoteToConvert(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-[#475569] hover:bg-slate-100 cursor-pointer"
               >
                 Cancelar
               </button>
@@ -613,7 +613,7 @@ export function SalesManager() {
                 type="button"
                 onClick={handleConfirmConvertQuote}
                 disabled={isConvertingQuote}
-                className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-2 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>{isConvertingQuote ? "Procesando..." : "Confirmar y Emitir"}</span>

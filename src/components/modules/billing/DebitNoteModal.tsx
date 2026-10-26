@@ -139,15 +139,15 @@ export function DebitNoteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-xl overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-white/10 text-white">
+            <div className="p-2 rounded-lg bg-white/10 text-white">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold leading-tight">Emitir Nota de Débito SRI (05)</h2>
+              <h2 className="text-base font-bold leading-tight">Emitir Nota de Débito SRI • 05</h2>
               <p className="text-xs text-blue-100">
                 Recargo por intereses, mora o penalidades sobre factura
               </p>
@@ -163,7 +163,7 @@ export function DebitNoteModal({
 
         {/* Error message */}
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMsg}</span>
           </div>
@@ -179,18 +179,18 @@ export function DebitNoteModal({
             <select
               value={selectedInvoiceId}
               onChange={(e) => setSelectedInvoiceId(e.target.value)}
-              className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+              className="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
             >
               {authorizedInvoices.map((inv) => (
                 <option key={inv.id} value={inv.id}>
-                  {inv.documentNumber} • {inv.clientName} (${inv.total.toFixed(2)}) • {inv.date}
+                  {inv.documentNumber} • {inv.clientName} • ${inv.total.toFixed(2)} • {inv.date}
                 </option>
               ))}
             </select>
           </div>
 
           {targetInvoice && (
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-slate-600 space-y-1">
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-600 space-y-1">
               <span className="font-bold text-slate-800 block text-[11px]">Cliente Receptor:</span>
               <p className="font-semibold text-slate-900">{targetInvoice.clientName}</p>
               <p className="font-mono text-[11px]">RUC / Cédula: {targetInvoice.clientRuc} | {targetInvoice.clientEmail}</p>
@@ -207,7 +207,7 @@ export function DebitNoteModal({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                className="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
             <div>
@@ -217,7 +217,7 @@ export function DebitNoteModal({
               <select
                 value={ivaRate}
                 onChange={(e) => setIvaRate(Number(e.target.value))}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-[#004ac6]"
+                className="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value={15}>15% (General)</option>
                 <option value={0}>0% (Sin IVA)</option>
@@ -241,7 +241,7 @@ export function DebitNoteModal({
 
             <div className="space-y-2">
               {reasons.map((r, index) => (
-                <div key={index} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                <div key={index} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                   <input
                     type="text"
                     value={r.reason}
@@ -276,13 +276,13 @@ export function DebitNoteModal({
           </div>
 
           {/* Totals Summary */}
-          <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 space-y-1.5">
+          <div className="p-3 bg-slate-100 rounded-lg border border-slate-200 space-y-1.5">
             <div className="flex justify-between">
               <span>Subtotal:</span>
               <span className="font-mono font-medium">${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span>IVA ({ivaRate}%):</span>
+              <span>IVA • {ivaRate}%:</span>
               <span className="font-mono font-medium">${ivaAmount.toFixed(2)}</span>
             </div>
             <div className="border-t border-slate-300 pt-1.5 flex justify-between font-bold text-slate-900 text-sm">
@@ -297,14 +297,14 @@ export function DebitNoteModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold rounded-xl text-xs transition cursor-pointer"
+              className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold rounded-lg text-xs transition cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>{isSubmitting ? "Emitiendo..." : "Emitir Nota de Débito SRI"}</span>

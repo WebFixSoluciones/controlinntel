@@ -112,8 +112,8 @@ export function CategoryBrandModal({
     <div
       className={
         embedded
-          ? "bg-white rounded-2xl border border-[#e2e8f0] shadow-xs overflow-hidden w-full max-w-xl"
-          : "bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95"
+          ? "bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden w-full max-w-xl"
+          : "bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95"
       }
     >
       {headerNode}
@@ -131,7 +131,7 @@ export function CategoryBrandModal({
               placeholder={
                 mode === "categoria" ? "Ej. Equipos de Red, Cables, Servicios" : "Ej. Huawei, MikroTik, TP-Link"
               }
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               autoFocus
             />
           </div>
@@ -145,7 +145,7 @@ export function CategoryBrandModal({
                 <select
                   value={itemType}
                   onChange={(e) => setItemType(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
                 >
                   <option value="ambos">Productos y Servicios</option>
                   <option value="producto">Solo Productos</option>
@@ -162,7 +162,7 @@ export function CategoryBrandModal({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detalle breve de la categoría..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
                 />
               </div>
             </>
@@ -176,7 +176,7 @@ export function CategoryBrandModal({
                 value={originCountry}
                 onChange={(e) => setOriginCountry(e.target.value)}
                 placeholder="Ej. Ecuador, EE.UU., China"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
               />
             </div>
           )}
@@ -187,14 +187,14 @@ export function CategoryBrandModal({
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-5 py-2 rounded-xl bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-5 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <CheckCircle className="w-4 h-4" />
             {isSubmitting ? "Guardando..." : "Guardar"}

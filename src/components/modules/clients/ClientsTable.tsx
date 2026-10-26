@@ -21,15 +21,16 @@ import {
   ShieldAlert,
   CreditCard,
   Calendar,
+  Plus,
 } from "lucide-react";
 
 interface ClientsTableProps {
   onSelectClient: (client: Client) => void;
-  onOpenNewModal: () => void;
+  onOpenNewModal?: () => void;
   onEditClient?: (client: Client) => void;
 }
 
-export function ClientsTable({ onSelectClient }: ClientsTableProps) {
+export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
   const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
   const { showSuccess, showError } = useToast();
 
@@ -185,10 +186,10 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
   return (
     <div className="w-full">
       {/* Main Container Card */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* Search & Filter Toolbar */}
-        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#ffffff]">
-          <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
             <div className="relative flex-1 max-w-lg">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
@@ -196,7 +197,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 placeholder="Buscar por RUC, Razón Social o Nombre Comercial..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-[#f8f9ff] text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:bg-white focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-colors"
               />
             </div>
 
@@ -207,7 +208,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 setRecurrenceFilter("todos");
                 setBalanceFilter("todos");
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-xs font-semibold text-[#434655] hover:bg-white hover:text-[#0b1c30] cursor-pointer transition-colors"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-[#737686]" />
               <span>Limpiar</span>
@@ -218,7 +219,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <select
               value={recurrenceFilter}
               onChange={(e) => setRecurrenceFilter(e.target.value as any)}
-              className="bg-white text-xs font-semibold text-[#004ac6] rounded-lg px-3 py-2 border border-blue-200 focus:outline-hidden cursor-pointer"
+              className="bg-[#f8f9ff] text-xs font-semibold text-[#004ac6] rounded-lg px-3 py-2 border border-blue-200 focus:outline-hidden focus:bg-white cursor-pointer"
             >
               <option value="todos">Recurrencia</option>
               <option value="recurrentes">Recurrentes</option>
@@ -230,7 +231,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+              className="bg-[#f8f9ff] text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:bg-white cursor-pointer"
             >
               <option value="todos">Estado</option>
               <option value="activo">Activo</option>
@@ -242,24 +243,34 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <select
               value={balanceFilter}
               onChange={(e) => setBalanceFilter(e.target.value as any)}
-              className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+              className="bg-[#f8f9ff] text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:bg-white cursor-pointer"
             >
               <option value="todos">Saldo</option>
               <option value="con_saldo">Con Saldo</option>
               <option value="al_dia">Al Día</option>
             </select>
+
+            {onOpenNewModal && (
+              <button
+                onClick={onOpenNewModal}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer whitespace-nowrap ml-1"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Cliente</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Data Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
+          <table className="table-fixed w-full text-left text-xs">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-2.5 px-4">Cliente</th>
-                <th className="py-2.5 px-4">Nombre Comercial</th>
-                <th className="py-2.5 px-4">RUC / CI</th>
-                <th className="py-2.5 px-4 text-right">Acciones</th>
+                <th className="py-3 px-5 w-5/12">Cliente / Razón Social</th>
+                <th className="py-3 px-5 w-3/12">Nombre Comercial</th>
+                <th className="py-3 px-5 w-2/12">RUC / CI</th>
+                <th className="py-3 px-5 w-2/12 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -285,7 +296,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                             {client.businessName}
                           </span>
                           {rec.isRecurrent && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                               {rec.label}
                             </span>
                           )}
@@ -299,8 +310,8 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                             {client.tradeName}
                           </span>
                         ) : (
-                          <span className="text-slate-400 font-normal italic">
-                            —
+                          <span className="text-[#94a3b8] font-normal italic text-xs">
+                            Sin nombre comercial
                           </span>
                         )}
                       </td>
@@ -400,20 +411,20 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
       {/* ========================================================================= */}
       {selectedInvoicesClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center">
                   <Receipt className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
+                  <h3 className="font-bold text-[#0b1c30] text-sm">
                     Historial de Facturas & Notas de Venta
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-xs text-[#737686] font-medium">
                     {selectedInvoicesClient.businessName} •{" "}
-                    <span className="font-mono text-slate-700">
+                    <span className="font-mono text-[#0b1c30]">
                       RUC/CI: {selectedInvoicesClient.identificationNumber}
                     </span>
                   </p>
@@ -421,38 +432,38 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
               </div>
               <button
                 onClick={() => setSelectedInvoicesClient(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Financial Summary Cards */}
-            <div className="p-5 border-b border-slate-100 grid grid-cols-3 gap-3 bg-white text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="p-5 border-b border-[#e2e8f0] grid grid-cols-3 gap-3 bg-white text-xs">
+              <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
+                <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
                   Total Facturado
                 </span>
-                <span className="text-base font-black font-mono text-slate-900">
+                <span className="text-base font-black font-mono text-[#0b1c30]">
                   ${modalTotalFacturado.toFixed(2)}
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
+                <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
                   Comprobantes Emitidos
                 </span>
-                <span className="text-base font-black font-mono text-slate-900">
+                <span className="text-base font-black font-mono text-[#0b1c30]">
                   {clientInvoices.length + clientCharges.length}
                 </span>
               </div>
 
-              <div className={`p-3 rounded-xl border ${
+              <div className={`p-3 rounded-lg border ${
                 getClientPendingBalance(selectedInvoicesClient) > 0
                   ? "bg-rose-50 border-rose-200"
                   : "bg-emerald-50 border-emerald-200"
               }`}>
-                <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                <span className={`text-xs font-bold uppercase tracking-wider block ${
                   getClientPendingBalance(selectedInvoicesClient) > 0
                     ? "text-rose-600"
                     : "text-emerald-600"
@@ -473,50 +484,50 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             <div className="flex-1 overflow-y-auto p-5">
               {clientInvoices.length === 0 && clientCharges.length === 0 ? (
                 <div className="text-center py-12 space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <h4 className="font-bold text-slate-700 text-xs">Sin Comprobantes Registrados</h4>
-                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                  <h4 className="font-bold text-[#0b1c30] text-xs">Sin Comprobantes Registrados</h4>
+                  <p className="text-xs text-[#737686] max-w-sm mx-auto">
                     Aún no se han emitido facturas electrónicas o notas de venta para este cliente.
                   </p>
                 </div>
               ) : (
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+                <div className="border border-[#e2e8f0] rounded-xl overflow-hidden shadow-2xs">
+                  <table className="table-fixed w-full text-left text-xs">
+                    <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                       <tr>
-                        <th className="py-2.5 px-3">Comprobante</th>
-                        <th className="py-2.5 px-3">Tipo</th>
-                        <th className="py-2.5 px-3">Fecha</th>
-                        <th className="py-2.5 px-3">Forma de Pago</th>
-                        <th className="py-2.5 px-3 text-right">Total</th>
-                        <th className="py-2.5 px-3 text-center">Estado</th>
+                        <th className="py-2.5 px-3 w-3/12">Comprobante</th>
+                        <th className="py-2.5 px-3 w-2/12">Tipo</th>
+                        <th className="py-2.5 px-3 w-2/12">Fecha</th>
+                        <th className="py-2.5 px-3 w-2/12">Forma de Pago</th>
+                        <th className="py-2.5 px-3 w-2/12 text-right">Total</th>
+                        <th className="py-2.5 px-3 w-1/12 text-center">Estado</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#f1f5f9]">
                       {/* Facturas Electrónicas SRI */}
                       {clientInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-slate-50/60 transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                        <tr key={inv.id} className="hover:bg-[#f8f9ff] transition">
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#0b1c30]">
                             {inv.documentNumber}
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                               Factura SRI
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-slate-600">
+                          <td className="py-2.5 px-3 font-mono text-[#475569]">
                             {inv.date}
                           </td>
-                          <td className="py-2.5 px-3 capitalize text-slate-700">
+                          <td className="py-2.5 px-3 capitalize text-[#475569]">
                             {inv.paymentMethod}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">
                             ${inv.total.toFixed(2)}
                           </td>
                           <td className="py-2.5 px-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
                               inv.status === "autorizada"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : inv.status === "anulada"
@@ -531,26 +542,26 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
 
                       {/* Cobros y Pre-Facturas */}
                       {clientCharges.map((ch) => (
-                        <tr key={ch.id} className="hover:bg-slate-50/60 transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                        <tr key={ch.id} className="hover:bg-[#f8f9ff] transition">
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#0b1c30]">
                             {ch.invoiceNumber}
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-[#475569] border border-slate-200">
                               Cobro Mensual
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 font-mono text-slate-600">
+                          <td className="py-2.5 px-3 font-mono text-[#475569]">
                             {ch.month}/{ch.year}
                           </td>
-                          <td className="py-2.5 px-3 capitalize text-slate-700">
+                          <td className="py-2.5 px-3 capitalize text-[#475569]">
                             {ch.paymentMethod || "Transferencia"}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">
                             ${ch.total.toFixed(2)}
                           </td>
                           <td className="py-2.5 px-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
                               ch.status === "pagado"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : "bg-amber-50 text-amber-700 border border-amber-200"
@@ -567,11 +578,11 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-end bg-slate-50/70">
+            <div className="px-6 py-3 border-t border-[#e2e8f0] flex items-center justify-end bg-[#f8f9ff]">
               <button
                 type="button"
                 onClick={() => setSelectedInvoicesClient(null)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-lg text-xs transition cursor-pointer"
               >
                 Cerrar
               </button>
@@ -585,28 +596,28 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
       {/* ========================================================================= */}
       {blockedDeleteClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-rose-200 w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl border border-rose-200 w-full max-w-md overflow-hidden">
             <div className="p-6 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
-                <ShieldAlert className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
+                <ShieldAlert className="w-6 h-6" />
               </div>
 
               <div>
-                <h3 className="font-black text-slate-900 text-base">
+                <h3 className="font-bold text-[#0b1c30] text-base">
                   No es posible eliminar al cliente
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#737686] mt-1">
                   Acción bloqueada por control de saldos y cuentas por cobrar
                 </p>
               </div>
 
               {/* Client & Debt Info Card */}
-              <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-4 text-left space-y-2 text-xs">
+              <div className="bg-rose-50/70 border border-rose-200 rounded-lg p-4 text-left space-y-2 text-xs">
                 <div className="flex justify-between items-center border-b border-rose-200/60 pb-2">
-                  <span className="font-bold text-slate-700 truncate max-w-[220px]">
+                  <span className="font-bold text-[#0b1c30] truncate max-w-[220px]">
                     {blockedDeleteClient.client.businessName}
                   </span>
-                  <span className="font-mono text-slate-500 text-[11px]">
+                  <span className="font-mono text-[#737686] text-xs">
                     {blockedDeleteClient.client.identificationNumber}
                   </span>
                 </div>
@@ -620,20 +631,20 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
               </div>
 
               {/* Explanatory Note regarding Accounting / Debt */}
-              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 text-left text-[11px] text-slate-600 space-y-1.5">
-                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+              <div className="bg-[#f8f9ff] rounded-lg p-3.5 border border-[#e2e8f0] text-left text-xs text-[#475569] space-y-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-[#0b1c30]">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   <span>¿Por qué no se puede eliminar?</span>
                 </div>
                 <p>
                   El cliente mantiene obligaciones financieras activas. Por normativa contable y auditoría tributaria del SRI, <strong>no se pueden dejar cuentas por cobrar huérfanas</strong>.
                 </p>
-                <p className="text-slate-500">
+                <p className="text-[#737686]">
                   Para proceder con la baja definitiva, primero liquide los saldos pendientes en Finanzas o anule las facturas emitiendo una Nota de Crédito en Ventas hasta que el saldo sea <strong>$0.00</strong>.
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 flex-wrap">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0] flex-wrap">
                 {(currentUser.role === "admin" ||
                   currentUser.role === "superadmin" ||
                   currentUser.permissions?.includes("all") ||
@@ -646,7 +657,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                       setConfirmDeleteClient(client);
                       setConfirmDeleteChecked(false);
                     }}
-                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 rounded-xl text-xs transition cursor-pointer"
+                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 rounded-lg text-xs transition cursor-pointer"
                   >
                     Forzar Baja (Admin)
                   </button>
@@ -654,7 +665,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 <button
                   type="button"
                   onClick={() => setBlockedDeleteClient(null)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold rounded-xl text-xs transition cursor-pointer"
+                  className="px-4 py-2 border border-[#e2e8f0] text-[#475569] hover:bg-slate-100 font-semibold rounded-lg text-xs transition cursor-pointer"
                 >
                   Entendido
                 </button>
@@ -665,7 +676,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                     setBlockedDeleteClient(null);
                     setSelectedInvoicesClient(client);
                   }}
-                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Receipt className="w-3.5 h-3.5" />
                   <span>Ver Facturas y Deudas</span>
@@ -681,41 +692,41 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
       {/* ========================================================================= */}
       {confirmDeleteClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden">
             <div className="p-6 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs">
-                <AlertTriangle className="w-7 h-7" />
+              <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs">
+                <AlertTriangle className="w-6 h-6" />
               </div>
 
               <div>
-                <h3 className="font-black text-slate-900 text-base">
+                <h3 className="font-bold text-[#0b1c30] text-base">
                   ¿Dar de baja definitiva al cliente?
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#737686] mt-1">
                   Verificación de solvencia completada (Saldo al día)
                 </p>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left space-y-2 text-xs">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="font-bold text-slate-800 truncate max-w-[220px]">
+              <div className="bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg p-4 text-left space-y-2 text-xs">
+                <div className="flex justify-between items-center border-b border-[#e2e8f0] pb-2">
+                  <span className="font-bold text-[#0b1c30] truncate max-w-[220px]">
                     {confirmDeleteClient.businessName}
                   </span>
-                  <span className="font-mono text-slate-500 text-[11px]">
+                  <span className="font-mono text-[#737686] text-xs">
                     {confirmDeleteClient.identificationNumber}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center pt-1 text-xs">
-                  <span className="text-slate-600 font-semibold">Estado de Cuentas:</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px]">
+                  <span className="text-[#475569] font-semibold">Estado de Cuentas:</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-xs">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     Al Día (Saldo $0.00)
                   </span>
                 </div>
               </div>
 
-              <div className="text-left text-[11px] text-slate-500 bg-slate-50/70 p-3 rounded-xl border border-slate-200 space-y-1">
+              <div className="text-left text-xs text-[#737686] bg-[#f8f9ff] p-3 rounded-lg border border-[#e2e8f0] space-y-1">
                 <p>
                   • Al confirmar, se dará de baja la ficha del cliente y sus servicios activos.
                 </p>
@@ -724,24 +735,24 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                 </p>
               </div>
 
-              <label className="flex items-start gap-2.5 text-left text-xs text-slate-700 cursor-pointer pt-1">
+              <label className="flex items-start gap-2.5 text-left text-xs text-[#475569] cursor-pointer pt-1">
                 <input
                   type="checkbox"
                   checked={confirmDeleteChecked}
                   onChange={(e) => setConfirmDeleteChecked(e.target.checked)}
                   className="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
                 />
-                <span className="font-medium text-[11px] leading-tight">
+                <span className="font-medium text-xs leading-tight">
                   Confirmo que deseo dar de baja definitiva a este cliente de la base activa.
                 </span>
               </label>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteClient(null)}
                   disabled={isDeleting}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold rounded-xl text-xs transition cursor-pointer"
+                  className="px-4 py-2 border border-[#e2e8f0] text-[#475569] hover:bg-slate-100 font-semibold rounded-lg text-xs transition cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -749,7 +760,7 @@ export function ClientsTable({ onSelectClient }: ClientsTableProps) {
                   type="button"
                   onClick={handleConfirmDelete}
                   disabled={!confirmDeleteChecked || isDeleting}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   {isDeleting ? (
                     <>
