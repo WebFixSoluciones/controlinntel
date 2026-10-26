@@ -56,19 +56,20 @@
 **Files:**
 - Modify: `src/components/modules/clients/ClientProjectKanban.tsx`
 - Modify: `src/components/modules/projects/ProjectWorkspace.tsx`
+- Modify: `src/components/modules/clients/ClientTasksTab.tsx`
 - Modify: `src/lib/end-to-end-flows.test.ts`
 
-- [ ] **Step 1: Aplicar Estilo Attex / Skote al Tablero Kanban**
-  - Reemplazar fondos oscuros o bordes gruesos de las columnas por un fondo gris neutro muy suave (`#f4f5f7`), esquinas redondeadas y encabezado en semibold con badge suave de conteo sin paréntesis: `PENDIENTE` `[3]`.
-  - Tarjetas de tareas en blanco puro (`#ffffff`), borde sutil de 1px (`border-[#eef0f3]`), sombra suave `shadow-xs`.
-  - Fecha superior izquierda en gris legible (`#878a99`), badge de prioridad superior derecho en soft-tint (`Alto` en rosa suave, `Medio` en ámbar suave, `Bajo` en verde suave).
-  - Título de tarea en navy oscuro nítido (13-14px).
-  - Pie de tarjeta con avatares circulares superpuestos de los técnicos asignados y menú de tres puntos.
+- [x] **Step 1: Aplicar Estilo Attex / Skote al Tablero Kanban**
+  - Reemplazar fondos oscuros o bordes gruesos de las columnas por un fondo gris neutro muy suave (`#f8f9fa`), esquinas moderadas `rounded-xl` y encabezado en semibold con badge suave de conteo sin paréntesis: `PENDIENTE` `[3]` o pastilla `3`.
+  - Tarjetas de tareas en blanco puro (`#ffffff`), borde sutil de 1px (`border-[#e2e8f0]`), sombra suave `shadow-2xs` y esquinas `rounded-lg`.
+  - Fecha superior izquierda en gris legible (`#878a99`), badge de prioridad superior derecho en soft-tint (`Urgente` en rosa suave, `Alta` en ámbar suave, `Media` en azul suave, `Baja` en verde suave).
+  - Título de tarea en navy oscuro nítido (`text-[#0b1c30]` 13-14px).
+  - Pie de tarjeta con avatares circulares de los técnicos asignados y menú de acciones rápido.
 
-- [ ] **Step 2: Escribir Prueba E2E y Validar**
-  - Validar estructura visual del Kanban sin paréntesis ruidosos y con badges suaves.
-  - Ejecutar `npm test` y `npx tsc --noEmit`.
-  - Commit: `git commit -m "refactor(projects): redesign Kanban board to modern light enterprise layout"`
+- [x] **Step 2: Escribir Prueba E2E y Validar**
+  - Añadido `Flujo E2E 25: Estandarización Global de Diseño UI/UX Fase 2 (Tableros Kanban de Proyectos & Cuadrillas estilo Attex/Skote)`.
+  - Ejecutar `npm test` (50/50 tests pasando) y `npx tsc --noEmit`.
+  - Commit: `git commit -m "refactor(projects): redesign Kanban board to modern light enterprise layout with moderate border radius"`
 
 ---
 

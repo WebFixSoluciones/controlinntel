@@ -1361,4 +1361,53 @@ test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas 
   );
 });
 
+test("Flujo E2E 25: Estandarización Global de Diseño UI/UX Fase 2 (Tableros Kanban de Proyectos & Cuadrillas estilo Attex/Skote)", () => {
+  const rootDir = process.cwd();
+
+  // 1. ClientProjectKanban.tsx
+  const clientKanbanPath = path.resolve(rootDir, "src/components/modules/clients/ClientProjectKanban.tsx");
+  const clientKanbanContent = fs.readFileSync(clientKanbanPath, "utf8");
+  assert.ok(
+    clientKanbanContent.includes("rounded-xl border flex flex-col p-3 transition-all") &&
+      clientKanbanContent.includes("bg-[#f8f9fa] border-[#e2e8f0]"),
+    "ClientProjectKanban debe estructurar columnas en rounded-xl con fondo gris limpio #f8f9fa"
+  );
+  assert.ok(
+    clientKanbanContent.includes("rounded-lg border border-[#e2e8f0] shadow-2xs"),
+    "ClientProjectKanban debe usar tarjetas de tarea en blanco puro con rounded-lg moderado"
+  );
+  assert.ok(
+    clientKanbanContent.includes("bg-rose-50 text-rose-700") &&
+      clientKanbanContent.includes("bg-amber-50 text-amber-700"),
+    "ClientProjectKanban debe emplear badges de prioridad en soft-tint profesional"
+  );
+
+  // 2. ProjectWorkspace.tsx (Módulo General de Proyectos)
+  const projectWorkspacePath = path.resolve(rootDir, "src/components/modules/projects/ProjectWorkspace.tsx");
+  const projectWorkspaceContent = fs.readFileSync(projectWorkspacePath, "utf8");
+  assert.ok(
+    projectWorkspaceContent.includes("w-80 rounded-xl border transition-all") &&
+      projectWorkspaceContent.includes("bg-[#f8f9fa] border-[#e2e8f0]"),
+    "ProjectWorkspace debe estructurar columnas en rounded-xl con fondo neutro suave"
+  );
+  assert.ok(
+    projectWorkspaceContent.includes("rounded-lg border border-[#e2e8f0] shadow-2xs"),
+    "ProjectWorkspace debe emplear tarjetas de tareas en rounded-lg"
+  );
+  assert.ok(
+    !projectWorkspaceContent.includes("rounded-t-2xl") && !projectWorkspaceContent.includes("rounded-b-2xl"),
+    "ProjectWorkspace no debe excederse en radios de esquinas tipo burbuja rounded-2xl"
+  );
+
+  // 3. ClientTasksTab.tsx (Tablero en Ficha de Clientes)
+  const clientTasksPath = path.resolve(rootDir, "src/components/modules/clients/ClientTasksTab.tsx");
+  const clientTasksContent = fs.readFileSync(clientTasksPath, "utf8");
+  assert.ok(
+    clientTasksContent.includes("bg-[#f8f9fa] border-[#e2e8f0]") &&
+      clientTasksContent.includes("rounded-lg border border-[#e2e8f0] shadow-2xs"),
+    "ClientTasksTab debe replicar la misma arquitectura visual limpia de tarjetas y columnas"
+  );
+});
+
+
 

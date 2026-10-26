@@ -594,20 +594,20 @@ export function ProjectWorkspace({
                   onDragOver={(e) => handleDragOver(e, column.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, column.id)}
-                  className={`flex-shrink-0 w-80 rounded-2xl border transition-all duration-150 flex flex-col max-h-[78vh] ${
+                  className={`flex-shrink-0 w-80 rounded-xl border transition-all duration-150 flex flex-col max-h-[78vh] ${
                     isDragOver
-                      ? "ring-2 ring-[#004ac6] bg-blue-50/40 border-blue-400"
-                      : "bg-slate-50/70 border-slate-200/90"
+                      ? "ring-2 ring-[#004ac6] bg-blue-50/40 border-[#004ac6]"
+                      : "bg-[#f8f9fa] border-[#e2e8f0]"
                   }`}
                 >
                   {/* Column Header */}
-                  <div className="p-3.5 border-b border-slate-200/80 flex items-center justify-between bg-white rounded-t-2xl">
+                  <div className="p-3.5 border-b border-[#e2e8f0] flex items-center justify-between bg-white rounded-t-xl">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className={`w-2.5 h-2.5 rounded-full ${colStyle.dot}`} />
-                      <h3 className="text-xs font-extrabold text-slate-900 truncate">
+                      <h3 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wider truncate">
                         {column.label}
                       </h3>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-[#e2e8f0] text-[#475569]">
                         {columnTasks.length}
                       </span>
                     </div>
@@ -616,7 +616,7 @@ export function ProjectWorkspace({
                       <button
                         onClick={() => handleOpenCreateTask(column.id)}
                         title="Añadir tarea a esta columna"
-                        className="p-1 text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                        className="p-1 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
                       </button>
@@ -624,7 +624,7 @@ export function ProjectWorkspace({
                         <button
                           onClick={() => handleDeleteColumn(column.id, column.label)}
                           title="Eliminar columna"
-                          className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-[#64748b] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -633,9 +633,9 @@ export function ProjectWorkspace({
                   </div>
 
                   {/* Tasks Cards List */}
-                  <div className="p-3 space-y-3 overflow-y-auto flex-1">
+                  <div className="p-3 space-y-2.5 overflow-y-auto flex-1">
                     {columnTasks.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl bg-white/40">
+                      <div className="py-8 text-center text-xs text-[#94a3b8] border border-dashed border-[#cbd5e1] rounded-lg bg-white/60 font-medium">
                         Sin tareas en esta fase
                       </div>
                     ) : (
@@ -644,10 +644,10 @@ export function ProjectWorkspace({
                         const totalSubtasks = task.checklist?.length || 0;
 
                         const priorityBadges: Record<string, { bg: string; text: string }> = {
-                          urgente: { bg: "bg-rose-100 text-rose-700", text: "Urgente" },
-                          alta: { bg: "bg-amber-100 text-amber-800", text: "Alta" },
-                          media: { bg: "bg-blue-100 text-blue-700", text: "Media" },
-                          baja: { bg: "bg-slate-100 text-slate-700", text: "Baja" },
+                          urgente: { bg: "bg-rose-50 text-rose-700 border border-rose-200", text: "Urgente" },
+                          alta: { bg: "bg-amber-50 text-amber-700 border border-amber-200", text: "Alta" },
+                          media: { bg: "bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]", text: "Media" },
+                          baja: { bg: "bg-emerald-50 text-emerald-700 border border-emerald-200", text: "Baja" },
                         };
 
                         const taskTramites = regulatoryTramites.filter(
@@ -660,73 +660,81 @@ export function ProjectWorkspace({
                             draggable
                             onDragStart={(e) => handleDragStart(e, task.id)}
                             onClick={() => handleOpenEditTask(task)}
-                            className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-pointer group space-y-2.5"
+                            className="p-3.5 bg-white rounded-lg border border-[#e2e8f0] shadow-2xs hover:shadow-xs hover:border-[#cbd5e1] transition-all cursor-pointer group space-y-2.5"
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                                  priorityBadges[task.priority]?.bg || "bg-slate-100 text-slate-700"
-                                }`}
-                              >
-                                {priorityBadges[task.priority]?.text || task.priority}
+                            {/* Top row: Due Date on Left, Priority on Right */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#878a99]">
+                                <Clock className="w-3.5 h-3.5 text-[#94a3b8]" />
+                                {task.dueDate.slice(5)}
                               </span>
 
-                              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenEditTask(task);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 rounded-md"
-                                  title="Editar tarea"
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                                    priorityBadges[task.priority]?.bg || "bg-slate-100 text-slate-700 border border-slate-200"
+                                  }`}
                                 >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteTask(task.id, task.title);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md"
-                                  title="Eliminar tarea"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                  {priorityBadges[task.priority]?.text || task.priority}
+                                </span>
+
+                                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenEditTask(task);
+                                    }}
+                                    className="p-1 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md"
+                                    title="Editar tarea"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteTask(task.id, task.title);
+                                    }}
+                                    className="p-1 text-[#64748b] hover:text-rose-600 hover:bg-rose-50 rounded-md"
+                                    title="Eliminar tarea"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
 
                             {taskTramites.length > 0 && (
                               <div className="flex items-center gap-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                  <FileText className="w-3 h-3 text-indigo-600" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                                  <FileText className="w-3 h-3 text-[#004ac6]" />
                                   <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
                                 </span>
                               </div>
                             )}
 
-                            <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#004ac6] transition-colors leading-snug line-clamp-2">
+                            <h4 className="text-xs sm:text-sm font-bold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors leading-snug line-clamp-2">
                               {task.title}
                             </h4>
 
                             {task.description && (
-                              <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-[#64748b] line-clamp-2 leading-relaxed">
                                 {task.description}
                               </p>
                             )}
 
                             {/* Subtasks Progress */}
                             {totalSubtasks > 0 && (
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold">
+                              <div className="space-y-1 pt-1 border-t border-[#f1f5f9]">
+                                <div className="flex items-center justify-between text-xs text-[#64748b] font-medium">
                                   <span className="flex items-center gap-1">
-                                    <CheckSquare className="w-3 h-3 text-slate-400" />
+                                    <CheckSquare className="w-3.5 h-3.5 text-[#94a3b8]" />
                                     Checklist
                                   </span>
-                                  <span>
+                                  <span className="font-semibold text-[11px]">
                                     {completedSubtasks}/{totalSubtasks}
                                   </span>
                                 </div>
-                                <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                                <div className="w-full bg-[#f1f5f9] h-1.5 rounded-full overflow-hidden">
                                   <div
                                     className="bg-emerald-500 h-full transition-all"
                                     style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
@@ -735,25 +743,22 @@ export function ProjectWorkspace({
                               </div>
                             )}
 
-                            {/* Card Footer: Assignee, Due Date & Notes Count */}
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-                              <span className="inline-flex items-center gap-1 truncate max-w-[130px] font-medium">
-                                <User className="w-3 h-3 text-slate-400" />
+                            {/* Card Footer: Assignee & Notes Count */}
+                            <div className="flex items-center justify-between pt-2 border-t border-[#f1f5f9] text-xs text-[#64748b]">
+                              <span className="inline-flex items-center gap-1.5 truncate max-w-[150px] font-semibold text-[#475569]">
+                                <div className="w-5 h-5 rounded-full bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] font-bold text-[10px] flex items-center justify-center shrink-0">
+                                  {(task.assignedTo || "N").charAt(0).toUpperCase()}
+                                </div>
                                 <span className="truncate">{task.assignedTo || "NOC"}</span>
                               </span>
 
                               <div className="flex items-center gap-2">
                                 {(task.notesThread?.length || 0) > 0 && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-bold">
-                                    <MessageSquare className="w-3 h-3" />
+                                  <span className="inline-flex items-center gap-1 text-xs text-[#64748b] font-semibold">
+                                    <MessageSquare className="w-3.5 h-3.5 text-[#94a3b8]" />
                                     {task.notesThread?.length}
                                   </span>
                                 )}
-
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200">
-                                  <Clock className="w-3 h-3 text-slate-400" />
-                                  {task.dueDate.slice(5)}
-                                </span>
                               </div>
                             </div>
                           </div>
@@ -763,10 +768,10 @@ export function ProjectWorkspace({
                   </div>
 
                   {/* Add task button at bottom of column */}
-                  <div className="p-2 border-t border-slate-200/80 bg-white/60 rounded-b-2xl">
+                  <div className="p-2 border-t border-[#e2e8f0] bg-white rounded-b-xl">
                     <button
                       onClick={() => handleOpenCreateTask(column.id)}
-                      className="w-full py-2 px-3 text-xs font-bold text-slate-600 hover:text-[#004ac6] hover:bg-blue-50/50 rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-1.5 px-3 text-xs font-bold text-[#475569] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Añadir tarea</span>

@@ -962,22 +962,22 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                 onDragOver={(e) => handleDragOver(e, col.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, col.id)}
-                className={`rounded-2xl border flex flex-col p-2.5 transition-all ${
+                className={`rounded-xl border flex flex-col p-3 transition-all ${
                   isDragTarget
-                    ? "bg-blue-50/80 border-[#004ac6] ring-2 ring-[#004ac6]/30 shadow-md"
-                    : "bg-slate-50/80 border-slate-200/90 hover:border-slate-300"
+                    ? "bg-blue-50/80 border-[#004ac6] ring-2 ring-[#004ac6]/30 shadow-xs"
+                    : "bg-[#f8f9fa] border-[#e2e8f0] hover:border-slate-300"
                 }`}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 mb-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center justify-between pb-2.5 border-b border-[#e2e8f0] mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-2 h-2 rounded-full ${col.dot}`} />
-                    <span className="font-bold text-slate-800 text-[11px] truncate" title={col.label}>
+                    <span className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider truncate" title={col.label}>
                       {col.shortLabel}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-bold bg-white text-slate-600 px-1.5 py-0.2 rounded-full border border-slate-200">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-md">
                       {colTasks.length}
                     </span>
                     <button
@@ -986,18 +986,18 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                         setModalDefaultCol(col.id);
                         setIsModalOpen(true);
                       }}
-                      className="p-0.5 text-slate-400 hover:text-[#004ac6] rounded transition-colors cursor-pointer"
+                      className="p-1 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md transition-colors cursor-pointer"
                       title={`Añadir tarea a ${col.shortLabel}`}
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Tasks List */}
-                <div className="space-y-2 flex-1 overflow-y-auto">
+                <div className="space-y-2.5 flex-1 overflow-y-auto">
                   {colTasks.length === 0 ? (
-                    <div className="h-24 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl text-[10px] text-slate-400 italic">
+                    <div className="h-24 flex items-center justify-center border border-dashed border-[#cbd5e1] rounded-lg text-xs text-[#94a3b8] bg-white/60 font-medium">
                       Soltar aquí
                     </div>
                   ) : (
@@ -1016,39 +1016,49 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           key={task.id}
                           draggable
                           onDragStart={(e) => handleDragStart(e, task.id)}
-                          className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-2 group"
+                          className="p-3.5 bg-white rounded-lg border border-[#e2e8f0] shadow-2xs hover:shadow-xs hover:border-[#cbd5e1] transition-all cursor-grab active:cursor-grabbing space-y-2.5 group"
                         >
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`text-[9px] font-bold uppercase px-1.5 py-0.2 rounded ${
-                                task.priority === "urgente"
-                                  ? "bg-rose-100 text-rose-800 border border-rose-200"
-                                  : task.priority === "alta"
-                                  ? "bg-amber-100 text-amber-800 border border-amber-200"
-                                  : "bg-sky-100 text-sky-800 border border-sky-200"
-                              }`}
-                            >
-                              {task.priority}
+                          {/* Top: Date Left & Priority Right */}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`flex items-center gap-1 text-xs font-semibold ${isTaskOverdue ? "text-rose-600" : "text-[#878a99]"}`}>
+                              <Clock className="w-3.5 h-3.5 text-[#94a3b8] shrink-0" />
+                              <span>{task.dueDate.split("-").slice(1).join("/")}</span>
                             </span>
 
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => {
-                                  setTaskToEdit(task);
-                                  setIsModalOpen(true);
-                                }}
-                                className="text-slate-400 hover:text-[#004ac6] p-0.5 rounded cursor-pointer"
-                                title="Editar Tarea"
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
+                                  task.priority === "urgente"
+                                    ? "bg-rose-50 text-rose-700 border-rose-200"
+                                    : task.priority === "alta"
+                                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                                    : task.priority === "baja"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : "bg-[#eff4ff] text-[#004ac6] border-[#dce9ff]"
+                                }`}
                               >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteTask(task)}
-                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
-                                title="Eliminar Tarea"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                                {task.priority}
+                              </span>
+
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => {
+                                    setTaskToEdit(task);
+                                    setIsModalOpen(true);
+                                  }}
+                                  className="text-[#64748b] hover:text-[#004ac6] p-1 rounded hover:bg-[#eff4ff] cursor-pointer"
+                                  title="Editar Tarea"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTask(task)}
+                                  className="text-[#64748b] hover:text-rose-600 p-1 rounded hover:bg-rose-50 cursor-pointer"
+                                  title="Eliminar Tarea"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -1062,41 +1072,42 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                             {taskTramites.length > 0 && (
                               <div className="flex items-center gap-1 mb-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                  <FileText className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                                  <FileText className="w-3 h-3 text-[#004ac6]" />
                                   <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
                                 </span>
                               </div>
                             )}
+
                             <h5
                               onClick={() => {
                                 setTaskToEdit(task);
                                 setIsModalOpen(true);
                               }}
-                              className="font-bold text-xs text-slate-900 leading-snug hover:text-[#004ac6] cursor-pointer transition-colors"
+                              className="font-bold text-xs sm:text-sm text-[#0b1c30] leading-snug hover:text-[#004ac6] cursor-pointer transition-colors"
                             >
                               {task.title}
                             </h5>
                             {task.description && (
-                              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                              <p className="text-xs text-[#64748b] mt-1 line-clamp-2 leading-relaxed">
                                 {task.description}
                               </p>
                             )}
                           </div>
 
-                          {/* Checklist */}
+                          {/* Checklist Progress */}
                           {totalChecklist > 0 && (
-                            <div className="space-y-1 pt-1 border-t border-slate-100 text-[10px]">
-                              <div className="flex items-center justify-between text-slate-500 font-bold">
+                            <div className="space-y-1.5 pt-1.5 border-t border-[#f1f5f9] text-xs">
+                              <div className="flex items-center justify-between text-[#64748b] font-medium text-[11px]">
                                 <span className="flex items-center gap-1">
-                                  <CheckSquare className="w-3 h-3 text-slate-400" />
+                                  <CheckSquare className="w-3 h-3 text-[#94a3b8]" />
                                   Subtareas
                                 </span>
-                                <span>
+                                <span className="font-semibold">
                                   {completedChecklist}/{totalChecklist} ({checklistPercent}%)
                                 </span>
                               </div>
-                              <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div className="w-full bg-[#f1f5f9] rounded-full h-1.5 overflow-hidden">
                                 <div
                                   className={`h-1.5 rounded-full transition-all duration-300 ${
                                     checklistPercent === 100 ? "bg-emerald-500" : "bg-[#004ac6]"
@@ -1108,43 +1119,41 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           )}
 
                           {/* Footer */}
-                          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
-                            <span className="flex items-center gap-1 truncate max-w-[55%]">
-                              <User className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{task.assignedTo || "Equipo NOC"}</span>
+                          <div className="pt-2 border-t border-[#f1f5f9] flex items-center justify-between text-xs text-[#64748b]">
+                            <span className="flex items-center gap-1.5 truncate max-w-[60%]">
+                              <div className="w-5 h-5 rounded-full bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] font-bold text-[10px] flex items-center justify-center shrink-0">
+                                {(task.assignedTo || "E").charAt(0).toUpperCase()}
+                              </div>
+                              <span className="truncate font-semibold text-[#475569]">{task.assignedTo || "Equipo NOC"}</span>
                             </span>
 
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                               {notesCount > 0 && (
-                                <span className="flex items-center gap-0.5 text-slate-500 font-bold">
-                                  <MessageSquare className="w-3 h-3 text-slate-400" />
+                                <span className="flex items-center gap-1 text-[#64748b] font-semibold text-xs">
+                                  <MessageSquare className="w-3 h-3 text-[#94a3b8]" />
                                   {notesCount}
                                 </span>
                               )}
-                              <span className={`flex items-center gap-0.5 ${isTaskOverdue ? "text-rose-600 font-bold" : "text-slate-500"}`}>
-                                <Clock className="w-3 h-3 shrink-0" />
-                                <span>{task.dueDate.split("-").slice(1).join("/")}</span>
-                              </span>
                             </div>
                           </div>
 
                           {/* Shift Controls */}
-                          <div className="pt-1 flex items-center justify-between border-t border-slate-100/60 opacity-60 hover:opacity-100 transition-opacity">
+                          <div className="pt-1.5 flex items-center justify-between border-t border-[#f1f5f9] opacity-70 hover:opacity-100 transition-opacity">
                             <button
                               type="button"
                               onClick={() => handleShiftColumn(task, "prev")}
                               disabled={currentColumns.findIndex((c) => c.id === task.column) === 0}
-                              className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                              className="p-1 rounded-md bg-[#f8f9ff] hover:bg-slate-100 border border-[#e2e8f0] text-[#64748b] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
                               title="Mover a etapa anterior"
                             >
                               <ChevronLeft className="w-3 h-3" />
                             </button>
-                            <span className="text-[9px] text-slate-400">Mover</span>
+                            <span className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider">Mover</span>
                             <button
                               type="button"
                               onClick={() => handleShiftColumn(task, "next")}
                               disabled={currentColumns.findIndex((c) => c.id === task.column) === currentColumns.length - 1}
-                              className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-500 disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                              className="p-1 rounded-md bg-[#f8f9ff] hover:bg-slate-100 border border-[#e2e8f0] text-[#64748b] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
                               title="Avanzar a siguiente etapa"
                             >
                               <ChevronRight className="w-3 h-3" />
