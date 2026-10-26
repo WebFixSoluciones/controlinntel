@@ -12,9 +12,17 @@ import {
 } from "@/types";
 import {
   ProjectTaskModal,
-  ISP_FLOW_COLUMNS,
   GENERAL_FLOW_COLUMNS,
 } from "@/components/modules/projects/ProjectTaskModal";
+
+const normalizeColumn = (col?: string): ProjectKanbanColumn => {
+  if (!col) return "por_iniciar";
+  if (col === "completado" || col === "finalizado" || col === "terminado") return "finalizado";
+  if (col === "factibilidad") return "por_iniciar";
+  if (col === "tendido_fibra" || col === "fusion_splitters" || col === "instalacion_ont" || col === "en_progreso" || col === "en_proceso") return "en_progreso";
+  if (col === "pruebas_homologacion" || col === "revision" || col === "en_pausa") return "en_pausa";
+  return (col as ProjectKanbanColumn);
+};
 import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Calendar,
@@ -67,7 +75,6 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
   // View state
   const [viewMode, setViewMode] = useState<"cronograma" | "kanban">("cronograma");
-  const [activeFlow, setActiveFlow] = useState<ProjectBoardFlow>("isp_tecnico");
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState("");
@@ -139,16 +146,12 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
     return clientTasks.reduce((acc, t) => acc + (t.executedCost || 0), 0);
   }, [clientTasks]);
 
-  // Columns definition based on active flow
-  const currentColumns = activeFlow === "isp_tecnico" ? ISP_FLOW_COLUMNS : GENERAL_FLOW_COLUMNS;
+  // Columns definition (Flujo General estándar)
+  const currentColumns = GENERAL_FLOW_COLUMNS;
 
   // Filtered tasks for presentation
   const filteredTasks = useMemo(() => {
     return clientTasks.filter((t) => {
-      // Flow match (Kanban or general)
-      const flow = t.boardFlow || "isp_tecnico";
-      if (viewMode === "kanban" && flow !== activeFlow) return false;
-
       // Text query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -199,7 +202,6 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
   }, [
     clientTasks,
     viewMode,
-    activeFlow,
     searchQuery,
     priorityFilter,
     statusFilter,
@@ -428,11 +430,6 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       <ClientTabHeader
         title="Tareas"
         icon={ListTodo}
-        badge={
-          <span className="text-[11px] font-semibold text-slate-500">
-            ({clientTasks.length})
-          </span>
-        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {/* View Switcher: Cronograma vs Kanban */}
@@ -464,37 +461,11 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               </button>
             </div>
 
-            {/* Flow Switcher */}
-            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setActiveFlow("isp_tecnico")}
-                className={`px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
-                  activeFlow === "isp_tecnico"
-                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Flujo ISP
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveFlow("general")}
-                className={`px-2.5 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
-                  activeFlow === "general"
-                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                General
-              </button>
-            </div>
-
             {/* Create Task Button */}
             <button
               onClick={() => {
                 setTaskToEdit(null);
-                setModalDefaultCol(activeFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar");
+                setModalDefaultCol("por_iniciar");
                 setIsModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
@@ -781,7 +752,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                           Estado de la Tarea
                         </span>
                         <select
-                          value={task.column}
+                          value={normalizeColumn(task.column)}
                           onChange={(e) => handleQuickPhaseChange(task.id, e.target.value as ProjectKanbanColumn)}
                           className="w-full text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-300 bg-white text-slate-800 cursor-pointer focus:outline-hidden focus:border-[#004ac6]"
                         >
@@ -980,9 +951,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       {/* 5. VISTA 2: TABLERO KANBAN (DRAG & DROP)                  */}
       {/* ========================================================= */}
       {viewMode === "kanban" && (
-        <div className={`grid grid-cols-1 ${activeFlow === "isp_tecnico" ? "md:grid-cols-3 lg:grid-cols-6" : "md:grid-cols-2 lg:grid-cols-4"} gap-3 overflow-x-auto pb-2 min-h-[420px]`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-2 min-h-[420px]">
           {currentColumns.map((col) => {
-            const colTasks = filteredTasks.filter((t) => t.column === col.id);
+            const colTasks = filteredTasks.filter((t) => normalizeColumn(t.column) === col.id);
             const isDragTarget = dragOverColumn === col.id;
 
             return (
@@ -1195,7 +1166,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         taskToEdit={taskToEdit}
-        defaultFlow={activeFlow}
+        defaultFlow="general"
         defaultColumn={modalDefaultCol}
         defaultClientId={client.id}
         defaultClientName={client.businessName}

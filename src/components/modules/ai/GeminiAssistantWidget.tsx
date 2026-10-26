@@ -19,7 +19,7 @@ export function GeminiAssistantWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP. Puedo orientarte sobre normativas de telecomunicaciones, buenas prácticas de redes ISP y documentación operativa.`,
+      content: `👋 ¡Hola ${currentUser.displayName}! Soy el Asistente IA de INNTEL CORP. Puedo orientarte sobre normativas de telecomunicaciones, buenas prácticas de redes y documentación operativa.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);

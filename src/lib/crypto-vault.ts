@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Utility for Secure Password & Key Encryption/Decryption (AES-256-GCM)
- * Used in the ARCOTEL & ISP Network Credentials Vault
+ * Used in the ARCOTEL & Network Credentials Vault
  */
 
 export function simpleEncrypt(text: string, secretKey: string = "INNTEL_MASTER_KEY_2026"): string {

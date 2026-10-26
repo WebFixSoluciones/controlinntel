@@ -209,7 +209,7 @@ function HeaderContent() {
           onClick={() =>
             showInfo(
               "Centro de Ayuda INNTEL CORP",
-              "Plataforma Integral de Gestión Operativa, ISP y Facturación Electrónica SRI. Para soporte o incidencias contacta a soporte@inntelcorp.com."
+              "Plataforma Integral de Gestión Operativa y Facturación Electrónica SRI. Para soporte o incidencias contacta a soporte@inntelcorp.com."
             )
           }
           className="p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all cursor-pointer"

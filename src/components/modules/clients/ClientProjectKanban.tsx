@@ -11,9 +11,17 @@ import {
 } from "@/types";
 import {
   ProjectTaskModal,
-  ISP_FLOW_COLUMNS,
   GENERAL_FLOW_COLUMNS,
 } from "@/components/modules/projects/ProjectTaskModal";
+
+const normalizeColumn = (col?: string): ProjectKanbanColumn => {
+  if (!col) return "por_iniciar";
+  if (col === "completado" || col === "finalizado" || col === "terminado") return "finalizado";
+  if (col === "factibilidad") return "por_iniciar";
+  if (col === "tendido_fibra" || col === "fusion_splitters" || col === "instalacion_ont" || col === "en_progreso" || col === "en_proceso") return "en_progreso";
+  if (col === "pruebas_homologacion" || col === "revision" || col === "en_pausa") return "en_pausa";
+  return (col as ProjectKanbanColumn);
+};
 import {
   Kanban,
   Plus,
@@ -44,7 +52,6 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
   } = useApp();
   const { showSuccess, showConfirm } = useToast();
 
-  const [activeFlow, setActiveFlow] = useState<ProjectBoardFlow>("isp_tecnico");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<ClientProjectTask | null>(null);
   const [modalDefaultCol, setModalDefaultCol] = useState<ProjectKanbanColumn | undefined>(undefined);
@@ -58,16 +65,10 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
     return clientProjects.filter((t) => t.clientId === client.id);
   }, [clientProjects, client.id]);
 
-  // Tasks filtered by flow
-  const currentFlowTasks = useMemo(() => {
-    return clientTasks.filter((t) => {
-      const flow = t.boardFlow || "isp_tecnico";
-      return flow === activeFlow;
-    });
-  }, [clientTasks, activeFlow]);
+  const currentFlowTasks = clientTasks;
 
-  // Active columns based on current flow
-  const currentColumns = activeFlow === "isp_tecnico" ? ISP_FLOW_COLUMNS : GENERAL_FLOW_COLUMNS;
+  // Active columns (Flujo General estándar)
+  const currentColumns = GENERAL_FLOW_COLUMNS;
 
   // Financial calculations for this client
   const clientTotalBudget = useMemo(() => {
@@ -150,7 +151,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
   // Open modal handlers
   const handleOpenCreate = (colId?: ProjectKanbanColumn) => {
     setTaskToEdit(null);
-    setModalDefaultCol(colId || (activeFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar"));
+    setModalDefaultCol(colId || "por_iniciar");
     setIsModalOpen(true);
   };
 
@@ -179,38 +180,12 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Flow Switcher */}
-            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setActiveFlow("isp_tecnico")}
-                className={`px-2.5 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
-                  activeFlow === "isp_tecnico"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Flujo ISP
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveFlow("general")}
-                className={`px-2.5 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
-                  activeFlow === "general"
-                    ? "bg-white text-[#004ac6] shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Flujo General
-              </button>
-            </div>
-
             <button
               onClick={() => handleOpenCreate()}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Fase / Tarea</span>
+              <span>Nueva Tarea</span>
             </button>
           </div>
         </div>
@@ -258,9 +233,9 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
       </div>
 
       {/* 2. Kanban Board Columns Grid */}
-      <div className={`grid grid-cols-1 ${activeFlow === "isp_tecnico" ? "md:grid-cols-3 lg:grid-cols-6" : "md:grid-cols-2 lg:grid-cols-4"} gap-3 overflow-x-auto pb-2 min-h-[420px]`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 overflow-x-auto pb-2 min-h-[420px]">
         {currentColumns.map((col) => {
-          const colTasks = currentFlowTasks.filter((t) => t.column === col.id);
+          const colTasks = currentFlowTasks.filter((t) => normalizeColumn(t.column) === col.id);
           const isDragTarget = dragOverColumn === col.id;
 
           return (
@@ -462,7 +437,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         taskToEdit={taskToEdit}
-        defaultFlow={activeFlow}
+        defaultFlow="general"
         defaultColumn={modalDefaultCol}
         defaultClientId={client.id}
         defaultClientName={client.businessName}

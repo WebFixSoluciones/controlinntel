@@ -40,7 +40,7 @@ interface TicketDetailProps {
   onBack: () => void;
 }
 
-// Canned Responses / Predefined ISP Replies (WHMCS Style)
+// Respuestas predefinidas de soporte técnico
 const CANNED_RESPONSES = [
   {
     title: "Reinicio Eléctrico de ONT / Router",
@@ -175,7 +175,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
           // Add automated internal note to ticket
           await replyToTicket(
             ticket.id,
-            `NOTA DEL SISTEMA: Se escaló incidencia a orden de trabajo en cuadrilla de campo (Proyectos ISP) con prioridad ${ticket.priority.toUpperCase()}. Asignado a: ${ticket.assignedToName || "NOC Planta Externa"}.`,
+            `NOTA DEL SISTEMA: Se escaló incidencia a orden de trabajo en cuadrilla de campo (Proyectos) con prioridad ${ticket.priority.toUpperCase()}. Asignado a: ${ticket.assignedToName || "NOC Planta Externa"}.`,
             true,
             "en_progreso"
           );

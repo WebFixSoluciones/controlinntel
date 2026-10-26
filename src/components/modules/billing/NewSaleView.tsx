@@ -1970,7 +1970,7 @@ export function NewSaleView({
                       {sriCompanyConfig.establecimiento || "010"} - Sucursal Principal
                     </option>
                     {sriCompanyConfig.establecimiento !== "010" && (
-                      <option value="010">010 - Sucursal ISP</option>
+                      <option value="010">010 - Sucursal Operativa</option>
                     )}
                     {sriCompanyConfig.establecimiento !== "011" && (
                       <option value="011">011 - Sucursal 011</option>

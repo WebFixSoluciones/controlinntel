@@ -57,7 +57,7 @@ export interface InventoryProduct {
   stockByWarehouse: Record<string, number>;
   defaultWarehouseId?: string;    // Bodega predeterminada
   
-  // Atributos de Telecomunicaciones / ISP
+  // Atributos de Telecomunicaciones
   model?: string;
   serialNumberRequired?: boolean; // Requiere serializar en salidas (ONTs, Routers)
   fiberLengthMeters?: number;     // Metraje si es bobina de fibra

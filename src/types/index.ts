@@ -430,7 +430,7 @@ export interface AuditLog {
 export type ProjectBoardFlow = "isp_tecnico" | "general";
 
 export type ProjectKanbanColumn =
-  // Flujo Técnico ISP (Despliegue FTTH / Red)
+  // Fases Técnicas de Infraestructura
   | "factibilidad"
   | "tendido_fibra"
   | "fusion_splitters"

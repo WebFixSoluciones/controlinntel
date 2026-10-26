@@ -12,7 +12,7 @@ export async function askGeminiAssistant(
   }
 
   const systemContext = `
-Eres el Asistente Técnico y Regulatorio de INNTEL CORP (ISP de Telecomunicaciones en Ecuador regulado por ARCOTEL).
+Eres el Asistente Técnico y Regulatorio de INNTEL CORP (Empresa de Telecomunicaciones en Ecuador regulada por ARCOTEL).
 Rol del usuario: "${userRole.toUpperCase()}".
 
 DATOS DE CONTEXTO OPERATIVO:

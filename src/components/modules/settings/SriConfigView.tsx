@@ -461,7 +461,7 @@ export function SriConfigView() {
                   onClick={() => setForm({ ...form, establecimiento: "010" })}
                   className={`px-2 py-0.5 text-[11px] font-bold ${form.establecimiento === "010" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
                 >
-                  010 (ISP)
+                  010 (Operativa)
                 </button>
                 <button
                   type="button"

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LayoutDashboard, ArrowLeft, ShieldAlert } from "lucide-react";
@@ -44,7 +44,7 @@ export default function NotFound() {
       </div>
 
       <p className="text-[11px] text-slate-400 mt-6 font-medium">
-        INNTEL CORP S.A. — Sistema de Gestión ISP & ARCOTEL
+        INNTEL CORP S.A. — Sistema de Gestión & ARCOTEL
       </p>
     </div>
   );

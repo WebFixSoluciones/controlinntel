@@ -1198,5 +1198,28 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
       !arcotelContent.includes("Expediente Habilitado"),
     "ArcotelManager no debe incluir el banner/título redundante de ARCOTEL ni el contador, subiendo directo las pestañas"
   );
+
+  // 11. Tareas y Proyectos: Retiro total de "Flujo ISP" y términos ISP en todo el sistema
+  const clientTasksPath = path.resolve(rootDir, "src/components/modules/clients/ClientTasksTab.tsx");
+  const clientTasksContent = fs.readFileSync(clientTasksPath, "utf8");
+  assert.ok(
+    !clientTasksContent.includes("Flujo ISP") &&
+      !clientTasksContent.includes("({clientTasks.length})"),
+    "ClientTasksTab no debe incluir el selector de Flujo ISP ni contadores en el título"
+  );
+
+  const kanbanPath = path.resolve(rootDir, "src/components/modules/clients/ClientProjectKanban.tsx");
+  const kanbanContent = fs.readFileSync(kanbanPath, "utf8");
+  assert.ok(
+    !kanbanContent.includes("Flujo ISP"),
+    "ClientProjectKanban no debe incluir la opción de Flujo ISP"
+  );
+
+  const taskModalPath = path.resolve(rootDir, "src/components/modules/projects/ProjectTaskModal.tsx");
+  const taskModalContent = fs.readFileSync(taskModalPath, "utf8");
+  assert.ok(
+    !taskModalContent.includes("Flujo ISP"),
+    "ProjectTaskModal no debe incluir el selector de Flujo ISP"
+  );
 });
 

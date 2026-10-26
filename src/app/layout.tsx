@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "INNTEL CORP - Sistema de Control IPS",
-  description: "Plataforma de gestión integral ISP, técnica, regulatoria ARCOTEL y financiera",
+  description: "Plataforma de gestión integral, técnica, regulatoria ARCOTEL y financiera",
   icons: {
     icon: "/logo-inntel.webp",
   },

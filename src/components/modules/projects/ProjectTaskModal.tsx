@@ -71,7 +71,7 @@ export function ProjectTaskModal({
   isOpen,
   onClose,
   taskToEdit,
-  defaultFlow = "isp_tecnico",
+  defaultFlow = "general",
   defaultColumn,
   defaultClientId,
   defaultClientName,
@@ -166,7 +166,7 @@ export function ProjectTaskModal({
 
       setTitle(taskToEdit.title || "");
       setDescription(taskToEdit.description || "");
-      const flow = taskToEdit.boardFlow || "isp_tecnico";
+      const flow = taskToEdit.boardFlow || "general";
       setBoardFlow(flow);
       setColumn(taskToEdit.column);
       setPriority(taskToEdit.priority || "media");
@@ -209,7 +209,7 @@ export function ProjectTaskModal({
       const initialCol =
         defaultColumn ||
         (availableColumns && availableColumns[0]?.id) ||
-        (initialFlow === "isp_tecnico" ? "factibilidad" : "por_iniciar");
+        "por_iniciar";
       setColumn(initialCol);
       setPriority("media");
 
@@ -419,7 +419,7 @@ export function ProjectTaskModal({
                 {taskToEdit ? "Ficha de Proyecto / Tarea" : "Nuevo Proyecto & Control de Obra"}
               </h3>
               <p className="text-xs text-slate-500">
-                {taskToEdit ? `ID: ${taskToEdit.id} · Flujo: ${boardFlow === "isp_tecnico" ? "Técnico ISP" : "General"}` : "Gestión integral de despliegue, costos y bitácora"}
+                {taskToEdit ? `ID: ${taskToEdit.id}` : "Gestión integral de despliegue, costos y bitácora"}
               </p>
             </div>
           </div>
@@ -602,41 +602,6 @@ export function ProjectTaskModal({
                     </button>
                   </div>
                 </div>
-
-                {!projectId && (!availableColumns || availableColumns.length === 0) && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                      Flujo de Tablero Kanban
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleFlowSwitch("isp_tecnico")}
-                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          boardFlow === "isp_tecnico"
-                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                        }`}
-                      >
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>Flujo ISP (6 Fases)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleFlowSwitch("general")}
-                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          boardFlow === "general"
-                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                        }`}
-                      >
-                        <Kanban className="w-3.5 h-3.5" />
-                        <span>General (4 Fases)</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Target Entity Selector */}
