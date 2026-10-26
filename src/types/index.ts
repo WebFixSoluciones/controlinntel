@@ -81,6 +81,9 @@ export interface ClientService {
   coordinates?: { lat: number; lng: number };
   ontSerialNumber?: string;
   notes?: string;
+  description?: string;
+  ivaRate?: number;
+  priceConIva?: number;
   inventoryProductId?: string;         // ID del producto en el Inventario de Servicios
   inventorySku?: string;               // SKU del servicio en inventario
   origin?: "nota_venta" | "factura" | "manual"; // Cómo ingresó el servicio

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Client,
   ClientDocumentFile,
@@ -10,6 +10,7 @@ import {
   ServiceBillingFrequency,
   InvoiceItem,
 } from "@/types";
+import { InventoryProduct } from "@/types/inventory";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
@@ -38,6 +39,7 @@ import {
   AlertTriangle,
   Wrench,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 
 export function ClientContractTab({ client }: { client: Client }) {
@@ -64,8 +66,14 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   // Quick form to add a service strictly from INVENTARIO DE SERVICIOS
   const [isAddingService, setIsAddingService] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [newSvcPrice, setNewSvcPrice] = useState("");
+  const [serviceSearchQuery, setServiceSearchQuery] = useState("");
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [selectedService, setSelectedService] = useState<InventoryProduct | null>(null);
+  const [newSvcName, setNewSvcName] = useState("");
+  const [newSvcDescription, setNewSvcDescription] = useState("");
+  const [newSvcPriceSinIva, setNewSvcPriceSinIva] = useState("");
+  const [newSvcPriceConIva, setNewSvcPriceConIva] = useState("");
+  const [newSvcIvaRate, setNewSvcIvaRate] = useState(15);
   const [newSvcFreq, setNewSvcFreq] = useState<ServiceBillingFrequency>("mensual");
   const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => {
     const d = new Date();
@@ -74,6 +82,31 @@ export function ClientContractTab({ client }: { client: Client }) {
   });
   const [savingService, setSavingService] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+
+  // Edit existing service state
+  const [editingService, setEditingService] = useState<ClientService | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPriceSinIva, setEditPriceSinIva] = useState("");
+  const [editPriceConIva, setEditPriceConIva] = useState("");
+  const [editIvaRate, setEditIvaRate] = useState(15);
+  const [editFreq, setEditFreq] = useState<ServiceBillingFrequency>("mensual");
+  const [editRenewalDate, setEditRenewalDate] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setShowServiceDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // File upload state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -95,6 +128,20 @@ export function ClientContractTab({ client }: { client: Client }) {
   const availableServices = useMemo(() => {
     return inventoryProducts.filter((p) => p.type === "servicio" && p.status === "activo");
   }, [inventoryProducts]);
+
+  // Search filter for predictive dropdown when adding a new service
+  const searchedInventoryServices = useMemo(() => {
+    const q = serviceSearchQuery.trim().toLowerCase();
+    if (!q) return availableServices.slice(0, 10);
+    return availableServices
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          (p.description && p.description.toLowerCase().includes(q))
+      )
+      .slice(0, 15);
+  }, [availableServices, serviceSearchQuery]);
 
   // Invoices for this client
   const clientInvoices = useMemo(() => {
@@ -185,35 +232,116 @@ export function ClientContractTab({ client }: { client: Client }) {
     };
   }, [servicesForClient]);
 
+  // Handlers for product selection and real-time VAT price synchronization
+  const handleSelectProduct = (prod: InventoryProduct) => {
+    setSelectedService(prod);
+    setServiceSearchQuery(prod.name);
+    setShowServiceDropdown(false);
+
+    // 1. Traer nombre del servicio
+    setNewSvcName(prod.name);
+
+    // 2. Traer descripción del servicio (editable)
+    setNewSvcDescription(prod.description || "");
+
+    // 3. Traer precios sin IVA y con IVA calculados
+    const rate = prod.ivaRate ?? 15;
+    setNewSvcIvaRate(rate);
+
+    const baseSinIva = prod.salePrice ?? 0;
+    if (baseSinIva > 0) {
+      setNewSvcPriceSinIva(baseSinIva.toFixed(2));
+      const conIva = prod.salePriceConIva
+        ? prod.salePriceConIva
+        : Math.round(baseSinIva * (1 + rate / 100) * 100) / 100;
+      setNewSvcPriceConIva(conIva.toFixed(2));
+    } else if (prod.salePriceConIva && prod.salePriceConIva > 0) {
+      setNewSvcPriceConIva(prod.salePriceConIva.toFixed(2));
+      const sinIva = Math.round((prod.salePriceConIva / (1 + rate / 100)) * 100) / 100;
+      setNewSvcPriceSinIva(sinIva.toFixed(2));
+    } else {
+      setNewSvcPriceSinIva("");
+      setNewSvcPriceConIva("");
+    }
+  };
+
+  const handleClearSelectedProduct = () => {
+    setSelectedService(null);
+    setServiceSearchQuery("");
+    setNewSvcName("");
+    setNewSvcDescription("");
+    setNewSvcPriceSinIva("");
+    setNewSvcPriceConIva("");
+    setShowServiceDropdown(true);
+  };
+
+  const handlePriceSinIvaChange = (val: string) => {
+    setNewSvcPriceSinIva(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      const calculatedConIva = Math.round(num * (1 + newSvcIvaRate / 100) * 100) / 100;
+      setNewSvcPriceConIva(calculatedConIva.toFixed(2));
+    } else if (val === "") {
+      setNewSvcPriceConIva("");
+    }
+  };
+
+  const handlePriceConIvaChange = (val: string) => {
+    setNewSvcPriceConIva(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      const calculatedSinIva = Math.round((num / (1 + newSvcIvaRate / 100)) * 100) / 100;
+      setNewSvcPriceSinIva(calculatedSinIva.toFixed(2));
+    } else if (val === "") {
+      setNewSvcPriceSinIva("");
+    }
+  };
+
+  const handleIvaRateChange = (rate: number) => {
+    setNewSvcIvaRate(rate);
+    const numSinIva = parseFloat(newSvcPriceSinIva);
+    if (!isNaN(numSinIva) && numSinIva >= 0) {
+      const calculatedConIva = Math.round(numSinIva * (1 + rate / 100) * 100) / 100;
+      setNewSvcPriceConIva(calculatedConIva.toFixed(2));
+    }
+  };
+
   // Add new service handler taking exclusively from INVENTARIO DE SERVICIOS
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedProd = availableServices.find((p) => p.id === selectedServiceId);
-    if (!selectedProd) {
-      showError("Servicio Requerido", "Debes seleccionar un servicio técnico del Inventario de Servicios.");
+    if (!selectedService) {
+      showError("Servicio Requerido", "Debes buscar y seleccionar un servicio del Inventario de Servicios.");
       return;
     }
-    const priceNum = parseFloat(newSvcPrice);
-    if (isNaN(priceNum) || priceNum <= 0) {
-      showError("Tarifa inválida", "Ingresa un valor mayor a $0.00.");
+    const finalName = newSvcName.trim() || selectedService.name;
+    const priceSinIvaNum = parseFloat(newSvcPriceSinIva);
+    if (isNaN(priceSinIvaNum) || priceSinIvaNum <= 0) {
+      showError("Tarifa inválida", "Ingresa una tarifa sin IVA mayor a $0.00.");
       return;
     }
+    const priceConIvaNum =
+      parseFloat(newSvcPriceConIva) ||
+      Math.round(priceSinIvaNum * (1 + newSvcIvaRate / 100) * 100) / 100;
 
     setSavingService(true);
     try {
       await addClientService({
         clientId: client.id,
-        planId: selectedProd.id,
-        planName: selectedProd.name,
-        inventoryProductId: selectedProd.id,
-        inventorySku: selectedProd.sku,
+        planId: selectedService.id,
+        planName: finalName,
+        notes: newSvcDescription.trim(),
+        description: newSvcDescription.trim(),
+        inventoryProductId: selectedService.id,
+        inventorySku: selectedService.sku,
         status: "activo",
         billingType: "pospago",
         billingFrequency: newSvcFreq,
         isBillableInCurrentCycle: true,
         nextRenewalDate: newSvcRenewalDate,
-        basePrice: selectedProd.salePrice,
-        customPrice: priceNum,
+        basePrice: selectedService.salePrice,
+        customPrice: priceSinIvaNum,
+        priceConIva: priceConIvaNum,
+        ivaRate: newSvcIvaRate,
         origin: "manual",
         saleStatus: "pendiente_venta",
         downloadMbps: 100,
@@ -228,10 +356,14 @@ export function ClientContractTab({ client }: { client: Client }) {
       });
       showSuccess(
         "Servicio Asignado",
-        `Se vinculó "${selectedProd.name}" a la ficha del cliente como 'Pendiente de generar Nota de Venta'.`
+        `Se vinculó "${finalName}" a la ficha del cliente.`
       );
-      setSelectedServiceId("");
-      setNewSvcPrice("");
+      setSelectedService(null);
+      setServiceSearchQuery("");
+      setNewSvcName("");
+      setNewSvcDescription("");
+      setNewSvcPriceSinIva("");
+      setNewSvcPriceConIva("");
       setIsAddingService(false);
     } catch (err: any) {
       showError("Error", err?.message || "No se pudo añadir el servicio.");
@@ -240,19 +372,101 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
+  // Edit existing service handlers
+  const handleOpenEditService = (svc: ClientService) => {
+    setEditingService(svc);
+    setEditName(svc.planName);
+    setEditDescription(svc.description || svc.notes || "");
+    const sinIva = svc.customPrice ?? svc.basePrice ?? 0;
+    const rate = svc.ivaRate ?? 15;
+    setEditIvaRate(rate);
+    setEditPriceSinIva(sinIva.toFixed(2));
+    const conIva = svc.priceConIva ?? Math.round(sinIva * (1 + rate / 100) * 100) / 100;
+    setEditPriceConIva(conIva.toFixed(2));
+    setEditFreq(svc.billingFrequency || "mensual");
+    setEditRenewalDate(svc.nextRenewalDate || "");
+  };
+
+  const handleEditPriceSinIvaChange = (val: string) => {
+    setEditPriceSinIva(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      const calculatedConIva = Math.round(num * (1 + editIvaRate / 100) * 100) / 100;
+      setEditPriceConIva(calculatedConIva.toFixed(2));
+    } else if (val === "") {
+      setEditPriceConIva("");
+    }
+  };
+
+  const handleEditPriceConIvaChange = (val: string) => {
+    setEditPriceConIva(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      const calculatedSinIva = Math.round((num / (1 + editIvaRate / 100)) * 100) / 100;
+      setEditPriceSinIva(calculatedSinIva.toFixed(2));
+    } else if (val === "") {
+      setEditPriceSinIva("");
+    }
+  };
+
+  const handleEditIvaRateChange = (rate: number) => {
+    setEditIvaRate(rate);
+    const numSinIva = parseFloat(editPriceSinIva);
+    if (!isNaN(numSinIva) && numSinIva >= 0) {
+      const calculatedConIva = Math.round(numSinIva * (1 + rate / 100) * 100) / 100;
+      setEditPriceConIva(calculatedConIva.toFixed(2));
+    }
+  };
+
+  const handleSaveEditService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingService) return;
+    const priceSinIvaNum = parseFloat(editPriceSinIva);
+    if (isNaN(priceSinIvaNum) || priceSinIvaNum <= 0) {
+      showError("Tarifa inválida", "Ingresa una tarifa sin IVA mayor a $0.00.");
+      return;
+    }
+    const priceConIvaNum =
+      parseFloat(editPriceConIva) ||
+      Math.round(priceSinIvaNum * (1 + editIvaRate / 100) * 100) / 100;
+
+    setSavingEdit(true);
+    try {
+      await updateClientService(editingService.id, {
+        planName: editName.trim() || editingService.planName,
+        description: editDescription.trim(),
+        notes: editDescription.trim(),
+        customPrice: priceSinIvaNum,
+        priceConIva: priceConIvaNum,
+        ivaRate: editIvaRate,
+        billingFrequency: editFreq,
+        nextRenewalDate: editRenewalDate,
+      });
+      showSuccess("Servicio Actualizado", "Los cambios se guardaron correctamente.");
+      setEditingService(null);
+    } catch (err: any) {
+      showError("Error", err?.message || "No se pudo actualizar el servicio.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   // Launch New Sale pre-configured with this client service
   const handleGenerateNotaVentaForService = (svc: ClientService) => {
     const price = svc.customPrice ?? svc.basePrice ?? 0;
-    const ivaRate = 15;
-    const ivaAmount = Math.round(price * 0.15 * 100) / 100;
-    const total = Math.round((price + ivaAmount) * 100) / 100;
+    const ivaRate = svc.ivaRate ?? 15;
+    const ivaAmount = Math.round(price * (ivaRate / 100) * 100) / 100;
+    const total = svc.priceConIva ?? Math.round((price + ivaAmount) * 100) / 100;
 
     const item: InvoiceItem = {
       id: `it-${Date.now()}`,
       productId: svc.inventoryProductId || svc.planId,
       sku: svc.inventorySku || "SRV-001",
       name: svc.planName,
-      description: `Servicio contratado: ${svc.planName} (${svc.billingFrequency === "anual" ? "Anual" : "Mensual"})`,
+      description:
+        svc.description ||
+        svc.notes ||
+        `Servicio contratado: ${svc.planName} (${svc.billingFrequency === "anual" ? "Anual" : "Mensual"})`,
       unit: "servicio",
       quantity: 1,
       unitPrice: price,
@@ -657,55 +871,222 @@ export function ClientContractTab({ client }: { client: Client }) {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-              {/* Selector Exclusivo de Inventario */}
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Servicio del Inventario (Catálogo Oficial) *
+            {/* Buscador de Servicios del Inventario (Predictivo / Autocomplete tipo Nota de Venta) */}
+            <div className="space-y-1 relative" ref={searchDropdownRef}>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-[#0b1c30]">
+                  Buscar Producto / Servicio en Catálogo Oficial *
                 </label>
-                <select
-                  required
-                  value={selectedServiceId}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setSelectedServiceId(id);
-                    const prod = availableServices.find((p) => p.id === id);
-                    if (prod) {
-                      setNewSvcPrice(prod.salePrice ? prod.salePrice.toString() : "0.00");
-                    }
-                  }}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
-                >
-                  <option value="">-- Selecciona un servicio ({availableServices.length} disponibles) --</option>
-                  {availableServices.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.sku}] {p.name} — ${safeNumber(p.salePrice)} {p.categoryName ? `(${p.categoryName})` : ""}
-                    </option>
-                  ))}
-                </select>
+                {selectedService && (
+                  <button
+                    type="button"
+                    onClick={handleClearSelectedProduct}
+                    className="text-xs text-[#004ac6] hover:underline flex items-center gap-1 cursor-pointer font-semibold"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Cambiar servicio</span>
+                  </button>
+                )}
               </div>
 
-              {/* Tarifa Base sin IVA */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Escribe el nombre o SKU del servicio para buscar..."
+                  value={serviceSearchQuery}
+                  onFocus={() => setShowServiceDropdown(true)}
+                  onChange={(e) => {
+                    setServiceSearchQuery(e.target.value);
+                    setShowServiceDropdown(true);
+                  }}
+                  className="w-full pl-9 pr-9 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-semibold text-[#0b1c30] placeholder-slate-400 focus:border-[#004ac6] focus:outline-hidden"
+                />
+                {serviceSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setServiceSearchQuery("");
+                      setSelectedService(null);
+                      setShowServiceDropdown(true);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Menú desplegable con los resultados de la búsqueda */}
+              {showServiceDropdown && (
+                <div className="absolute z-30 mt-1 w-full bg-white rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto divide-y divide-slate-100">
+                  {searchedInventoryServices.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-500">
+                      No se encontraron servicios técnicos con esa búsqueda. Usa el botón{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowServiceDropdown(false);
+                          setIsProductModalOpen(true);
+                        }}
+                        className="text-[#004ac6] font-bold underline cursor-pointer"
+                      >
+                        + Crear en Inventario
+                      </button>
+                    </div>
+                  ) : (
+                    searchedInventoryServices.map((prod) => {
+                      const sinIva = prod.salePrice ?? 0;
+                      const conIva =
+                        prod.salePriceConIva ?? Math.round(sinIva * 1.15 * 100) / 100;
+                      const isSelected = selectedService?.id === prod.id;
+                      return (
+                        <button
+                          key={prod.id}
+                          type="button"
+                          onClick={() => handleSelectProduct(prod)}
+                          className={`w-full text-left px-3.5 py-2 hover:bg-[#f8f9ff] transition flex items-center justify-between gap-3 cursor-pointer ${
+                            isSelected ? "bg-[#eff4ff] border-l-4 border-[#004ac6]" : ""
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-1.5 py-0.5 rounded-md border border-[#dce9ff]">
+                                {prod.sku}
+                              </span>
+                              <span className="font-bold text-xs text-slate-900 truncate">
+                                {prod.name}
+                              </span>
+                              {prod.categoryName && (
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  • {prod.categoryName}
+                                </span>
+                              )}
+                            </div>
+                            {prod.description && (
+                              <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                                {prod.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-bold text-xs text-slate-900">
+                              ${sinIva.toFixed(2)}{" "}
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                sin IVA
+                              </span>
+                            </div>
+                            <div className="font-mono text-[10px] text-emerald-700 font-semibold">
+                              ${conIva.toFixed(2)}{" "}
+                              <span className="text-[9px] text-slate-400">c/IVA</span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Datos del Servicio Extraído: Nombre y Descripción Editables */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Tarifa Asignada ($ sin IVA) *
+                  Nombre del Servicio (Editable) *
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
+                  type="text"
                   required
-                  placeholder="0.00"
-                  value={newSvcPrice}
-                  onChange={(e) => setNewSvcPrice(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  placeholder="Ej. INTERNET DEDICADO 100MBPS"
+                  value={newSvcName}
+                  onChange={(e) => setNewSvcName(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Descripción del Servicio (Editable)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Detalles técnicos, SLA, alcance, características o notas del servicio..."
+                  value={newSvcDescription}
+                  onChange={(e) => setNewSvcDescription(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-1.5 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Tarifas Sincronizadas (Sin IVA / Con IVA), IVA Rate, Frecuencia y Renovación */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              {/* Tarifa sin IVA */}
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Tarifa sin IVA ($) *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newSvcPriceSinIva}
+                    onChange={(e) => handlePriceSinIvaChange(e.target.value)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Base imponible</span>
+              </div>
+
+              {/* Tarifa con IVA */}
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Tarifa con IVA ($) [IVA {newSvcIvaRate}%] *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    value={newSvcPriceConIva}
+                    onChange={(e) => handlePriceConIvaChange(e.target.value)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:border-[#004ac6] focus:outline-hidden"
+                  />
+                </div>
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Total cliente</span>
+              </div>
+
+              {/* Selector IVA */}
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  IVA Aplicable
+                </label>
+                <select
+                  value={newSvcIvaRate}
+                  onChange={(e) => handleIvaRateChange(Number(e.target.value))}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                >
+                  <option value={15}>15% (Vigente SRI)</option>
+                  <option value={5}>5% (Materiales)</option>
+                  <option value={0}>0% (Exento)</option>
+                </select>
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Tasa impositiva</span>
               </div>
 
               {/* Periodicidad y Próxima Renovación */}
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Ciclo y Próxima Renovación
+                  Ciclo y Renovación
                 </label>
                 <div className="flex items-center gap-1.5">
                   <select
@@ -723,50 +1104,53 @@ export function ClientContractTab({ client }: { client: Client }) {
                     className="bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] w-full focus:border-[#004ac6] focus:outline-hidden"
                   />
                 </div>
+                <span className="text-[10px] text-slate-400 mt-0.5 block">Frecuencia de cobro</span>
               </div>
             </div>
 
             {/* Ficha Resumen del Servicio de Inventario Seleccionado */}
-            {selectedServiceId && (() => {
-              const prod = availableServices.find((p) => p.id === selectedServiceId);
-              if (!prod) return null;
-              const priceVal = parseFloat(newSvcPrice) || prod.salePrice || 0;
-              const ivaVal = Math.round(priceVal * (prod.ivaRate || 15) / 100 * 100) / 100;
-              const totalVal = Math.round((priceVal + ivaVal) * 100) / 100;
-
-              return (
-                <div className="p-3.5 bg-white rounded-lg border border-[#e2e8f0] text-xs flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-2 py-0.5 rounded-md border border-[#dce9ff]">
-                        {prod.sku}
-                      </span>
-                      <span className="font-bold text-[#0b1c30]">{prod.name}</span>
-                      {prod.categoryName && (
-                        <span className="text-xs text-[#64748b]">• {prod.categoryName}</span>
-                      )}
-                    </div>
-                    {prod.description && (
-                      <p className="text-xs text-[#64748b]">{prod.description}</p>
+            {selectedService && (
+              <div className="p-3 bg-white rounded-lg border border-[#e2e8f0] text-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-2 py-0.5 rounded-md border border-[#dce9ff]">
+                      {selectedService.sku}
+                    </span>
+                    <span className="font-bold text-[#0b1c30]">{newSvcName || selectedService.name}</span>
+                    {selectedService.categoryName && (
+                      <span className="text-xs text-[#64748b]">• {selectedService.categoryName}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-right">
-                    <div>
-                      <span className="text-[10px] text-[#64748b] block uppercase font-bold">Tarifa Base</span>
-                      <span className="font-mono font-bold text-[#0b1c30]">${safeNumber(priceVal)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#64748b] block uppercase font-bold">IVA ({prod.ivaRate || 15}%)</span>
-                      <span className="font-mono font-bold text-[#64748b]">${safeNumber(ivaVal)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-[#004ac6] block uppercase font-bold">Total Facturable</span>
-                      <span className="font-mono font-bold text-emerald-700 text-sm">${safeNumber(totalVal)}</span>
-                    </div>
+                  {newSvcDescription && (
+                    <p className="text-[11px] text-slate-600 line-clamp-1 italic">{newSvcDescription}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-right">
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">Base sin IVA</span>
+                    <span className="font-mono font-bold text-[#0b1c30]">
+                      ${safeNumber(parseFloat(newSvcPriceSinIva) || 0)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-bold">IVA ({newSvcIvaRate}%)</span>
+                    <span className="font-mono font-bold text-slate-600">
+                      ${safeNumber(
+                        Math.round(
+                          (parseFloat(newSvcPriceSinIva) || 0) * (newSvcIvaRate / 100) * 100
+                        ) / 100
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#004ac6] block uppercase font-bold">Total Facturable</span>
+                    <span className="font-mono font-bold text-emerald-700 text-sm">
+                      ${safeNumber(parseFloat(newSvcPriceConIva) || 0)}
+                    </span>
                   </div>
                 </div>
-              );
-            })()}
+              </div>
+            )}
 
             {/* Información de Asignación */}
             <div className="flex items-center gap-2.5 p-3 rounded-lg bg-[#eff4ff] border border-[#dce9ff] text-xs text-[#004ac6]">
@@ -781,7 +1165,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 type="button"
                 onClick={() => {
                   setIsAddingService(false);
-                  setSelectedServiceId("");
+                  handleClearSelectedProduct();
                 }}
                 className="px-3.5 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#434655] text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
@@ -789,7 +1173,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               </button>
               <button
                 type="submit"
-                disabled={savingService || !selectedServiceId}
+                disabled={savingService || !selectedService}
                 className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
                 {savingService ? "Guardando..." : "Asignar Servicio al Cliente"}
@@ -877,7 +1261,12 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <span className={`font-bold block text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
                           {svc.planName}
                         </span>
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                        {(svc.description || svc.notes) && (
+                          <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 font-normal">
+                            {svc.description || svc.notes}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1">
                           {svc.inventorySku && (
                             <span className="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-sm text-[9px] font-bold">
                               {svc.inventorySku}
@@ -980,13 +1369,16 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 6. Tarifa Base */}
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-xs">
-                        <span className={isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}>
+                      <td className="py-3.5 px-4 text-right font-mono text-xs">
+                        <span className={`block font-bold ${isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}`}>
                           ${safeNumber(price)}
+                        </span>
+                        <span className="block text-[10px] text-slate-500 font-medium">
+                          ${safeNumber(svc.priceConIva || Math.round(price * 1.15 * 100) / 100)} c/IVA
                         </span>
                       </td>
 
-                      {/* 7. Acciones: WhatsApp, Correo, Renovar, Eliminar */}
+                      {/* 7. Acciones: WhatsApp, Correo, Editar, Renovar, Eliminar */}
                       <td className="py-3.5 px-5 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
@@ -1005,6 +1397,15 @@ export function ClientContractTab({ client }: { client: Client }) {
                             title="Notificar renovación por Correo Electrónico"
                           >
                             <Mail className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditService(svc)}
+                            className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
+                            title="Editar nombre, descripción o tarifa del servicio"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
 
                           <button
@@ -1226,6 +1627,168 @@ export function ClientContractTab({ client }: { client: Client }) {
           invoice={rideInvoiceToPreview}
           companyConfig={sriCompanyConfig}
         />
+      )}
+
+      {/* MODAL 3: EDITAR SERVICIO DEL CLIENTE */}
+      {editingService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Cabecera Master Modal */}
+            <div className="bg-[#004ac6] text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">
+                  <Pencil className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold leading-tight">Editar Servicio del Cliente</h3>
+                  <p className="text-[11px] text-white/80">
+                    {editingService.inventorySku ? `[${editingService.inventorySku}] ` : ""}
+                    {editingService.planName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingService(null)}
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Formulario de Edición */}
+            <form onSubmit={handleSaveEditService} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Nombre del Servicio (Editable) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Descripción del Servicio (Editable)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Detalles técnicos, SLA, alcance o notas..."
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Tarifa sin IVA ($) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      value={editPriceSinIva}
+                      onChange={(e) => handleEditPriceSinIvaChange(e.target.value)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Base imponible</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Tarifa con IVA ($) [IVA {editIvaRate}%] *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={editPriceConIva}
+                      onChange={(e) => handleEditPriceConIvaChange(e.target.value)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:border-[#004ac6] focus:outline-hidden"
+                    />
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Total cliente</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    IVA Aplicable
+                  </label>
+                  <select
+                    value={editIvaRate}
+                    onChange={(e) => handleEditIvaRateChange(Number(e.target.value))}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value={15}>15% (Vigente SRI)</option>
+                    <option value={5}>5% (Materiales)</option>
+                    <option value={0}>0% (Exento)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Ciclo de Facturación
+                  </label>
+                  <select
+                    value={editFreq}
+                    onChange={(e) => setEditFreq(e.target.value as ServiceBillingFrequency)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value="mensual">Mensual</option>
+                    <option value="anual">Anual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#434655] mb-1">
+                  Próxima Fecha de Renovación
+                </label>
+                <input
+                  type="date"
+                  value={editRenewalDate}
+                  onChange={(e) => setEditRenewalDate(e.target.value)}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+                <button
+                  type="button"
+                  onClick={() => setEditingService(null)}
+                  className="px-3.5 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#434655] text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  {savingEdit ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

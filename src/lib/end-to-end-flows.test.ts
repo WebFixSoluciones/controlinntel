@@ -1785,6 +1785,63 @@ test("Flujo E2E 29: Auditoría Global y Estandarización Clean Enterprise en Pes
   assert.ok(!newSale.includes("rounded-[") && !newSale.includes("rounded-2xl"), "NewSaleView no debe contener rounded-[ ni rounded-2xl");
 });
 
+test("Flujo E2E 30: Buscador Predictivo de Servicios con Nombre y Descripción Editable y Precios con/sin IVA Sincronizados", () => {
+  const rootDir = process.cwd();
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractTab = fs.readFileSync(contractTabPath, "utf8");
+
+  // 1. Buscador predictivo en vez de un simple <select>
+  assert.ok(
+    contractTab.includes("Buscar Producto / Servicio en Catálogo Oficial *") &&
+      contractTab.includes("searchedInventoryServices") &&
+      contractTab.includes("showServiceDropdown"),
+    "ClientContractTab debe contar con un buscador predictivo con dropdown tipo nota de venta"
+  );
+  assert.ok(
+    !contractTab.includes("-- Selecciona un servicio"),
+    "ClientContractTab no debe usar un <select> simple con opciones fijas para el catálogo oficial"
+  );
+
+  // 2. Extracción de nombre y descripción editable
+  assert.ok(
+    contractTab.includes("Nombre del Servicio (Editable) *") &&
+      contractTab.includes("newSvcName"),
+    "ClientContractTab debe permitir editar el nombre del servicio extraído"
+  );
+  assert.ok(
+    contractTab.includes("Descripción del Servicio (Editable)") &&
+      contractTab.includes("newSvcDescription"),
+    "ClientContractTab debe permitir editar la descripción del servicio extraído"
+  );
+
+  // 3. Precios sin IVA y con IVA sincronizados en tiempo real
+  assert.ok(
+    contractTab.includes("Tarifa sin IVA ($) *") &&
+      contractTab.includes("Tarifa con IVA ($)") &&
+      contractTab.includes("handlePriceSinIvaChange") &&
+      contractTab.includes("handlePriceConIvaChange"),
+    "ClientContractTab debe tener campos sincronizados para ingresar precio con IVA o sin IVA"
+  );
+
+  // 4. Modal corporativo para editar servicios existentes
+  assert.ok(
+    contractTab.includes("Editar Servicio del Cliente") &&
+      contractTab.includes("handleOpenEditService") &&
+      contractTab.includes("handleSaveEditService"),
+    "ClientContractTab debe incluir modal para editar nombre, descripción y tarifas de servicios existentes"
+  );
+
+  // 5. Typesafe ClientService
+  const typesPath = path.resolve(rootDir, "src/types/index.ts");
+  const typesContent = fs.readFileSync(typesPath, "utf8");
+  assert.ok(
+    typesContent.includes("description?: string;") &&
+      typesContent.includes("ivaRate?: number;") &&
+      typesContent.includes("priceConIva?: number;"),
+    "ClientService debe incluir propiedades tipadas para description, ivaRate y priceConIva"
+  );
+});
+
 
 
 
