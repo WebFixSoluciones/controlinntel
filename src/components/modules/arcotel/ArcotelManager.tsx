@@ -490,7 +490,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
           {/* Banner de Recordatorio de Vencimiento de Póliza con Alerta Configurable */}
           {policyReminderStatus && (
             <div
-              className={`p-4 rounded-2xl border flex items-center justify-between gap-4 ${
+              className={`p-4 rounded-xl border flex items-center justify-between gap-4 ${
                 policyReminderStatus.isExpired
                   ? "bg-rose-50 border-rose-200 text-rose-900"
                   : policyReminderStatus.isReminderTriggered
@@ -500,7 +500,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
                     policyReminderStatus.isExpired
                       ? "bg-rose-600 text-white"
                       : policyReminderStatus.isReminderTriggered
@@ -528,7 +528,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
               <button
                 onClick={() => setActiveTab("polizas")}
-                className="px-3 py-1.5 bg-white border border-current rounded-xl text-xs font-bold transition-all hover:bg-white/80 cursor-pointer"
+                className="px-3 py-1.5 bg-white border border-current rounded-lg text-xs font-bold transition-all hover:bg-white/80 cursor-pointer"
               >
                 Ver Pólizas
               </button>
@@ -536,7 +536,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
           )}
 
           {/* Formulario de Parámetros del Título Habilitante */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card p-6">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-6">
             <form onSubmit={handleSaveConcession} className="space-y-5 text-xs">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
@@ -760,7 +760,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
           )}
 
           {/* Tabla de Archivos para la subsección activa */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-4 px-6 border-b border-[#e2e8f0] bg-[#f8f9ff] flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-[#0b1c30] text-xs uppercase tracking-wider">
@@ -769,7 +769,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
               </div>
               <button
                 onClick={() => handleOpenUploadModal(sietelSubTab)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Cargar Archivo</span>
@@ -778,7 +778,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-5">Periodo</th>
                     <th className="py-3 px-5">Nombre del Archivo</th>
@@ -852,7 +852,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* PESTAÑA 3: FODETEL (TRIMESTRAL) (PDF Página 3) */}
       {activeTab === "fodetel" && (
         <div className="space-y-4">
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-xs text-[#0b1c30]">
                 Fondo de Desarrollo de Telecomunicaciones (FODETEL)
@@ -863,17 +863,17 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             </div>
             <button
               onClick={() => handleOpenUploadModal("fodetel")}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Cargar Archivo FODETEL</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-5">Trimestre</th>
                     <th className="py-3 px-5">Archivo</th>
@@ -937,7 +937,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* PESTAÑA 4: PLAN DE CONTINGENCIA (ANUAL) (PDF Página 4) */}
       {activeTab === "contingencia" && (
         <div className="space-y-4">
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-xs text-[#0b1c30]">
                 Plan de Contingencia & Continuidad Operativa (Anual)
@@ -948,17 +948,17 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             </div>
             <button
               onClick={() => handleOpenUploadModal("contingencia")}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Cargar Plan de Contingencia</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-5">Vigencia</th>
                     <th className="py-3 px-5">Documento</th>
@@ -1019,7 +1019,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* PESTAÑA 5: SISTEMA BDH (EXCEL) (PDF Página 4) */}
       {activeTab === "bdh" && (
         <div className="space-y-4">
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-xs text-[#0b1c30]">
                 Sistema BDH (Bono de Desarrollo Humano - Subsidio Tarifa Social)
@@ -1030,17 +1030,17 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             </div>
             <button
               onClick={() => handleOpenUploadModal("bdh")}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Cargar Base BDH (.xlsx)</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-5">Periodo / Corte</th>
                     <th className="py-3 px-5">Archivo Excel</th>
@@ -1099,7 +1099,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* PESTAÑA: REGISTRO DE INFRAESTRUCTURA (ARCOTEL) */}
       {activeTab === "infraestructura" && (
         <div className="space-y-4">
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-bold text-xs text-[#0b1c30]">
                 Registro y Catastro de Infraestructura Física (ARCOTEL)
@@ -1110,17 +1110,17 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             </div>
             <button
               onClick={() => handleOpenUploadModal("registro_infraestructura")}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Cargar Registro de Infraestructura</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[700px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3 px-5">Periodo / Versión</th>
                     <th className="py-3 px-5">Archivo de Infraestructura</th>
@@ -1189,7 +1189,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* PESTAÑA 6: REPORTERIA & TRANSFORMADOR ARCOTEL (PDF Página 4) */}
       {activeTab === "transformador" && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card p-6 space-y-4">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-6 space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
                 <RotateCcw className="w-4 h-4 text-[#004ac6]" />
@@ -1206,7 +1206,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                 <select
                   value={transformReportType}
                   onChange={(e) => setTransformReportType(e.target.value as any)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
                 >
                   <option value="abonados_sietel">Matriz de Abonados Activos (SIETEL Oficial)</option>
                   <option value="tarifas">Matriz Tarifaria Homologada</option>
@@ -1291,17 +1291,17 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* MODAL PARA SUBIR ARCHIVOS REGULATORIOS */}
       {isFileModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+          <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden">
+            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white">
               <div className="flex items-center gap-2">
-                <Upload className="w-4 h-4 text-[#004ac6]" />
-                <h3 className="font-bold text-[#0b1c30] text-xs">
+                <Upload className="w-4 h-4 text-white" />
+                <h3 className="font-bold text-white text-xs">
                   Cargar Archivo: {targetSubsystem.replace("_", " ").toUpperCase()}
                 </h3>
               </div>
               <button
                 onClick={() => setIsFileModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1391,16 +1391,16 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       {/* Modal Agregar Atributo Regulatorio */}
       {isAddingCustomField && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
-                <Plus className="w-4 h-4 text-[#004ac6]" />
+          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <Plus className="w-4 h-4 text-white" />
                 Nuevo Atributo Regulatorio
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddingCustomField(false)}
-                className="p-1 text-[#737686] hover:text-[#0b1c30] rounded-lg"
+                className="p-1 text-white/80 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

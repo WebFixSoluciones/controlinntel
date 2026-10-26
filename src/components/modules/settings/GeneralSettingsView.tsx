@@ -58,9 +58,9 @@ export function GeneralSettingsView() {
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300">
+          <span className="text-xs font-bold px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
             EMPRESA ACTIVA
           </span>
           <span className="text-xs text-slate-500 font-medium hidden md:inline">
@@ -71,7 +71,7 @@ export function GeneralSettingsView() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
         >
           <Save className="w-4 h-4" />
           <span>{isSubmitting ? "Guardando..." : "Guardar Cambios"}</span>
@@ -80,7 +80,7 @@ export function GeneralSettingsView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Identidad Corporativa */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -98,7 +98,7 @@ export function GeneralSettingsView() {
                 required
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs font-semibold rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -110,7 +110,7 @@ export function GeneralSettingsView() {
                 type="text"
                 value={tradeName}
                 onChange={(e) => setTradeName(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -125,7 +125,7 @@ export function GeneralSettingsView() {
                   maxLength={13}
                   value={ruc}
                   onChange={(e) => setRuc(e.target.value)}
-                  className="w-full text-xs font-mono font-bold rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                  className="w-full text-xs font-mono font-bold rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
 
@@ -137,7 +137,7 @@ export function GeneralSettingsView() {
                   type="text"
                   value={representative}
                   onChange={(e) => setRepresentative(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
             </div>
@@ -145,7 +145,7 @@ export function GeneralSettingsView() {
         </div>
 
         {/* Contacto & Presencia Digital */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <Globe className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -163,7 +163,7 @@ export function GeneralSettingsView() {
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -177,7 +177,7 @@ export function GeneralSettingsView() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
 
@@ -189,7 +189,7 @@ export function GeneralSettingsView() {
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
             </div>
@@ -202,14 +202,14 @@ export function GeneralSettingsView() {
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
           </div>
         </div>
 
         {/* Preferencias del Sistema */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4 lg:col-span-2">
+        <div className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4 lg:col-span-2">
           <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
             <Coins className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -226,7 +226,7 @@ export function GeneralSettingsView() {
                 type="text"
                 disabled
                 value={currency}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
+                className="w-full text-xs font-semibold rounded-lg border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
                 Fijada a Dólar de los Estados Unidos (USD) según normativa tributaria ecuatoriana.
@@ -241,7 +241,7 @@ export function GeneralSettingsView() {
                 type="text"
                 disabled
                 value={timeZone}
-                className="w-full text-xs font-semibold rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
+                className="w-full text-xs font-semibold rounded-lg border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
                 Hora Oficial de Ecuador Continental (UTC-5) para timbrado electrónico SRI.

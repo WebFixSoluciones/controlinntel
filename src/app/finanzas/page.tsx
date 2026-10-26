@@ -140,7 +140,7 @@ function FinanzasContent() {
 
   if (!canAccessFinanzas) {
     return (
-      <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center max-w-lg mx-auto my-12 space-y-3">
+      <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center max-w-lg mx-auto my-12 space-y-3">
         <div className="w-12 h-12 bg-[#fee2e2] text-[#dc2626] rounded-full flex items-center justify-center mx-auto">
           <ShieldAlert className="w-6 h-6" />
         </div>
@@ -214,35 +214,35 @@ function FinanzasContent() {
       <div className="w-full">
         {(resolvedTab === "cobranzas_opex" || resolvedTab === "general") && <FinanceDashboard />}
         {resolvedTab === "movimientos" && (canMovimientos ? <MovementsTab /> : (
-          <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center space-y-2">
+          <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
             <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
             <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Movimientos Restringido</h3>
             <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para ver los movimientos detallados.</p>
           </div>
         ))}
         {resolvedTab === "bancos" && (canBancos ? <BankAccountsTab /> : (
-          <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center space-y-2">
+          <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
             <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
             <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Bancos Restringido</h3>
             <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para gestionar cuentas bancarias.</p>
           </div>
         ))}
         {resolvedTab === "cuentas_por_cobrar" && (canCxC ? <AccountsReceivableTab /> : (
-          <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center space-y-2">
+          <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
             <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
             <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Cuentas por Cobrar Restringido</h3>
             <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para consultar cuentas por cobrar.</p>
           </div>
         ))}
         {resolvedTab === "cuentas_por_pagar" && (canCxP ? <AccountsPayableTab /> : (
-          <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center space-y-2">
+          <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
             <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
             <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Cuentas por Pagar Restringido</h3>
             <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para consultar cuentas por pagar.</p>
           </div>
         ))}
         {resolvedTab === "reportes" && (canReportes ? <FinancialReportsTab /> : (
-          <div className="p-8 bg-white border border-[#e2e8f0] rounded-2xl text-center space-y-2">
+          <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
             <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
             <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Reportes Restringido</h3>
             <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para ver reportes financieros.</p>

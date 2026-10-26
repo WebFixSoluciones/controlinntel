@@ -104,7 +104,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
 
   if (!ticket) {
     return (
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-12 text-center shadow-2xs">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-12 text-center shadow-2xs">
         <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-2" />
         <h3 className="font-bold text-[#0b1c30]">Ticket no encontrado</h3>
         <p className="text-xs text-[#737686] mt-1 mb-4">
@@ -112,7 +112,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         </p>
         <button
           onClick={onBack}
-          className="px-4 py-2 bg-[#004ac6] text-white rounded-xl text-xs font-bold cursor-pointer"
+          className="px-4 py-2 bg-[#004ac6] text-white rounded-lg text-xs font-bold cursor-pointer"
         >
           Volver a Tickets
         </button>
@@ -227,11 +227,11 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* 1. Header Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-start md:items-center gap-3">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] transition-colors cursor-pointer"
+            className="p-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] transition-colors cursor-pointer"
             title="Volver a la lista de tickets"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -372,7 +372,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
 
             {/* Initial Client Request Message Card */}
             {(threadFilter === "todos" || threadFilter === "publicos") && (
-              <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-2xs space-y-2">
+              <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs space-y-2">
                 <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-2.5">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-[#f1f5f9] text-[#434655] flex items-center justify-center font-bold text-xs">
@@ -404,7 +404,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                 return (
                   <div
                     key={m.id}
-                    className={`rounded-2xl p-4 transition-all shadow-2xs space-y-2 border ${
+                    className={`rounded-xl p-4 transition-all shadow-2xs space-y-2 border ${
                       isInternal
                         ? "bg-amber-50/70 border-amber-200/80 text-amber-950"
                         : isStaff
@@ -455,7 +455,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
 
             {/* Resolution Note if ticket is resolved */}
             {ticket.resolutionNotes && (
-              <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-4 shadow-2xs space-y-1 text-emerald-900">
+              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 shadow-2xs space-y-1 text-emerald-900">
                 <div className="flex items-center gap-2 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>Nota de Resolución & Cierre Técnico</span>
@@ -471,7 +471,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
           </div>
 
           {/* Clean Workspace Foot Reply Box */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             {/* Box Tabs: Reply vs Internal Note */}
             <div className="flex items-center justify-between border-b border-[#e2e8f0] bg-[#f8f9ff] px-4 py-2.5">
               <div className="flex items-center gap-2">
@@ -591,7 +591,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         {/* RIGHT COLUMN: Unified Context Panel (Single Card, 4 cols)  */}
         {/* ========================================================= */}
         <div className="lg:col-span-4">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-5 shadow-2xs divide-y divide-[#f1f5f9] space-y-4">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-2xs divide-y divide-[#f1f5f9] space-y-4">
             {/* Header del Panel */}
             <div className="flex items-center justify-between pb-3">
               <h4 className="font-bold text-xs text-[#0b1c30] flex items-center gap-2">

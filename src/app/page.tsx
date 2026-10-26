@@ -19,7 +19,7 @@ const FinancialChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="p-6 rounded-2xl bg-white border border-[#e2e8f0] h-[340px] flex items-center justify-center animate-pulse">
+      <div className="p-6 rounded-xl bg-white border border-[#e2e8f0] h-[340px] flex items-center justify-center animate-pulse">
         <div className="h-6 w-48 bg-slate-100 rounded-md" />
       </div>
     ),

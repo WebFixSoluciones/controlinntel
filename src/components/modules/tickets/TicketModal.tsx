@@ -130,34 +130,34 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-3xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header WHMCS Style */}
-        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[6px] bg-[#004ac6] flex items-center justify-center text-white shadow-xs">
-              <Headphones className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh] my-auto">
+        {/* Header Clean Enterprise */}
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
+              <Headphones className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0b1c30] text-sm">Nuevo Ticket</h3>
-              <p className="text-[11px] text-[#737686]">Registro de soporte técnico e incidencias</p>
+              <h3 className="font-bold text-white text-base leading-tight">Nuevo Ticket de Asistencia</h3>
+              <p className="text-xs text-blue-100">Registro de soporte técnico e incidencias de clientes</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-slate-200/60 cursor-pointer transition-colors">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
           {/* Cliente & Servicio Contratado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-slate-50/70 p-3.5 rounded-[6px] border border-slate-200/80">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-[#f8f9ff] p-4 rounded-lg border border-[#e2e8f0]">
             <div className="relative">
               <label className="font-bold text-[#434655] flex items-center gap-1.5 mb-1">
                 <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
                 Cliente Afectado *
               </label>
               {initialClientId ? (
-                <div className="w-full bg-slate-100 border border-slate-300 rounded-[6px] px-3 py-2 font-bold text-slate-800">
+                <div className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
                   {selectedClient?.businessName || "Cliente Asignado"}
                 </div>
               ) : (
@@ -172,7 +172,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                         setIsClientSearchOpen(true);
                       }}
                       onFocus={() => setIsClientSearchOpen(true)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-[6px] pl-8 pr-8 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                      className="w-full bg-white border border-[#e2e8f0] rounded-lg pl-8 pr-8 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
                     />
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
                     <button
@@ -185,7 +185,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                   </div>
 
                   {isClientSearchOpen && (
-                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-[#cbd5e1] rounded-[6px] shadow-lg max-h-52 overflow-y-auto">
+                    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-[#e2e8f0] rounded-lg shadow-lg max-h-52 overflow-y-auto">
                       {filteredClients.length > 0 ? (
                         filteredClients.map((c) => (
                           <div
@@ -234,7 +234,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={selectedServiceId}
                 onChange={(e) => setSelectedServiceId(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 {availableServices.length > 0 ? (
                   availableServices.map((s) => (
@@ -256,7 +256,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value as TicketDepartment)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 <option value="soporte_tecnico">Soporte Técnico NOC</option>
                 <option value="noc_redes">NOC / Planta Externa</option>
@@ -273,7 +273,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 <option value="baja">Baja (Respuesta 48h)</option>
                 <option value="media">Media (Respuesta 24h)</option>
@@ -290,7 +290,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <select
                 value={assignedToName}
                 onChange={(e) => setAssignedToName(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
                 {systemUsers.map((u) => (
                   <option key={u.uid} value={u.displayName}>
@@ -307,7 +307,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
             <select
               value={selectedTopic}
               onChange={(e) => handleTopicChange(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+              className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
             >
               {ISP_FAULT_TOPICS.map((item) => (
                 <option key={item.topic} value={item.topic}>
@@ -323,7 +323,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                 placeholder="Escribe el motivo técnico específico..."
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
-                className="w-full mt-2 bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
+                className="w-full mt-2 bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               />
             )}
           </div>
@@ -337,7 +337,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               placeholder="Detalla la situación reportada por el cliente o detectada por monitoreo (niveles de señal, atenuación en dBm, alarma de corte, etc.)..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-none resize-none"
+              className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-none resize-none"
             />
           </div>
 
@@ -346,13 +346,13 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-[6px] font-bold cursor-pointer transition-colors"
+              className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs cursor-pointer transition-colors"
+              className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs cursor-pointer transition-colors"
             >
               Generar Ticket
             </button>

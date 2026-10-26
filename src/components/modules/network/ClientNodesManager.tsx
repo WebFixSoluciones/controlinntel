@@ -535,7 +535,7 @@ export function ClientNodesManager() {
       {activeTab === "nodos" && (
         <div className="space-y-4">
           {/* Toolbar */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
               <div className="relative flex-1 min-w-[200px] max-w-md">
                 <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
@@ -544,14 +544,14 @@ export function ClientNodesManager() {
                   placeholder="Buscar por POP, carrier, circuito, sistema o IP..."
                   value={nodeSearch}
                   onChange={(e) => setNodeSearch(e.target.value)}
-                  className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+                className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
               >
                 <option value="">Estado: Todos</option>
                 <option value="online">En Línea</option>
@@ -566,7 +566,7 @@ export function ClientNodesManager() {
                   setNodeSearch("");
                   setStatusFilter("");
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
                 <span>Limpiar</span>
@@ -575,11 +575,11 @@ export function ClientNodesManager() {
           </div>
 
           {/* Nodes Table Card */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[1100px]">
                 <caption className="sr-only">Nodos de infraestructura registrados</caption>
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3.5 px-5 text-center">Estado</th>
                     <th className="py-3.5 px-5">POP / Ubicación</th>
@@ -787,7 +787,7 @@ export function ClientNodesManager() {
       {/* TAB 2: NODOS POR CLIENTE */}
       {activeTab === "clientes" && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="relative flex-1 min-w-[280px] max-w-md">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
@@ -795,13 +795,13 @@ export function ClientNodesManager() {
                 placeholder="Buscar por cliente, RUC, nodo asignado o IP..."
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
-                className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
             {clientSearch && (
               <button
                 onClick={() => setClientSearch("")}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
                 <span>Limpiar</span>
@@ -809,10 +809,10 @@ export function ClientNodesManager() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[950px]">
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
                     <th className="py-3.5 px-5">Cliente / Razón Social</th>
                     <th className="py-3.5 px-5">POP / Nodo de Conexión</th>
@@ -908,7 +908,7 @@ export function ClientNodesManager() {
       {/* MODAL DETALLE / FICHA COMPLETA DEL NODO */}
       {detailNode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden my-8">
+          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-8">
             <div className="p-5 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#004ac6] text-white flex items-center justify-center font-bold">
@@ -1108,7 +1108,7 @@ export function ClientNodesManager() {
       {/* Node Create/Edit Modal with Multi-Carrier and Services (PDF Page 6 & 7) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden my-8 max-h-[90vh] flex flex-col">
+          <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-8 max-h-[90vh] flex flex-col">
             <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff] shrink-0">
               <div className="flex items-center gap-2.5">
                 <Radio className="w-5 h-5 text-[#004ac6]" />
@@ -1219,7 +1219,7 @@ export function ClientNodesManager() {
 
                     {/* Desplegable de Mapa interactivo / Entrada de coordenadas */}
                     {isMapPickerOpen && (
-                      <div className="p-3 bg-white border border-[#bfdbfe] rounded-2xl shadow-sm space-y-3 animate-in fade-in duration-150">
+                      <div className="p-3 bg-white border border-[#bfdbfe] rounded-lg shadow-sm space-y-3 animate-in fade-in duration-150">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <span className="font-bold text-xs text-[#004ac6] flex items-center gap-1.5">
                             <Map className="w-4 h-4" />
@@ -1333,7 +1333,7 @@ export function ClientNodesManager() {
                 </div>
 
                 {/* SECCIÓN MULTI-CARRIER PROVIDERS (PDF Página 6) */}
-                <div className="p-4 bg-[#f8f9ff] rounded-2xl border border-slate-200 space-y-3">
+                <div className="p-4 bg-[#f8f9ff] rounded-lg border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                     <div>
                       <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">
@@ -1472,7 +1472,7 @@ export function ClientNodesManager() {
                 </div>
 
                 {/* SECCIÓN SERVICIOS Y CREDENCIALES (PDF Página 6 & 7) */}
-                <div className="p-4 bg-[#f8f9ff] rounded-2xl border border-slate-200 space-y-3">
+                <div className="p-4 bg-[#f8f9ff] rounded-lg border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                     <div>
                       <h4 className="font-bold text-[#004ac6] text-xs uppercase tracking-wider flex items-center gap-1.5">

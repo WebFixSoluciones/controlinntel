@@ -4636,14 +4636,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               children
             ) : (
               <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-                <div className="max-w-md bg-white p-6 rounded-3xl border border-slate-200 text-center space-y-3 shadow-sm">
+                <div className="max-w-md bg-white p-6 rounded-xl border border-[#e2e8f0] text-center space-y-3 shadow-2xs">
                   <h3 className="font-bold text-slate-900 text-base">Módulo Restringido</h3>
                   <p className="text-xs text-slate-500">
                     Tu rol ({currentUser.role}) no tiene asignado el permiso para acceder a esta sección.
                   </p>
                   <a
                     href="/"
-                    className="inline-block px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-bold shadow-2xs"
+                    className="inline-block px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
                   >
                     Volver al Dashboard
                   </a>

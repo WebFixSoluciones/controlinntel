@@ -1597,6 +1597,103 @@ test("Flujo E2E 27: Validación Clean Enterprise Fase 4 en Finanzas y Modales de
   assert.ok(!recurringContent.includes("rounded-2xl"), "RecurringBillingView no debe tener rounded-2xl");
 });
 
+test("Flujo E2E 28: Estandarización Clean Enterprise en Soporte, Trámites, Bóveda, Settings, Red, Arcotel y Dashboard (Fase 5)", () => {
+  const rootDir = process.cwd();
+
+  // 1. Soporte & Tickets
+  const tbContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/tickets/TicketsBoard.tsx"), "utf8");
+  assert.ok(tbContent.includes("table-fixed") && tbContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "TicketsBoard debe tener table-fixed y thead corporativo");
+  assert.ok(!tbContent.includes("rounded-2xl"), "TicketsBoard no debe contener rounded-2xl");
+
+  const tdContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/tickets/TicketDetail.tsx"), "utf8");
+  assert.ok(!tdContent.includes("rounded-2xl"), "TicketDetail no debe contener rounded-2xl");
+
+  const tmContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/tickets/TicketModal.tsx"), "utf8");
+  assert.ok(tmContent.includes("bg-[#004ac6] text-white") && tmContent.includes("rounded-xl"), "TicketModal debe usar Master Modal");
+  assert.ok(!tmContent.includes("rounded-[6px]"), "TicketModal no debe contener rounded-[6px]");
+
+  // 2. Trámites
+  const trmContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/tramites/TramitesManager.tsx"), "utf8");
+  assert.ok(trmContent.includes("table-fixed") && trmContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "TramitesManager debe tener table-fixed y thead corporativo");
+  assert.ok(!trmContent.includes("rounded-2xl"), "TramitesManager no debe contener rounded-2xl");
+
+  const trModalContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/tramites/TramiteModal.tsx"), "utf8");
+  assert.ok(trModalContent.includes("bg-[#004ac6] text-white") && trModalContent.includes("rounded-xl"), "TramiteModal debe usar Master Modal");
+
+  // 3. Bóveda
+  const vmContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/vault/VaultManager.tsx"), "utf8");
+  assert.ok(vmContent.includes("table-fixed") && vmContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "VaultManager debe tener table-fixed y thead corporativo");
+  assert.ok(!vmContent.includes("rounded-2xl"), "VaultManager no debe contener rounded-2xl");
+
+  const svContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/vault/SecureVault.tsx"), "utf8");
+  assert.ok(svContent.includes("table-fixed") && svContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "SecureVault debe tener table-fixed y thead corporativo");
+
+  // 4. Configuración & Settings
+  const gsettingsContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/settings/GeneralSettingsView.tsx"), "utf8");
+  assert.ok(!gsettingsContent.includes("rounded-2xl"), "GeneralSettingsView no debe contener rounded-2xl");
+
+  const umContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/settings/UserManager.tsx"), "utf8");
+  assert.ok(umContent.includes("table-fixed") && umContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "UserManager debe tener table-fixed y thead corporativo");
+  assert.ok(!umContent.includes("rounded-2xl"), "UserManager no debe contener rounded-2xl");
+
+  const uModalContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/settings/UserModal.tsx"), "utf8");
+  assert.ok(uModalContent.includes("bg-[#004ac6] text-white") && uModalContent.includes("rounded-xl"), "UserModal debe usar Master Modal");
+  assert.ok(!uModalContent.includes("rounded-[6px]"), "UserModal no debe contener rounded-[6px]");
+
+  const recContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/settings/RecordManager.tsx"), "utf8");
+  assert.ok(recContent.includes("table-fixed") && recContent.includes("rounded-xl"), "RecordManager debe tener table-fixed y rounded-xl");
+  assert.ok(!recContent.includes("rounded-2xl"), "RecordManager no debe contener rounded-2xl");
+
+  const sriConfigViewContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/settings/SriConfigView.tsx"), "utf8");
+  assert.ok(sriConfigViewContent.includes("table-fixed") && sriConfigViewContent.includes("rounded-xl"), "SriConfigView debe tener table-fixed y rounded-xl");
+  assert.ok(!sriConfigViewContent.includes("rounded-[6px]"), "SriConfigView no debe contener rounded-[6px]");
+
+  // 5. Red & Infraestructura
+  const nlContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/network/NodesList.tsx"), "utf8");
+  assert.ok(nlContent.includes("table-fixed") && nlContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "NodesList debe tener table-fixed y thead corporativo");
+  assert.ok(!nlContent.includes("rounded-2xl"), "NodesList no debe contener rounded-2xl");
+
+  const cnmContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/network/ClientNodesManager.tsx"), "utf8");
+  assert.ok(!cnmContent.includes("rounded-2xl") && !cnmContent.includes("rounded-3xl"), "ClientNodesManager no debe contener rounded-2xl ni rounded-3xl");
+
+  const ipmContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/network/IpPoolsManager.tsx"), "utf8");
+  assert.ok(!ipmContent.includes("rounded-2xl"), "IpPoolsManager no debe contener rounded-2xl");
+
+  // 6. Arcotel
+  const arcotelContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/arcotel/ArcotelManager.tsx"), "utf8");
+  assert.ok(!arcotelContent.includes("rounded-2xl"), "ArcotelManager no debe contener rounded-2xl");
+
+  const polContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/arcotel/PoliciesList.tsx"), "utf8");
+  assert.ok(polContent.includes("table-fixed") && polContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "PoliciesList debe tener table-fixed y thead corporativo");
+  assert.ok(!polContent.includes("rounded-[6px]") && !polContent.includes("rounded-2xl"), "PoliciesList no debe contener rounded-[6px] ni rounded-2xl");
+
+  const polModalContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/arcotel/PolicyModal.tsx"), "utf8");
+  assert.ok(polModalContent.includes("bg-[#004ac6] text-white") && polModalContent.includes("rounded-xl"), "PolicyModal debe usar Master Modal");
+  assert.ok(!polModalContent.includes("rounded-[6px]"), "PolicyModal no debe contener rounded-[6px]");
+
+  // 7. Dashboard & Widgets
+  const fcContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/dashboard/FinancialChart.tsx"), "utf8");
+  assert.ok(!fcContent.includes("rounded-2xl"), "FinancialChart no debe contener rounded-2xl");
+
+  const raContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/dashboard/RecentActivity.tsx"), "utf8");
+  assert.ok(raContent.includes("table-fixed") && raContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "RecentActivity auditoría debe tener table-fixed");
+  assert.ok(!raContent.includes("rounded-2xl"), "RecentActivity no debe contener rounded-2xl");
+
+  const rsContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/dashboard/RecentSalesCard.tsx"), "utf8");
+  assert.ok(rsContent.includes("table-fixed") && rsContent.includes("bg-[#f8f9ff] text-[#004ac6]"), "RecentSalesCard debe tener table-fixed");
+  assert.ok(!rsContent.includes("rounded-2xl"), "RecentSalesCard no debe contener rounded-2xl");
+
+  const etContent = fs.readFileSync(path.resolve(rootDir, "src/components/modules/dashboard/ExpirationsTimeline.tsx"), "utf8");
+  assert.ok(!etContent.includes("rounded-2xl"), "ExpirationsTimeline no debe contener rounded-2xl");
+
+  // 8. Páginas base
+  const errContent = fs.readFileSync(path.resolve(rootDir, "src/app/error.tsx"), "utf8");
+  assert.ok(!errContent.includes("rounded-2xl") && !errContent.includes("rounded-3xl"), "error.tsx no debe contener rounded-2xl/3xl");
+
+  const nfContent = fs.readFileSync(path.resolve(rootDir, "src/app/not-found.tsx"), "utf8");
+  assert.ok(!nfContent.includes("rounded-2xl") && !nfContent.includes("rounded-3xl"), "not-found.tsx no debe contener rounded-2xl/3xl");
+});
+
 
 
 

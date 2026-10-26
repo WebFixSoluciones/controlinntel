@@ -118,10 +118,10 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-200">
       {/* 1. WHMCS Filter and Action Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5">
+      <div className="bg-white rounded-xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Status Tabs (WHMCS Style) */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0]">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0]">
             <button
               onClick={() => setFilterStatus("todos")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -186,7 +186,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
           <button
             onClick={onOpenNewModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Abrir Ticket</span>
@@ -203,7 +203,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
               placeholder="Buscar por ticket #, cliente o falla..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
             />
           </div>
 
@@ -211,7 +211,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           <select
             value={filterDepartment}
             onChange={(e) => setFilterDepartment(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Departamentos</option>
             <option value="soporte_tecnico">Soporte Técnico NOC</option>
@@ -224,7 +224,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todas">Todas las Prioridades SLA</option>
             <option value="critica">Crítica (SLA Inmediato)</option>
@@ -237,7 +237,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Asignados</option>
             {distinctAssignees.map((a) => (
@@ -250,21 +250,21 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
       </div>
 
       {/* 2. Tickets Table */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f8f9ff] text-[#434655] border-b border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4 font-bold">N° Ticket</th>
-                <th className="py-3 px-4 font-bold">Incidencia / Asunto</th>
-                <th className="py-3 px-4 font-bold">Cliente</th>
-                <th className="py-3 px-4 font-bold">Departamento</th>
-                <th className="py-3 px-4 font-bold">Asignado a</th>
-                <th className="py-3 px-4 font-bold text-center">Prioridad SLA</th>
-                <th className="py-3 px-4 font-bold text-center">Estado</th>
-                <th className="py-3 px-4 font-bold text-right">Fecha de Solicitud</th>
-                <th className="py-3 px-4 font-bold text-center">Asistencia</th>
-                <th className="py-3 px-4 font-bold text-right">Acción</th>
+                <th className="py-3 px-4 font-bold w-1/12">N° Ticket</th>
+                <th className="py-3 px-4 font-bold w-2/12">Incidencia / Asunto</th>
+                <th className="py-3 px-4 font-bold w-2/12">Cliente</th>
+                <th className="py-3 px-4 font-bold w-1/12">Departamento</th>
+                <th className="py-3 px-4 font-bold w-1/12">Asignado a</th>
+                <th className="py-3 px-4 font-bold text-center w-1/12">Prioridad SLA</th>
+                <th className="py-3 px-4 font-bold text-center w-1/12">Estado</th>
+                <th className="py-3 px-4 font-bold text-right w-1/12">Fecha</th>
+                <th className="py-3 px-4 font-bold text-center w-1/12">Asistencia</th>
+                <th className="py-3 px-4 font-bold text-right w-1/12">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e2e8f0] text-[#0b1c30]">

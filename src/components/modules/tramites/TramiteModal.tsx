@@ -238,33 +238,33 @@ export function TramiteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh] my-auto">
+        <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0b1c30] text-sm">
+              <h3 className="font-bold text-white text-base leading-tight">
                 {tramiteToEdit ? `Editar Trámite: ${tramiteToEdit.code}` : "Nuevo Trámite"}
               </h3>
-              <p className="text-[11px] text-[#737686]">
+              <p className="text-xs text-blue-100">
                 Seguimiento de trámites regulatorios e institucionales
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
+            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto text-xs">
           {/* Vinculación: Cliente y Tarea / Proyecto */}
-          <div className="bg-[#f8f9fc] border border-[#e2e8f0] rounded-xl p-3.5 space-y-3">
+          <div className="bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg p-4 space-y-3">
             <div className="text-[11px] font-bold text-[#004ac6] uppercase tracking-wider flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5" />
               <span>Vinculación de Cliente y Tarea de Proyecto</span>
@@ -276,7 +276,7 @@ export function TramiteModal({
                   Cliente Titular *
                 </label>
                 {defaultClientId ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#cbd5e1] rounded-xl text-[#0b1c30] font-semibold">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e2e8f0] rounded-xl text-[#0b1c30] font-semibold">
                     <Building2 className="w-4 h-4 text-[#004ac6]" />
                     <span className="truncate">{clientName || defaultClientName}</span>
                     <span className="ml-auto text-[10px] font-bold text-[#004ac6] bg-[#eff4ff] px-2 py-0.5 rounded-full">Ficha Actual</span>
@@ -294,7 +294,7 @@ export function TramiteModal({
                       setProjectId("");
                       setProjectName("");
                     }}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                    className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
                   >
                     <option value="">-- Seleccionar Cliente --</option>
                     {clients.map((c) => (
@@ -328,7 +328,7 @@ export function TramiteModal({
                       }
                     }
                   }}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
                 >
                   <option value="">-- Ninguna (Trámite General de Cliente) --</option>
                   {clientProjects
@@ -362,7 +362,7 @@ export function TramiteModal({
                 placeholder="Ej: OFICIO-ARCOTEL-2026-0914-O"
                 value={documentNumber}
                 onChange={(e) => setDocumentNumber(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
 
@@ -375,7 +375,7 @@ export function TramiteModal({
                 required
                 value={submissionDate}
                 onChange={(e) => setSubmissionDate(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           </div>
@@ -390,7 +390,7 @@ export function TramiteModal({
               placeholder="Describa el objeto de la gestión (ej. Solicitud de renovación de título habilitante para prestación de servicio de valor agregado)..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
             />
           </div>
 
@@ -402,7 +402,7 @@ export function TramiteModal({
               <select
                 value={entity}
                 onChange={(e) => setEntity(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               >
                 {ENTITY_OPTIONS.map((ent) => (
                   <option key={ent} value={ent}>
@@ -419,7 +419,7 @@ export function TramiteModal({
               <select
                 value={dynamicStatus}
                 onChange={(e) => setDynamicStatus(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
               >
                 <option value="ingresado">1. INGRESADO (Ventanilla / Quipux)</option>
                 <option value="en_revision">2. EN REVISIÓN TÉCNICA</option>
@@ -440,7 +440,7 @@ export function TramiteModal({
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               >
                 {systemUsers.map((u) => (
                   <option key={u.uid} value={u.displayName}>
@@ -457,7 +457,7 @@ export function TramiteModal({
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               >
                 <option value="normal">Normal</option>
                 <option value="alta">Alta</option>
@@ -476,7 +476,7 @@ export function TramiteModal({
                 placeholder="Ej. Oficio de respuesta entregado el 25/09..."
                 value={statusUpdateNote}
                 onChange={(e) => setStatusUpdateNote(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           ) : (
@@ -489,7 +489,7 @@ export function TramiteModal({
                 placeholder="Observaciones adicionales o enlace al archivo..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
               />
             </div>
           )}
@@ -498,14 +498,14 @@ export function TramiteModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#737686] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              className="px-4 py-2 text-[#737686] hover:bg-slate-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>{busy ? "Guardando..." : tramiteToEdit ? "Guardar Cambios" : "Crear Trámite"}</span>

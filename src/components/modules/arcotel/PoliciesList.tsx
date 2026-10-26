@@ -24,24 +24,24 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
 
         <button
           onClick={onOpenNewModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar Póliza</span>
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-[6px] border border-[#e2e8f0] bg-white shadow-lumina-card">
-        <table className="min-w-[1150px] w-full text-left text-xs">
+      <div className="overflow-x-auto rounded-xl border border-[#e2e8f0] bg-white shadow-2xs">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
           <caption className="sr-only">Pólizas y garantías registradas para control ARCOTEL</caption>
-          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th scope="col" className="px-5 py-3 font-bold">Póliza / Código</th>
-              <th scope="col" className="px-5 py-3 font-bold">Aseguradora</th>
-              <th scope="col" className="px-5 py-3 font-bold">Cobertura</th>
-              <th scope="col" className="px-5 py-3 font-bold">Monto asegurado</th>
-              <th scope="col" className="px-5 py-3 font-bold">Vencimiento</th>
-              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[22%]">Póliza / Código</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[20%]">Aseguradora</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[18%]">Cobertura</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[16%]">Monto asegurado</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[14%]">Vencimiento</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[10%]">Estado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -61,16 +61,16 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
               return (
                 <tr
                   key={p.id}
-                  className={`hover:bg-[#f8f9ff] ${
+                  className={`hover:bg-[#f8f9ff] transition-colors ${
                     isUrgent ? "border-l-4 border-l-amber-500" : isExpired ? "border-l-4 border-l-rose-500" : ""
                   }`}
                 >
-                  <th scope="row" className="px-5 py-4">
-                    <div className="font-bold">{p.policyNumber}</div>
+                  <th scope="row" className="px-5 py-4 font-normal text-left">
+                    <div className="font-bold text-slate-900">{p.policyNumber}</div>
                     <div className="mt-0.5 font-mono text-[10px] font-bold text-[#737686]">{p.titleGrantCode || "SAI-2026"}</div>
                   </th>
-                  <td className="px-5 py-4 font-semibold">{p.insuranceCompany}</td>
-                  <td className="px-5 py-4 font-bold uppercase text-[11px]">{p.policyType.replace("_", " ")}</td>
+                  <td className="px-5 py-4 font-semibold text-slate-700">{p.insuranceCompany}</td>
+                  <td className="px-5 py-4 font-bold uppercase text-[11px] text-slate-600">{p.policyType.replace("_", " ")}</td>
                   <td className="px-5 py-4 font-mono font-bold tabular-nums text-[#004ac6]">
                     ${p.insuredAmount.toLocaleString("es-EC", { minimumFractionDigits: 2 })} USD
                   </td>
@@ -86,12 +86,12 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-[6px] border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    <span className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       isUrgent
-                        ? "border-amber-200 bg-amber-100 text-amber-800"
+                        ? "border-amber-200 bg-amber-50 text-amber-800"
                         : isExpired
-                        ? "border-rose-200 bg-rose-100 text-rose-800"
-                        : "border-emerald-200 bg-emerald-100 text-emerald-800"
+                        ? "border-rose-200 bg-rose-50 text-rose-800"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-800"
                     }`}>
                       {dynamicStatus.replace("_", " ")}
                     </span>

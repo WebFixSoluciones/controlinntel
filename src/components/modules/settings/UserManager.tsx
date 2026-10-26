@@ -107,43 +107,43 @@ export function UserManager() {
     switch (role) {
       case "superadmin":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs">
             <Crown className="w-3 h-3 text-amber-600" /> Super Admin
           </span>
         );
       case "admin":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-sky-100 text-sky-800 border border-sky-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-100 text-sky-800 border border-sky-200">
             <Shield className="w-3 h-3 text-sky-600" /> Administrador
           </span>
         );
       case "finanzas":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
             Finanzas & Cobranzas
           </span>
         );
       case "tecnico":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
             Ingeniería NOC
           </span>
         );
       case "soporte":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
             Soporte Helpdesk
           </span>
         );
       case "legal":
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-100 text-purple-800 border border-purple-200">
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-purple-100 text-purple-800 border border-purple-200">
             Legal & ARCOTEL
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700">
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
             Consulta
           </span>
         );
@@ -156,14 +156,14 @@ export function UserManager() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#434655]">Total Operadores:</span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
             {totalUsers}
           </span>
         </div>
 
         <button
           onClick={handleOpenNew}
-          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <UserPlus className="w-4 h-4" />
           <span>Nuevo Usuario / Operador</span>
@@ -172,25 +172,25 @@ export function UserManager() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[10px] font-bold text-[#737686] uppercase tracking-wider block">Total Usuarios</span>
           <span className="text-xl font-black text-[#0b1c30] mt-1 block">{totalUsers}</span>
           <span className="text-[11px] text-[#737686]">Operadores registrados</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Super Administradores</span>
           <span className="text-xl font-black text-amber-700 mt-1 block">{superAdminsCount}</span>
           <span className="text-[11px] text-amber-600 font-bold">Control total del sistema</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Cuentas Activas</span>
           <span className="text-xl font-black text-emerald-700 mt-1 block">{activeCount}</span>
           <span className="text-[11px] text-emerald-600 font-bold">Habilitados para login</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
           <span className="text-[10px] font-bold text-[#737686] uppercase tracking-wider block">Bloqueados / Inactivos</span>
           <span className="text-xl font-black text-[#434655] mt-1 block">{inactiveCount}</span>
           <span className="text-[11px] text-[#737686]">Acceso suspendido</span>
@@ -198,7 +198,7 @@ export function UserManager() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 max-w-lg">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
           <input
@@ -230,17 +230,17 @@ export function UserManager() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3.5 px-5">Operador / Correo</th>
-                <th className="py-3.5 px-5">Rol & Nivel</th>
-                <th className="py-3.5 px-5">Departamento</th>
-                <th className="py-3.5 px-5">Permisos Asignados</th>
-                <th className="py-3.5 px-5">Estado</th>
-                <th className="py-3.5 px-5 text-right">Acciones</th>
+                <th className="py-3.5 px-4 w-[28%]">Operador / Correo</th>
+                <th className="py-3.5 px-4 w-[16%]">Rol & Nivel</th>
+                <th className="py-3.5 px-4 w-[16%]">Departamento</th>
+                <th className="py-3.5 px-4 w-[20%]">Permisos Asignados</th>
+                <th className="py-3.5 px-4 w-[10%]">Estado</th>
+                <th className="py-3.5 px-4 w-[10%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -259,7 +259,7 @@ export function UserManager() {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shadow-2xs ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shadow-2xs ${
                               isSuper
                                 ? "bg-gradient-to-br from-amber-400 to-amber-600 text-white ring-2 ring-amber-200"
                                 : "bg-gradient-to-br from-sky-600 to-purple-600 text-white"
@@ -329,10 +329,10 @@ export function UserManager() {
                       <td className="py-3.5 px-4">
                         <button
                           onClick={() => handleToggleStatus(u)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold cursor-pointer transition-colors border ${
                             u.status === "activo"
-                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                              : "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                              : "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
                           }`}
                           title="Haga clic para cambiar estado"
                         >

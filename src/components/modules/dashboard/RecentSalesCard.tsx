@@ -41,7 +41,7 @@ export function RecentSalesCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+    <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
       <div className="p-4 px-5 border-b border-[#f1f5f9] flex items-center justify-between">
         <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-2">
           <Receipt className="w-4 h-4 text-[#004ac6]" />
@@ -57,14 +57,14 @@ export function RecentSalesCard() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th className="py-2.5 px-4">Comprobante</th>
-              <th className="py-2.5 px-4">Cliente</th>
-              <th className="py-2.5 px-3">Fecha</th>
-              <th className="py-2.5 px-3 text-right">Total</th>
-              <th className="py-2.5 px-4 text-center">Estado</th>
+              <th className="py-2.5 px-4 w-[24%]">Comprobante</th>
+              <th className="py-2.5 px-4 w-[36%]">Cliente</th>
+              <th className="py-2.5 px-3 w-[16%]">Fecha</th>
+              <th className="py-2.5 px-3 text-right w-[12%]">Total</th>
+              <th className="py-2.5 px-4 text-center w-[12%]">Estado</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">

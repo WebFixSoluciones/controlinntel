@@ -13,18 +13,18 @@ export function TicketsRecientesCard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "abierto":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-800 border border-red-200">Abierto</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">Abierto</span>;
       case "en_progreso":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">En Progreso</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">En Progreso</span>;
       case "resuelto":
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">Resuelto</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">Resuelto</span>;
       default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">{status}</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">{status}</span>;
     }
   };
 
   return (
-    <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
+    <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
       <div>
         <div className="flex items-center justify-between pb-2.5 border-b border-[#f1f5f9]">
           <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-2">
@@ -79,7 +79,7 @@ export function AuditActivityTable() {
   };
 
   return (
-    <div className="rounded-2xl bg-white border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+    <div className="rounded-xl bg-white border border-[#e2e8f0] shadow-2xs overflow-hidden">
       <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-white">
         <h3 className="font-bold text-sm text-[#0b1c30] flex items-center gap-2">
           <Activity className="w-4 h-4 text-[#004ac6]" />
@@ -92,13 +92,13 @@ export function AuditActivityTable() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs min-w-[800px]">
-          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th className="py-3.5 px-6">Usuario / Operador</th>
-              <th className="py-3.5 px-6">Acción Registrada</th>
-              <th className="py-3.5 px-6">Recurso / Detalle</th>
-              <th className="py-3.5 px-6 text-right">Fecha & Hora</th>
+              <th className="py-3.5 px-6 w-[24%]">Usuario / Operador</th>
+              <th className="py-3.5 px-6 w-[22%]">Acción Registrada</th>
+              <th className="py-3.5 px-6 w-[36%]">Recurso / Detalle</th>
+              <th className="py-3.5 px-6 text-right w-[18%]">Fecha & Hora</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#434655] font-medium">

@@ -90,11 +90,11 @@ export function VaultManager() {
           {selectedClientId && selectedClient ? (
             <div className="space-y-4 animate-in fade-in duration-150">
               {/* Breadcrumb Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 px-6 rounded-2xl border border-[#e2e8f0] shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 px-6 rounded-xl border border-[#e2e8f0] shadow-2xs">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSelectedClientId(null)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     <span>Volver</span>
@@ -113,7 +113,7 @@ export function VaultManager() {
           ) : (
             <>
               {/* Search Toolbar */}
-              <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+              <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
                 <div className="relative flex-1 min-w-[280px] max-w-md">
                   <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
                   <input
@@ -121,14 +121,14 @@ export function VaultManager() {
                     placeholder="Buscar cliente, RUC, o servicio con credencial..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                    className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
                   />
                 </div>
 
                 {query && (
                   <button
                     onClick={() => setQuery("")}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
                     <span>Limpiar</span>
@@ -137,17 +137,17 @@ export function VaultManager() {
               </div>
 
               {/* Clients Table Card */}
-              <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+              <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs min-w-[850px]">
+                  <table className="table-fixed w-full text-left text-xs border-collapse">
                     <caption className="sr-only">Bóveda de credenciales agrupadas por cliente</caption>
-                    <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                    <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                       <tr>
-                        <th className="py-3.5 px-5">Cliente</th>
-                        <th className="py-3.5 px-5 text-center">Claves</th>
-                        <th className="py-3.5 px-5">Servicios</th>
-                        <th className="py-3.5 px-5 text-center">Seguridad</th>
-                        <th className="py-3.5 px-5 text-right">Acciones</th>
+                        <th className="py-3 px-4 w-4/12">Cliente</th>
+                        <th className="py-3 px-4 text-center w-2/12">Claves</th>
+                        <th className="py-3 px-4 w-3/12">Servicios</th>
+                        <th className="py-3 px-4 text-center w-1/12">Seguridad</th>
+                        <th className="py-3 px-4 text-right w-2/12">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">

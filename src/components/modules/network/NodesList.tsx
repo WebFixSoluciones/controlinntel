@@ -75,24 +75,24 @@ export function NodesList() {
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Nuevo Nodo / POP</span>
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
-        <table className="min-w-[1050px] w-full text-left text-xs">
+      <div className="overflow-x-auto rounded-xl border border-[#e2e8f0] bg-white shadow-2xs">
+        <table className="table-fixed w-full text-left text-xs border-collapse">
           <caption className="sr-only">Nodos de infraestructura registrados</caption>
-          <thead className="bg-[#f8f9ff] text-[10px] uppercase tracking-wide text-[#737686]">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th scope="col" className="px-5 py-3 font-bold">Estado</th>
-              <th scope="col" className="px-5 py-3 font-bold">Nodo / Ubicación</th>
-              <th scope="col" className="px-5 py-3 font-bold">Proveedor</th>
-              <th scope="col" className="px-5 py-3 font-bold">RouterOS</th>
-              <th scope="col" className="px-5 py-3 font-bold">Capacidad</th>
-              <th scope="col" className="px-5 py-3 text-right font-bold">Clientes</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[12%]">Estado</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[32%]">Nodo / Ubicación</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[18%]">Proveedor</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[14%]">RouterOS</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[14%]">Capacidad</th>
+              <th scope="col" className="px-5 py-3.5 text-right font-bold w-[10%]">Clientes</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -107,9 +107,9 @@ export function NodesList() {
               const isHighUsage = usagePercent > 80;
 
               return (
-                <tr key={n.id} className="hover:bg-[#f8f9ff]">
+                <tr key={n.id} className="hover:bg-[#f8f9ff] transition-colors">
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    <span className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       n.status === "online"
                         ? "border-[#a7f3d0] bg-[#ecfdf5] text-[#065f46]"
                         : "border-[#fde68a] bg-[#fffbeb] text-[#92400e]"
@@ -117,8 +117,8 @@ export function NodesList() {
                       {n.status.toUpperCase()}
                     </span>
                   </td>
-                  <th scope="row" className="px-5 py-4">
-                    <div className="font-bold">{n.name}</div>
+                  <th scope="row" className="px-5 py-4 font-normal text-left">
+                    <div className="font-bold text-slate-900">{n.name}</div>
                     <div className="mt-0.5 max-w-xs text-[11px] font-medium text-[#737686]">{n.address}</div>
                     {n.notes && <div className="mt-1 max-w-xs truncate text-[10px] italic text-[#737686]">{n.notes}</div>}
                   </th>
@@ -145,14 +145,25 @@ export function NodesList() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#0b1c30] text-sm">Nuevo Nodo</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
+          <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
+                  <Radio className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">Nuevo POP / Nodo de Red</h3>
+                  <p className="text-xs text-blue-100">Topología MikroTik RouterOS & Multi-Carrier</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-4 space-y-3 text-xs">
+            <form onSubmit={handleCreate} className="p-6 space-y-4 text-xs">
               <div>
                 <label className="font-bold text-[#434655] block mb-1">Nombre del Nodo *</label>
                 <input
@@ -161,7 +172,7 @@ export function NodesList() {
                   placeholder="Nodo Centro Histórico (Torre Panecillo)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
+                  className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
               <div>
@@ -172,7 +183,7 @@ export function NodesList() {
                   placeholder="Cima del Panecillo, Caseta No. 4"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
+                  className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -183,7 +194,7 @@ export function NodesList() {
                     required
                     value={totalCapacityMbps}
                     onChange={(e) => setTotalCapacityMbps(Number(e.target.value))}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#004ac6]"
+                    className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#004ac6] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   />
                 </div>
                 <div>
@@ -194,15 +205,22 @@ export function NodesList() {
                     placeholder="10.50.1.1"
                     value={mikrotikIp}
                     onChange={(e) => setMikrotikIp(e.target.value)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30]"
+                    className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   />
                 </div>
               </div>
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#e2e8f0]">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer">
+              <div className="pt-3 flex justify-end gap-2 border-t border-[#e2e8f0]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer"
+                >
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg font-bold shadow-xs cursor-pointer">
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold shadow-xs cursor-pointer transition-colors"
+                >
                   Guardar Nodo
                 </button>
               </div>

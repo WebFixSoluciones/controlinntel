@@ -78,25 +78,26 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-3xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-[6px] bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
+      <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col">
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
               <ShieldPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Póliza ARCOTEL</h3>
+              <h3 className="font-bold text-white text-sm">Registrar Póliza ARCOTEL</h3>
+              <p className="text-xs text-blue-100">Garantías y títulos habilitantes de telecomunicaciones</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div>
             <label className="font-bold text-[#434655] block mb-1">Número de Póliza *</label>
             <input
@@ -105,11 +106,11 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               placeholder="POL-2026-99482"
               value={policyNumber}
               onChange={(e) => setPolicyNumber(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="font-bold text-[#434655] block mb-1">Aseguradora *</label>
               <input
@@ -118,7 +119,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 placeholder="Chubb Seguros / Seguros Alianza"
                 value={insuranceCompany}
                 onChange={(e) => setInsuranceCompany(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
+                className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -127,7 +128,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               <select
                 value={policyType}
                 onChange={(e) => setPolicyType(e.target.value as any)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30]"
+                className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden cursor-pointer"
               >
                 <option value="fiel_cumplimiento">Fiel Cumplimiento de Título</option>
                 <option value="responsabilidad_civil">Responsabilidad Civil</option>
@@ -136,7 +137,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="font-bold text-[#434655] block mb-1">Monto Asegurado ($ USD) *</label>
               <input
@@ -145,7 +146,7 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 placeholder="25000"
                 value={insuredAmount}
                 onChange={(e) => setInsuredAmount(e.target.value === "" ? "" : Number(e.target.value))}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#004ac6]"
+                className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#004ac6] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -156,22 +157,22 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 required
                 value={expirationDate}
                 onChange={(e) => setExpirationDate(e.target.value)}
-                className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30]"
+                className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30] focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#e2e8f0]">
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-[#e2e8f0]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-[6px] text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
+              className="px-4 py-2 rounded-lg text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-[6px] font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Check className="w-4 h-4" />
               Guardar Póliza

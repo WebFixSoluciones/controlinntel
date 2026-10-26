@@ -73,12 +73,12 @@ export function RecordManager({
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-[#e2e8f0] p-6 space-y-4 shadow-lumina-card">
+    <section className="bg-white rounded-xl border border-[#e2e8f0] p-6 space-y-4 shadow-2xs">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-[#0b1c30]">{title}</h2>
         <button
           onClick={() => setSelected({ ...defaults })}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Agregar</span>
@@ -86,15 +86,15 @@ export function RecordManager({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+        <table className="table-fixed w-full text-xs border-collapse">
+          <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
               {fields.slice(0, 4).map((f) => (
                 <th key={f.key} className="text-left py-3 px-4 font-bold">
                   {f.label}
                 </th>
               ))}
-              <th className="text-right py-3 px-4 font-bold">Acciones</th>
+              <th className="text-right py-3 px-4 font-bold w-28">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">

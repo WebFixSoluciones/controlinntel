@@ -207,14 +207,14 @@ export function SriConfigView() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* 1. BARRA SUPERIOR COMPACTA DE ACCIONES & ESTADO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-[6px] border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Switch rápido de ambiente */}
-          <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-[6px] border border-slate-200">
+          <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200">
             <button
               type="button"
               onClick={() => setForm({ ...form, ambiente: "1" })}
-              className={`px-2.5 py-1 text-xs font-bold rounded-[4px] transition cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer ${
                 form.ambiente === "1"
                   ? "bg-amber-500 text-white shadow-2xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -225,7 +225,7 @@ export function SriConfigView() {
             <button
               type="button"
               onClick={() => setForm({ ...form, ambiente: "2" })}
-              className={`px-2.5 py-1 text-xs font-bold rounded-[4px] transition cursor-pointer ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-md transition cursor-pointer ${
                 form.ambiente === "2"
                   ? "bg-emerald-600 text-white shadow-2xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -238,7 +238,7 @@ export function SriConfigView() {
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
             <span>RUC: <strong className="font-mono text-slate-800">{form.ruc}</strong></span>
             <span>•</span>
-            <span>Serie: <strong className="font-mono text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">{serieActual}</strong></span>
+            <span>Serie: <strong className="font-mono text-[#004ac6] bg-[#eff4ff] px-2 py-0.5 rounded-md border border-[#bfdbfe]">{serieActual}</strong></span>
           </div>
         </div>
 
@@ -247,7 +247,7 @@ export function SriConfigView() {
             type="button"
             onClick={handleTestConnection}
             disabled={isTestingConn}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-bold transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
           >
             <Wifi className={`w-3.5 h-3.5 ${isTestingConn ? "animate-pulse text-[#004ac6]" : ""}`} />
             <span>{isTestingConn ? "Probando..." : "Comprobar SRI"}</span>
@@ -256,7 +256,7 @@ export function SriConfigView() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-[6px] text-xs font-bold shadow-xs transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
             <span>{isSubmitting ? "Guardando..." : "Guardar Configuración"}</span>
@@ -266,7 +266,7 @@ export function SriConfigView() {
 
       {/* Alerta de prueba de conexión compacta */}
       {connTestResult && (
-        <div className="p-2.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-3">
+        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>
@@ -280,7 +280,7 @@ export function SriConfigView() {
       )}
 
       {/* 2. TARJETA COMPACTA: FIRMA ELECTRÓNICA (.p12 / .pfx) */}
-      <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-3">
+      <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Key className="w-4 h-4 text-[#004ac6]" />
@@ -290,12 +290,12 @@ export function SriConfigView() {
           </div>
 
           {form.certificadoCargado && form.certificadoNombre ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
               <span>Firma Activa</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-[4px] bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
               <AlertTriangle className="w-3 h-3 text-amber-600" />
               <span>Pendiente de Carga</span>
             </span>
@@ -323,10 +323,10 @@ export function SriConfigView() {
                 handleFileChange(fakeEvent);
               }
             }}
-            className="p-3 border border-dashed border-blue-300 hover:border-[#004ac6] bg-[#f8faff] hover:bg-[#eff6ff] rounded-[6px] flex flex-col sm:flex-row items-center justify-between gap-3 cursor-pointer transition-colors"
+            className="p-3 border border-dashed border-blue-300 hover:border-[#004ac6] bg-[#f8faff] hover:bg-[#eff6ff] rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3 cursor-pointer transition-colors"
           >
             <div className="flex items-center gap-2.5 text-xs">
-              <div className="p-1.5 bg-blue-100 text-[#004ac6] rounded-[4px]">
+              <div className="p-1.5 bg-blue-100 text-[#004ac6] rounded-md">
                 <Upload className="w-4 h-4" />
               </div>
               <div>
@@ -341,17 +341,17 @@ export function SriConfigView() {
 
             <button
               type="button"
-              className="px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold transition shrink-0 cursor-pointer"
+              className="px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shrink-0 cursor-pointer"
             >
               Examinar Archivo .p12
             </button>
           </div>
         ) : (
           /* Fila compacta con datos de la firma cargada */
-          <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-200 space-y-2.5">
+          <div className="p-3 bg-slate-50 rounded-lg border border-[#e2e8f0] space-y-2.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs">
-                <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded-[4px] border border-slate-200">
+                <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-[#e2e8f0]">
                   {form.certificadoNombre}
                 </span>
                 {form.certificadoTamano && (
@@ -365,14 +365,14 @@ export function SriConfigView() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-[4px] text-xs font-semibold text-slate-700 transition cursor-pointer"
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-[#cbd5e1] rounded-md text-xs font-semibold text-slate-700 transition cursor-pointer"
                 >
                   Reemplazar .p12
                 </button>
                 <button
                   type="button"
                   onClick={handleRemoveCertificate}
-                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-[4px] text-xs font-semibold text-rose-700 transition cursor-pointer"
+                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md text-xs font-semibold text-rose-700 transition cursor-pointer"
                 >
                   Quitar
                 </button>
@@ -386,7 +386,7 @@ export function SriConfigView() {
                   required
                   value={form.certificadoClave || ""}
                   onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
-                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2.5 pr-7 bg-white text-xs font-mono"
+                  className="w-full rounded-lg border border-[#cbd5e1] py-1.5 px-2.5 pr-7 bg-white text-xs font-mono"
                   placeholder="Contraseña del P12"
                 />
                 <button
@@ -403,7 +403,7 @@ export function SriConfigView() {
                   type="date"
                   value={form.certificadoVencimiento || ""}
                   onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
-                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2 bg-white text-xs font-mono"
+                  className="w-full rounded-lg border border-[#cbd5e1] py-1.5 px-2 bg-white text-xs font-mono"
                   title="Fecha de Vencimiento de la Firma"
                 />
               </div>
@@ -413,7 +413,7 @@ export function SriConfigView() {
                   type="text"
                   value={form.certificadoEmisor || ""}
                   onChange={(e) => setForm({ ...form, certificadoEmisor: e.target.value })}
-                  className="w-full rounded-[6px] border border-slate-300 py-1.5 px-2 bg-white text-xs"
+                  className="w-full rounded-lg border border-[#cbd5e1] py-1.5 px-2 bg-white text-xs"
                   placeholder="Entidad Emisora (Security Data / BCE)"
                 />
               </div>
@@ -422,7 +422,7 @@ export function SriConfigView() {
                 <button
                   type="button"
                   onClick={handleValidateCert}
-                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
+                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Validar Clave</span>
@@ -434,7 +434,7 @@ export function SriConfigView() {
       </div>
 
       {/* 3. TARJETA COMPACTA: SERIE & CONTROL DE SECUENCIAS */}
-      <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-3">
+      <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-3">
         {/* Selector de Serie en 1 sola fila */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2">
@@ -453,9 +453,9 @@ export function SriConfigView() {
                 maxLength={3}
                 value={form.establecimiento}
                 onChange={(e) => setForm({ ...form, establecimiento: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-slate-300 rounded-[4px] bg-white text-[#004ac6]"
+                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-[#cbd5e1] rounded-md bg-white text-[#004ac6]"
               />
-              <div className="inline-flex rounded-[4px] border border-slate-200 overflow-hidden">
+              <div className="inline-flex rounded-md border border-[#cbd5e1] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, establecimiento: "010" })}
@@ -466,14 +466,14 @@ export function SriConfigView() {
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, establecimiento: "011" })}
-                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.establecimiento === "011" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-[#cbd5e1] ${form.establecimiento === "011" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
                 >
                   011
                 </button>
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, establecimiento: "001" })}
-                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.establecimiento === "001" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-[#cbd5e1] ${form.establecimiento === "001" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
                 >
                   001
                 </button>
@@ -487,9 +487,9 @@ export function SriConfigView() {
                 maxLength={3}
                 value={form.puntoEmision}
                 onChange={(e) => setForm({ ...form, puntoEmision: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-slate-300 rounded-[4px] bg-white text-[#004ac6]"
+                className="w-14 text-center font-mono font-bold py-1 px-1.5 border border-[#cbd5e1] rounded-md bg-white text-[#004ac6]"
               />
-              <div className="inline-flex rounded-[4px] border border-slate-200 overflow-hidden">
+              <div className="inline-flex rounded-md border border-[#cbd5e1] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, puntoEmision: "001" })}
@@ -501,7 +501,7 @@ export function SriConfigView() {
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, puntoEmision: "002" })}
-                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-slate-200 ${form.puntoEmision === "002" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
+                  className={`px-2 py-0.5 text-[11px] font-bold border-l border-[#cbd5e1] ${form.puntoEmision === "002" ? "bg-[#004ac6] text-white" : "bg-slate-50 text-slate-700 hover:bg-slate-100"}`}
                 >
                   002
                 </button>
@@ -511,139 +511,139 @@ export function SriConfigView() {
         </div>
 
         {/* Tabla compacta de secuencias numéricas */}
-        <div className="overflow-x-auto rounded-[6px] border border-slate-200">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+        <div className="overflow-x-auto rounded-xl border border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-2 px-3">Comprobante</th>
-                <th className="py-2 px-2 text-center">Código</th>
-                <th className="py-2 px-3">Siguiente Secuencial</th>
-                <th className="py-2 px-3 text-right">Vista Previa Oficial SRI</th>
+                <th className="py-2.5 px-3 w-[40%]">Comprobante</th>
+                <th className="py-2.5 px-2 text-center w-[15%]">Código</th>
+                <th className="py-2.5 px-3 w-[20%]">Siguiente Secuencial</th>
+                <th className="py-2.5 px-3 text-right w-[25%]">Vista Previa Oficial SRI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
+            <tbody className="divide-y divide-[#f1f5f9] font-medium">
               {/* Facturas */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Factura de Venta</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">01</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Factura de Venta</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">01</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialFactura ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialFactura: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialFactura || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Notas de Venta (Recibo Interno) */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Venta (Recibo Interno)</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">NV</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Nota de Venta (Recibo Interno)</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">NV</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialNotaVenta ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialNotaVenta: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-700">
+                <td className="py-2 px-3 text-right font-mono font-bold text-slate-700">
                   {formatearSecuencialSRI(form.secuencialNotaVenta || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Notas de Crédito */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Crédito</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">04</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Nota de Crédito</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">04</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialNotaCredito ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialNotaCredito: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialNotaCredito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Retenciones */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Comprobante de Retención</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">07</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Comprobante de Retención</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">07</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialRetencion ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialRetencion: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialRetencion || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Guías de Remisión */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Guía de Remisión</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">06</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Guía de Remisión</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">06</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialGuiaRemision ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialGuiaRemision: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialGuiaRemision || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Notas de Débito */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Nota de Débito</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">05</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Nota de Débito</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">05</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialNotaDebito ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialNotaDebito: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   {formatearSecuencialSRI(form.secuencialNotaDebito || 1, form.establecimiento || "010", form.puntoEmision || "001")}
                 </td>
               </tr>
 
               {/* Cotizaciones */}
-              <tr className="hover:bg-slate-50/50">
-                <td className="py-1.5 px-3 font-semibold text-slate-800">Cotización Comercial</td>
-                <td className="py-1.5 px-2 text-center text-[11px] font-mono text-slate-400">COT</td>
-                <td className="py-1.5 px-3">
+              <tr className="hover:bg-[#f8f9ff] transition-colors">
+                <td className="py-2 px-3 font-semibold text-slate-800">Cotización Comercial</td>
+                <td className="py-2 px-2 text-center text-[11px] font-mono text-slate-400">COT</td>
+                <td className="py-2 px-3">
                   <input
                     type="number"
                     min="1"
                     value={form.secuencialCotizacion ?? 1}
                     onChange={(e) => setForm({ ...form, secuencialCotizacion: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-[4px] border border-slate-300 bg-white"
+                    className="w-24 py-1 px-2 text-xs font-mono font-bold rounded-md border border-[#cbd5e1] bg-white"
                   />
                 </td>
-                <td className="py-1.5 px-3 text-right font-mono font-bold text-[#004ac6]">
+                <td className="py-2 px-3 text-right font-mono font-bold text-[#004ac6]">
                   COT-{new Date().getFullYear()}-{String(form.secuencialCotizacion || 1).padStart(4, "0")}
                 </td>
               </tr>
@@ -655,7 +655,7 @@ export function SriConfigView() {
       {/* 4. TARJETA COMPACTA: DATOS FISCALES & DOMICILIO DEL EMISOR */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Columna Izquierda: Identificación Fiscal & Régimen */}
-        <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-2.5">
+        <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-2.5">
           <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
             <Building2 className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold text-slate-800">Identificación Fiscal</h2>
@@ -670,7 +670,7 @@ export function SriConfigView() {
                 maxLength={13}
                 value={form.ruc}
                 onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                className="w-full text-xs font-mono font-bold rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                className="w-full text-xs font-mono font-bold rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -681,7 +681,7 @@ export function SriConfigView() {
                 required
                 value={form.razonSocial}
                 onChange={(e) => setForm({ ...form, razonSocial: e.target.value })}
-                className="w-full text-xs font-medium rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                className="w-full text-xs font-medium rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -691,7 +691,7 @@ export function SriConfigView() {
                 type="text"
                 value={form.nombreComercial}
                 onChange={(e) => setForm({ ...form, nombreComercial: e.target.value })}
-                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -701,7 +701,7 @@ export function SriConfigView() {
                 <select
                   value={form.tipoContribuyente}
                   onChange={(e) => setForm({ ...form, tipoContribuyente: e.target.value as any })}
-                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-white font-medium"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-white font-medium focus:ring-2 focus:ring-[#004ac6] outline-hidden cursor-pointer"
                 >
                   <option value="general">Régimen General</option>
                   <option value="rimpe_emprendedor">RIMPE Emprendedor</option>
@@ -715,7 +715,7 @@ export function SriConfigView() {
                   id="obligadoContabilidad"
                   checked={form.obligadoContabilidad}
                   onChange={(e) => setForm({ ...form, obligadoContabilidad: e.target.checked })}
-                  className="w-3.5 h-3.5 rounded-[3px] text-[#004ac6] border-slate-300"
+                  className="w-4 h-4 rounded text-[#004ac6] border-slate-300 focus:ring-[#004ac6] cursor-pointer"
                 />
                 <label htmlFor="obligadoContabilidad" className="text-[11px] font-bold text-slate-700 cursor-pointer">
                   Obligado Contabilidad
@@ -726,7 +726,7 @@ export function SriConfigView() {
         </div>
 
         {/* Columna Derecha: Domicilio & Notificaciones */}
-        <div className="bg-white p-3.5 rounded-[6px] border border-slate-200 shadow-2xs space-y-2.5">
+        <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-2.5">
           <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
             <MapPin className="w-4 h-4 text-[#004ac6]" />
             <h2 className="text-xs font-bold text-slate-800">Domicilio & Notificaciones</h2>
@@ -740,7 +740,7 @@ export function SriConfigView() {
                 required
                 value={form.direccionMatriz}
                 onChange={(e) => setForm({ ...form, direccionMatriz: e.target.value })}
-                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -751,7 +751,7 @@ export function SriConfigView() {
                 required
                 value={form.direccionEstablecimiento}
                 onChange={(e) => setForm({ ...form, direccionEstablecimiento: e.target.value })}
-                className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
               />
             </div>
 
@@ -762,7 +762,7 @@ export function SriConfigView() {
                   type="email"
                   value={form.emailNotificaciones || ""}
                   onChange={(e) => setForm({ ...form, emailNotificaciones: e.target.value })}
-                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   placeholder="facturacion@empresa.com"
                 />
               </div>
@@ -773,7 +773,7 @@ export function SriConfigView() {
                   type="text"
                   value={form.telefonoContacto || ""}
                   onChange={(e) => setForm({ ...form, telefonoContacto: e.target.value })}
-                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   placeholder="+593 2 000 0000"
                 />
               </div>
@@ -786,7 +786,7 @@ export function SriConfigView() {
                   type="text"
                   value={form.resolucionAgenteRetencion || ""}
                   onChange={(e) => setForm({ ...form, resolucionAgenteRetencion: e.target.value })}
-                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   placeholder="Opcional"
                 />
               </div>
@@ -797,7 +797,7 @@ export function SriConfigView() {
                   type="text"
                   value={form.contribuyenteEspecial || ""}
                   onChange={(e) => setForm({ ...form, contribuyenteEspecial: e.target.value })}
-                  className="w-full text-xs rounded-[4px] border border-slate-300 p-1.5 bg-slate-50 focus:bg-white"
+                  className="w-full text-xs rounded-lg border border-[#cbd5e1] p-2 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                   placeholder="Opcional"
                 />
               </div>

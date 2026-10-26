@@ -165,7 +165,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
         <form
           key={editingId || "new"}
           onSubmit={submit}
-          className="bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-lumina-card space-y-4 w-full max-w-3xl animate-in fade-in duration-150"
+          className="bg-white border border-[#e2e8f0] rounded-xl p-6 shadow-2xs space-y-4 w-full max-w-3xl animate-in fade-in duration-150"
         >
           <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-3">
             <h3 className="font-bold text-xs text-[#0b1c30] flex items-center gap-2">
@@ -190,7 +190,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                 required
                 maxLength={200}
                 placeholder="Ej: Router Core CCR, OLT Huawei..."
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
             <div>
@@ -202,7 +202,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                 maxLength={200}
                 autoComplete="off"
                 placeholder="admin_noc"
-                className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs font-mono font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
           </div>
@@ -246,14 +246,14 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               disabled={busy}
               type="button"
               onClick={() => setEditing(false)}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-[#737686] hover:bg-slate-100 transition-all cursor-pointer"
+              className="px-4 py-2 rounded-lg text-xs font-bold text-[#737686] hover:bg-slate-100 transition-all cursor-pointer"
             >
               Cancelar
             </button>
             <button
               disabled={busy}
               type="submit"
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               {busy ? "Cifrando..." : "Cifrar & Guardar"}
             </button>
@@ -262,21 +262,21 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       )}
 
       {/* Filter Toolbar Card */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[280px] max-w-md">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por servicio, usuario o notas..."
-            className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+            className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
           />
         </div>
 
         {query && (
           <button
             onClick={() => setQuery("")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
           >
             <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
             <span>Limpiar</span>
@@ -285,18 +285,19 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       </div>
 
       {/* Credentials Table Card */}
-      <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-lumina-card">
-        <table className="min-w-[900px] w-full text-left text-xs">
-          <caption className="sr-only">Credenciales registradas en la bóveda</caption>
-          <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
-            <tr>
-              <th scope="col" className="py-2.5 px-4">Servicio / Destino</th>
-              <th scope="col" className="py-2.5 px-4">Usuario / Identificador</th>
-              <th scope="col" className="py-2.5 px-4">Contraseña Cifrada</th>
-              <th scope="col" className="py-2.5 px-4">Notas / Referencia</th>
-              <th scope="col" className="py-2.5 px-4 text-right">Acciones</th>
-            </tr>
-          </thead>
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <caption className="sr-only">Credenciales registradas en la bóveda</caption>
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+              <tr>
+                <th scope="col" className="py-3 px-4 w-3/12">Servicio / Destino</th>
+                <th scope="col" className="py-3 px-4 w-2/12">Usuario / Identificador</th>
+                <th scope="col" className="py-3 px-4 w-3/12">Contraseña Cifrada</th>
+                <th scope="col" className="py-3 px-4 w-2/12">Notas / Referencia</th>
+                <th scope="col" className="py-3 px-4 text-right w-2/12">Acciones</th>
+              </tr>
+            </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
             {filtered.length === 0 ? (
               <tr>
@@ -381,6 +382,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           </tbody>
         </table>
       </div>
-    </section>
-  );
+    </div>
+  </section>
+);
 }

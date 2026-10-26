@@ -182,7 +182,7 @@ export function TramitesManager() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex items-center justify-between">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
               Total
@@ -191,12 +191,12 @@ export function TramitesManager() {
               {totalCount}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
             <FileText className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex items-center justify-between">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
               En Revisión / Observados
@@ -205,12 +205,12 @@ export function TramitesManager() {
               {inReviewCount}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
             <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex items-center justify-between">
+        <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
               Aprobados / Concluidos
@@ -219,14 +219,14 @@ export function TramitesManager() {
               {approvedCount}
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filters & Search Toolbar */}
-      <div className="p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+      <div className="p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-[280px]">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
@@ -235,7 +235,7 @@ export function TramitesManager() {
               placeholder="Buscar por No. Documento, Asunto, Código o Responsable..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
             />
           </div>
 
@@ -245,7 +245,7 @@ export function TramitesManager() {
               setStatusFilter("all");
               setEntityFilter("all");
             }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#737686]" />
             <span>Limpiar</span>
@@ -256,7 +256,7 @@ export function TramitesManager() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white text-xs font-semibold text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:ring-1 focus:ring-[#004ac6] cursor-pointer"
+            className="bg-white text-xs font-semibold text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:ring-1 focus:ring-[#004ac6] cursor-pointer"
           >
             <option value="all">Todos los Estados</option>
             <option value="ingresado">Ingresado</option>
@@ -271,7 +271,7 @@ export function TramitesManager() {
           <select
             value={entityFilter}
             onChange={(e) => setEntityFilter(e.target.value)}
-            className="bg-white text-xs font-semibold text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:ring-1 focus:ring-[#004ac6] cursor-pointer max-w-[200px] truncate"
+            className="bg-white text-xs font-semibold text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:ring-1 focus:ring-[#004ac6] cursor-pointer max-w-[200px] truncate"
           >
             <option value="all">Todas las Entidades</option>
             {entities.map((ent) => (
@@ -284,19 +284,19 @@ export function TramitesManager() {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px]">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5">Código / Trámite</th>
-                <th className="py-3 px-5">Documento (Oficio/Quipux)</th>
-                <th className="py-3 px-5">Motivo o Asunto</th>
-                <th className="py-3 px-4">Fecha</th>
-                <th className="py-3 px-4">Responsable</th>
-                <th className="py-3 px-3 text-center">Prioridad</th>
-                <th className="py-3 px-4 text-center">Estado Dinámico</th>
-                <th className="py-3 px-5 text-right">Acciones</th>
+                <th className="py-3 px-4 w-2/12">Código / Trámite</th>
+                <th className="py-3 px-4 w-2/12">Documento</th>
+                <th className="py-3 px-4 w-3/12">Motivo o Asunto</th>
+                <th className="py-3 px-3 w-1/12">Fecha</th>
+                <th className="py-3 px-3 w-1/12">Responsable</th>
+                <th className="py-3 px-3 text-center w-1/12">Prioridad</th>
+                <th className="py-3 px-3 text-center w-1/12">Estado</th>
+                <th className="py-3 px-4 text-right w-1/12">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -390,28 +390,28 @@ export function TramitesManager() {
 
       {/* Modal Bitácora de Seguimiento */}
       {selectedTramiteForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-auto">
+            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white">
               <div>
-                <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
-                  <History className="w-4 h-4 text-[#004ac6]" />
+                <h3 className="font-bold text-white text-base flex items-center gap-2">
+                  <History className="w-4 h-4 text-white" />
                   <span>Bitácora: {selectedTramiteForHistory.code}</span>
                 </h3>
-                <p className="text-[11px] text-[#737686]">
+                <p className="text-xs text-blue-100">
                   {selectedTramiteForHistory.documentNumber}
                 </p>
               </div>
               <button
                 onClick={() => setSelectedTramiteForHistory(null)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                className="p-1 text-white/70 hover:text-white rounded-lg cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-5 max-h-[60vh] overflow-y-auto space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3 text-xs">
+              <div className="p-3.5 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
                 <span className="font-bold text-[#004ac6] block">Asunto:</span>
                 <p className="text-slate-700 mt-0.5">{selectedTramiteForHistory.reason}</p>
               </div>
