@@ -171,7 +171,7 @@ export function UsersManager() {
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
       {/* Unified Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -179,13 +179,13 @@ export function UsersManager() {
             placeholder="Buscar colaborador por nombre, email o rol..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
           />
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Nuevo Usuario</span>
@@ -193,17 +193,17 @@ export function UsersManager() {
       </div>
 
       {/* Table of Users */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px]">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
             <caption className="sr-only">Directorio de Colaboradores y Usuarios</caption>
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th scope="col" className="py-3.5 px-5">Usuario</th>
-                <th scope="col" className="py-3.5 px-5">Rol</th>
-                <th scope="col" className="py-3.5 px-5">Área</th>
-                <th scope="col" className="py-3.5 px-5 text-center">Estado</th>
-                <th scope="col" className="py-3.5 px-5 text-right">Acciones</th>
+                <th scope="col" className="py-3.5 px-4 w-[35%]">Usuario</th>
+                <th scope="col" className="py-3.5 px-4 w-[18%]">Rol</th>
+                <th scope="col" className="py-3.5 px-4 w-[18%]">Área</th>
+                <th scope="col" className="py-3.5 px-4 w-[14%] text-center">Estado</th>
+                <th scope="col" className="py-3.5 px-4 w-[15%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -220,7 +220,7 @@ export function UsersManager() {
 
                   return (
                     <tr key={u.uid} className="hover:bg-[#f8f9ff] transition-colors">
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-[#004ac6]/10 text-[#004ac6] font-bold flex items-center justify-center text-xs">
                             {(u.displayName || "U").charAt(0).toUpperCase()}
@@ -229,7 +229,7 @@ export function UsersManager() {
                             <div className="font-bold text-[#0b1c30] text-sm flex items-center gap-1.5">
                               <span>{u.displayName || "Sin Nombre"}</span>
                               {u.uid === currentUser?.uid && (
-                                <span className="text-[10px] px-2 py-0.5 bg-[#eff4ff] text-[#004ac6] font-bold rounded-full border border-blue-200">
+                                <span className="text-[10px] px-2 py-0.5 bg-[#eff4ff] text-[#004ac6] font-bold rounded-md border border-blue-200">
                                   Tú
                                 </span>
                               )}
@@ -239,33 +239,33 @@ export function UsersManager() {
                         </div>
                       </td>
 
-                      <td className="py-4 px-5">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
                           {u.role === "superadmin" ? "Superadmin" : u.role}
                         </span>
                       </td>
 
-                      <td className="py-4 px-5 text-[#434655]">
+                      <td className="py-4 px-4 text-[#434655]">
                         <span className="font-medium text-xs">{u.department || "General"}</span>
                       </td>
 
-                      <td className="py-4 px-5 text-center">
+                      <td className="py-4 px-4 text-center">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border ${
                             isActive
-                              ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
-                              : "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]"
+                              ? "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
+                              : "bg-[#fef2f2] text-[#dc2626] border-[#fecaca]"
                           }`}
                         >
                           {isActive ? "Activo" : "Suspendido"}
                         </span>
                       </td>
 
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(u)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
                             title="Editar usuario y matriz de permisos"
                           >
                             <ShieldCheck className="w-3.5 h-3.5" />

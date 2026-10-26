@@ -210,13 +210,13 @@ export default function ClientNodesOverviewMap({
   return (
     <div className="space-y-3">
       {/* Barra de control del mapa */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-[6px] border border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-800">
             {nodesWithCoords.length} {nodesWithCoords.length === 1 ? "Sede Georreferenciada" : "Sedes Georreferenciadas"}
           </span>
           {nodesWithoutCoords.length > 0 && (
-            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-[4px] font-semibold flex items-center gap-1">
+            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
               <AlertCircle className="w-3 h-3 text-amber-600" />
               {nodesWithoutCoords.length} sin coordenadas GPS
             </span>
@@ -225,11 +225,11 @@ export default function ClientNodesOverviewMap({
 
         <div className="flex items-center gap-2">
           {/* Selector de capa */}
-          <div className="inline-flex rounded-[6px] border border-slate-200 bg-white p-0.5 shadow-2xs">
+          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => setMapType("streets")}
-              className={`px-2 py-1 rounded-[4px] text-[11px] font-bold transition-colors cursor-pointer ${
+              className={`px-2 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${
                 mapType === "streets"
                   ? "bg-[#004ac6] text-white"
                   : "text-slate-600 hover:text-slate-900"
@@ -240,7 +240,7 @@ export default function ClientNodesOverviewMap({
             <button
               type="button"
               onClick={() => setMapType("satellite")}
-              className={`px-2 py-1 rounded-[4px] text-[11px] font-bold transition-colors cursor-pointer ${
+              className={`px-2 py-1 rounded-md text-[11px] font-bold transition-colors cursor-pointer ${
                 mapType === "satellite"
                   ? "bg-[#004ac6] text-white"
                   : "text-slate-600 hover:text-slate-900"
@@ -253,15 +253,15 @@ export default function ClientNodesOverviewMap({
       </div>
 
       {/* Mapa */}
-      <div className="relative rounded-[6px] border border-slate-200 overflow-hidden bg-slate-100 shadow-2xs">
+      <div className="relative rounded-xl border border-[#e2e8f0] overflow-hidden bg-slate-100 shadow-2xs">
         <div ref={mapContainerRef} className="w-full h-[400px] z-10" />
 
         {/* Ficha flotante de la sede seleccionada */}
         {selectedNode && (
-          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-20 bg-white/95 backdrop-blur-md rounded-[6px] border border-slate-200 p-3.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150 space-y-2.5">
+          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-20 bg-white/95 backdrop-blur-md rounded-lg border border-slate-200 p-3.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150 space-y-2.5">
             <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-[4px] bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center font-bold">
+                <div className="w-7 h-7 rounded-md bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center font-bold">
                   <Radio className="w-4 h-4" />
                 </div>
                 <div>
@@ -304,7 +304,7 @@ export default function ClientNodesOverviewMap({
                   href={`https://www.google.com/maps?q=${selectedNode.coordinates.lat},${selectedNode.coordinates.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] border border-slate-200 bg-white hover:bg-slate-50 text-[#004ac6] text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-[#004ac6] text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
                 >
                   <ExternalLink className="w-3 h-3" />
                   <span>Google Maps</span>
@@ -314,7 +314,7 @@ export default function ClientNodesOverviewMap({
                 <button
                   type="button"
                   onClick={() => onEditNode(selectedNode)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-[#004ac6] hover:bg-[#003da6] text-white text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#004ac6] hover:bg-[#003da6] text-white text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
                 >
                   <Edit2 className="w-3 h-3" />
                   <span>Editar Sede</span>

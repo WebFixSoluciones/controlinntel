@@ -140,8 +140,8 @@ export function SecureVault({ clientId }: { clientId?: string }) {
         title="Bóveda"
         icon={KeyRound}
         badge={
-          <span className="text-[11px] font-semibold text-slate-500">
-            ({items.length})
+          <span className="text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] px-2 py-0.5 rounded-md">
+            {items.length}
           </span>
         }
         actions={
@@ -218,7 +218,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               maxLength={4096}
               autoComplete="new-password"
               placeholder="••••••••••••"
-              className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
             />
           </div>
 
@@ -229,13 +229,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               defaultValue={edited?.notes || ""}
               maxLength={2000}
               placeholder="Detalles de puerto, IP privada, reglas de firewall..."
-              className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+              className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
               rows={2}
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>

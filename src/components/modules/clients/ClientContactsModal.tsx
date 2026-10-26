@@ -166,18 +166,18 @@ export function ClientContactsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Modal Header */}
-        <div className="p-4 px-6 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Modal Header Master Modal */}
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[6px] bg-blue-50 border border-blue-200/60 text-[#004ac6] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">
+              <h3 className="font-bold text-white text-sm md:text-base">
                 Gestionar Personas de Contacto
               </h3>
-              <p className="text-[11px] text-slate-500 truncate max-w-md">
+              <p className="text-xs text-white/80 truncate max-w-md">
                 {client.businessName} • <span className="font-mono">RUC/CI: {client.identificationNumber}</span>
               </p>
             </div>
@@ -185,9 +185,9 @@ export function ClientContactsModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-[6px] text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -228,7 +228,7 @@ export function ClientContactsModal({
                     placeholder="Ej. Ing. Carlos Mendoza"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-[6px] text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
               </div>
@@ -245,7 +245,7 @@ export function ClientContactsModal({
                     placeholder="Ej. Administrador / Gerente de TI"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-[6px] text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
               </div>
@@ -262,7 +262,7 @@ export function ClientContactsModal({
                     placeholder="Ej. 0991234567"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-[6px] text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
               </div>
@@ -279,7 +279,7 @@ export function ClientContactsModal({
                     placeholder="contacto@empresa.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-[6px] text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
               </div>
@@ -296,7 +296,7 @@ export function ClientContactsModal({
                     placeholder="Ej. Oficina Matriz, Piso 2, Dpto Sistemas"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-[6px] text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
               </div>
@@ -305,7 +305,7 @@ export function ClientContactsModal({
             <div className="flex justify-end pt-1">
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>{editingId ? "Actualizar en Lista" : "Agregar a la Lista"}</span>
@@ -348,7 +348,7 @@ export function ClientContactsModal({
                           {c.role || "Sin cargo especificado"}
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0 border border-slate-200">
                         {idx === 0 ? "Principal" : `#${idx + 1}`}
                       </span>
                     </div>
@@ -379,7 +379,7 @@ export function ClientContactsModal({
                       <button
                         type="button"
                         onClick={() => handleEditContact(c)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:text-[#004ac6] hover:bg-blue-50 rounded-[4px] transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:text-[#004ac6] hover:bg-blue-50 rounded-md transition cursor-pointer"
                         title="Editar datos del contacto"
                       >
                         <Edit2 className="w-3 h-3" />
@@ -388,7 +388,7 @@ export function ClientContactsModal({
                       <button
                         type="button"
                         onClick={() => handleDeleteContact(c.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-50 rounded-[4px] transition cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
                         title="Quitar de la lista"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -411,7 +411,7 @@ export function ClientContactsModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-[6px] border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
             >
               Cancelar
             </button>
@@ -419,7 +419,7 @@ export function ClientContactsModal({
               type="button"
               disabled={isSaving}
               onClick={handleSaveAll}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
               <span>{isSaving ? "Guardando..." : "Guardar Contactos"}</span>

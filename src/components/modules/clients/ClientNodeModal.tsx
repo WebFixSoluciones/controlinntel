@@ -35,7 +35,7 @@ const NodeLocationMapPicker = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[250px] bg-slate-100 rounded-[6px] border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+      <div className="h-[250px] bg-slate-100 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
         <div className="w-5 h-5 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
         <span className="text-xs font-semibold">Cargando mapa interactivo...</span>
       </div>
@@ -389,26 +389,26 @@ export function ClientNodeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-[6px] shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
-        {/* Encabezado */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+        {/* Encabezado Master Modal */}
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[6px] bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
               <Radio className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 leading-tight">
+              <h3 className="text-base font-bold text-white leading-tight">
                 {nodeToEdit ? "Editar Sede / Nodo del Cliente" : "Registrar Nueva Sede / Nodo"}
               </h3>
-              <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-semibold text-slate-700">{client.businessName}</span>
+              <p className="text-xs text-white/80 flex items-center gap-1.5 mt-0.5">
+                <Building2 className="w-3.5 h-3.5 text-white/80" />
+                <span className="font-semibold text-white">{client.businessName}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-[6px] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -473,7 +473,7 @@ export function ClientNodeModal({
                     placeholder="Ej: Sede Principal, Sucursal Norte, Nodo POP Central..."
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-semibold"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-semibold"
                   />
                 </div>
 
@@ -484,7 +484,7 @@ export function ClientNodeModal({
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as "activo" | "suspendido" | "retirado")}
-                    className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-bold"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-bold"
                   >
                     <option value="activo">ACTIVO</option>
                     <option value="suspendido">SUSPENDIDO</option>
@@ -494,7 +494,7 @@ export function ClientNodeModal({
               </div>
 
               {/* Toggle Reportado ARCOTEL */}
-              <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-200 flex items-center justify-between">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
                   <div>
@@ -516,7 +516,7 @@ export function ClientNodeModal({
               </div>
 
               {/* SECCIÓN GEOGRÁFICA DE ECUADOR */}
-              <div className="p-4 bg-slate-50 rounded-[6px] border border-slate-200/80 space-y-3.5">
+              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200/80 space-y-3.5">
                 <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-[#004ac6]" />
@@ -525,7 +525,7 @@ export function ClientNodeModal({
                     </span>
                   </div>
                   {coordinates && (
-                    <span className="text-[10px] font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] border border-blue-200">
+                    <span className="text-[10px] font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                       GPS: {coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}
                     </span>
                   )}
@@ -539,7 +539,7 @@ export function ClientNodeModal({
                     <select
                       value={province}
                       onChange={(e) => setProvince(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-semibold text-slate-800"
+                      className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-semibold text-slate-800"
                     >
                       {ECUADOR_PROVINCES.map((prov) => (
                         <option key={prov} value={prov}>
@@ -558,7 +558,7 @@ export function ClientNodeModal({
                       placeholder="Ej: Quito, Guayaquil, Cuenca..."
                       value={canton}
                       onChange={(e) => setCanton(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
 
@@ -571,7 +571,7 @@ export function ClientNodeModal({
                       placeholder="Ej: Iñaquito, Tarqui, Cumbayá..."
                       value={parish}
                       onChange={(e) => setParish(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
@@ -585,7 +585,7 @@ export function ClientNodeModal({
                     placeholder="Ej: Av. Principal y Secundaria, Edificio Piso 3..."
                     value={detailedAddress}
                     onChange={(e) => setDetailedAddress(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                    className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
 
@@ -622,7 +622,7 @@ export function ClientNodeModal({
                   placeholder="Observaciones de acceso, contactos de guardia en garita, horarios de mantenimiento..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full text-xs px-3 py-2 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
             </div>
@@ -631,7 +631,7 @@ export function ClientNodeModal({
           {/* TAB 2: ENLACES & PORTADORES */}
           {activeTab === "portadores" && (
             <div className="space-y-4">
-              <div className="p-3.5 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800">
                     {editingProvId ? "Modificar Proveedor Portador" : "Añadir Proveedor Portador (Multi-Carrier)"}
@@ -654,7 +654,7 @@ export function ClientNodeModal({
                       placeholder="Telconet, Lumen, Ufinet..."
                       value={newProvName}
                       onChange={(e) => setNewProvName(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -664,7 +664,7 @@ export function ClientNodeModal({
                       placeholder="Ej: 500"
                       value={newProvCapacity}
                       onChange={(e) => setNewProvCapacity(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -674,7 +674,7 @@ export function ClientNodeModal({
                       placeholder="TCO-9921"
                       value={newProvCircuit}
                       onChange={(e) => setNewProvCircuit(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -685,7 +685,7 @@ export function ClientNodeModal({
                       <button
                         type="button"
                         onClick={handleAddIpv4Field}
-                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#004ac6] hover:text-[#003da6] bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-[4px] cursor-pointer transition-colors"
+                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#004ac6] hover:text-[#003da6] bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-md cursor-pointer transition-colors"
                         title="Agregar otro campo IPv4"
                       >
                         <Plus className="w-2.5 h-2.5" />
@@ -700,13 +700,13 @@ export function ClientNodeModal({
                             placeholder={idx === 0 ? "181.198.112.112/30" : `IPv4 #${idx + 1}`}
                             value={ip}
                             onChange={(e) => handleIpv4Change(idx, e.target.value)}
-                            className="w-full text-xs px-2.5 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
+                            className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                           />
                           {idx === 0 ? (
                             <button
                               type="button"
                               onClick={handleAddIpv4Field}
-                              className="p-1.5 rounded-[6px] bg-blue-50 text-[#004ac6] hover:bg-[#004ac6] hover:text-white transition-colors cursor-pointer shrink-0 border border-blue-200"
+                              className="p-1.5 rounded-lg bg-blue-50 text-[#004ac6] hover:bg-[#004ac6] hover:text-white transition-colors cursor-pointer shrink-0 border border-blue-200"
                               title="Añadir otra IP v4"
                             >
                               <Plus className="w-3.5 h-3.5" />
@@ -715,7 +715,7 @@ export function ClientNodeModal({
                             <button
                               type="button"
                               onClick={() => handleRemoveIpv4Field(idx)}
-                              className="p-1.5 rounded-[6px] bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer shrink-0 border border-rose-200"
+                              className="p-1.5 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer shrink-0 border border-rose-200"
                               title="Quitar esta IP"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -732,7 +732,7 @@ export function ClientNodeModal({
                       placeholder="2800:3f0::/48"
                       value={newProvIpv6}
                       onChange={(e) => setNewProvIpv6(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
@@ -742,7 +742,7 @@ export function ClientNodeModal({
                     <button
                       type="button"
                       onClick={handleCancelEditProvider}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[6px] text-xs font-semibold cursor-pointer transition-colors"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                     >
                       Cancelar
                     </button>
@@ -750,7 +750,7 @@ export function ClientNodeModal({
                   <button
                     type="button"
                     onClick={handleAddProvider}
-                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>{editingProvId ? "Guardar Cambios" : "Agregar Proveedor"}</span>
@@ -764,7 +764,7 @@ export function ClientNodeModal({
                   Proveedores Portadores Configurados
                 </span>
                 {providers.length === 0 ? (
-                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-[6px] text-xs text-slate-400">
+                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-lg text-xs text-slate-400">
                     No hay proveedores portadores registrados para este nodo. Usa el formulario superior para añadir proveedores (Proveedor 1, 2, 3...).
                   </div>
                 ) : (
@@ -776,17 +776,17 @@ export function ClientNodeModal({
                     return (
                       <div
                         key={p.id}
-                        className="p-3 bg-white rounded-[6px] border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors"
+                        className="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs hover:border-slate-300 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-[6px] bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
+                          <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
                             {index + 1}
                           </span>
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900 text-xs">{p.providerName}</span>
                               {p.capacityMbps > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-[6px]">
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-lg">
                                   {p.capacityMbps} Mbps
                                 </span>
                               )}
@@ -811,7 +811,7 @@ export function ClientNodeModal({
                           <button
                             type="button"
                             onClick={() => handleStartEditProvider(p)}
-                            className="text-slate-400 hover:text-[#004ac6] p-1.5 rounded-[6px] hover:bg-blue-50 transition-colors cursor-pointer"
+                            className="text-slate-400 hover:text-[#004ac6] p-1.5 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
                             title="Editar proveedor"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -819,7 +819,7 @@ export function ClientNodeModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveProvider(p.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-[6px] hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Eliminar proveedor"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -836,7 +836,7 @@ export function ClientNodeModal({
           {/* TAB 3: SISTEMAS, SERVICIOS & CREDENCIALES */}
           {activeTab === "servicios" && (
             <div className="space-y-4">
-              <div className="p-3.5 bg-slate-50 rounded-[6px] border border-slate-200 space-y-3">
+              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
                 <span className="text-xs font-bold text-slate-800 block">
                   Añadir Sistema / Servicio & Credenciales de Acceso
                 </span>
@@ -848,7 +848,7 @@ export function ClientNodeModal({
                       placeholder="Ej: MIKROTIK CCR2116, SMART OLT, OLT ZTE..."
                       value={newSysName}
                       onChange={(e) => setNewSysName(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white"
                     />
                   </div>
                   <div>
@@ -858,7 +858,7 @@ export function ClientNodeModal({
                       placeholder="Ej: 181.198.112.112:5258 o URL"
                       value={newSysLink}
                       onChange={(e) => setNewSysLink(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono"
                     />
                   </div>
                 </div>
@@ -871,7 +871,7 @@ export function ClientNodeModal({
                       placeholder="admin / usuario"
                       value={newSysUsername}
                       onChange={(e) => setNewSysUsername(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white"
                     />
                   </div>
                   <div>
@@ -881,7 +881,7 @@ export function ClientNodeModal({
                       placeholder="Contraseña del sistema"
                       value={newSysPassword}
                       onChange={(e) => setNewSysPassword(e.target.value)}
-                      className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white font-mono"
+                      className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono"
                     />
                   </div>
                 </div>
@@ -893,7 +893,7 @@ export function ClientNodeModal({
                     placeholder="Detalles adicionales del equipo..."
                     value={newSysNotes}
                     onChange={(e) => setNewSysNotes(e.target.value)}
-                    className="w-full text-xs px-3 py-1.5 rounded-[6px] border border-slate-200 bg-white"
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white"
                   />
                 </div>
 
@@ -901,7 +901,7 @@ export function ClientNodeModal({
                   <button
                     type="button"
                     onClick={handleAddService}
-                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Agregar Sistema / Servicio</span>
@@ -915,7 +915,7 @@ export function ClientNodeModal({
                   Sistemas y Credenciales Asociados
                 </span>
                 {services.length === 0 ? (
-                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-[6px] text-xs text-slate-400">
+                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-lg text-xs text-slate-400">
                     No hay sistemas ni credenciales asociadas a este nodo.
                   </div>
                 ) : (
@@ -928,7 +928,7 @@ export function ClientNodeModal({
                     return (
                       <div
                         key={s.id}
-                        className="p-3.5 bg-white rounded-[6px] border border-slate-200 space-y-2 shadow-2xs"
+                        className="p-3.5 bg-white rounded-lg border border-slate-200 space-y-2 shadow-2xs"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -938,7 +938,7 @@ export function ClientNodeModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveService(s.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded-[6px] hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Eliminar sistema"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -954,7 +954,7 @@ export function ClientNodeModal({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-xs">
                           {/* Campo Usuario */}
-                          <div className="flex items-center justify-between p-2 rounded-[6px] bg-slate-50 border border-slate-200">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
                             <div>
                               <span className="text-[10px] text-slate-400 font-bold block uppercase">Usuario</span>
                               <span className="font-mono font-semibold text-slate-800">{userVal || "(Sin usuario)"}</span>
@@ -976,7 +976,7 @@ export function ClientNodeModal({
                           </div>
 
                           {/* Campo Clave cifrada con reveal por 20 segundos */}
-                          <div className="flex items-center justify-between p-2 rounded-[6px] bg-slate-50 border border-slate-200">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">Contraseña</span>
@@ -994,7 +994,7 @@ export function ClientNodeModal({
                               <button
                                 type="button"
                                 onClick={() => handleRevealPasswordFor20s(s.id)}
-                                className={`p-1 rounded-[6px] transition-colors cursor-pointer ${
+                                className={`p-1 rounded-lg transition-colors cursor-pointer ${
                                   isRevealed ? "text-amber-600 bg-amber-100" : "text-slate-400 hover:text-slate-700"
                                 }`}
                                 title="Mostrar contraseña por 20 segundos"
@@ -1035,13 +1035,13 @@ export function ClientNodeModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-[6px] transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-[6px] shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 text-xs font-bold bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Radio className="w-4 h-4" />
               <span>{nodeToEdit ? "Guardar Cambios" : "Registrar Sede / Nodo"}</span>

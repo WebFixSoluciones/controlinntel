@@ -1694,6 +1694,97 @@ test("Flujo E2E 28: Estandarización Clean Enterprise en Soporte, Trámites, Bó
   assert.ok(!nfContent.includes("rounded-2xl") && !nfContent.includes("rounded-3xl"), "not-found.tsx no debe contener rounded-2xl/3xl");
 });
 
+test("Flujo E2E 29: Auditoría Global y Estandarización Clean Enterprise en Pestañas de Clientes, Proyectos y Facturación", () => {
+  const rootDir = process.cwd();
+
+  // 1. Auditoría exhaustiva del módulo de Clientes (src/components/modules/clients/)
+  const clientsDir = path.resolve(rootDir, "src/components/modules/clients");
+  const clientFiles = fs.readdirSync(clientsDir).filter((f) => f.endsWith(".tsx"));
+  assert.ok(clientFiles.length >= 20, "Deben existir al menos 20 archivos en el módulo de clientes");
+
+  clientFiles.forEach((file) => {
+    const filePath = path.join(clientsDir, file);
+    const content = fs.readFileSync(filePath, "utf8");
+    assert.ok(
+      !content.includes("rounded-2xl") && !content.includes("rounded-3xl"),
+      `${file} en clientes no debe contener rounded-2xl ni rounded-3xl`
+    );
+    assert.ok(
+      !content.includes("rounded-["),
+      `${file} en clientes no debe contener clases arbitrarias rounded-[*]`
+    );
+  });
+
+  // 2. Verificaciones específicas de Master Tables y Master Modals en pestañas de clientes
+  const nodesTab = fs.readFileSync(path.join(clientsDir, "ClientNodesTab.tsx"), "utf8");
+  assert.ok(nodesTab.includes("table-fixed") && nodesTab.includes("bg-[#f8f9ff] text-[#004ac6]"), "ClientNodesTab debe tener table-fixed y thead corporativo");
+
+  const quotesMgr = fs.readFileSync(path.join(clientsDir, "ClientQuotesManager.tsx"), "utf8");
+  assert.ok(quotesMgr.includes("table-fixed") && quotesMgr.includes("bg-[#f8f9ff] text-[#004ac6]"), "ClientQuotesManager debe tener table-fixed y thead corporativo");
+
+  const ticketsTab = fs.readFileSync(path.join(clientsDir, "ClientTicketsTab.tsx"), "utf8");
+  assert.ok(ticketsTab.includes("table-fixed") && ticketsTab.includes("bg-[#f8f9ff] text-[#004ac6]"), "ClientTicketsTab debe tener table-fixed y thead corporativo");
+
+  const tramitesTab = fs.readFileSync(path.join(clientsDir, "ClientTramitesTab.tsx"), "utf8");
+  assert.ok(tramitesTab.includes("table-fixed") && tramitesTab.includes("bg-[#f8f9ff] text-[#004ac6]"), "ClientTramitesTab debe tener table-fixed y thead corporativo");
+  assert.ok(tramitesTab.includes("bg-[#004ac6] text-white") && tramitesTab.includes("rounded-xl"), "ClientTramitesTab modal de bitácora debe ser Master Modal corporativo");
+
+  const profile360 = fs.readFileSync(path.join(clientsDir, "ClientProfile360.tsx"), "utf8");
+  assert.ok(profile360.includes("table-fixed") && profile360.includes("bg-[#f8f9ff] text-[#004ac6]"), "ClientProfile360 tabla cobros debe tener table-fixed y thead corporativo");
+
+  const clientModal = fs.readFileSync(path.join(clientsDir, "ClientModal.tsx"), "utf8");
+  assert.ok(clientModal.includes("bg-[#004ac6] text-white") && clientModal.includes("rounded-xl"), "ClientModal debe ser Master Modal corporativo");
+
+  const clientNodeModal = fs.readFileSync(path.join(clientsDir, "ClientNodeModal.tsx"), "utf8");
+  assert.ok(clientNodeModal.includes("bg-[#004ac6] text-white") && clientNodeModal.includes("rounded-xl"), "ClientNodeModal debe ser Master Modal corporativo");
+
+  const clientContactsModal = fs.readFileSync(path.join(clientsDir, "ClientContactsModal.tsx"), "utf8");
+  assert.ok(clientContactsModal.includes("bg-[#004ac6] text-white") && clientContactsModal.includes("rounded-xl"), "ClientContactsModal debe ser Master Modal corporativo");
+
+  const contractTab = fs.readFileSync(path.join(clientsDir, "ClientContractTab.tsx"), "utf8");
+  assert.ok(contractTab.includes("bg-[#004ac6] text-white") && contractTab.includes("rounded-xl"), "ClientContractTab modal debe ser Master Modal corporativo");
+
+  // 3. Verificaciones en Módulo de Proyectos (conectado a obras de clientes)
+  const projTaskModal = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectTaskModal.tsx"), "utf8");
+  assert.ok(projTaskModal.includes("bg-[#004ac6] text-white") && projTaskModal.includes("rounded-xl"), "ProjectTaskModal debe ser Master Modal");
+  assert.ok(!projTaskModal.includes("rounded-2xl") && !projTaskModal.includes("rounded-["), "ProjectTaskModal no debe contener rounded-2xl ni rounded-[");
+
+  const projModal = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectModal.tsx"), "utf8");
+  assert.ok(projModal.includes("bg-[#004ac6] text-white") && projModal.includes("rounded-xl"), "ProjectModal debe ser Master Modal");
+  assert.ok(!projModal.includes("rounded-3xl") && !projModal.includes("rounded-2xl"), "ProjectModal no debe contener rounded-2xl/3xl");
+
+  const projGantt = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectGanttModal.tsx"), "utf8");
+  assert.ok(projGantt.includes("bg-[#004ac6] text-white") && projGantt.includes("rounded-xl"), "ProjectGanttModal debe ser Master Modal");
+  assert.ok(!projGantt.includes("rounded-3xl") && !projGantt.includes("rounded-2xl"), "ProjectGanttModal no debe contener rounded-2xl/3xl");
+
+  const projTrash = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectTrashModal.tsx"), "utf8");
+  assert.ok(projTrash.includes("bg-[#004ac6] text-white") && projTrash.includes("rounded-xl"), "ProjectTrashModal debe ser Master Modal");
+  assert.ok(!projTrash.includes("rounded-3xl") && !projTrash.includes("rounded-2xl"), "ProjectTrashModal no debe contener rounded-2xl/3xl");
+
+  const projManager = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectsManager.tsx"), "utf8");
+  assert.ok(projManager.includes("table-fixed") && projManager.includes("bg-[#f8f9ff] text-[#004ac6]"), "ProjectsManager debe tener table-fixed y thead corporativo");
+  assert.ok(!projManager.includes("rounded-2xl"), "ProjectsManager no debe contener rounded-2xl");
+
+  const projWorkspace = fs.readFileSync(path.resolve(rootDir, "src/components/modules/projects/ProjectWorkspace.tsx"), "utf8");
+  assert.ok(projWorkspace.includes("table-fixed") && projWorkspace.includes("bg-[#f8f9ff] text-[#004ac6]"), "ProjectWorkspace debe tener table-fixed y thead corporativo");
+  assert.ok(!projWorkspace.includes("rounded-2xl"), "ProjectWorkspace no debe contener rounded-2xl");
+
+  // 4. Verificaciones en Módulo de Facturación y Vistas vinculadas (NewSaleView, RIDE, Cotización)
+  const quotePreview = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/QuotePreviewModal.tsx"), "utf8");
+  assert.ok(quotePreview.includes("bg-[#004ac6] text-white"), "QuotePreviewModal debe usar cabecera corporativa");
+  assert.ok(!quotePreview.includes("rounded-["), "QuotePreviewModal no debe contener rounded-[");
+
+  const ridePreview = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/RidePreviewModal.tsx"), "utf8");
+  assert.ok(ridePreview.includes("bg-[#004ac6] text-white"), "RidePreviewModal debe usar cabecera corporativa");
+  assert.ok(!ridePreview.includes("rounded-["), "RidePreviewModal no debe contener rounded-[");
+
+  const billingMgr = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx"), "utf8");
+  assert.ok(!billingMgr.includes("rounded-[") && !billingMgr.includes("rounded-2xl"), "BillingManager no debe contener rounded-[ ni rounded-2xl");
+
+  const newSale = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx"), "utf8");
+  assert.ok(!newSale.includes("rounded-[") && !newSale.includes("rounded-2xl"), "NewSaleView no debe contener rounded-[ ni rounded-2xl");
+});
+
 
 
 

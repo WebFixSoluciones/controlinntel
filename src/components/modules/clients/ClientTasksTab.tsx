@@ -365,14 +365,14 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       {/* 1. NOTIFICACIÓN EN EL ENCABEZADO DE TAREAS PENDIENTES     */}
       {/* ========================================================= */}
       {myPendingTasks.length > 0 ? (
-        <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 rounded-2xl bg-white shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 rounded-xl bg-white shadow-2xs flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
               <Bell className="w-5 h-5 animate-bounce" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
                   Notificación de Equipo
                 </span>
                 <span className="text-xs font-bold text-slate-800">
@@ -390,7 +390,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                 setAssigneeFilter("mis_tareas");
                 setStatusFilter("pendientes");
               }}
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Ver Solo Mis Tareas
             </button>
@@ -400,7 +400,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                   setAssigneeFilter("todos");
                   setStatusFilter("todas");
                 }}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-all cursor-pointer"
               >
                 Limpiar Filtro
               </button>
@@ -408,7 +408,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
           </div>
         </div>
       ) : pendingTasksTotal.length > 0 ? (
-        <div className="p-3.5 px-4 bg-sky-50/80 border border-sky-200 rounded-2xl flex items-center justify-between gap-3">
+        <div className="p-3.5 px-4 bg-sky-50/80 border border-sky-200 rounded-xl flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Clock className="w-4 h-4 text-[#004ac6] shrink-0" />
             <p className="text-xs text-slate-700">
@@ -420,7 +420,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
           </span>
         </div>
       ) : clientTasks.length > 0 ? (
-        <div className="p-3.5 px-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center gap-2.5 text-emerald-800 text-xs">
+        <div className="p-3.5 px-4 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-800 text-xs">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>Todas las tareas de este cliente han sido completadas satisfactoriamente al 100%.</span>
         </div>
@@ -510,7 +510,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       {/* ========================================================= */}
       {/* 3. FILTERS & SEARCH TOOLBAR                               */}
       {/* ========================================================= */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 ${clientProjectsList.length > 0 ? "lg:grid-cols-5" : ""} gap-2.5 p-3 bg-white rounded-2xl border border-slate-200 shadow-2xs`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 ${clientProjectsList.length > 0 ? "lg:grid-cols-5" : ""} gap-2.5 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs`}>
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -585,7 +585,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
       {viewMode === "cronograma" && (
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
-            <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 p-6 space-y-2">
+            <div className="py-12 text-center bg-white rounded-xl border border-dashed border-slate-200 p-6 space-y-2">
               <ListTodo className="w-9 h-9 text-slate-300 mx-auto" />
               <h5 className="font-bold text-xs text-slate-700">No se encontraron tareas registradas</h5>
               <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
@@ -625,7 +625,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
               return (
                 <div
                   key={task.id}
-                  className={`bg-white rounded-2xl border transition-all shadow-2xs hover:shadow-xs overflow-hidden ${
+                  className={`bg-white rounded-xl border transition-all shadow-2xs hover:shadow-xs overflow-hidden ${
                     myTask && !isCompleted
                       ? "border-amber-300 ring-1 ring-amber-200"
                       : isCompleted
@@ -639,7 +639,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Priority Pill */}
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${pStyle.bg} ${pStyle.text} ${pStyle.border}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border ${pStyle.bg} ${pStyle.text} ${pStyle.border}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${pStyle.dot}`} />
                           Prioridad: {task.priority}
@@ -647,7 +647,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                         {/* Deadline / Cronograma Semáforo */}
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${deadline.color}`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${deadline.color}`}
                         >
                           <Calendar className="w-3 h-3" />
                           <span>{deadline.label}</span>
@@ -655,7 +655,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                         {/* Is assigned to logged user */}
                         {myTask && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#004ac6] text-white">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#004ac6] text-white">
                             <User className="w-3 h-3" />
                             A tu cargo
                           </span>
@@ -663,7 +663,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                         {/* Project Badge */}
                         {task.projectName && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                             <Briefcase className="w-3 h-3" />
                             <span>{task.projectName}</span>
                           </span>
@@ -671,7 +671,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                         {/* Trámites Vinculados Badge */}
                         {taskTramites.length > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             <FileText className="w-3 h-3" />
                             <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
                           </span>

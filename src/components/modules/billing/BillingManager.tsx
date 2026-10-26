@@ -1463,84 +1463,86 @@ export function BillingManager() {
       {/* Modal Dialog: Verificación en vivo de Estado en SRI */}
       {sriStatusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
-          <div className="w-full max-w-lg bg-white rounded-[6px] shadow-2xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between p-4 px-5 bg-[#004ac6] text-white">
               <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-5 h-5 text-[#004ac6]" />
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                <ShieldCheck className="w-5 h-5 text-white" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wide">
                   Consulta de Estado en SRI
                 </h3>
               </div>
               <button
                 onClick={() => setSriStatusModal(null)}
-                className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                className="p-1 text-white/80 hover:text-white transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1">
-                <p className="text-slate-600">
-                  <span className="font-semibold text-slate-800">Comprobante:</span> {sriStatusModal.docNumber}
-                </p>
-                <p className="text-slate-600 break-all font-mono text-[11px]">
-                  <span className="font-semibold text-slate-800 font-sans">Clave de Acceso:</span> {sriStatusModal.claveAcceso}
-                </p>
-                <p className="text-slate-600">
-                  <span className="font-semibold text-slate-800">Ambiente:</span>{" "}
-                  {sriCompanyConfig.ambiente === "2" ? "2 - Producción Oficial" : "1 - Pruebas / Homologación"}
-                </p>
-              </div>
-
-              {sriStatusModal.loading ? (
-                <div className="py-6 flex flex-col items-center justify-center gap-2 text-slate-500">
-                  <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-semibold">Consultando servidores del SRI...</span>
+            <div className="p-6 space-y-4">
+              <div className="space-y-3 text-xs">
+                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1">
+                  <p className="text-slate-600">
+                    <span className="font-semibold text-slate-800">Comprobante:</span> {sriStatusModal.docNumber}
+                  </p>
+                  <p className="text-slate-600 break-all font-mono text-[11px]">
+                    <span className="font-semibold text-slate-800 font-sans">Clave de Acceso:</span> {sriStatusModal.claveAcceso}
+                  </p>
+                  <p className="text-slate-600">
+                    <span className="font-semibold text-slate-800">Ambiente:</span>{" "}
+                    {sriCompanyConfig.ambiente === "2" ? "2 - Producción Oficial" : "1 - Pruebas / Homologación"}
+                  </p>
                 </div>
-              ) : sriStatusModal.result ? (
-                <div className="space-y-3">
-                  <div className="p-3 rounded-[6px] bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span className="font-bold text-xs uppercase">
-                        Estado SRI: {sriStatusModal.result.estado}
-                      </span>
+
+                {sriStatusModal.loading ? (
+                  <div className="py-6 flex flex-col items-center justify-center gap-2 text-slate-500">
+                    <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs font-semibold">Consultando servidores del SRI...</span>
+                  </div>
+                ) : sriStatusModal.result ? (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span className="font-bold text-xs uppercase">
+                          Estado SRI: {sriStatusModal.result.estado}
+                        </span>
+                      </div>
+                      {sriStatusModal.result.numeroAutorizacion && (
+                        <p className="text-[11px] font-mono break-all text-emerald-900">
+                          No. Autorización: {sriStatusModal.result.numeroAutorizacion}
+                        </p>
+                      )}
+                      {sriStatusModal.result.fechaAutorizacion && (
+                        <p className="text-[11px] text-emerald-900">
+                          Fecha / Hora: {new Date(sriStatusModal.result.fechaAutorizacion).toLocaleString("es-EC")}
+                        </p>
+                      )}
                     </div>
-                    {sriStatusModal.result.numeroAutorizacion && (
-                      <p className="text-[11px] font-mono break-all text-emerald-900">
-                        No. Autorización: {sriStatusModal.result.numeroAutorizacion}
-                      </p>
-                    )}
-                    {sriStatusModal.result.fechaAutorizacion && (
-                      <p className="text-[11px] text-emerald-900">
-                        Fecha / Hora: {new Date(sriStatusModal.result.fechaAutorizacion).toLocaleString("es-EC")}
-                      </p>
+
+                    {sriStatusModal.result.mensajes && sriStatusModal.result.mensajes.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="font-bold text-[11px] text-slate-700">Mensajes del SRI:</span>
+                        {sriStatusModal.result.mensajes.map((m, idx) => (
+                          <div key={idx} className="p-2 rounded-md bg-slate-100 text-slate-700 text-[11px]">
+                            <strong>[{m.tipo || "INFO"}]</strong> {m.mensaje}
+                            {m.informacionAdicional && <span className="block text-slate-500">{m.informacionAdicional}</span>}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
+                ) : null}
+              </div>
 
-                  {sriStatusModal.result.mensajes && sriStatusModal.result.mensajes.length > 0 && (
-                    <div className="space-y-1">
-                      <span className="font-bold text-[11px] text-slate-700">Mensajes del SRI:</span>
-                      {sriStatusModal.result.mensajes.map((m, idx) => (
-                        <div key={idx} className="p-2 rounded-[4px] bg-slate-100 text-slate-700 text-[11px]">
-                          <strong>[{m.tipo || "INFO"}]</strong> {m.mensaje}
-                          {m.informacionAdicional && <span className="block text-slate-500">{m.informacionAdicional}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setSriStatusModal(null)}
-                className="px-4 py-2 bg-slate-900 text-white rounded-[6px] text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
-              >
-                Cerrar Consulta
-              </button>
+              <div className="pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setSriStatusModal(null)}
+                  className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cerrar Consulta
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1549,9 +1551,9 @@ export function BillingManager() {
       {/* Modal Dialog: Convertir Cotización a Factura */}
       {quoteToConvert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 p-6 space-y-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[6px] bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
               <div>
@@ -1577,7 +1579,7 @@ export function BillingManager() {
               <select
                 value={convertWarehouseId}
                 onChange={(e) => setConvertWarehouseId(e.target.value)}
-                className="w-full text-xs font-semibold rounded-[6px] border border-slate-300 p-2.5 bg-slate-50 text-slate-900"
+                className="w-full text-xs font-semibold rounded-lg border border-slate-300 p-2.5 bg-slate-50 text-slate-900"
               >
                 {inventoryWarehouses.map((w) => (
                   <option key={w.id} value={w.id}>
@@ -1591,7 +1593,7 @@ export function BillingManager() {
               <button
                 type="button"
                 onClick={() => setQuoteToConvert(null)}
-                className="px-4 py-2 rounded-[6px] text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1599,7 +1601,7 @@ export function BillingManager() {
                 type="button"
                 onClick={handleConfirmConvertQuote}
                 disabled={isConverting}
-                className="px-5 py-2 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer"
+                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-2 cursor-pointer"
               >
                 {isConverting ? (
                   <>
@@ -1748,7 +1750,7 @@ export function BillingManager() {
       {/* Modal Selector de Notas de Venta Pendientes para Pasar a Factura Electrónica SRI */}
       {isSelectSaleForSriOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3">
-          <div className="w-full max-w-2xl bg-white rounded-[8px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]">
             <div className="bg-[#004ac6] text-white px-5 py-3.5 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <FileCheck2 className="w-4 h-4 text-sky-200" />
@@ -1784,14 +1786,14 @@ export function BillingManager() {
                       setIsSelectSaleForSriOpen(false);
                       router.push("/ventas?sub=nueva_venta");
                     }}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-[6px] text-xs font-bold cursor-pointer"
+                    className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca3] text-white rounded-lg text-xs font-bold cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Ir a Ventas Comerciales (Nueva Nota de Venta)</span>
                   </button>
                 </div>
               ) : (
-                <div className="border border-slate-200 rounded-[6px] overflow-hidden">
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase border-b border-slate-200">
@@ -1823,7 +1825,7 @@ export function BillingManager() {
                                 setIsSelectSaleForSriOpen(false);
                                 setSaleToPromoteToSri(sale);
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[5px] bg-[#004ac6] hover:bg-[#003ca3] text-white font-bold text-[11px] cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#004ac6] hover:bg-[#003ca3] text-white font-bold text-[11px] cursor-pointer"
                             >
                               <FileCheck2 className="w-3 h-3" />
                               <span>Emitir Factura</span>
@@ -1841,7 +1843,7 @@ export function BillingManager() {
               <button
                 type="button"
                 onClick={() => setIsSelectSaleForSriOpen(false)}
-                className="px-4 py-1.5 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer"
               >
                 Cerrar
               </button>

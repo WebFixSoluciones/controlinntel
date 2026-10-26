@@ -149,8 +149,8 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
         title="Trámites"
         icon={FileText}
         badge={
-          <span className="text-[11px] font-semibold text-slate-500">
-            ({clientTramites.length})
+          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+            {clientTramites.length}
           </span>
         }
         actions={
@@ -169,57 +169,57 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
               Trámites del Cliente
             </span>
             <span className="text-2xl font-black text-[#0b1c30]">{stats.total}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
             <FileText className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
               En Trámite / Revisión
             </span>
             <span className="text-2xl font-black text-amber-600">{stats.enRevision}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
             <Clock className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
               Observados (Subsanar)
             </span>
             <span className="text-2xl font-black text-rose-600">{stats.observados}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
               Aprobados / Concluidos
             </span>
             <span className="text-2xl font-black text-emerald-600">{stats.aprobados}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <CheckCircle2 className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Barra de Filtros y Acción de Nuevo Trámite */}
-      <div className="bg-white p-4 rounded-2xl border border-[#e2e8f0] shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-1 flex-col sm:flex-row items-center gap-3 w-full">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-[#737686] absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -228,7 +228,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
               placeholder="Buscar por documento, Quipux, motivo, organismo o tarea vinculada..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#f8f9fc] border border-[#cbd5e1] rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-[#0b1c30] placeholder-[#737686] focus:outline-none focus:border-[#004ac6] focus:bg-white transition-all"
+              className="w-full bg-[#f8f9fc] border border-[#cbd5e1] rounded-lg pl-10 pr-4 py-2 text-xs font-medium text-[#0b1c30] placeholder-[#737686] focus:outline-none focus:border-[#004ac6] focus:bg-white transition-all"
             />
           </div>
 
@@ -237,7 +237,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#f8f9fc] border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:outline-none focus:border-[#004ac6] transition-all cursor-pointer w-full sm:w-auto"
+              className="bg-[#f8f9fc] border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:outline-none focus:border-[#004ac6] transition-all cursor-pointer w-full sm:w-auto"
             >
               <option value="all">Todos los Estados</option>
               <option value="ingresado">1. Ingresado</option>
@@ -256,7 +256,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
             setTramiteToEdit(null);
             setIsModalOpen(true);
           }}
-          className="w-full md:w-auto px-4 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          className="w-full md:w-auto px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Nuevo Trámite</span>
@@ -264,20 +264,20 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
       </div>
 
       {/* Tabla de Trámites */}
-      <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="table-fixed w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-wider">
-                <th className="py-2.5 px-3.5">Código / Documento</th>
-                <th className="py-2.5 px-3.5">Motivo / Asunto</th>
-                <th className="py-2.5 px-3.5">Organismo</th>
-                <th className="py-2.5 px-3.5">Fecha Ingreso</th>
-                <th className="py-2.5 px-3.5">Estado Dinámico</th>
-                <th className="py-2.5 px-3.5">Prioridad</th>
-                <th className="py-2.5 px-3.5">Tarea / Proyecto</th>
-                <th className="py-2.5 px-3.5">Responsable</th>
-                <th className="py-2.5 px-3.5 text-right">Acciones</th>
+              <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                <th className="py-2.5 px-3.5 w-[14%]">Código / Documento</th>
+                <th className="py-2.5 px-3.5 w-[23%]">Motivo / Asunto</th>
+                <th className="py-2.5 px-3.5 w-[11%]">Organismo</th>
+                <th className="py-2.5 px-3.5 w-[10%]">Fecha Ingreso</th>
+                <th className="py-2.5 px-3.5 w-[12%] text-center">Estado Dinámico</th>
+                <th className="py-2.5 px-3.5 w-[8%] text-center">Prioridad</th>
+                <th className="py-2.5 px-3.5 w-[10%]">Tarea / Proyecto</th>
+                <th className="py-2.5 px-3.5 w-[8%]">Responsable</th>
+                <th className="py-2.5 px-3.5 w-[4%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -332,22 +332,22 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap text-center">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${badge.bg}`}
+                          className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold border uppercase tracking-wider ${badge.bg}`}
                         >
                           {badge.label}
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap text-center">
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                          className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
                             t.priority === "urgente"
-                              ? "bg-rose-100 text-rose-800"
+                              ? "bg-rose-50 text-rose-700 border border-rose-200"
                               : t.priority === "alta"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-slate-100 text-slate-700"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
+                              : "bg-slate-50 text-slate-700 border border-slate-200"
                           }`}
                         >
                           {t.priority}
@@ -430,32 +430,32 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
 
       {/* Modal / Bitácora de Historial */}
       {selectedTramiteForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center">
-                  <History className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
+                  <History className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#0b1c30] text-sm">
+                  <h3 className="font-bold text-white text-sm md:text-base">
                     Bitácora: {selectedTramiteForHistory.documentNumber}
                   </h3>
-                  <p className="text-[11px] text-[#737686]">
+                  <p className="text-xs text-white/80">
                     Historial de eventos y actualizaciones de estado
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedTramiteForHistory(null)}
-                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-5 space-y-4 overflow-y-auto text-xs">
-              <div className="bg-[#f8f9fc] p-3 rounded-xl border border-[#e2e8f0] space-y-1">
+              <div className="bg-[#f8f9ff] p-3 rounded-lg border border-[#e2e8f0] space-y-1">
                 <div className="font-bold text-[#0b1c30]">{selectedTramiteForHistory.reason}</div>
                 <div className="text-[11px] text-[#737686]">
                   Entidad: <strong>{selectedTramiteForHistory.entity}</strong> | Responsable:{" "}
@@ -484,7 +484,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
                     {selectedTramiteForHistory.history.map((h, idx) => (
                       <div key={idx} className="relative flex items-start gap-3 pl-7">
                         <div className="absolute left-1.5 top-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-[#004ac6]" />
-                        <div className="bg-white border border-[#e2e8f0] rounded-xl p-3 shadow-2xs flex-1 space-y-1">
+                        <div className="bg-white border border-[#e2e8f0] rounded-lg p-3 shadow-2xs flex-1 space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-[#0b1c30] uppercase text-[10px] tracking-wider text-[#004ac6]">
                               {h.status.replace("_", " ")}
@@ -508,7 +508,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
             <div className="p-3 border-t border-[#e2e8f0] flex justify-end bg-slate-50">
               <button
                 onClick={() => setSelectedTramiteForHistory(null)}
-                className="px-4 py-2 bg-white border border-[#cbd5e1] hover:bg-slate-100 rounded-xl text-xs font-bold text-[#434655] cursor-pointer"
+                className="px-4 py-2 bg-white border border-[#cbd5e1] hover:bg-slate-100 rounded-lg text-xs font-bold text-[#434655] cursor-pointer"
               >
                 Cerrar
               </button>

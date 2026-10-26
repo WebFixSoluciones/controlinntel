@@ -175,7 +175,7 @@ function FinanzasContent() {
                 setActiveTab(tab.id);
                 router.push(tab.href);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-[6px] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 isActive
                   ? "bg-[#004ac6] text-white shadow-xs"
                   : "bg-white text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] border border-[#e2e8f0]"
@@ -185,7 +185,7 @@ function FinanzasContent() {
               <span>{tab.label}</span>
               {tab.id === "cuentas_por_cobrar" && pendingCxCCount > 0 && (
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
                     isActive
                       ? "bg-white text-[#004ac6]"
                       : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
@@ -196,7 +196,7 @@ function FinanzasContent() {
               )}
               {tab.id === "cuentas_por_pagar" && pendingCxPCount > 0 && (
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
                     isActive
                       ? "bg-white text-[#004ac6]"
                       : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"

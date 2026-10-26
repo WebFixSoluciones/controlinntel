@@ -31,7 +31,7 @@ export function ToastNotificationContainer({ toasts, onDismiss }: ToastNotificat
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto p-4 rounded-2xl shadow-lumina-dropdown border flex items-start gap-3.5 backdrop-blur-md transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
+            className={`pointer-events-auto p-4 rounded-xl shadow-lumina-dropdown border flex items-start gap-3.5 backdrop-blur-md transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
               isError
                 ? "bg-white/95 border-[#fecaca] text-[#0b1c30]"
                 : isWarning
@@ -42,7 +42,7 @@ export function ToastNotificationContainer({ toasts, onDismiss }: ToastNotificat
             }`}
           >
             <div
-              className={`p-2 rounded-xl shrink-0 flex items-center justify-center ${
+              className={`p-2 rounded-lg shrink-0 flex items-center justify-center ${
                 isError
                   ? "bg-[#fef2f2] text-[#ef4444]"
                   : isWarning

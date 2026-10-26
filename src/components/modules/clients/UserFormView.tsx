@@ -225,7 +225,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
       {/* Top Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 px-6 rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 px-6 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -273,7 +273,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       </div>
 
       {errorMessage && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs font-semibold text-red-700 flex items-center gap-2">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -283,7 +283,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (35%): User Personal Information */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-lumina-card space-y-4">
             <div className="border-b border-[#e2e8f0] pb-3">
               <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#004ac6]" />
@@ -421,7 +421,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Summary Box */}
-          <div className="bg-[#f8f9ff] rounded-2xl border border-[#e2e8f0] p-4 text-xs text-[#434655] space-y-2">
+          <div className="bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] p-4 text-xs text-[#434655] space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-medium text-[#737686]">Módulos Activos:</span>
               <span className="font-bold font-mono text-[#004ac6]">{countActiveModules()} / 13</span>
@@ -438,7 +438,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
         {/* Right Column (65%): Granular Permissions Matrix */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 px-5 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 px-5 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#004ac6]" />
               Permisos
@@ -463,7 +463,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 1: INVENTARIOS */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
@@ -584,7 +584,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 2: FACTURACIÓN & VENTAS */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
@@ -702,7 +702,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 3: CLIENTES */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
@@ -782,7 +782,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 4: COMPRAS & FINANZAS (Accordion conjunto) */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
@@ -940,7 +940,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 5: BÓVEDA & REDES */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">
@@ -1007,7 +1007,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           </div>
 
           {/* Module 6: OTROS MÓDULOS */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#004ac6] flex items-center justify-center">

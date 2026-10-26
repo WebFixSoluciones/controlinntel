@@ -328,7 +328,7 @@ export function ProjectWorkspace({
   return (
     <div className="space-y-6">
       {/* Top Header / Project Info Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
         {/* Navigation Breadcrumb Bar */}
         <div className="px-6 py-3.5 bg-slate-50/80 border-b border-slate-200/70 flex flex-wrap items-center justify-between gap-3">
           <button
@@ -369,7 +369,7 @@ export function ProjectWorkspace({
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#004ac6] to-sky-500 text-white flex items-center justify-center shadow-md">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#004ac6] to-sky-500 text-white flex items-center justify-center shadow-md">
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
@@ -785,7 +785,7 @@ export function ProjectWorkspace({
             <div className="flex-shrink-0 w-72">
               <button
                 onClick={() => setIsAddColumnModalOpen(true)}
-                className="w-full py-6 px-4 rounded-2xl border-2 border-dashed border-slate-300 hover:border-[#004ac6] hover:bg-blue-50/40 text-slate-500 hover:text-[#004ac6] font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-6 px-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-[#004ac6] hover:bg-blue-50/40 text-slate-500 hover:text-[#004ac6] font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
                   <Plus className="w-4 h-4" />
@@ -799,7 +799,7 @@ export function ProjectWorkspace({
 
       {/* VIEW 2: LISTA DE TAREAS (TABLA NOTION) */}
       {activeTab === "list" && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/60">
             <h3 className="text-xs font-bold text-slate-800 flex items-center gap-2">
               <ListTodo className="w-4 h-4 text-[#004ac6]" />
@@ -816,18 +816,18 @@ export function ProjectWorkspace({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Tarea / Título</th>
-                  <th className="py-3 px-4">Fase / Columna</th>
-                  <th className="py-3 px-4">Prioridad</th>
-                  <th className="py-3 px-4">Asignado</th>
-                  <th className="py-3 px-4">Fecha Límite</th>
-                  <th className="py-3 px-4">Trámites</th>
-                  <th className="py-3 px-4">Checklist</th>
-                  <th className="py-3 px-4">Presupuesto / Costo</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                  <th className="py-3 px-4 w-[22%]">Tarea / Título</th>
+                  <th className="py-3 px-4 w-[13%]">Fase / Columna</th>
+                  <th className="py-3 px-4 w-[9%]">Prioridad</th>
+                  <th className="py-3 px-4 w-[12%]">Asignado</th>
+                  <th className="py-3 px-4 w-[10%]">Fecha Límite</th>
+                  <th className="py-3 px-4 w-[10%]">Trámites</th>
+                  <th className="py-3 px-4 w-[9%]">Checklist</th>
+                  <th className="py-3 px-4 w-[9%]">Presupuesto / Costo</th>
+                  <th className="py-3 px-4 w-[6%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -970,7 +970,7 @@ export function ProjectWorkspace({
 
       {/* VIEW 3: CRONOGRAMA DE FECHAS (EMBEDDED GANTT) */}
       {activeTab === "gantt" && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -1069,21 +1069,21 @@ export function ProjectWorkspace({
       {/* MODAL: AÑADIR NUEVA COLUMNA */}
       {isAddColumnModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Kanban className="w-4 h-4 text-[#004ac6]" />
+          <div className="bg-white rounded-xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-[#003da6] flex items-center justify-between bg-[#004ac6] text-white">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Kanban className="w-4 h-4 text-white" />
                 <span>Añadir Columna al Canva</span>
               </h3>
               <button
                 onClick={() => setIsAddColumnModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1 text-white/80 hover:text-white rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddColumn} className="space-y-4">
+            <form onSubmit={handleAddColumn} className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nombre de la Columna / Fase <span className="text-rose-500">*</span>
@@ -1094,7 +1094,7 @@ export function ProjectWorkspace({
                   placeholder="Ej: Pruebas de Calidad, Tendido, etc."
                   value={newColumnLabel}
                   onChange={(e) => setNewColumnLabel(e.target.value)}
-                  className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                 />
               </div>
 
@@ -1130,13 +1130,13 @@ export function ProjectWorkspace({
                 <button
                   type="button"
                   onClick={() => setIsAddColumnModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-3.5 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#004ac6] hover:bg-[#003da6] transition-colors shadow-xs"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-[#004ac6] hover:bg-[#003da6] transition-colors shadow-xs cursor-pointer"
                 >
                   Crear Columna
                 </button>

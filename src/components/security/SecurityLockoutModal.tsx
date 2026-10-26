@@ -76,7 +76,7 @@ export function SecurityLockoutModal({ onUnlock }: SecurityLockoutModalProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0b1c30]/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border-2 border-red-500 overflow-hidden relative">
+      <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border-2 border-red-500 overflow-hidden relative">
         {/* Banner Superior Rojo Alerta */}
         <div className="bg-gradient-to-r from-red-600 to-rose-700 p-6 text-white text-center relative">
           <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-full mb-3 backdrop-blur-sm ring-4 ring-white/20 animate-pulse">
@@ -92,7 +92,7 @@ export function SecurityLockoutModal({ onUnlock }: SecurityLockoutModalProps) {
 
         {/* Contenido del Incidente */}
         <div className="p-6 space-y-4">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h3 className="text-xs font-bold text-red-900 uppercase">
@@ -105,7 +105,7 @@ export function SecurityLockoutModal({ onUnlock }: SecurityLockoutModalProps) {
           </div>
 
           {/* Temporizador de Bloqueo */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-center">
             <div className="flex items-center justify-center gap-2 text-slate-500 mb-1">
               <Clock className="w-4 h-4 text-red-500" />
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
@@ -139,7 +139,7 @@ export function SecurityLockoutModal({ onUnlock }: SecurityLockoutModalProps) {
               href="https://www.inntelcorp.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
               <span>Portal Oficial INNTEL</span>
@@ -152,7 +152,7 @@ export function SecurityLockoutModal({ onUnlock }: SecurityLockoutModalProps) {
                   setIsOpen(false);
                   if (onUnlock) onUnlock();
                 }}
-                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Restablecer Acceso</span>

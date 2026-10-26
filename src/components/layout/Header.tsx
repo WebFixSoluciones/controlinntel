@@ -241,7 +241,7 @@ function HeaderContent() {
 
           {/* Profile Dropdown Menu */}
           {isProfileDropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
               {/* User Identity Header */}
               <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <div className="w-10 h-10 rounded-full bg-[#004ac6] text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0">
@@ -250,7 +250,7 @@ function HeaderContent() {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-slate-900 truncate">{cleanUserName}</p>
                   <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
-                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
                     <Shield className="w-2.5 h-2.5" />
                     {currentUser.role}
                   </span>

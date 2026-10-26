@@ -407,25 +407,25 @@ export function ProjectTaskModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-200/90 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+        <div className="px-6 py-4 border-b border-[#003da6] flex items-center justify-between bg-[#004ac6] text-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center">
               <Kanban className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 leading-tight">
+              <h3 className="text-base font-bold text-white leading-tight">
                 {taskToEdit ? "Ficha de Proyecto / Tarea" : "Nuevo Proyecto & Control de Obra"}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-white/80">
                 {taskToEdit ? `ID: ${taskToEdit.id}` : "Gestión integral de despliegue, costos y bitácora"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -951,9 +951,9 @@ export function ProjectTaskModal({
           {/* TAB: TRÁMITES INSTITUCIONALES Y REGULATORIOS */}
           {activeTab === "tramites" && (
             <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-blue-50/70 via-white to-sky-50/40 rounded-2xl border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="p-4 bg-gradient-to-r from-blue-50/70 via-white to-sky-50/40 rounded-xl border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#004ac6] text-white flex items-center justify-center shadow-xs">
+                  <div className="w-9 h-9 rounded-lg bg-[#004ac6] text-white flex items-center justify-center shadow-xs">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
@@ -972,7 +972,7 @@ export function ProjectTaskModal({
                     setTramiteToEditInTask(null);
                     setIsTramiteModalOpen(true);
                   }}
-                  className="px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                  className="px-3.5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Nuevo Trámite</span>
@@ -988,7 +988,7 @@ export function ProjectTaskModal({
                   <select
                     value={selectedTramiteToLink}
                     onChange={(e) => setSelectedTramiteToLink(e.target.value)}
-                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:border-[#004ac6]"
+                    className="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white focus:outline-hidden focus:border-[#004ac6]"
                   >
                     <option value="">-- Seleccionar trámite de la lista ({unlinkedClientTramites.length} disponibles) --</option>
                     {unlinkedClientTramites.map((t: RegulatoryTramite) => (
@@ -1008,7 +1008,7 @@ export function ProjectTaskModal({
                         showSuccess("Trámite Vinculado", "El trámite fue asignado a esta tarea.");
                       }
                     }}
-                    className="px-4 py-2 bg-white border border-[#004ac6] text-[#004ac6] hover:bg-[#eff4ff] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                    className="px-4 py-2 bg-white border border-[#004ac6] text-[#004ac6] hover:bg-[#eff4ff] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Asignar a esta Tarea</span>
@@ -1023,7 +1023,7 @@ export function ProjectTaskModal({
                 </div>
 
                 {linkedTramites.length === 0 ? (
-                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white text-xs text-slate-400 space-y-1">
+                  <div className="py-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-white text-xs text-slate-400 space-y-1">
                     <FileText className="w-8 h-8 text-slate-300 mx-auto mb-1" />
                     <p className="font-bold text-slate-600">No hay trámites asignados a esta tarea</p>
                     <p className="text-[11px] text-slate-400">

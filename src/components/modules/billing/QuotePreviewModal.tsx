@@ -150,23 +150,23 @@ export function QuotePreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150 print:p-0 print:bg-white print:static print:overflow-visible print:block">
         <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none print:my-0 print:max-w-none print:w-full print:max-h-none print:overflow-visible flex flex-col">
           {/* Barra superior de herramientas - No se imprime */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-slate-900 text-white print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-[#004ac6] text-white print:hidden">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-[6px] bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400">
+              <div className="w-8 h-8 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white">
                 <FileSpreadsheet className="w-4 h-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                     FORMATO CONTÍFICO OFICIAL
                   </span>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] uppercase ${
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
                       quote.status === "facturada"
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        ? "bg-emerald-500 text-white"
                         : quote.status === "aprobada"
-                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        ? "bg-white text-[#004ac6]"
+                        : "bg-amber-400 text-slate-900"
                     }`}
                   >
                     {quote.status}
@@ -186,7 +186,7 @@ export function QuotePreviewModal({
                     onClose();
                     onConvertToInvoice(quote);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Transformar a Venta</span>
@@ -196,7 +196,7 @@ export function QuotePreviewModal({
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#2563eb] text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/30 shadow-xs transition cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
                 <span>Imprimir / Guardar PDF</span>
@@ -205,7 +205,7 @@ export function QuotePreviewModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-[6px] transition cursor-pointer"
+                className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
                 title="Cerrar"
               >
                 <X className="w-5 h-5" />
@@ -218,7 +218,7 @@ export function QuotePreviewModal({
             <div
               id="quote-print-area"
               ref={printAreaRef}
-              className="max-w-[850px] mx-auto bg-white p-6 sm:p-8 rounded-[6px] shadow-xs border border-slate-200 space-y-5 text-[11px] leading-relaxed text-slate-800 print:shadow-none print:border-none print:p-0 print:max-w-none print:w-full print:text-black"
+              className="max-w-[850px] mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xs border border-slate-200 space-y-5 text-[11px] leading-relaxed text-slate-800 print:shadow-none print:border-none print:p-0 print:max-w-none print:w-full print:text-black"
             >
               {/* =========================================================
                   CABECERA ESTILO CONTÍFICO (2 Columnas)
@@ -227,7 +227,7 @@ export function QuotePreviewModal({
                 {/* Columna Izquierda: Logo Oficial y Datos del Emisor */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-20 h-16 rounded-[4px] bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                    <div className="w-20 h-16 rounded-md bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
                       <img
                         src="/logo-inntel.webp"
                         alt={emisor.razonSocial}
@@ -248,7 +248,7 @@ export function QuotePreviewModal({
                   </div>
 
                   {/* Tarjeta de datos fiscales del Emisor (Estilo Contífico) */}
-                  <div className="p-3 rounded-[4px] bg-slate-50 border border-slate-200 space-y-1 text-[11px] text-slate-700 leading-tight">
+                  <div className="p-3 rounded-md bg-slate-50 border border-slate-200 space-y-1 text-[11px] text-slate-700 leading-tight">
                     <p>
                       <span className="font-bold text-slate-900">Dirección Matriz:</span>{" "}
                       {emisor.direccionMatriz || "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito, Ecuador"}
@@ -291,7 +291,7 @@ export function QuotePreviewModal({
                 </div>
 
                 {/* Columna Derecha: Recuadro Oficial Contífico */}
-                <div className="p-4 rounded-[6px] border-2 border-slate-900 space-y-2.5 bg-white text-slate-900">
+                <div className="p-4 rounded-lg border-2 border-slate-900 space-y-2.5 bg-white text-slate-900">
                   <div className="border-b border-slate-200 pb-2">
                     <p className="text-xs font-black tracking-wider text-slate-900">
                       R.U.C.: {emisor.ruc || "1792458921001"}
@@ -334,7 +334,7 @@ export function QuotePreviewModal({
               {/* =========================================================
                   DATOS DEL CLIENTE / RECEPTOR (Estilo Contífico)
                   ========================================================= */}
-              <div className="p-3.5 rounded-[4px] bg-slate-50 border border-slate-300 text-[11.5px] print-avoid-break">
+              <div className="p-3.5 rounded-md bg-slate-50 border border-slate-300 text-[11.5px] print-avoid-break">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 print:grid-cols-2">
                   <p>
                     <span className="font-bold text-slate-900">Razón Social / Cliente:</span>{" "}
@@ -374,7 +374,7 @@ export function QuotePreviewModal({
               {/* =========================================================
                   TABLA DE ÍTEMS Y DETALLE DE LA COTIZACIÓN
                   ========================================================= */}
-              <div className="rounded-[4px] border border-slate-300 overflow-hidden print-avoid-break">
+              <div className="rounded-md border border-slate-300 overflow-hidden print-avoid-break">
                 <table className="w-full text-left border-collapse text-[11px]">
                   <thead>
                     <tr className="bg-slate-900 text-white font-bold border-b border-slate-900">
@@ -451,7 +451,7 @@ export function QuotePreviewModal({
               <div className="grid grid-cols-1 md:grid-cols-12 print:grid-cols-12 gap-4 print-avoid-break">
                 {/* Columna Izquierda: Información Adicional y Condiciones Contífico */}
                 <div className="md:col-span-7 print:col-span-7 space-y-3">
-                  <div className="p-3 rounded-[4px] bg-slate-50 border border-slate-300 space-y-2 text-[11px] text-slate-700">
+                  <div className="p-3 rounded-md bg-slate-50 border border-slate-300 space-y-2 text-[11px] text-slate-700">
                     <h4 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider">
                       Información Adicional
                     </h4>
@@ -504,7 +504,7 @@ export function QuotePreviewModal({
 
                 {/* Columna Derecha: Cuadro Oficial de Totales Estilo Contífico */}
                 <div className="md:col-span-5 print:col-span-5">
-                  <div className="rounded-[4px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
+                  <div className="rounded-md border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
                       <span className="font-mono font-semibold text-slate-900">
@@ -582,7 +582,7 @@ export function QuotePreviewModal({
                   TOTAL EN LETRAS Y FIRMAS DE ACEPTACIÓN
                   ========================================================= */}
               <div className="space-y-4 pt-1 print-avoid-break">
-                <div className="p-2.5 rounded-[4px] bg-slate-50 border border-slate-300 text-center">
+                <div className="p-2.5 rounded-md bg-slate-50 border border-slate-300 text-center">
                   <p className="font-mono font-bold text-[11px] text-slate-900 uppercase">
                     {totalEnLetras}
                   </p>

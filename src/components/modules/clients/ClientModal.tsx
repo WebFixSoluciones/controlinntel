@@ -408,19 +408,19 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-4xl bg-white rounded-[6px] shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Header */}
-        <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header Corporativo Master Modal */}
+        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[6px] bg-[#eff4ff] text-[#004ac6] flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0b1c30] text-sm md:text-base">
+              <h3 className="font-bold text-white text-sm md:text-base">
                 {clientToEdit ? `Editar Cliente: ${clientToEdit.businessName}` : "Nuevo Cliente"}
               </h3>
-              <p className="text-[11px] text-[#737686]">
+              <p className="text-xs text-white/80">
                 {clientToEdit
                   ? "Modifica los datos fiscales, ubicación y personas de contacto"
                   : "Ingreso de datos fiscales y personas de contacto"}
@@ -429,9 +429,9 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-[6px] text-[#737686] hover:text-[#0b1c30] hover:bg-white border border-transparent hover:border-slate-200 cursor-pointer transition-all"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -445,8 +445,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <span>1. Identificación Tributaria & Extracción SRI</span>
               </h4>
               {sriValidated && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   Validado en Catastro SRI {sriEstadoRuc ? `(${sriEstadoRuc})` : ""}
                 </span>
               )}
@@ -458,7 +458,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={identificationType}
                   onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
                 >
                   <option value="RUC">RUC (13 Dígitos)</option>
                   <option value="CEDULA">Cédula (10 Dígitos)</option>
@@ -492,13 +492,13 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                         handleQuerySri();
                       }
                     }}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                   />
                   <button
                     type="button"
                     disabled={isQueryingSri}
                     onClick={handleQuerySri}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-60 text-white rounded-[6px] text-xs font-bold transition cursor-pointer shrink-0 shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-60 text-white rounded-lg text-xs font-bold transition cursor-pointer shrink-0 shadow-2xs"
                     title="Extraer Razón Social, Dirección y Régimen desde el SRI"
                   >
                     {isQueryingSri ? (
@@ -518,7 +518,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             {actividadEconomica && (
-              <div className="p-2.5 px-3.5 rounded-[6px] bg-blue-50/70 border border-blue-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-700">
+              <div className="p-2.5 px-3.5 rounded-lg bg-blue-50/70 border border-blue-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-700">
                 <div className="flex items-center gap-2 min-w-0">
                   <Building2 className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
                   <span className="truncate">
@@ -526,11 +526,11 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="px-2 py-0.5 rounded bg-white border border-blue-200 font-bold text-[10px] text-[#004ac6] uppercase">
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 font-bold text-[10px] text-[#004ac6] uppercase">
                     {tipoContribuyente.replace("_", " ")}
                   </span>
                   {obligadoContabilidad && (
-                    <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 font-bold text-[10px] text-emerald-700">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-bold text-[10px] text-emerald-700">
                       Obligado Contabilidad
                     </span>
                   )}
@@ -548,7 +548,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   onBlur={() => setBusinessName((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -560,7 +560,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={tradeName}
                   onChange={(e) => setTradeName(e.target.value)}
                   onBlur={() => setTradeName((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -572,7 +572,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={legalRepresentative}
                   onChange={(e) => setLegalRepresentative(e.target.value)}
                   onBlur={() => setLegalRepresentative((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
             </div>
@@ -585,7 +585,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   placeholder="facturacion@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value.replace(/\s+/g, ""))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -597,7 +597,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   onBlur={() => setPhone((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -610,7 +610,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       e.target.value as "general" | "rimpe_emprendedor" | "rimpe_popular" | "especial"
                     )
                   }
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
                 >
                   <option value="general">Régimen General</option>
                   <option value="rimpe_emprendedor">RIMPE - Emprendedor</option>
@@ -630,7 +630,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   onBlur={() => setAddress((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -642,7 +642,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   value={sector}
                   onChange={(e) => setSector(e.target.value)}
                   onBlur={() => setSector((v) => limpiarTextoSri(v))}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                 />
               </div>
 
@@ -651,7 +651,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as Client["status"])}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
                 >
                   <option value="activo">Activo</option>
                   <option value="inactivo">Inactivo</option>
@@ -663,13 +663,13 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             {/* Obligaciones Tributarias SRI */}
-            <div className="p-3 bg-slate-50 rounded-[6px] border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label className="flex items-center gap-2.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={obligadoContabilidad}
                   onChange={(e) => setObligadoContabilidad(e.target.checked)}
-                  className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
+                  className="w-4 h-4 text-[#004ac6] rounded cursor-pointer"
                 />
                 <div>
                   <span className="font-bold text-[#0b1c30] block">Obligado a Llevar Contabilidad</span>
@@ -684,7 +684,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   type="checkbox"
                   checked={agenteRetencion}
                   onChange={(e) => setAgenteRetencion(e.target.checked)}
-                  className="w-4 h-4 text-[#004ac6] rounded-[4px] cursor-pointer"
+                  className="w-4 h-4 text-[#004ac6] rounded cursor-pointer"
                 />
                 <div>
                   <span className="font-bold text-[#0b1c30] block">Agente de Retención SRI</span>
@@ -711,7 +711,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               <button
                 type="button"
                 onClick={handleAddContact}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-[6px] text-xs font-bold transition border border-[#bfdbfe] cursor-pointer shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-xs font-bold transition border border-[#bfdbfe] cursor-pointer shadow-2xs"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Agregar Contacto</span>
@@ -719,7 +719,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </div>
 
             {contacts.length === 0 ? (
-              <div className="p-5 rounded-[6px] bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <div className="p-5 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
                 <p className="text-xs text-slate-600 font-semibold">
                   No hay personas de contacto registradas aún.
                 </p>
@@ -732,7 +732,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 {contacts.map((contact, index) => (
                   <div
                     key={contact.id}
-                    className="p-4 bg-slate-50/90 rounded-[6px] border border-slate-200 space-y-3 relative transition hover:border-[#bfdbfe]"
+                    className="p-4 bg-slate-50/90 rounded-lg border border-slate-200 space-y-3 relative transition hover:border-[#bfdbfe]"
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
                       <div className="flex items-center gap-2">
@@ -743,7 +743,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           {contact.name || `Contacto #${index + 1}`}
                         </span>
                         {contact.role && (
-                          <span className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-[4px] font-semibold border border-blue-200">
+                          <span className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
                             {contact.role}
                           </span>
                         )}
@@ -751,7 +751,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       <button
                         type="button"
                         onClick={() => handleRemoveContact(contact.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-[6px] transition cursor-pointer"
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                         title="Eliminar este contacto"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -769,7 +769,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Ej: Lic. Carlos Mendoza"
                           value={contact.name}
                           onChange={(e) => handleUpdateContact(contact.id, "name", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] font-semibold focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] font-semibold focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -782,7 +782,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Ej: Administrador, Pagos, Jefe de Sistemas"
                           value={contact.role || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "role", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -798,7 +798,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="0990262239"
                           value={contact.phone}
                           onChange={(e) => handleUpdateContact(contact.id, "phone", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] font-mono focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] font-mono focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -811,7 +811,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="carlos.mendoza@empresa.com"
                           value={contact.email || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "email", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
 
@@ -824,7 +824,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           placeholder="Oficina 402, Torre B"
                           value={contact.address || ""}
                           onChange={(e) => handleUpdateContact(contact.id, "address", e.target.value)}
-                          className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                          className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -840,14 +840,14 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               type="button"
               onClick={onClose}
               disabled={busy}
-              className="px-4 py-2.5 rounded-[6px] text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer transition-all"
+              className="px-4 py-2.5 rounded-lg text-[#737686] hover:bg-[#f1f5f9] font-bold cursor-pointer transition-all"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+              className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
             >
               <Check className="w-4 h-4" />
               <span>{busy ? "Guardando..." : clientToEdit ? "Guardar Cambios de Ficha" : "Registrar Cliente"}</span>

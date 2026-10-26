@@ -1129,15 +1129,15 @@ export function ClientContractTab({ client }: { client: Client }) {
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
+            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white">
               <div className="flex items-center gap-2">
-                <Upload className="w-4 h-4 text-[#004ac6]" />
-                <h3 className="font-bold text-[#0b1c30] text-xs">Cargar Archivo al Expediente</h3>
+                <Upload className="w-4 h-4 text-white" />
+                <h3 className="font-bold text-white text-xs">Cargar Archivo al Expediente</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
+                className="p-1 rounded-lg text-white/80 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

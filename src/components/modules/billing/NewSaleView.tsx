@@ -1349,20 +1349,20 @@ export function NewSaleView({
     return (
       <div className="space-y-5 animate-in fade-in duration-200">
         {/* Barra Superior de Comprobante Emitido */}
-        <div className="bg-white rounded-[6px] border border-slate-200/90 shadow-2xs p-4 space-y-3">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-slate-900 text-white text-xs font-bold">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-bold">
                 {isNota ? <Receipt className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
                 <span>Tipo de Documento: {isNota ? "Nota de Venta" : "Factura Electrónica"}</span>
               </span>
 
-              <span className="text-sm font-mono font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-[4px] border border-slate-200">
+              <span className="text-sm font-mono font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
                 CÓDIGO: {emittedInvoice.documentNumber}
               </span>
 
               {!isNota && emittedInvoice.claveAcceso && (
-                <div className="flex items-center gap-1.5 bg-blue-50/70 border border-blue-200 px-2.5 py-1 rounded-[4px]">
+                <div className="flex items-center gap-1.5 bg-blue-50/70 border border-blue-200 px-2.5 py-1 rounded-md">
                   <span className="text-[10px] font-bold text-slate-500 uppercase">Clave SRI:</span>
                   <span className="text-[11px] font-mono font-semibold text-slate-800 max-w-[200px] truncate">
                     {emittedInvoice.claveAcceso}
@@ -1389,7 +1389,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={handleDownloadEmittedXml}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
                 >
                   <FileCode2 className="w-3.5 h-3.5 text-[#004ac6]" />
                   <span>XML</span>
@@ -1402,7 +1402,7 @@ export function NewSaleView({
                   setRideModalFormat("ride");
                   setIsRideModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-rose-600" />
                 <span>{isNota ? "PDF (A4)" : "PDF / RIDE"}</span>
@@ -1414,7 +1414,7 @@ export function NewSaleView({
                   setRideModalFormat("ticket");
                   setIsRideModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5 text-slate-700" />
                 <span>Imprimir / Ticket 80mm</span>
@@ -1423,7 +1423,7 @@ export function NewSaleView({
               <button
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>WhatsApp</span>
@@ -1433,7 +1433,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setIsConvertSriOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-2xs transition cursor-pointer"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Pasar a Factura Electrónica SRI</span>
@@ -1443,7 +1443,7 @@ export function NewSaleView({
               <button
                 type="button"
                 onClick={handleStartNewSale}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Nueva Nota de Venta</span>
@@ -1452,7 +1452,7 @@ export function NewSaleView({
               <button
                 type="button"
                 onClick={onBack}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Historial</span>
@@ -1462,7 +1462,7 @@ export function NewSaleView({
         </div>
 
         {/* Tarjeta Principal del Documento Registrado */}
-        <div className="bg-white rounded-[6px] border border-slate-200/90 shadow-2xs p-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-6 space-y-6">
           {/* Cabecera Cliente y Estado */}
           <div className="flex flex-col md:flex-row justify-between gap-4 border-b border-slate-200 pb-5">
             <div className="space-y-1">
@@ -1491,7 +1491,7 @@ export function NewSaleView({
                   Fecha: <strong className="text-slate-900">{emittedInvoice.date}</strong>
                 </span>
                 <span
-                  className={`px-2.5 py-1 rounded-[4px] text-xs font-black uppercase border ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-black uppercase border ${
                     isVoided
                       ? "bg-rose-50 text-rose-700 border-rose-300"
                       : "bg-emerald-50 text-emerald-700 border-emerald-300"
@@ -1512,7 +1512,7 @@ export function NewSaleView({
                       message: `¿Estás seguro de anular el documento ${emittedInvoice.documentNumber}? Se revertirá la salida de mercadería en el Kardex.`,
                     })
                   }
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-rose-700 text-xs font-bold transition cursor-pointer"
                 >
                   <Ban className="w-3.5 h-3.5" />
                   <span>{isNota ? "Anular Nota de Venta" : "Anular Documento"}</span>
@@ -1522,7 +1522,7 @@ export function NewSaleView({
           </div>
 
           {/* Tabla de Productos Facturados */}
-          <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+          <div className="rounded-lg border border-slate-200 overflow-hidden">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-900 text-white text-[11px] font-bold uppercase">
@@ -1566,7 +1566,7 @@ export function NewSaleView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-4">
               {/* Formas de Pago */}
-              <div className="p-4 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2">
+              <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Formas de Pago Aplicadas
                 </h4>
@@ -1574,7 +1574,7 @@ export function NewSaleView({
                   {emittedInvoice.paymentsBreakdown ? (
                     <>
                       {emittedInvoice.paymentsBreakdown.efectivo > 0 && (
-                        <div className="p-2.5 rounded-[6px] bg-white border border-slate-200">
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200">
                           <span className="text-[10px] font-bold text-slate-400 uppercase block">Efectivo</span>
                           <span className="text-sm font-mono font-black text-slate-900">
                             ${emittedInvoice.paymentsBreakdown.efectivo.toFixed(2)}
@@ -1582,7 +1582,7 @@ export function NewSaleView({
                         </div>
                       )}
                       {emittedInvoice.paymentsBreakdown.transferencia > 0 && (
-                        <div className="p-2.5 rounded-[6px] bg-white border border-slate-200">
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200">
                           <span className="text-[10px] font-bold text-slate-400 uppercase block">Transferencia</span>
                           <span className="text-sm font-mono font-black text-slate-900">
                             ${emittedInvoice.paymentsBreakdown.transferencia.toFixed(2)}
@@ -1590,7 +1590,7 @@ export function NewSaleView({
                         </div>
                       )}
                       {emittedInvoice.paymentsBreakdown.tarjeta > 0 && (
-                        <div className="p-2.5 rounded-[6px] bg-white border border-slate-200">
+                        <div className="p-2.5 rounded-lg bg-white border border-slate-200">
                           <span className="text-[10px] font-bold text-slate-400 uppercase block">Tarjeta</span>
                           <span className="text-sm font-mono font-black text-slate-900">
                             ${emittedInvoice.paymentsBreakdown.tarjeta.toFixed(2)}
@@ -1598,7 +1598,7 @@ export function NewSaleView({
                         </div>
                       )}
                       {emittedInvoice.paymentsBreakdown.credito > 0 && (
-                        <div className="p-2.5 rounded-[6px] bg-amber-50 border border-amber-200">
+                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
                           <span className="text-[10px] font-bold text-amber-700 uppercase block">
                             Crédito ({emittedInvoice.paymentTermDays || 30}d)
                           </span>
@@ -1609,7 +1609,7 @@ export function NewSaleView({
                       )}
                     </>
                   ) : (
-                    <div className="p-2.5 rounded-[6px] bg-white border border-slate-200">
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">
                         {emittedInvoice.paymentMethod}
                       </span>
@@ -1622,7 +1622,7 @@ export function NewSaleView({
               </div>
 
               {/* Panel de Notificación por Correo Electrónico */}
-              <div className="p-4 rounded-[6px] bg-white border border-slate-200 space-y-3">
+              <div className="p-4 rounded-lg bg-white border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-[#004ac6]" />
@@ -1634,21 +1634,21 @@ export function NewSaleView({
                     type="button"
                     onClick={() => handleResendEmail()}
                     disabled={emailStatus === "sending"}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] bg-blue-50 hover:bg-blue-100 text-[#004ac6] text-[11px] font-bold transition cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-[#004ac6] text-[11px] font-bold transition cursor-pointer"
                   >
                     <Send className="w-3 h-3" />
                     <span>{emailStatus === "sending" ? "Enviando..." : "Reenviar al Cliente"}</span>
                   </button>
                 </div>
 
-                <div className="text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-3 py-2 rounded-[4px] border border-slate-200/70">
+                <div className="text-xs text-slate-600 flex items-center justify-between bg-slate-50 px-3 py-2 rounded-md border border-slate-200/70">
                   <span>
                     Destinatario:{" "}
                     <strong className="text-slate-900">
                       {emittedInvoice.clientEmail || "consumidor@final.ec"}
                     </strong>
                   </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-[4px] border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                     ✓ Enviado
                   </span>
                 </div>
@@ -1659,13 +1659,13 @@ export function NewSaleView({
                     placeholder="Enviar copia a otro correo (ej. contabilidad@empresa.com)..."
                     value={customCopyEmail}
                     onChange={(e) => setCustomCopyEmail(e.target.value)}
-                    className="flex-1 text-xs py-1.5 px-3 rounded-[6px] border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
+                    className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
                   />
                   <button
                     type="button"
                     disabled={!customCopyEmail.trim() || isSendingCustomEmail}
                     onClick={() => handleResendEmail(customCopyEmail.trim())}
-                    className="px-3 py-1.5 rounded-[6px] bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white text-xs font-bold transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white text-xs font-bold transition cursor-pointer"
                   >
                     {isSendingCustomEmail ? "Enviando..." : "Enviar Copia"}
                   </button>
@@ -1675,7 +1675,7 @@ export function NewSaleView({
 
             {/* Cuadro de Totales Paso 2 */}
             <div className="lg:col-span-5">
-              <div className="rounded-[6px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-xs">
+              <div className="rounded-lg border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-xs">
                 <div className="flex justify-between px-4 py-2 bg-slate-50">
                   <span className="font-bold text-slate-600">Sub-total 15%:</span>
                   <span className="font-mono font-bold text-slate-900">
@@ -1732,10 +1732,10 @@ export function NewSaleView({
         {/* Modal de Confirmación para Anular en Paso 2 */}
         {confirmDialog && confirmDialog.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-            <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
               <div className="p-5 space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[6px] bg-rose-100 text-rose-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
                     <AlertCircle className="w-5 h-5" />
                   </div>
                   <h3 className="text-sm font-black text-slate-900">{confirmDialog.title}</h3>
@@ -1745,14 +1745,14 @@ export function NewSaleView({
                   <button
                     type="button"
                     onClick={() => setConfirmDialog(null)}
-                    className="px-4 py-2 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="button"
                     onClick={executeConfirmedAction}
-                    className="px-4 py-2 rounded-[6px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer"
                   >
                     Sí, Anular
                   </button>
@@ -1771,12 +1771,12 @@ export function NewSaleView({
   return (
     <div className="space-y-4">
       {/* Barra Superior Compacta */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-[6px] border border-slate-200/80 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
-            className="p-1.5 rounded-[6px] border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+            className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition cursor-pointer"
             title="Volver al historial de ventas"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -1792,11 +1792,11 @@ export function NewSaleView({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-[4px] bg-slate-100 border border-slate-200 text-[11px] font-mono font-bold text-slate-700">
+          <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono font-bold text-slate-700">
             Serie Activa: {selectedEstablecimiento || sriCompanyConfig.establecimiento || "010"}-
             {sriCompanyConfig.puntoEmision || "001"}
           </span>
-          <span className="px-2.5 py-1 rounded-[4px] text-[10px] font-bold uppercase border bg-blue-50 text-[#004ac6] border-blue-200">
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border bg-blue-50 text-[#004ac6] border-blue-200">
             COMERCIAL / NOTA DE VENTA
           </span>
         </div>
@@ -1809,7 +1809,7 @@ export function NewSaleView({
            ======================================================= */}
         <div className="lg:col-span-8 space-y-4">
           {/* Bloque 1: Selección de Cliente + Parámetros del Comprobante */}
-          <div className="bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs">
+          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
               {/* Selector de Cliente (5 cols) */}
               <div className="md:col-span-5 space-y-1.5">
@@ -1825,7 +1825,7 @@ export function NewSaleView({
                         setSelectedClientId("");
                         setShowClientDropdown(false);
                       }}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold border transition cursor-pointer ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border transition cursor-pointer ${
                         isConsumidorFinal
                           ? "bg-slate-900 text-white border-slate-900"
                           : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
@@ -1837,7 +1837,7 @@ export function NewSaleView({
                     <button
                       type="button"
                       onClick={() => setShowNewClientModal(true)}
-                      className="p-1 rounded-[4px] bg-blue-50 hover:bg-blue-100 text-[#004ac6] border border-blue-200 transition cursor-pointer"
+                      className="p-1 rounded-md bg-blue-50 hover:bg-blue-100 text-[#004ac6] border border-blue-200 transition cursor-pointer"
                       title="Crear Nuevo Cliente Rápido"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -1846,7 +1846,7 @@ export function NewSaleView({
                 </div>
 
                 {selectedClient ? (
-                  <div className="flex items-center justify-between px-3 py-2 rounded-[6px] bg-blue-50/50 border border-blue-200">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-blue-50/50 border border-blue-200">
                     <div className="min-w-0 pr-2">
                       <div className="font-bold text-xs text-slate-900 truncate">
                         {selectedClient.businessName}
@@ -1861,7 +1861,7 @@ export function NewSaleView({
                         setSelectedClientId("");
                         setIsConsumidorFinal(false);
                       }}
-                      className="p-1 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer shrink-0"
+                      className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer shrink-0"
                       title="Cambiar cliente"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -1880,10 +1880,10 @@ export function NewSaleView({
                         setClientSearch(e.target.value);
                         setShowClientDropdown(true);
                       }}
-                      className="w-full text-xs pl-8 pr-3 py-2 rounded-[6px] border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                      className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                     />
                     {showClientDropdown && (
-                      <div className="absolute z-30 mt-1 w-full bg-white rounded-[6px] shadow-xl border border-slate-200 max-h-60 overflow-y-auto divide-y divide-slate-100">
+                      <div className="absolute z-30 mt-1 w-full bg-white rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto divide-y divide-slate-100">
                         {filteredClients.map((c) => (
                           <button
                             key={c.id}
@@ -1937,7 +1937,7 @@ export function NewSaleView({
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Tipo Documento
                   </label>
-                  <div className="w-full text-[11px] font-bold py-2 px-2.5 rounded-[6px] border bg-slate-900 text-white border-slate-900 flex items-center gap-1.5">
+                  <div className="w-full text-[11px] font-bold py-2 px-2.5 rounded-lg border bg-slate-900 text-white border-slate-900 flex items-center gap-1.5">
                     <Receipt className="w-3.5 h-3.5 text-[#c0ffa5] shrink-0" />
                     <span className="truncate">NOTA DE VENTA</span>
                   </div>
@@ -1952,7 +1952,7 @@ export function NewSaleView({
                     type="date"
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-[6px] border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
+                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
 
@@ -1964,7 +1964,7 @@ export function NewSaleView({
                   <select
                     value={selectedEstablecimiento}
                     onChange={(e) => setSelectedEstablecimiento(e.target.value)}
-                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-[6px] border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
+                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
                   >
                     <option value={sriCompanyConfig.establecimiento || "010"}>
                       {sriCompanyConfig.establecimiento || "010"} - Sucursal Principal
@@ -1989,7 +1989,7 @@ export function NewSaleView({
                   <select
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
-                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-[6px] border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
+                    className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
                   >
                     {inventoryWarehouses.map((w) => (
                       <option key={w.id} value={w.id}>
@@ -2003,7 +2003,7 @@ export function NewSaleView({
           </div>
 
           {/* Bloque 2: Buscador de Productos + Descuento General + Tabla de Ítems */}
-          <div className="bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
               {/* Buscador de Productos y Botones Añadir / Crear (8 cols) */}
               <div className="md:col-span-8 space-y-1">
@@ -2023,10 +2023,10 @@ export function NewSaleView({
                         setProductSearch(e.target.value);
                         setShowProductDropdown(true);
                       }}
-                      className="w-full text-xs pl-8 pr-3 py-2 rounded-[6px] border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
+                      className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
                     />
                     {showProductDropdown && productSearch.trim().length > 0 && (
-                      <div className="absolute z-30 mt-1 w-full bg-white rounded-[6px] shadow-xl border border-slate-200 max-h-64 overflow-y-auto divide-y divide-slate-100">
+                      <div className="absolute z-30 mt-1 w-full bg-white rounded-lg shadow-xl border border-slate-200 max-h-64 overflow-y-auto divide-y divide-slate-100">
                         {filteredProducts.length === 0 ? (
                           <div className="p-3 text-center text-xs text-slate-500">
                             No se encontraron coincidencias. Usa el botón{" "}
@@ -2092,7 +2092,7 @@ export function NewSaleView({
                   <button
                     type="button"
                     onClick={() => setShowCatalogModal(true)}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-[6px] bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer shrink-0"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Añadir</span>
@@ -2101,7 +2101,7 @@ export function NewSaleView({
                   <button
                     type="button"
                     onClick={() => setShowQuickProductModal(true)}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0"
                   >
                     <Package className="w-3.5 h-3.5 text-[#004ac6]" />
                     <span>Crear</span>
@@ -2124,7 +2124,7 @@ export function NewSaleView({
                         setGlobalDiscountValue(0);
                       }
                     }}
-                    className="flex-1 text-xs font-semibold py-2 px-2.5 rounded-[6px] border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
+                    className="flex-1 text-xs font-semibold py-2 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
                   >
                     <option value="none">-- Sin Descuento --</option>
                     <option value="percentage">Porcentaje (%)</option>
@@ -2143,7 +2143,7 @@ export function NewSaleView({
                           setGlobalDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))
                         }
                         placeholder="0"
-                        className="w-full text-xs font-mono font-bold py-2 pl-2 pr-5 rounded-[6px] border border-slate-300 bg-white text-right outline-hidden focus:border-[#004ac6]"
+                        className="w-full text-xs font-mono font-bold py-2 pl-2 pr-5 rounded-lg border border-slate-300 bg-white text-right outline-hidden focus:border-[#004ac6]"
                       />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
                         {globalDiscountType === "percentage" ? "%" : "$"}
@@ -2152,7 +2152,7 @@ export function NewSaleView({
                   )}
 
                   {globalDiscountType === "no_iva" && (
-                    <span className="px-2 py-2 rounded-[6px] bg-rose-50 border border-rose-200 text-rose-700 font-mono font-bold text-[10px] shrink-0">
+                    <span className="px-2 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono font-bold text-[10px] shrink-0">
                       -100% IVA
                     </span>
                   )}
@@ -2161,7 +2161,7 @@ export function NewSaleView({
             </div>
 
             {/* Tabla de Ítems del Carrito */}
-            <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
@@ -2209,7 +2209,7 @@ export function NewSaleView({
                                     quantity: Math.max(0.01, parseFloat(e.target.value) || 1),
                                   })
                                 }
-                                className="w-16 text-center font-mono font-bold text-xs py-1 px-1.5 rounded-[4px] border border-slate-300 bg-white"
+                                className="w-16 text-center font-mono font-bold text-xs py-1 px-1.5 rounded-md border border-slate-300 bg-white"
                               />
                             </td>
 
@@ -2248,7 +2248,7 @@ export function NewSaleView({
                                     unitPrice: Math.max(0, parseFloat(e.target.value) || 0),
                                   })
                                 }
-                                className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-[4px] border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-md border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                                 title={!canEditPrices ? "No tienes permiso para modificar precios de catálogo" : undefined}
                               />
                             </td>
@@ -2259,7 +2259,7 @@ export function NewSaleView({
                                 type="button"
                                 disabled={!canApplyDiscounts}
                                 onClick={() => openItemDiscountModal(idx)}
-                                className={`px-2 py-1 rounded-[4px] font-mono text-[10px] font-bold border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                className={`px-2 py-1 rounded-md font-mono text-[10px] font-bold border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                                   hasLineDisc
                                     ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
                                     : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
@@ -2285,7 +2285,7 @@ export function NewSaleView({
                                     ivaRate: Number(e.target.value),
                                   })
                                 }
-                                className="text-[11px] font-mono font-bold py-1 px-1.5 rounded-[4px] border border-slate-300 bg-white text-slate-700"
+                                className="text-[11px] font-mono font-bold py-1 px-1.5 rounded-md border border-slate-300 bg-white text-slate-700"
                               >
                                 <option value={15}>15%</option>
                                 <option value={5}>5%</option>
@@ -2303,7 +2303,7 @@ export function NewSaleView({
                               <button
                                 type="button"
                                 onClick={() => handleRemoveCartItem(idx)}
-                                className="p-1 rounded-[4px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -2322,7 +2322,7 @@ export function NewSaleView({
               <button
                 type="button"
                 onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
-                className="flex items-center justify-between w-full text-left py-1.5 px-2 rounded-[4px] hover:bg-slate-50 text-xs font-bold text-slate-600 transition cursor-pointer"
+                className="flex items-center justify-between w-full text-left py-1.5 px-2 rounded-md hover:bg-slate-50 text-xs font-bold text-slate-600 transition cursor-pointer"
               >
                 <span>Datos Adicionales del Comprobante (Opcional)</span>
                 {showAdditionalInfo ? (
@@ -2343,7 +2343,7 @@ export function NewSaleView({
                       placeholder="Ej. OC-2026-0089"
                       value={orderNumber}
                       onChange={(e) => setOrderNumber(e.target.value)}
-                      className="w-full text-xs py-1.5 px-2.5 rounded-[6px] border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                   <div>
@@ -2355,7 +2355,7 @@ export function NewSaleView({
                       placeholder="Garantía, condiciones de entrega..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="w-full text-xs py-1.5 px-2.5 rounded-[6px] border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-xs py-1.5 px-2.5 rounded-lg border border-slate-300 bg-white outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 </div>
@@ -2368,7 +2368,7 @@ export function NewSaleView({
             COLUMNA DERECHA (4 COLUMNAS): RESUMEN, MULTIPAGO Y EMISIÓN
            ======================================================= */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="bg-white p-4 rounded-[6px] border border-slate-200/80 shadow-2xs space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs space-y-4">
             {/* Cabecera RESUMEN con Badge Dinámico */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
@@ -2379,7 +2379,7 @@ export function NewSaleView({
                   {nextSequentialPreview}
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-[4px] text-[10px] font-bold uppercase ${
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                     documentType === "nota_venta"
                       ? "bg-slate-900 text-emerald-300"
                       : "bg-blue-50 text-[#004ac6] border border-blue-200"
@@ -2431,7 +2431,7 @@ export function NewSaleView({
             {documentType === "factura" &&
               isConsumidorFinal &&
               calculatedTotals.total > 50 && (
-                <div className="p-2.5 rounded-[6px] bg-amber-50 border border-amber-300 text-amber-900 text-[11px] space-y-1.5">
+                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-[11px] space-y-1.5">
                   <div className="flex items-start gap-1.5 font-bold">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <span>Factura SRI a Consumidor Final supera $50.00</span>
@@ -2442,7 +2442,7 @@ export function NewSaleView({
                   <button
                     type="button"
                     onClick={() => setDocumentType("nota_venta")}
-                    className="w-full py-1 rounded-[4px] bg-amber-900 text-white font-bold text-[10px] hover:bg-amber-950 transition cursor-pointer"
+                    className="w-full py-1 rounded-md bg-amber-900 text-white font-bold text-[10px] hover:bg-amber-950 transition cursor-pointer"
                   >
                     Cambiar a Nota de Venta (Recibo)
                   </button>
@@ -2465,7 +2465,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => togglePaymentMethod("efectivo")}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-[6px] border text-[10px] font-bold transition cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
                     activeMethods.efectivo
                       ? "bg-[#004ac6] text-white border-[#004ac6] shadow-2xs"
                       : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -2478,7 +2478,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => togglePaymentMethod("transferencia")}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-[6px] border text-[10px] font-bold transition cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
                     activeMethods.transferencia
                       ? "bg-[#004ac6] text-white border-[#004ac6] shadow-2xs"
                       : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -2491,7 +2491,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => togglePaymentMethod("tarjeta")}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-[6px] border text-[10px] font-bold transition cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
                     activeMethods.tarjeta
                       ? "bg-[#004ac6] text-white border-[#004ac6] shadow-2xs"
                       : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -2504,7 +2504,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => togglePaymentMethod("credito")}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-[6px] border text-[10px] font-bold transition cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-[10px] font-bold transition cursor-pointer ${
                     activeMethods.credito
                       ? "bg-[#004ac6] text-white border-[#004ac6] shadow-2xs"
                       : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
@@ -2518,7 +2518,7 @@ export function NewSaleView({
               {/* Bloques de Entrada por cada Método Activo */}
               <div className="space-y-2">
                 {activeMethods.efectivo && (
-                  <div className="p-2.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold text-slate-600 uppercase">
                         Efectivo Recibido ($)
@@ -2545,13 +2545,13 @@ export function NewSaleView({
                       onChange={(e) =>
                         setPaymentValues((prev) => ({ ...prev, efectivo: e.target.value }))
                       }
-                      className="w-full text-sm font-mono font-bold py-1.5 px-2.5 rounded-[4px] border border-slate-300 bg-white text-slate-900 outline-hidden focus:border-[#004ac6]"
+                      className="w-full text-sm font-mono font-bold py-1.5 px-2.5 rounded-md border border-slate-300 bg-white text-slate-900 outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
                 )}
 
                 {activeMethods.transferencia && (
-                  <div className="p-2.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                         Monto Transferencia ($)
@@ -2568,7 +2568,7 @@ export function NewSaleView({
                             transferencia: e.target.value,
                           }))
                         }
-                        className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-[4px] border border-slate-300 bg-white"
+                        className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-md border border-slate-300 bg-white"
                       />
                     </div>
                     {bankAccounts.length > 0 && (
@@ -2579,7 +2579,7 @@ export function NewSaleView({
                         <select
                           value={selectedBankAccountId}
                           onChange={(e) => setSelectedBankAccountId(e.target.value)}
-                          className="w-full text-[11px] font-semibold py-1.5 px-2 rounded-[4px] border border-slate-300 bg-white"
+                          className="w-full text-[11px] font-semibold py-1.5 px-2 rounded-md border border-slate-300 bg-white"
                         >
                           {bankAccounts.map((b) => (
                             <option key={b.id} value={b.id}>
@@ -2595,14 +2595,14 @@ export function NewSaleView({
                         placeholder="Nro. Comprobante / Ref. transferencia..."
                         value={transferenciaRef}
                         onChange={(e) => setTransferenciaRef(e.target.value)}
-                        className="w-full text-[11px] py-1.5 px-2 rounded-[4px] border border-slate-300 bg-white"
+                        className="w-full text-[11px] py-1.5 px-2 rounded-md border border-slate-300 bg-white"
                       />
                     </div>
                   </div>
                 )}
 
                 {activeMethods.tarjeta && (
-                  <div className="p-2.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                         Monto Tarjeta ($)
@@ -2616,7 +2616,7 @@ export function NewSaleView({
                         onChange={(e) =>
                           setPaymentValues((prev) => ({ ...prev, tarjeta: e.target.value }))
                         }
-                        className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-[4px] border border-slate-300 bg-white"
+                        className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-md border border-slate-300 bg-white"
                       />
                     </div>
                     <input
@@ -2624,13 +2624,13 @@ export function NewSaleView({
                       placeholder="Nro. Lote / Voucher POS..."
                       value={tarjetaRef}
                       onChange={(e) => setTarjetaRef(e.target.value)}
-                      className="w-full text-[11px] py-1.5 px-2 rounded-[4px] border border-slate-300 bg-white"
+                      className="w-full text-[11px] py-1.5 px-2 rounded-md border border-slate-300 bg-white"
                     />
                   </div>
                 )}
 
                 {activeMethods.credito && (
-                  <div className="p-2.5 rounded-[6px] bg-amber-50/70 border border-amber-200 space-y-2">
+                  <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold text-amber-900 uppercase">
                         Monto a Crédito ($)
@@ -2652,7 +2652,7 @@ export function NewSaleView({
                       onChange={(e) =>
                         setPaymentValues((prev) => ({ ...prev, credito: e.target.value }))
                       }
-                      className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-[4px] border border-amber-300 bg-white"
+                      className="w-full text-xs font-mono font-bold py-1.5 px-2.5 rounded-md border border-amber-300 bg-white"
                     />
                   </div>
                 )}
@@ -2660,7 +2660,7 @@ export function NewSaleView({
 
               {/* Recuadro de Cambio / Vuelto y Estado Cubierto */}
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="p-2.5 rounded-[6px] bg-slate-50 border border-slate-200">
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[9.5px] font-bold text-slate-400 uppercase block">
                     Cambio / Vuelto
                   </span>
@@ -2669,7 +2669,7 @@ export function NewSaleView({
                   </span>
                 </div>
                 <div
-                  className={`p-2.5 rounded-[6px] border ${
+                  className={`p-2.5 rounded-lg border ${
                     paymentSummary.isCovered
                       ? "bg-emerald-50/60 border-emerald-200 text-emerald-700"
                       : "bg-rose-50/60 border-rose-200 text-rose-700"
@@ -2693,7 +2693,7 @@ export function NewSaleView({
 
             {/* Consola SRI en vivo (cuando está procesando o hay logs) */}
             {(isProcessing || sriLogs.length > 0) && documentType === "factura" && (
-              <div className="rounded-[6px] bg-slate-950 text-slate-100 p-3 font-mono text-[10px] space-y-1 border border-slate-800">
+              <div className="rounded-lg bg-slate-950 text-slate-100 p-3 font-mono text-[10px] space-y-1 border border-slate-800">
                 <div className="flex items-center justify-between text-slate-400 border-b border-slate-800 pb-1 mb-1">
                   <span className="flex items-center gap-1 font-bold text-sky-400">
                     <Terminal className="w-3 h-3" /> Consola SRI (Ecuador)
@@ -2717,7 +2717,7 @@ export function NewSaleView({
                   type="button"
                   disabled={isProcessing}
                   onClick={() => handleRequestAction("emit")}
-                  className="w-full py-3 px-4 rounded-[6px] bg-[#1b1b1b] hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 rounded-lg bg-[#1b1b1b] hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4 text-[#c0ffa5]" />
                   <span>
@@ -2729,7 +2729,7 @@ export function NewSaleView({
                   type="button"
                   disabled={isProcessing}
                   onClick={() => handleRequestAction("emit")}
-                  className="w-full py-3 px-4 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 px-4 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] disabled:opacity-50 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Zap className="w-4 h-4 text-amber-300" />
                   <span>
@@ -2744,7 +2744,7 @@ export function NewSaleView({
                 type="button"
                 disabled={isProcessing}
                 onClick={() => handleRequestAction("draft")}
-                className="w-full py-2 px-3 rounded-[6px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5 text-slate-500" />
                 <span>Guardar Borrador</span>
@@ -2759,10 +2759,10 @@ export function NewSaleView({
          ======================================================= */}
       {validationDialog && validationDialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-[6px] bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-black text-slate-900">{validationDialog.title}</h3>
@@ -2772,7 +2772,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setValidationDialog(null)}
-                  className="px-3 py-1.5 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cerrar
                 </button>
@@ -2790,7 +2790,7 @@ export function NewSaleView({
                       setDocumentType("nota_venta");
                     }
                   }}
-                  className="px-4 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                 >
                   {validationDialog.actionLabel}
                 </button>
@@ -2805,11 +2805,11 @@ export function NewSaleView({
          ======================================================= */}
       {confirmDialog && confirmDialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 space-y-3">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-[6px] flex items-center justify-center shrink-0 ${
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                     documentType === "nota_venta"
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-blue-100 text-[#004ac6]"
@@ -2833,14 +2833,14 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setConfirmDialog(null)}
-                  className="px-4 py-2 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={executeConfirmedAction}
-                  className={`px-4 py-2 rounded-[6px] text-white text-xs font-bold cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-white text-xs font-bold cursor-pointer ${
                     documentType === "nota_venta"
                       ? "bg-slate-900 hover:bg-slate-800"
                       : "bg-[#004ac6] hover:bg-[#003ca3]"
@@ -2863,7 +2863,7 @@ export function NewSaleView({
          ======================================================= */}
       {editingDiscountIndex !== null && cartItems[editingDiscountIndex] && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-sm bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-emerald-400" />
@@ -2887,7 +2887,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setItemModalDiscType("percentage")}
-                  className={`py-2 px-2 rounded-[6px] text-xs font-bold border transition cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-bold border transition cursor-pointer ${
                     itemModalDiscType === "percentage"
                       ? "bg-[#004ac6] text-white border-[#004ac6]"
                       : "bg-slate-50 text-slate-700 border-slate-200"
@@ -2898,7 +2898,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setItemModalDiscType("amount")}
-                  className={`py-2 px-2 rounded-[6px] text-xs font-bold border transition cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-bold border transition cursor-pointer ${
                     itemModalDiscType === "amount"
                       ? "bg-[#004ac6] text-white border-[#004ac6]"
                       : "bg-slate-50 text-slate-700 border-slate-200"
@@ -2909,7 +2909,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setItemModalDiscType("no_iva")}
-                  className={`py-2 px-2 rounded-[6px] text-xs font-bold border transition cursor-pointer ${
+                  className={`py-2 px-2 rounded-lg text-xs font-bold border transition cursor-pointer ${
                     itemModalDiscType === "no_iva"
                       ? "bg-rose-600 text-white border-rose-600"
                       : "bg-slate-50 text-slate-700 border-slate-200"
@@ -2933,11 +2933,11 @@ export function NewSaleView({
                     value={itemModalDiscValue}
                     onChange={(e) => setItemModalDiscValue(e.target.value)}
                     placeholder="0.00"
-                    className="w-full text-sm font-mono font-bold py-2 px-3 rounded-[6px] border border-slate-300"
+                    className="w-full text-sm font-mono font-bold py-2 px-3 rounded-lg border border-slate-300"
                   />
                 </div>
               ) : (
-                <div className="p-2.5 rounded-[6px] bg-rose-50 border border-rose-200 text-rose-800 text-[11px]">
+                <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px]">
                   Se descontará proporcionalmente el IVA ({cartItems[editingDiscountIndex].ivaRate}%) para que el cliente pague exactamente el precio base.
                 </div>
               )}
@@ -2952,14 +2952,14 @@ export function NewSaleView({
                     });
                     setEditingDiscountIndex(null);
                   }}
-                  className="px-3 py-1.5 rounded-[6px] text-xs font-bold text-rose-600 hover:bg-rose-50 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 cursor-pointer"
                 >
                   Quitar Dto.
                 </button>
                 <button
                   type="button"
                   onClick={applyItemDiscountModal}
-                  className="px-4 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                 >
                   Aplicar
                 </button>
@@ -2974,7 +2974,7 @@ export function NewSaleView({
          ======================================================= */}
       {showCreditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400" />
@@ -2992,7 +2992,7 @@ export function NewSaleView({
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="p-2.5 rounded-[6px] bg-slate-50 border border-slate-200">
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">
                     Deuda Actual Cliente
                   </span>
@@ -3000,7 +3000,7 @@ export function NewSaleView({
                     ${(selectedClient?.currentBalance || 0).toFixed(2)}
                   </span>
                 </div>
-                <div className="p-2.5 rounded-[6px] bg-amber-50 border border-amber-200">
+                <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
                   <span className="text-[10px] font-bold text-amber-700 uppercase block">
                     Crédito Venta Actual
                   </span>
@@ -3024,7 +3024,7 @@ export function NewSaleView({
                       d.setDate(d.getDate() + days);
                       setCreditDueDate(d.toISOString().slice(0, 10));
                     }}
-                    className="w-full text-xs font-bold py-2 px-2.5 rounded-[6px] border border-slate-300 bg-white"
+                    className="w-full text-xs font-bold py-2 px-2.5 rounded-lg border border-slate-300 bg-white"
                   >
                     <option value={15}>15 Días</option>
                     <option value={30}>30 Días</option>
@@ -3041,7 +3041,7 @@ export function NewSaleView({
                     type="date"
                     value={creditDueDate}
                     onChange={(e) => setCreditDueDate(e.target.value)}
-                    className="w-full text-xs font-semibold py-2 px-2.5 rounded-[6px] border border-slate-300 bg-white"
+                    className="w-full text-xs font-semibold py-2 px-2.5 rounded-lg border border-slate-300 bg-white"
                   />
                 </div>
               </div>
@@ -3055,7 +3055,7 @@ export function NewSaleView({
                   placeholder="Acuerdo de pago, contacto de tesorería..."
                   value={creditNotes}
                   onChange={(e) => setCreditNotes(e.target.value)}
-                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                  className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300"
                 />
               </div>
 
@@ -3063,7 +3063,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setShowCreditModal(false)}
-                  className="px-4 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                 >
                   Confirmar Plazo
                 </button>
@@ -3078,7 +3078,7 @@ export function NewSaleView({
          ======================================================= */}
       {showNewClientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-sky-400" />
@@ -3116,13 +3116,13 @@ export function NewSaleView({
                       }
                     }}
                     placeholder="Ej. 1790016919001"
-                    className="flex-1 text-xs font-mono py-2 px-3 rounded-[6px] border border-slate-300"
+                    className="flex-1 text-xs font-mono py-2 px-3 rounded-lg border border-slate-300"
                   />
                   <button
                     type="button"
                     onClick={handleLookupClientSri}
                     disabled={isLookingUpSri}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold transition cursor-pointer shrink-0"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold transition cursor-pointer shrink-0"
                   >
                     {isLookingUpSri ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -3144,12 +3144,12 @@ export function NewSaleView({
                   value={newClientName}
                   onChange={(e) => setNewClientName(e.target.value)}
                   placeholder="NOMBRE O EMPRESA S.A."
-                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300 uppercase"
+                  className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300 uppercase"
                 />
               </div>
 
               {newClientSriMeta.sriValidated && (
-                <div className="p-2.5 rounded-[6px] bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800 flex flex-wrap items-center justify-between gap-2">
+                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] text-emerald-800 flex flex-wrap items-center justify-between gap-2">
                   <span className="font-bold flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     Extraído del Catastro SRI
@@ -3170,7 +3170,7 @@ export function NewSaleView({
                     value={newClientEmail}
                     onChange={(e) => setNewClientEmail(e.target.value.replace(/\s+/g, ""))}
                     placeholder="cliente@correo.com"
-                    className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
@@ -3182,7 +3182,7 @@ export function NewSaleView({
                     value={newClientPhone}
                     onChange={(e) => setNewClientPhone(e.target.value)}
                     placeholder="0999999999"
-                    className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300"
                   />
                 </div>
               </div>
@@ -3195,7 +3195,7 @@ export function NewSaleView({
                   type="text"
                   value={newClientAddress}
                   onChange={(e) => setNewClientAddress(e.target.value)}
-                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                  className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300"
                 />
               </div>
 
@@ -3203,13 +3203,13 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setShowNewClientModal(false)}
-                  className="px-4 py-2 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                 >
                   Guardar y Seleccionar
                 </button>
@@ -3224,7 +3224,7 @@ export function NewSaleView({
          ======================================================= */}
       {showCatalogModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-3xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-sky-400" />
@@ -3250,13 +3250,13 @@ export function NewSaleView({
                     placeholder="Filtrar por nombre o SKU..."
                     value={catalogSearch}
                     onChange={(e) => setCatalogSearch(e.target.value)}
-                    className="w-full text-xs pl-8 pr-3 py-2 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300"
                   />
                 </div>
                 <select
                   value={catalogCategory}
                   onChange={(e) => setCatalogCategory(e.target.value)}
-                  className="text-xs font-semibold py-2 px-3 rounded-[6px] border border-slate-300 bg-white"
+                  className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-300 bg-white"
                 >
                   <option value="all">Todas las Categorías</option>
                   {inventoryCategories.map((c) => (
@@ -3267,7 +3267,7 @@ export function NewSaleView({
                 </select>
               </div>
 
-              <div className="max-h-80 overflow-y-auto rounded-[6px] border border-slate-200 divide-y divide-slate-100">
+              <div className="max-h-80 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
                 {catalogFilteredProducts.map((prod) => {
                   const inCartItem = cartItems.find((i) => i.productId === prod.id);
                   const whStock = prod.tracksStock
@@ -3283,7 +3283,7 @@ export function NewSaleView({
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs text-slate-900">{prod.name}</span>
                           {inCartItem && (
-                            <span className="px-2 py-0.5 rounded-[4px] bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                               En Carrito ({inCartItem.quantity})
                             </span>
                           )}
@@ -3300,7 +3300,7 @@ export function NewSaleView({
                         <button
                           type="button"
                           onClick={() => handleAddProductToCart(prod)}
-                          className="px-3 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                         >
                           + Añadir
                         </button>
@@ -3314,7 +3314,7 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setShowCatalogModal(false)}
-                  className="px-4 py-2 rounded-[6px] bg-slate-900 text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold cursor-pointer"
                 >
                   Listo
                 </button>
@@ -3329,7 +3329,7 @@ export function NewSaleView({
          ======================================================= */}
       {showQuickProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-400" />
@@ -3356,7 +3356,7 @@ export function NewSaleView({
                   value={quickProdName}
                   onChange={(e) => setQuickProdName(e.target.value)}
                   placeholder="Ej. Router Mikrotik hAP ac3 / Instalación Fibra"
-                  className="w-full text-xs py-2 px-3 rounded-[6px] border border-slate-300"
+                  className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300"
                 />
               </div>
 
@@ -3370,7 +3370,7 @@ export function NewSaleView({
                     value={quickProdSku}
                     onChange={(e) => setQuickProdSku(e.target.value)}
                     placeholder="Auto-generado"
-                    className="w-full text-xs font-mono py-2 px-3 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs font-mono py-2 px-3 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
@@ -3380,7 +3380,7 @@ export function NewSaleView({
                   <select
                     value={quickProdIva}
                     onChange={(e) => setQuickProdIva(Number(e.target.value) as 0 | 5 | 15)}
-                    className="w-full text-xs font-bold py-2 px-3 rounded-[6px] border border-slate-300 bg-white"
+                    className="w-full text-xs font-bold py-2 px-3 rounded-lg border border-slate-300 bg-white"
                   >
                     <option value={15}>IVA 15%</option>
                     <option value={5}>IVA 5%</option>
@@ -3402,7 +3402,7 @@ export function NewSaleView({
                     value={quickProdPrice}
                     onChange={(e) => setQuickProdPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full text-xs font-mono font-bold py-2 px-2.5 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs font-mono font-bold py-2 px-2.5 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
@@ -3416,7 +3416,7 @@ export function NewSaleView({
                     value={quickProdCost}
                     onChange={(e) => setQuickProdCost(e.target.value)}
                     placeholder="0.00"
-                    className="w-full text-xs font-mono py-2 px-2.5 rounded-[6px] border border-slate-300"
+                    className="w-full text-xs font-mono py-2 px-2.5 rounded-lg border border-slate-300"
                   />
                 </div>
                 <div>
@@ -3429,7 +3429,7 @@ export function NewSaleView({
                     disabled={!quickProdTracksStock}
                     value={quickProdStock}
                     onChange={(e) => setQuickProdStock(e.target.value)}
-                    className="w-full text-xs font-mono py-2 px-2.5 rounded-[6px] border border-slate-300 disabled:bg-slate-100"
+                    className="w-full text-xs font-mono py-2 px-2.5 rounded-lg border border-slate-300 disabled:bg-slate-100"
                   />
                 </div>
               </div>
@@ -3448,14 +3448,14 @@ export function NewSaleView({
                 <button
                   type="button"
                   onClick={() => setShowQuickProductModal(false)}
-                  className="px-4 py-2 rounded-[6px] text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isCreatingProduct}
-                  className="px-4 py-2 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold cursor-pointer"
                 >
                   {isCreatingProduct ? "Creando..." : "Crear y Añadir"}
                 </button>

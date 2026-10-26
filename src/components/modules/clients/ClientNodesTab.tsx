@@ -31,7 +31,7 @@ const ClientNodesOverviewMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[380px] bg-slate-100 rounded-[6px] border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+      <div className="h-[380px] bg-slate-100 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
         <div className="w-6 h-6 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
         <span className="text-xs font-semibold">Cargando mapa de sedes...</span>
       </div>
@@ -218,8 +218,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
       {viewMode === "table" && (
         <>
           {filteredNodes.length === 0 ? (
-            <div className="py-14 text-center bg-white rounded-[6px] border border-dashed border-slate-200 p-6 space-y-3">
-          <div className="w-12 h-12 rounded-[6px] bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="py-14 text-center bg-white rounded-xl border border-dashed border-slate-200 p-6 space-y-3">
+          <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Radio className="w-6 h-6" />
           </div>
           <div className="space-y-1">
@@ -232,17 +232,17 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-[6px] border border-slate-200 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[980px] border-collapse">
-              <thead className="bg-[#f8f9ff] text-[#434655] font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
+            <table className="table-fixed w-full text-left text-xs border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4">Nodo / Sede</th>
-                  <th className="py-3 px-4">Ubicación Geográfica</th>
-                  <th className="py-3 px-4 text-center">Estado / ARCOTEL</th>
-                  <th className="py-3 px-4">Proveedores Portadores</th>
-                  <th className="py-3 px-4">Sistemas & Credenciales</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                  <th className="py-3 px-4 w-[20%]">Nodo / Sede</th>
+                  <th className="py-3 px-4 w-[22%]">Ubicación Geográfica</th>
+                  <th className="py-3 px-4 w-[13%] text-center">Estado / ARCOTEL</th>
+                  <th className="py-3 px-4 w-[21%]">Proveedores Portadores</th>
+                  <th className="py-3 px-4 w-[16%]">Sistemas & Credenciales</th>
+                  <th className="py-3 px-4 w-[8%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-800 align-top">
@@ -255,9 +255,9 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                   return (
                     <tr key={node.id} className="hover:bg-slate-50/80 transition-colors">
                       {/* 1. Nodo / Sede */}
-                      <td className="py-3 px-4 min-w-[160px]">
+                      <td className="py-3 px-4">
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-[6px] bg-blue-50 text-[#004ac6] flex items-center justify-center shrink-0 mt-0.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center shrink-0 mt-0.5">
                             <Radio className="w-4 h-4" />
                           </div>
                           <div className="space-y-1 min-w-0">
@@ -265,12 +265,12 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                               {node.name}
                             </div>
                             {node.totalCapacityMbps > 0 && (
-                              <span className="inline-block text-[10px] font-bold text-[#004ac6] bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-[4px]">
+                              <span className="inline-block text-[10px] font-bold text-[#004ac6] bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-md">
                                 {node.totalCapacityMbps} Mbps
                               </span>
                             )}
                             {node.notes && (
-                              <p className="text-[10px] text-slate-500 italic max-w-[180px] leading-snug pt-0.5">
+                              <p className="text-[10px] text-slate-500 italic max-w-[180px] leading-snug pt-0.5 truncate">
                                 {node.notes}
                               </p>
                             )}
@@ -279,11 +279,11 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       </td>
 
                       {/* 2. Ubicación Geográfica */}
-                      <td className="py-3 px-4 min-w-[180px]">
+                      <td className="py-3 px-4">
                         <div className="space-y-1 text-xs">
                           <div className="flex flex-wrap items-center gap-1 font-semibold text-slate-800">
                             <MapPin className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                            <span className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-[4px] border border-slate-200 text-[10px] font-bold">
+                            <span className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 text-[10px] font-bold">
                               {node.province || "Ecuador"}
                             </span>
                             {node.canton && (
@@ -294,7 +294,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                             )}
                           </div>
                           {(node.detailedAddress || node.address) && (
-                            <p className="text-[11px] text-slate-500 pl-4 leading-snug max-w-[220px]">
+                            <p className="text-[11px] text-slate-500 pl-4 leading-snug truncate">
                               {node.detailedAddress || node.address}
                             </p>
                           )}
@@ -304,7 +304,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                 href={`https://www.google.com/maps?q=${node.coordinates.lat},${node.coordinates.lng}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-[10px] text-[#004ac6] hover:underline font-mono bg-blue-50/70 border border-blue-200/60 px-1.5 py-0.5 rounded-[4px] font-semibold"
+                                className="inline-flex items-center gap-1 text-[10px] text-[#004ac6] hover:underline font-mono bg-blue-50/70 border border-blue-200/60 px-1.5 py-0.5 rounded-md font-semibold"
                                 title="Abrir ubicación en Google Maps"
                               >
                                 <ExternalLink className="w-2.5 h-2.5" />
@@ -316,10 +316,10 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       </td>
 
                       {/* 3. Estado / ARCOTEL */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <td className="py-3 px-4 text-center">
                         <div className="flex flex-col items-center gap-1.5">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[6px] text-[10px] font-extrabold uppercase tracking-wide border ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border ${
                               isSuspended
                                 ? "bg-amber-50 text-amber-700 border-amber-200"
                                 : isRetired
@@ -336,7 +336,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                           </span>
 
                           {isReported && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#004ac6] border border-blue-200 rounded-[6px] text-[10px] font-bold">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#004ac6] border border-blue-200 rounded-md text-[10px] font-bold">
                               <ShieldCheck className="w-3 h-3" />
                               Reportado ARCOTEL
                             </span>
@@ -345,23 +345,23 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       </td>
 
                       {/* 4. Proveedores Portadores */}
-                      <td className="py-3 px-4 min-w-[230px]">
+                      <td className="py-3 px-4">
                         {node.providers && node.providers.length > 0 ? (
                           <div className="space-y-1.5">
                             {node.providers.map((p, idx) => (
                               <div
                                 key={p.id || idx}
-                                className="p-2 bg-slate-50 rounded-[6px] border border-slate-200/80 space-y-1 text-[11px]"
+                                className="p-2 bg-slate-50 rounded-lg border border-slate-200/80 space-y-1 text-[11px]"
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="w-4 h-4 rounded-[4px] bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px]">
+                                    <span className="w-4 h-4 rounded-md bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px]">
                                       {idx + 1}
                                     </span>
-                                    <span className="font-bold text-slate-900">{p.providerName}</span>
+                                    <span className="font-bold text-slate-900 truncate">{p.providerName}</span>
                                   </div>
                                   {p.capacityMbps > 0 && (
-                                    <span className="text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded-[4px] whitespace-nowrap">
+                                    <span className="text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                       {p.capacityMbps} Mbps
                                     </span>
                                   )}
@@ -375,7 +375,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                       <span className="flex items-center gap-1 flex-wrap">
                                         <span>IPv4:</span>
                                         {p.ipv4Subnets.map((ip, i) => (
-                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[9.5px]">
+                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded-md border border-slate-200 text-[9.5px]">
                                             {ip}
                                           </strong>
                                         ))}
@@ -384,7 +384,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                       <span className="flex items-center gap-1 flex-wrap">
                                         <span>IPv4:</span>
                                         {p.ipv4Subnet.split(",").map((ip, i) => (
-                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200 text-[9.5px]">
+                                          <strong key={i} className="text-slate-700 bg-white px-1.5 py-0.2 rounded-md border border-slate-200 text-[9.5px]">
                                             {ip.trim()}
                                           </strong>
                                         ))}
@@ -404,7 +404,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       </td>
 
                       {/* 5. Sistemas & Credenciales */}
-                      <td className="py-3 px-4 min-w-[280px]">
+                      <td className="py-3 px-4">
                         {node.services && node.services.length > 0 ? (
                           <div className="space-y-1.5">
                             {node.services.map((srv) => {
@@ -422,7 +422,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                               return (
                                 <div
                                   key={srv.id}
-                                  className="p-2 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1.5 text-[11px]"
+                                  className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5 text-[11px]"
                                 >
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5 min-w-0">
@@ -440,7 +440,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
 
                                   <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                                     {/* Usuario */}
-                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-[4px] border border-slate-200 min-w-0">
+                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-md border border-slate-200 min-w-0">
                                       <span className="font-mono text-slate-700 truncate">
                                         User: <strong>{userVal || "—"}</strong>
                                       </span>
@@ -460,14 +460,14 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                     </div>
 
                                     {/* Clave con revelación 20s */}
-                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-[4px] border border-slate-200 min-w-0">
+                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-md border border-slate-200 min-w-0">
                                       <div className="flex items-center gap-1 truncate font-mono">
                                         <span className="text-slate-500">Clave:</span>
                                         <span className="text-slate-800 font-semibold truncate">
                                           {isRevealed ? passVal || "—" : "••••••••"}
                                         </span>
                                         {isRevealed && (
-                                          <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded-[4px]">
+                                          <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded-md">
                                             {timeLeft}s
                                           </span>
                                         )}
@@ -475,7 +475,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                       <div className="flex items-center gap-0.5 shrink-0">
                                         <button
                                           onClick={() => handleRevealPasswordFor20s(srv.id)}
-                                          className={`p-0.5 rounded-[4px] cursor-pointer transition-colors ${
+                                          className={`p-0.5 rounded-md cursor-pointer transition-colors ${
                                             isRevealed
                                               ? "text-amber-600 bg-amber-50"
                                               : "text-slate-400 hover:text-slate-700"
@@ -518,7 +518,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                         <div className="inline-flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenEdit(node)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#004ac6] hover:bg-blue-50 rounded-[6px] border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#004ac6] hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
                             title="Editar Sede"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
@@ -526,7 +526,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                           </button>
                           <button
                             onClick={() => handleDelete(node)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-[6px] transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             title="Eliminar Sede"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

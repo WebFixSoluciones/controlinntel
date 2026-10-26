@@ -251,25 +251,25 @@ export function RidePreviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="relative w-full max-w-5xl bg-white rounded-[6px] shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none">
+      <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none">
         {/* Barra superior de herramientas - No se imprime */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-slate-900 text-white print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-[#004ac6] text-white print:hidden">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[6px] bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400">
-              {isNotaVenta ? <Receipt className="w-5 h-5 text-emerald-400" /> : <FileCheck2 className="w-5 h-5 text-blue-400" />}
+            <div className="w-9 h-9 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white">
+              {isNotaVenta ? <Receipt className="w-5 h-5 text-white" /> : <FileCheck2 className="w-5 h-5 text-white" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                   {isNotaVenta ? "COMPROBANTE DE VENTA INTERNO" : "RIDE OFICIAL SRI ECUADOR"}
                 </span>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-[4px] ${
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                     doc.status === "autorizada" || doc.status === "registrado"
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      ? "bg-emerald-500 text-white"
                       : doc.status === "anulada"
-                      ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                      : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      ? "bg-rose-500 text-white"
+                      : "bg-amber-400 text-slate-900"
                   }`}
                 >
                   {isNotaVenta && doc.status === "autorizada"
@@ -284,14 +284,14 @@ export function RidePreviewModal({
 
             {/* Selector de Formato: RIDE A4 vs Ticket POS 80mm */}
             {isInvoice && (
-              <div className="hidden sm:flex items-center bg-slate-800 p-1 rounded-[6px] border border-slate-700 ml-3">
+              <div className="hidden sm:flex items-center bg-black/20 p-1 rounded-lg border border-white/20 ml-3">
                 <button
                   type="button"
                   onClick={() => setFormat("ride")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-[4px] text-xs font-bold transition cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     format === "ride"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-white text-[#004ac6] shadow-xs"
+                      : "text-white/80 hover:text-white"
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
@@ -300,10 +300,10 @@ export function RidePreviewModal({
                 <button
                   type="button"
                   onClick={() => setFormat("ticket")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-[4px] text-xs font-bold transition cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
                     format === "ticket"
-                      ? "bg-[#004ac6] text-white shadow-xs"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-white text-[#004ac6] shadow-xs"
+                      : "text-white/80 hover:text-white"
                   }`}
                 >
                   <Receipt className="w-3.5 h-3.5" />
@@ -317,10 +317,10 @@ export function RidePreviewModal({
             {!isNotaVenta && claveAcceso && (
               <button
                 onClick={handleCopyClave}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20 transition cursor-pointer"
                 title="Copiar Clave de Acceso"
               >
-                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5 text-white/80" />}
                 <span>{copiedKey ? "Clave Copiada" : "Copiar Clave"}</span>
               </button>
             )}
@@ -328,17 +328,17 @@ export function RidePreviewModal({
             {!isNotaVenta && (
               <button
                 onClick={handleDownloadXml}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20 transition cursor-pointer"
                 title="Descargar XML Firmado XAdES-BES"
               >
-                {xmlDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Download className="w-3.5 h-3.5 text-blue-400" />}
+                {xmlDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Download className="w-3.5 h-3.5 text-white/80" />}
                 <span>{xmlDownloaded ? "Descargado" : "Descargar XML"}</span>
               </button>
             )}
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-md transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>{format === "ticket" ? "Imprimir Ticket" : isNotaVenta ? "Imprimir Nota" : "Imprimir RIDE"}</span>
@@ -346,7 +346,7 @@ export function RidePreviewModal({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-[6px] text-slate-400 hover:text-white hover:bg-slate-800 transition ml-1 cursor-pointer"
+              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition ml-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -362,7 +362,7 @@ export function RidePreviewModal({
             <div
               ref={printAreaRef}
               id="ticket-print-area"
-              className="w-[310px] mx-auto bg-white p-5 rounded-[6px] shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full"
+              className="w-[310px] mx-auto bg-white p-5 rounded-lg shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full"
             >
               <div className="text-center border-b border-dashed border-slate-400 pb-3 mb-3 space-y-0.5">
                 <div className="flex justify-center mb-1.5">
@@ -488,14 +488,14 @@ export function RidePreviewModal({
             <div
               ref={printAreaRef}
               id="ride-print-area"
-              className="max-w-4xl mx-auto bg-white p-6 sm:p-7 rounded-[6px] shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
+              className="max-w-4xl mx-auto bg-white p-6 sm:p-7 rounded-lg shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
             >
               {/* Cabecera: 2 Columnas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
                 {/* Columna Izquierda: Logo Oficial + Datos del Emisor */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-20 h-16 rounded-[6px] bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
+                    <div className="w-20 h-16 rounded-lg bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
                       <img
                         src="/logo-inntel.webp"
                         alt="INNTEL CORP S.A."
@@ -515,7 +515,7 @@ export function RidePreviewModal({
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200/80 space-y-1 text-slate-700">
+                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1 text-slate-700">
                     <p>
                       <span className="font-bold text-slate-900">Dirección Matriz:</span>{" "}
                       {emisor.direccionMatriz}
@@ -556,7 +556,7 @@ export function RidePreviewModal({
                 </div>
 
                 {/* Columna Derecha: Recuadro Oficial SRI o Recibo Interno */}
-                <div className="p-4 rounded-[6px] border-2 border-slate-900 space-y-2.5 bg-white">
+                <div className="p-4 rounded-lg border-2 border-slate-900 space-y-2.5 bg-white">
                   <div className="border-b border-slate-200 pb-2">
                     <p className="text-sm font-black tracking-wider text-slate-900">
                       R.U.C.: {emisor.ruc}
@@ -646,7 +646,7 @@ export function RidePreviewModal({
               </div>
 
               {/* Recuadro de Información del Comprador / Sujeto Pasivo / Transportista */}
-              <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-2 print-avoid-break">
+              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2 print-avoid-break">
                 <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
                   <p>
                     <span className="font-bold text-slate-900">
@@ -681,7 +681,7 @@ export function RidePreviewModal({
                   )}
 
                   {isCreditNote && creditNote && (
-                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-amber-50 border border-amber-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-md bg-amber-50 border border-amber-200 mt-1">
                       <p className="font-bold text-amber-900">
                         Comprobante que se Modifica: Factura No. {creditNote.invoiceNumber}
                       </p>
@@ -692,7 +692,7 @@ export function RidePreviewModal({
                   )}
 
                   {isDebitNote && debitNote && (
-                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-md bg-indigo-50 border border-indigo-200 mt-1">
                       <p className="font-bold text-indigo-950">
                         Comprobante que se Modifica: Factura No. {debitNote.modifiedInvoiceNumber}
                       </p>
@@ -703,7 +703,7 @@ export function RidePreviewModal({
                   )}
 
                   {isWithholding && withholding && (
-                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-sky-50 border border-sky-200 mt-1">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-md bg-sky-50 border border-sky-200 mt-1">
                       <p className="font-bold text-sky-900">
                         Comprobante de Sustento: Factura No. {withholding.invoiceNumber}
                       </p>
@@ -714,7 +714,7 @@ export function RidePreviewModal({
                   )}
 
                   {isRemissionGuide && remissionGuide && (
-                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-[4px] bg-indigo-50 border border-indigo-200 mt-1 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-1.5 text-[10.5px]">
+                    <div className="sm:col-span-2 print:col-span-2 p-2 rounded-md bg-indigo-50 border border-indigo-200 mt-1 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-1.5 text-[10.5px]">
                       <p>
                         <strong className="text-indigo-950">Transportista:</strong> {remissionGuide.carrierName} (RUC: {remissionGuide.carrierRuc})
                       </p>
@@ -734,7 +734,7 @@ export function RidePreviewModal({
 
               {/* Tabla de Ítems (Factura, Nota de Venta y Nota de Crédito) */}
               {(isInvoice || isCreditNote) && (
-                <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-white text-[11px] font-bold">
@@ -784,7 +784,7 @@ export function RidePreviewModal({
 
               {/* Tabla para Nota de Débito */}
               {isDebitNote && debitNote && (
-                <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-white text-[11px] font-bold">
@@ -810,7 +810,7 @@ export function RidePreviewModal({
 
               {/* Tabla para Comprobante de Retención */}
               {isWithholding && withholding && (
-                <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
                   <table className="w-full text-left border-collapse text-[11.5px]">
                     <thead>
                       <tr className="bg-slate-900 text-white text-[11px] font-bold">
@@ -852,7 +852,7 @@ export function RidePreviewModal({
 
               {/* Tabla para Guía de Remisión */}
               {isRemissionGuide && remissionGuide && (
-                <div className="rounded-[6px] border border-slate-200 overflow-hidden">
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
                   <table className="w-full text-left border-collapse text-[11.5px]">
                     <thead>
                       <tr className="bg-slate-900 text-white text-[11px] font-bold">
@@ -888,7 +888,7 @@ export function RidePreviewModal({
               <div className="grid grid-cols-1 md:grid-cols-12 print:grid-cols-12 gap-4 print-avoid-break">
                 {/* Columna Izquierda: Información Adicional y Pagos */}
                 <div className="md:col-span-7 print:col-span-7 space-y-3">
-                  <div className="p-3.5 rounded-[6px] bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
                     <h4 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider">
                       Información Adicional
                     </h4>
@@ -976,7 +976,7 @@ export function RidePreviewModal({
 
                   {/* Formas de Pago */}
                   {invoice && (
-                    <div className="p-3.5 rounded-[6px] border border-slate-200 space-y-1.5">
+                    <div className="p-3.5 rounded-lg border border-slate-200 space-y-1.5">
                       <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
                         Formas de Pago
                       </h4>
@@ -1013,7 +1013,7 @@ export function RidePreviewModal({
                 {/* Columna Derecha: Cuadro Oficial de Totales */}
                 <div className="md:col-span-5 print:col-span-5">
                   {(isInvoice || isCreditNote || isDebitNote) ? (
-                    <div className="rounded-[6px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
+                    <div className="rounded-lg border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
                         <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
                         <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotal15)}</span>
@@ -1054,7 +1054,7 @@ export function RidePreviewModal({
                       </div>
                     </div>
                   ) : isWithholding ? (
-                    <div className="rounded-[6px] border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
+                    <div className="rounded-lg border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                       <div className="flex justify-between px-3.5 py-2 bg-slate-50">
                         <span className="font-bold text-slate-700">TOTAL BASE IMPONIBLE:</span>
                         <span className="font-mono font-semibold text-slate-900">
@@ -1069,7 +1069,7 @@ export function RidePreviewModal({
                       </div>
                     </div>
                   ) : (
-                    <div className="p-4 rounded-[6px] border border-slate-200 text-center bg-slate-50 text-slate-600">
+                    <div className="p-4 rounded-lg border border-slate-200 text-center bg-slate-50 text-slate-600">
                       <p className="font-semibold text-xs">Mercadería Despachada para Transporte</p>
                       <p className="text-[11px] mt-1 font-mono">Conforme Guía Oficial No. {docNumber}</p>
                     </div>
@@ -1099,7 +1099,7 @@ export function RidePreviewModal({
                   </p>
                 </div>
               ) : (
-                <div className="p-2.5 rounded-[6px] bg-slate-100 border border-slate-200 text-center space-y-0.5 print-avoid-break">
+                <div className="p-2.5 rounded-lg bg-slate-100 border border-slate-200 text-center space-y-0.5 print-avoid-break">
                   <p className="font-mono font-bold text-[11px] text-slate-900 uppercase">
                     {totalEnLetras}
                   </p>

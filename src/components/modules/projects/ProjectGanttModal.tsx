@@ -77,34 +77,34 @@ export function ProjectGanttModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-5xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-xl max-w-5xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-slate-50 via-white to-sky-50/40">
+        <div className="p-4 border-b border-[#003da6] flex flex-wrap items-center justify-between gap-3 bg-[#004ac6] text-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-blue-100 text-[#004ac6] border border-blue-200">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30">
                   Diagrama Cronograma / Gantt
                 </span>
-                <span className="text-xs font-bold text-slate-500">
+                <span className="text-xs font-bold text-white/80">
                   {project.type === "cliente" ? project.clientName : project.nodeName}
                 </span>
               </div>
-              <h3 className="font-extrabold text-sm text-slate-900 mt-0.5">{project.title}</h3>
+              <h3 className="font-extrabold text-sm text-white mt-0.5">{project.title}</h3>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="text-right text-xs">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Avance de Tareas</span>
-              <strong className="text-[#004ac6] font-mono text-sm">{completedCount}/{projectTasks.length} ({progressPercent}%)</strong>
+              <span className="text-[10px] font-bold uppercase text-white/70 block">Avance de Tareas</span>
+              <strong className="text-white font-mono text-sm">{completedCount}/{projectTasks.length} ({progressPercent}%)</strong>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -162,7 +162,7 @@ export function ProjectGanttModal({
             <h4 className="text-xs font-bold text-slate-800 mb-2">Desglose de Tareas & Hitos Técnicos:</h4>
 
             {projectTasks.length === 0 ? (
-              <div className="py-12 text-center bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+              <div className="py-12 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
                 <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-600">No hay tareas creadas en este proyecto.</p>
                 <p className="text-[11px] text-slate-400">Ingresa al Canvas del proyecto para asignar tareas y plazos.</p>

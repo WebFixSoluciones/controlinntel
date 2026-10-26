@@ -88,7 +88,7 @@ export function GeminiAssistantWidget() {
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-22 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] h-[560px] bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-22 right-6 z-50 w-96 max-w-[calc(100vw-3rem)] h-[560px] bg-white rounded-xl shadow-lumina-dropdown border border-[#e2e8f0] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           <div className="p-3.5 bg-[#004ac6] text-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-xs flex items-center justify-center text-amber-300 font-bold shadow-xs">
@@ -126,7 +126,7 @@ export function GeminiAssistantWidget() {
                   </div>
                 )}
                 <div
-                  className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
+                  className={`p-3 rounded-xl max-w-[85%] leading-relaxed ${
                     m.role === "user"
                       ? "bg-[#004ac6] text-white rounded-br-xs shadow-xs font-medium"
                       : "bg-white text-[#0b1c30] rounded-bl-xs border border-[#e2e8f0] shadow-2xs whitespace-pre-line"

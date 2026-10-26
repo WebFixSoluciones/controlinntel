@@ -120,7 +120,7 @@ export function LoginScreen() {
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#2563eb]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#712ae2]/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Header Branding */}
         <div className="p-8 pb-6 bg-[#f8f9ff] border-b border-[#e2e8f0] text-center relative">
           <div className="inline-flex items-center justify-center p-3.5 bg-white rounded-xl shadow-xs border border-[#e2e8f0] mb-3">

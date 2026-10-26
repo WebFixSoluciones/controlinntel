@@ -185,7 +185,7 @@ export function ProjectsManager() {
     <div className="space-y-6">
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900">{kpis.total}</span>
@@ -193,7 +193,7 @@ export function ProjectsManager() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Proceso</div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-blue-600">{kpis.enProceso}</span>
@@ -201,7 +201,7 @@ export function ProjectsManager() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Revisión</div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-amber-600">{kpis.enRevision}</span>
@@ -209,7 +209,7 @@ export function ProjectsManager() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Terminados</div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-black text-emerald-700">{kpis.terminados}</span>
@@ -219,7 +219,7 @@ export function ProjectsManager() {
       </div>
 
       {/* Filter, Search Bar & Actions */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -227,7 +227,7 @@ export function ProjectsManager() {
             placeholder="Buscar por nombre de proyecto, cliente o POP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
           />
         </div>
 
@@ -240,7 +240,7 @@ export function ProjectsManager() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
+            className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
           >
             <option value="todos">Estado: Todos</option>
             <option value="inicio">Inicio / Planeado</option>
@@ -254,7 +254,7 @@ export function ProjectsManager() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
+            className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
           >
             <option value="todos">Tipo: Todos</option>
             <option value="cliente">Asignado a Clientes</option>
@@ -266,7 +266,7 @@ export function ProjectsManager() {
           {/* Botones de Acción: Papelera y Nuevo Proyecto */}
           <button
             onClick={() => setIsTrashModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
             title="Papelera de reciclaje de proyectos eliminados"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -275,7 +275,7 @@ export function ProjectsManager() {
 
           <button
             onClick={handleOpenCreateProject}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Nuevo Proyecto</span>
@@ -284,19 +284,19 @@ export function ProjectsManager() {
       </div>
 
       {/* Master Projects Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+          <table className="table-fixed w-full text-left text-xs border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3.5 px-4">Nombre del Proyecto</th>
-                <th className="py-3.5 px-4">Cliente Asignado</th>
-                <th className="py-3.5 px-4">Fecha Inicio</th>
-                <th className="py-3.5 px-4">Fecha Fin</th>
-                <th className="py-3.5 px-4">Tareas Globales</th>
-                <th className="py-3.5 px-4">Presupuesto</th>
-                <th className="py-3.5 px-4">Estado</th>
-                <th className="py-3.5 px-4 text-center">Acciones</th>
+                <th className="py-3.5 px-4 w-[22%]">Nombre del Proyecto</th>
+                <th className="py-3.5 px-4 w-[18%]">Cliente Asignado</th>
+                <th className="py-3.5 px-4 w-[10%]">Fecha Inicio</th>
+                <th className="py-3.5 px-4 w-[10%]">Fecha Fin</th>
+                <th className="py-3.5 px-4 w-[13%]">Tareas Globales</th>
+                <th className="py-3.5 px-4 w-[10%]">Presupuesto</th>
+                <th className="py-3.5 px-4 w-[10%]">Estado</th>
+                <th className="py-3.5 px-4 w-[7%] text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -374,7 +374,7 @@ export function ProjectsManager() {
                       {/* 5. Tareas Globales (Píldora minimalista) */}
                       <td className="py-4 px-4">
                         <div
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${
                             totalTasks === 0
                               ? "bg-slate-100 text-slate-500 border-slate-200"
                               : completedTasks === totalTasks
@@ -385,7 +385,7 @@ export function ProjectsManager() {
                           <span className="font-bold">{completedTasks}/{totalTasks}</span>
                           <span className="text-[10px] opacity-75">tareas</span>
                           {totalTasks > 0 && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-white/80 shadow-2xs">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/80 shadow-2xs">
                               {taskPercent}%
                             </span>
                           )}

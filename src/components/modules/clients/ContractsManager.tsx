@@ -157,28 +157,28 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
     switch (contractStatus) {
       case "vigente":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Vigente
           </span>
         );
       case "por_renovar":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             Por Renovar
           </span>
         );
       case "vencido":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Vencido
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-200">
             {contractStatus}
           </span>
         );
@@ -287,7 +287,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           )}
 
           {/* Search & Filter Toolbar Card */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] p-4 shadow-lumina-card flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
               <div className="relative flex-1 min-w-[200px] max-w-md">
                 <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
@@ -296,7 +296,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   placeholder="Buscar contrato, servicio u homologación..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="w-full bg-white text-xs text-[#0b1c30] rounded-xl pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#cbd5e1] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
                 />
               </div>
 
@@ -304,7 +304,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                 <select
                   value={clientFilter}
                   onChange={(e) => setClientFilter(e.target.value)}
-                  className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer max-w-xs"
+                  className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer max-w-xs"
                 >
                   <option value="">Todos los Clientes</option>
                   {clients.map((c) => (
@@ -318,7 +318,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="bg-white text-xs font-medium text-[#434655] rounded-xl px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
+                className="bg-white text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#cbd5e1] focus:outline-hidden cursor-pointer"
               >
                 <option value="">Estado: Todos</option>
                 <option value="vigente">Vigente</option>
@@ -333,14 +333,14 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   type="date"
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
-                  className="bg-white text-xs rounded-xl px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
+                  className="bg-white text-xs rounded-lg px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
                 />
                 <span>a</span>
                 <input
                   type="date"
                   value={until}
                   onChange={(e) => setUntil(e.target.value)}
-                  className="bg-white text-xs rounded-xl px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
+                  className="bg-white text-xs rounded-lg px-2.5 py-1.5 border border-[#cbd5e1] text-[#0b1c30]"
                 />
               </div>
             </div>
@@ -348,7 +348,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
             {(query || clientFilter || status || from || until) && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#cbd5e1] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
                 <span>Limpiar</span>
@@ -357,20 +357,20 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
           </div>
 
           {/* Table Container Card */}
-          <div className="bg-white rounded-2xl border border-[#e2e8f0] shadow-lumina-card overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs min-w-[1000px]">
+              <table className="table-fixed w-full text-left text-xs border-collapse">
                 <caption className="sr-only">Contratos de clientes registrados</caption>
-                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
+                <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                   <tr>
-                    <th className="py-3.5 px-5">Cliente / Razón Social</th>
-                    <th className="py-3.5 px-5">N° Contrato</th>
-                    <th className="py-3.5 px-5">Servicio / Infraestructura</th>
-                    <th className="py-3.5 px-5">Homologación</th>
-                    <th className="py-3.5 px-5">Vigencia</th>
-                    <th className="py-3.5 px-5 text-center">Estado</th>
-                    <th className="py-3.5 px-5 text-right">Tarifa Mensual</th>
-                    <th className="py-3.5 px-5 text-right">Acciones</th>
+                    <th className="py-3.5 px-4 w-[20%]">Cliente / Razón Social</th>
+                    <th className="py-3.5 px-4 w-[14%]">N° Contrato</th>
+                    <th className="py-3.5 px-4 w-[20%]">Servicio / Infraestructura</th>
+                    <th className="py-3.5 px-4 w-[12%]">Homologación</th>
+                    <th className="py-3.5 px-4 w-[12%]">Vigencia</th>
+                    <th className="py-3.5 px-4 w-[10%] text-center">Estado</th>
+                    <th className="py-3.5 px-4 w-[6%] text-right">Tarifa</th>
+                    <th className="py-3.5 px-4 w-[6%] text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -448,20 +448,27 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
 
       {/* Contract Create/Edit Modal */}
       {isFormOpen && draft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden my-8">
-            <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-5 h-5 text-[#004ac6]" />
-                <h3 className="font-bold text-[#0b1c30] text-sm">
-                  {editingId ? `Editar Contrato: ${draft.contractNumber}` : "Registrar Contrato de Cliente"}
-                </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden my-8">
+            <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center shadow-xs">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm md:text-base">
+                    {editingId ? `Editar Contrato: ${draft.contractNumber}` : "Registrar Contrato de Cliente"}
+                  </h3>
+                  <p className="text-xs text-white/80">
+                    Administración de contratos de servicio y acuerdos de homologación
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsFormOpen(false)}
-                className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
+                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -472,7 +479,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   <select
                     required
                     disabled={!!clientId || !!editingId}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent disabled:bg-slate-100"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent disabled:bg-slate-100"
                     value={draft.clientId}
                     onChange={(e) => setDraft({ ...draft, clientId: e.target.value })}
                   >
@@ -490,7 +497,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   <input
                     required
                     type="text"
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#004ac6] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.contractNumber}
                     onChange={(e) => setDraft({ ...draft, contractNumber: e.target.value })}
                   />
@@ -501,7 +508,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   <input
                     required
                     type="text"
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.planName}
                     onChange={(e) => setDraft({ ...draft, planName: e.target.value })}
                   />
@@ -511,7 +518,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   <label className="font-bold text-[#434655] block mb-1">Código de Homologación ARCOTEL</label>
                   <input
                     type="text"
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.arcotelHomologationCode || ""}
                     onChange={(e) => setDraft({ ...draft, arcotelHomologationCode: e.target.value })}
                   />
@@ -522,7 +529,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   <input
                     required
                     type="date"
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.signedDate}
                     onChange={(e) => setDraft({ ...draft, signedDate: e.target.value })}
                   />
@@ -534,7 +541,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                     required
                     type="date"
                     min={draft.signedDate}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.expirationDate}
                     onChange={(e) => setDraft({ ...draft, expirationDate: e.target.value })}
                   />
@@ -547,7 +554,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                     type="number"
                     min="0"
                     step="0.01"
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.monthlyPrice}
                     onChange={(e) => setDraft({ ...draft, monthlyPrice: Number(e.target.value) })}
                   />
@@ -556,7 +563,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                 <div>
                   <label className="font-bold text-[#434655] block mb-1">Estado de Vigencia *</label>
                   <select
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.status}
                     onChange={(e) => setDraft({ ...draft, status: e.target.value as ClientContractInfo["status"] })}
                   >
@@ -572,7 +579,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   </label>
                   <textarea
                     rows={4}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent"
                     value={draft.notes || ""}
                     onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
                     placeholder="Detalles de ancho de banda, permanencia mínima, SLA, equipos entregados..."
@@ -581,7 +588,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
               </fieldset>
 
               {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{formError}</span>
                 </div>
@@ -592,14 +599,14 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                   type="button"
                   disabled={busy}
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2.5 text-[#737686] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  className="px-4 py-2.5 text-[#737686] hover:bg-slate-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={busy}
-                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-2"
                 >
                   {busy ? "Guardando..." : "Guardar Contrato"}
                 </button>

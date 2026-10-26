@@ -153,25 +153,25 @@ export function ProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white rounded-xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-white to-sky-50/30">
+        <div className="p-4 border-b border-[#003da6] flex items-center justify-between bg-[#004ac6] text-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#004ac6]/10 text-[#004ac6] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-white/10 text-white flex items-center justify-center">
               <Briefcase className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-[#0b1c30]">
+              <h3 className="font-extrabold text-sm text-white">
                 {projectToEdit ? "Editar Proyecto" : "Nuevo Proyecto"}
               </h3>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-white/80">
                 Gestión estructurada estilo Notion: canvas, presupuesto, fechas y tareas
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -190,7 +190,7 @@ export function ProjectModal({
               placeholder="Ej: Despliegue Enlace Dedicado 1Gbps / Tendido Troncal Fibra Óptica"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-semibold text-slate-900"
+              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-semibold text-slate-900"
             />
           </div>
 
@@ -203,7 +203,7 @@ export function ProjectModal({
               <button
                 type="button"
                 onClick={() => setType("cliente")}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                   type === "cliente"
                     ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
                     : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
@@ -216,7 +216,7 @@ export function ProjectModal({
               <button
                 type="button"
                 onClick={() => setType("infraestructura_interna")}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
                   type === "infraestructura_interna"
                     ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
                     : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
@@ -241,7 +241,7 @@ export function ProjectModal({
                   const c = clients.find((cl) => cl.id === e.target.value);
                   if (c) setClientName(c.businessName);
                 }}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="">-- Seleccionar Cliente --</option>
                 {clients.map((c) => (
@@ -263,7 +263,7 @@ export function ProjectModal({
                   const n = nodes.find((nd) => nd.id === e.target.value);
                   if (n) setNodeName(n.name);
                 }}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="">-- Seleccionar Nodo / POP --</option>
                 {nodes.map((n) => (
@@ -287,7 +287,7 @@ export function ProjectModal({
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
 
@@ -301,7 +301,7 @@ export function ProjectModal({
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
           </div>
@@ -320,7 +320,7 @@ export function ProjectModal({
                 placeholder="0.00"
                 value={estimatedBudget || ""}
                 onChange={(e) => setEstimatedBudget(parseFloat(e.target.value) || 0)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-mono focus:outline-hidden focus:border-[#004ac6]"
               />
             </div>
 
@@ -332,7 +332,7 @@ export function ProjectModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-                className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="inicio">Inicio / Planificación</option>
                 <option value="en_proceso">En Proceso / Ejecución</option>
@@ -354,13 +354,13 @@ export function ProjectModal({
               placeholder="Detalla los objetivos, especificaciones técnicas, metrajes o condiciones del proyecto..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all resize-none text-slate-800"
+              className="w-full text-xs p-3 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all resize-none text-slate-800"
             />
           </div>
 
           {/* Información del Canvas por Defecto */}
           {!projectToEdit && (
-            <div className="p-3 bg-sky-50/70 border border-sky-200/80 rounded-xl flex items-center gap-2 text-[11px] text-sky-900">
+            <div className="p-3 bg-sky-50/70 border border-sky-200/80 rounded-lg flex items-center gap-2 text-[11px] text-sky-900">
               <CheckCircle2 className="w-4 h-4 text-[#004ac6] shrink-0" />
               <span>
                 Este proyecto se creará con su propio <strong>Canvas personalizable</strong> configurado con los 4 estados estándar: <em>Inicio, En Proceso, Revisión y Terminado</em>.
@@ -373,14 +373,14 @@ export function ProjectModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50"
             >
               {busy ? "Guardando..." : projectToEdit ? "Guardar Cambios" : "Crear Proyecto"}
             </button>
