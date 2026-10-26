@@ -350,6 +350,16 @@ export type TicketDepartment =
   | "noc_redes"
   | "ventas";
 
+export type TicketCategory = "corte_fibra" | "atenuacion_alta" | "configuracion_ip" | "facturacion" | "otro";
+
+/** Asunto / motivo de ticket configurable por el administrador */
+export interface TicketSubject {
+  id: string;
+  name: string;
+  category: TicketCategory;
+  defaultDepartment: TicketDepartment;
+}
+
 export interface TicketMessage {
   id: string;
   authorId: string;
@@ -423,6 +433,48 @@ export interface MonthlyCharge {
   parentChargeId?: string;
   isOccasional?: boolean;
   invoiceNumber: string;
+  /** Comprobante de venta (Nota de Venta / Factura) al que está ligado este cobro */
+  invoiceId?: string;
+  /** Fecha de emisión del comprobante de venta */
+  saleDate?: string;
+  /** Historial de abonos / cobros registrados contra este comprobante */
+  payments?: ChargePayment[];
+  notes?: string;
+}
+
+/** Abono o cobro registrado contra un comprobante de venta */
+export interface ChargePayment {
+  id: string;
+  date: string;
+  amount: number;
+  method: string;
+  reference?: string;
+  bankAccountId?: string;
+  bankAccountName?: string;
+  /** Movimiento financiero generado (si el dinero ingresó en este momento) */
+  movementId?: string;
+  /** Si el abono proviene de un pago anticipado del cliente */
+  advanceId?: string;
+}
+
+/** Pago anticipado de un cliente (1, 2 o más meses por adelantado) */
+export interface ClientAdvance {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientRuc: string;
+  date: string;
+  amount: number;
+  remaining: number;
+  monthsCovered: number;
+  method: string;
+  reference?: string;
+  bankAccountId?: string;
+  bankAccountName?: string;
+  movementId?: string;
+  notes?: string;
+  status: "vigente" | "aplicado";
+  applications: { chargeId: string; invoiceNumber: string; amount: number; date: string }[];
 }
 
 export interface AuditLog {

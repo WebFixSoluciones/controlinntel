@@ -260,6 +260,8 @@ export interface UserModulePermissions {
   finanzas?: {
     enabled: boolean;
     submodules: {
+      cobranzas?: boolean;
+      gastos?: boolean;
       movimientos: boolean;
       bancos: boolean;
       cuentas_por_cobrar: boolean;

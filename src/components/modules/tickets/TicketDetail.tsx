@@ -83,7 +83,9 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
 
   const ticket = tickets.find((t) => t.id === id);
   const client = clients.find((c) => c.id === ticket?.clientId);
-  const service = clientServices.find((s) => s.clientId === ticket?.clientId);
+  const service =
+    clientServices.find((s) => s.id === ticket?.serviceId) ||
+    clientServices.find((s) => s.clientId === ticket?.clientId);
 
   // Assistance / Reply Box State
   const [replyMode, setReplyMode] = useState<"reply" | "note">("reply");
@@ -654,7 +656,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
               </div>
               <div className="bg-[#f8f9ff] p-3 rounded-xl border border-[#e2e8f0] space-y-1.5">
                 <div className="font-bold text-[#004ac6]">
-                  {ticket.serviceName || service?.planName || "Internet Fibra Óptica"}
+                  {ticket.serviceName || service?.planName || "Sin servicio asignado"}
                 </div>
                 {service?.ipv4Address && (
                   <div className="flex items-center justify-between text-[11px]">

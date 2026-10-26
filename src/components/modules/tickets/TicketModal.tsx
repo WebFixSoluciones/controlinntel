@@ -3,8 +3,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck, Search, ChevronDown, Check } from "lucide-react";
+import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck, Search, ChevronDown, Check, Settings2 } from "lucide-react";
 import { TicketDepartment, TicketPriority } from "@/types";
+import { TicketSubjectsModal } from "./TicketSubjectsModal";
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -12,21 +13,10 @@ interface TicketModalProps {
   initialClientId?: string;
 }
 
-const ISP_FAULT_TOPICS = [
-  { topic: "Corte de fibra óptica / Enlace caído", category: "corte_fibra" as const, defaultDept: "noc_redes" as TicketDepartment },
-  { topic: "Atenuación alta de potencia óptica (dBm fuera de rango)", category: "atenuacion_alta" as const, defaultDept: "soporte_tecnico" as TicketDepartment },
-  { topic: "Pérdida de sincronismo ONT / Falla de aprovisionamiento", category: "corte_fibra" as const, defaultDept: "soporte_tecnico" as TicketDepartment },
-  { topic: "Lentitud en horario pico / Saturación de enlace", category: "configuracion_ip" as const, defaultDept: "noc_redes" as TicketDepartment },
-  { topic: "Problemas de enrutamiento BGP / IP pública no responde", category: "configuracion_ip" as const, defaultDept: "noc_redes" as TicketDepartment },
-  { topic: "Consulta de saldo / Facturación no acreditada", category: "facturacion" as const, defaultDept: "facturacion" as TicketDepartment },
-  { topic: "Cambio de contraseña WiFi / Configuración LAN router", category: "otro" as const, defaultDept: "soporte_tecnico" as TicketDepartment },
-  { topic: "Reubicación física de acometida / Cambio de splitter", category: "corte_fibra" as const, defaultDept: "noc_redes" as TicketDepartment },
-  { topic: "Solicitud de cambio de plan / Upgrade de ancho de banda", category: "otro" as const, defaultDept: "ventas" as TicketDepartment },
-  { topic: "Otro motivo técnico (personalizado)", category: "otro" as const, defaultDept: "soporte_tecnico" as TicketDepartment },
-];
+const CUSTOM_TOPIC = "__custom__";
 
 export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalProps) {
-  const { addTicket, clients, clientServices, systemUsers } = useApp();
+  const { addTicket, clients, clientServices, systemUsers, ticketSubjects } = useApp();
   const { showError, showSuccess } = useToast();
 
   const [clientId, setClientId] = useState(() => initialClientId || clients[0]?.id || "");
@@ -57,7 +47,8 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isClientSearchOpen]);
-  const [selectedTopic, setSelectedTopic] = useState(ISP_FAULT_TOPICS[0].topic);
+  const [selectedTopic, setSelectedTopic] = useState<string>(ticketSubjects[0]?.id || CUSTOM_TOPIC);
+  const [isSubjectsOpen, setIsSubjectsOpen] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -70,7 +61,10 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
   );
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
-  const availableServices = useMemo(() => clientServices.filter((s) => s.clientId === clientId), [clientServices, clientId]);
+  const availableServices = useMemo(
+    () => clientServices.filter((s) => s.clientId === clientId && s.status !== "retirado"),
+    [clientServices, clientId]
+  );
 
   const filteredClients = useMemo(() => {
     if (!clientSearch.trim()) return clients.slice(0, 8);
@@ -83,25 +77,33 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
     ).slice(0, 10);
   }, [clients, clientSearch]);
 
-  // Sync selected service when client changes
+  // Mantener el servicio seleccionado válido al cambiar de cliente
   React.useEffect(() => {
-    if (availableServices.length > 0) {
-      setSelectedServiceId(availableServices[0].id);
-    } else {
+    if (availableServices.length === 0) {
       setSelectedServiceId("");
+    } else if (!availableServices.some((s) => s.id === selectedServiceId)) {
+      setSelectedServiceId(availableServices[0].id);
     }
-  }, [availableServices]);
+  }, [availableServices, selectedServiceId]);
+
+  // Mantener el asunto seleccionado válido según los asuntos configurados
+  React.useEffect(() => {
+    if (selectedTopic !== CUSTOM_TOPIC && !ticketSubjects.some((s) => s.id === selectedTopic)) {
+      setSelectedTopic(ticketSubjects[0]?.id || CUSTOM_TOPIC);
+    }
+  }, [ticketSubjects, selectedTopic]);
 
   if (!isOpen) return null;
 
-  const currentTopicConfig = ISP_FAULT_TOPICS.find((t) => t.topic === selectedTopic);
-  const effectiveTitle = selectedTopic === "Otro motivo técnico (personalizado)" ? customTitle : selectedTopic;
+  const currentSubject = ticketSubjects.find((s) => s.id === selectedTopic);
+  const isCustomTopic = selectedTopic === CUSTOM_TOPIC || !currentSubject;
+  const effectiveTitle = isCustomTopic ? customTitle : currentSubject!.name;
 
-  const handleTopicChange = (topic: string) => {
-    setSelectedTopic(topic);
-    const found = ISP_FAULT_TOPICS.find((t) => t.topic === topic);
+  const handleTopicChange = (topicId: string) => {
+    setSelectedTopic(topicId);
+    const found = ticketSubjects.find((s) => s.id === topicId);
     if (found) {
-      setDepartment(found.defaultDept);
+      setDepartment(found.defaultDepartment);
     }
   };
 
@@ -135,7 +137,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
         clientPhone: client?.phone,
         clientAddress: client?.address,
         serviceId: service?.id,
-        serviceName: service ? `${service.planName} (${service.ipv4Address})` : undefined,
+        serviceName: service ? service.planName : undefined,
         nodeName: service?.nodeName,
         department,
         title: effectiveTitle,
@@ -144,7 +146,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
         status: "abierto",
         assignedToId: assignedUser?.uid,
         assignedToName,
-        category: currentTopicConfig?.category || "otro",
+        category: currentSubject?.category || "otro",
       });
 
       showSuccess("Ticket WHMCS Generado", `Incidencia creada exitosamente y asignada al departamento correspondiente.`);
@@ -265,7 +267,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                 {availableServices.length > 0 ? (
                   availableServices.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.planName} - IP: {s.ipv4Address} ({s.nodeName || "Nodo Principal"})
+                      {s.planName}
                     </option>
                   ))
                 ) : (
@@ -327,26 +329,37 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
             </div>
           </div>
 
-          {/* Motivo Predefinido / Asunto */}
+          {/* Motivo / Asunto (configurable) */}
           <div>
-            <label className="font-bold text-[#434655] block mb-1">Motivo / Asunto *</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-[#434655] block">Motivo / Asunto *</label>
+              <button
+                type="button"
+                onClick={() => setIsSubjectsOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#004ac6] hover:underline cursor-pointer"
+              >
+                <Settings2 className="w-3 h-3" />
+                <span>Administrar asuntos</span>
+              </button>
+            </div>
             <select
-              value={selectedTopic}
+              value={isCustomTopic ? CUSTOM_TOPIC : selectedTopic}
               onChange={(e) => handleTopicChange(e.target.value)}
               className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
             >
-              {ISP_FAULT_TOPICS.map((item) => (
-                <option key={item.topic} value={item.topic}>
-                  {item.topic}
+              {ticketSubjects.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
                 </option>
               ))}
+              <option value={CUSTOM_TOPIC}>Otro motivo (escribir manualmente)</option>
             </select>
 
-            {selectedTopic === "Otro motivo técnico (personalizado)" && (
+            {isCustomTopic && (
               <input
                 type="text"
                 required
-                placeholder="Escribe el motivo técnico específico..."
+                placeholder="Escribe el motivo del ticket..."
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
                 className="w-full mt-2 bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
@@ -385,6 +398,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
           </div>
         </form>
       </div>
+      <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
     </div>
   );
 }

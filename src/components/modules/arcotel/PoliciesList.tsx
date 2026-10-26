@@ -2,7 +2,8 @@
 
 import React from "react";
 import { useApp } from "@/lib/state";
-import { ShieldCheck, Plus, Clock } from "lucide-react";
+import { useToast } from "@/lib/toast-context";
+import { ShieldCheck, Plus, Clock, Trash2 } from "lucide-react";
 import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 
 interface PoliciesListProps {
@@ -10,7 +11,8 @@ interface PoliciesListProps {
 }
 
 export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
-  const { policies } = useApp();
+  const { policies, deletePolicy } = useApp();
+  const { showConfirm, showSuccess, showError } = useToast();
 
   return (
     <div className="space-y-6">
@@ -36,18 +38,19 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
           <caption className="sr-only">Pólizas y garantías registradas para control ARCOTEL</caption>
           <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
             <tr>
-              <th scope="col" className="px-5 py-3.5 font-bold w-[22%]">Póliza / Código</th>
-              <th scope="col" className="px-5 py-3.5 font-bold w-[20%]">Aseguradora</th>
-              <th scope="col" className="px-5 py-3.5 font-bold w-[18%]">Cobertura</th>
-              <th scope="col" className="px-5 py-3.5 font-bold w-[16%]">Monto asegurado</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[20%]">Póliza / Código</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[18%]">Aseguradora</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[16%]">Cobertura</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[14%]">Monto asegurado</th>
               <th scope="col" className="px-5 py-3.5 font-bold w-[14%]">Vencimiento</th>
               <th scope="col" className="px-5 py-3.5 font-bold w-[10%]">Estado</th>
+              <th scope="col" className="px-5 py-3.5 font-bold w-[8%] text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
             {policies.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-xs italic text-[#737686]">
+                <td colSpan={7} className="px-5 py-10 text-center text-xs italic text-[#737686]">
                   No hay pólizas registradas aún. Usa “Registrar Póliza” para añadir la primera.
                 </td>
               </tr>
@@ -95,6 +98,30 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     }`}>
                       {dynamicStatus.replace("_", " ")}
                     </span>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        showConfirm(
+                          "¿Eliminar Póliza?",
+                          `¿Deseas eliminar la póliza ${p.policyNumber}? Esta acción no se puede deshacer.`,
+                          async () => {
+                            try {
+                              await deletePolicy(p.id);
+                              showSuccess("Póliza Eliminada", `La póliza ${p.policyNumber} fue eliminada.`);
+                            } catch {
+                              showError("Error", "No se pudo eliminar la póliza.");
+                            }
+                          },
+                          "Eliminar"
+                        )
+                      }
+                      className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                      title="Eliminar póliza"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
               );

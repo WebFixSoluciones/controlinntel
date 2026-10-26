@@ -13,8 +13,10 @@ import {
   Headphones,
   CheckCircle2,
   AlertTriangle,
+  ListChecks,
 } from "lucide-react";
 import { TicketDetail } from "./TicketDetail";
+import { TicketSubjectsModal } from "./TicketSubjectsModal";
 
 interface TicketsBoardProps {
   onOpenNewModal: () => void;
@@ -25,6 +27,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   const { showSuccess, showInfo } = useToast();
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [isSubjectsOpen, setIsSubjectsOpen] = useState(false);
 
   // Filters
   const [query, setQuery] = useState("");
@@ -184,14 +187,26 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             </button>
           </div>
 
-          <button
-            onClick={onOpenNewModal}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Abrir Ticket</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsSubjectsOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+              title="Configurar los asuntos disponibles al crear tickets"
+            >
+              <ListChecks className="w-4 h-4" />
+              <span>Asuntos</span>
+            </button>
+            <button
+              onClick={onOpenNewModal}
+              className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Abrir Ticket</span>
+            </button>
+          </div>
         </div>
+        <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
 
         {/* Filter Inputs Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">

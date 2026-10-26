@@ -266,13 +266,13 @@ export function SalesManager() {
             <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">Nro. Comprobante</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-4/12">Cliente / RUC</th>
-                  <th className="py-3 px-4 w-2/12">Método de Pago</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Total</th>
-                  <th className="py-3 px-4 w-1/12 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4 w-[14%]">Nro. Comprobante</th>
+                  <th className="py-3 px-4 w-[9%]">Fecha</th>
+                  <th className="py-3 px-4 w-[21%]">Cliente / RUC</th>
+                  <th className="py-3 px-4 w-[10%]">Método de Pago</th>
+                  <th className="py-3 px-4 w-[8%] text-right">Total</th>
+                  <th className="py-3 px-4 w-[16%] text-center">Estado SRI</th>
+                  <th className="py-3 px-4 w-[22%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">

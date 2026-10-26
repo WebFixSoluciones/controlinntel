@@ -113,7 +113,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: DollarSign,
     moduleKey: "finanzas",
     submodules: [
-      { key: "cobranzas_opex", label: "Cobranzas", href: "/finanzas?sub=cobranzas_opex", submoduleKey: "movimientos" },
+      { key: "cobranzas", label: "Cobranzas", href: "/finanzas?sub=cobranzas", submoduleKey: "cobranzas" },
+      { key: "gastos", label: "Gastos", href: "/finanzas?sub=gastos", submoduleKey: "gastos" },
       { key: "movimientos", label: "Movimientos", href: "/finanzas?sub=movimientos", submoduleKey: "movimientos" },
       { key: "bancos", label: "Bancos", href: "/finanzas?sub=bancos", submoduleKey: "bancos" },
       { key: "cuentas_por_cobrar", label: "Por Cobrar", href: "/finanzas?sub=cuentas_por_cobrar", submoduleKey: "cuentas_por_cobrar" },

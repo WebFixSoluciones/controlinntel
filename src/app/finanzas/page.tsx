@@ -22,10 +22,13 @@ import { AccountsReceivableTab } from "@/components/modules/finance/AccountsRece
 import { AccountsPayableTab } from "@/components/modules/finance/AccountsPayableTab";
 import { FinancialReportsTab } from "@/components/modules/finance/FinancialReportsTab";
 import { FinanceDashboard } from "@/components/modules/finance/FinanceDashboard";
+import { ExpensesManager } from "@/components/modules/finance/ExpensesManager";
 import { FinanceErrorBoundary } from "@/components/modules/finance/FinanceErrorBoundary";
 
 export type FinanceSubmoduleTab =
+  | "cobranzas"
   | "cobranzas_opex"
+  | "gastos"
   | "general"
   | "movimientos"
   | "bancos"
@@ -41,11 +44,18 @@ const FINANCE_TABS: {
   href: string;
 }[] = [
   {
-    id: "cobranzas_opex",
-    label: "Cobranzas y Gastos",
+    id: "cobranzas",
+    label: "Cobranzas",
     icon: TrendingUp,
-    submoduleKey: "movimientos",
-    href: "/finanzas?sub=cobranzas_opex",
+    submoduleKey: "cobranzas",
+    href: "/finanzas?sub=cobranzas",
+  },
+  {
+    id: "gastos",
+    label: "Gastos",
+    icon: Receipt,
+    submoduleKey: "gastos",
+    href: "/finanzas?sub=gastos",
   },
   {
     id: "movimientos",
@@ -90,6 +100,8 @@ function FinanzasContent() {
   const router = useRouter();
 
   const canAccessFinanzas = canAccessModule(currentUser, "finanzas");
+  const canCobranzas = canAccessSubmodule(currentUser, "finanzas", "cobranzas");
+  const canGastos = canAccessSubmodule(currentUser, "finanzas", "gastos");
   const canMovimientos = canAccessSubmodule(currentUser, "finanzas", "movimientos");
   const canBancos = canAccessSubmodule(currentUser, "finanzas", "bancos");
   const canCxC = canAccessSubmodule(currentUser, "finanzas", "cuentas_por_cobrar");
@@ -97,14 +109,15 @@ function FinanzasContent() {
   const canReportes = canAccessSubmodule(currentUser, "finanzas", "reportes");
 
   const rawSubParam = searchParams.get("sub");
-  const subParam = (rawSubParam as FinanceSubmoduleTab) || "cobranzas_opex";
-  const [activeTab, setActiveTab] = useState<FinanceSubmoduleTab>(subParam);
+  const normalizedParam: FinanceSubmoduleTab =
+    rawSubParam === "cobranzas_opex" ? "cobranzas" : ((rawSubParam as FinanceSubmoduleTab) || "cobranzas");
+  const [activeTab, setActiveTab] = useState<FinanceSubmoduleTab>(normalizedParam);
 
   useEffect(() => {
-    if (subParam) {
-      setActiveTab(subParam);
+    if (rawSubParam) {
+      setActiveTab(rawSubParam === "cobranzas_opex" ? "cobranzas" : (rawSubParam as FinanceSubmoduleTab));
     }
-  }, [subParam]);
+  }, [rawSubParam]);
 
   useEffect(() => {
     const handleReset = (event: any) => {
@@ -113,7 +126,7 @@ function FinanzasContent() {
         if (detail?.key) {
           setActiveTab(detail.key as FinanceSubmoduleTab);
         } else {
-          setActiveTab("cobranzas_opex");
+          setActiveTab("cobranzas");
         }
       }
     };
@@ -124,7 +137,18 @@ function FinanzasContent() {
   }, []);
 
   let resolvedTab: FinanceSubmoduleTab = activeTab;
-  if (resolvedTab === "movimientos" && !canMovimientos) {
+  if (resolvedTab === "cobranzas_opex") resolvedTab = "cobranzas";
+  if (resolvedTab === "cobranzas" && !canCobranzas) {
+    if (canGastos) resolvedTab = "gastos";
+    else if (canMovimientos) resolvedTab = "movimientos";
+    else if (canBancos) resolvedTab = "bancos";
+    else if (canCxC) resolvedTab = "cuentas_por_cobrar";
+    else if (canCxP) resolvedTab = "cuentas_por_pagar";
+    else if (canReportes) resolvedTab = "reportes";
+  } else if (resolvedTab === "gastos" && !canGastos) {
+    if (canCobranzas) resolvedTab = "cobranzas";
+    else if (canMovimientos) resolvedTab = "movimientos";
+  } else if (resolvedTab === "movimientos" && !canMovimientos) {
     if (canBancos) resolvedTab = "bancos";
     else if (canCxC) resolvedTab = "cuentas_por_cobrar";
     else if (canCxP) resolvedTab = "cuentas_por_pagar";
@@ -154,7 +178,8 @@ function FinanzasContent() {
   }
 
   const visibleTabs = FINANCE_TABS.filter((tab) => {
-    if (tab.id === "cobranzas_opex") return true;
+    if (tab.id === "cobranzas" || tab.id === "cobranzas_opex") return canCobranzas;
+    if (tab.id === "gastos") return canGastos;
     return canAccessSubmodule(currentUser, "finanzas", tab.submoduleKey);
   });
 
@@ -166,7 +191,8 @@ function FinanzasContent() {
           const Icon = tab.icon;
           const isActive =
             resolvedTab === tab.id ||
-            (tab.id === "cobranzas_opex" && resolvedTab === "general");
+            ((tab.id === "cobranzas" || (tab.id as string) === "cobranzas_opex") &&
+              (resolvedTab === "cobranzas" || resolvedTab === "general"));
 
           return (
             <button
@@ -214,7 +240,24 @@ function FinanzasContent() {
       {/* Submodule View Content */}
       <div className="w-full">
         <FinanceErrorBoundary key={resolvedTab}>
-          {(resolvedTab === "cobranzas_opex" || resolvedTab === "general") && <FinanceDashboard />}
+          {(resolvedTab === "cobranzas" || resolvedTab === "general") && (
+            canCobranzas ? <FinanceDashboard /> : (
+              <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
+                <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
+                <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Cobranzas Restringido</h3>
+                <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para gestionar cobranzas.</p>
+              </div>
+            )
+          )}
+          {resolvedTab === "gastos" && (
+            canGastos ? <ExpensesManager /> : (
+              <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
+                <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
+                <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Gastos Restringido</h3>
+                <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para ver ni registrar gastos.</p>
+              </div>
+            )
+          )}
           {resolvedTab === "movimientos" && (canMovimientos ? <MovementsTab /> : (
             <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
               <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />

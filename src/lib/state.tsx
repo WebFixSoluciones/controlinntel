@@ -14,8 +14,11 @@ import {
   Ticket,
   TicketStatus,
   TicketMessage,
+  TicketSubject,
   Expense,
   MonthlyCharge,
+  ChargePayment,
+  ClientAdvance,
   AuditLog,
   UserProfile,
   UserRole,
@@ -161,6 +164,10 @@ interface AppContextType {
   policies: ArcotelPolicy[];
   vault: VaultCredential[];
   tickets: Ticket[];
+  ticketSubjects: TicketSubject[];
+  addTicketSubject: (subject: Omit<TicketSubject, "id">) => Promise<void>;
+  updateTicketSubject: (id: string, updates: Partial<TicketSubject>) => Promise<void>;
+  deleteTicketSubject: (id: string) => Promise<void>;
   expenses: Expense[];
   monthlyCharges: MonthlyCharge[];
   auditLogs: AuditLog[];
@@ -206,6 +213,7 @@ interface AppContextType {
   emitRecurringInvoiceForClient: (clientId: string, month: number, year: number) => Promise<SriInvoice | null>;
 
   addPolicy: (policy: Omit<ArcotelPolicy, "id">) => Promise<void>;
+  deletePolicy: (id: string) => Promise<void>;
   updatePolicy: (id: string, updates: Partial<ArcotelPolicy>) => Promise<void>;
 
   addVaultCredential: (cred: Omit<VaultCredential, "id" | "updatedAt">) => Promise<void>;
@@ -243,6 +251,27 @@ interface AppContextType {
     bankAccountId?: string
   ) => Promise<void>;
   addMonthlyCharge: (charge: Omit<MonthlyCharge, "id">) => Promise<void>;
+  updateMonthlyCharge: (id: string, updates: Partial<MonthlyCharge>) => Promise<void>;
+  deleteMonthlyCharge: (id: string) => Promise<void>;
+  addPaymentToCharge: (
+    chargeId: string,
+    payment: {
+      amount: number;
+      method: string;
+      reference?: string;
+      bankAccountId?: string;
+      advanceId?: string;
+      notes?: string;
+      date?: string;
+    }
+  ) => Promise<void>;
+
+  clientAdvances: ClientAdvance[];
+  addClientAdvance: (
+    advance: Omit<ClientAdvance, "id" | "remaining" | "status" | "applications">
+  ) => Promise<ClientAdvance>;
+  applyClientAdvance: (advanceId: string, chargeId: string, amount: number) => Promise<void>;
+  deleteClientAdvance: (id: string) => Promise<void>;
 
   // Inventory Module
   inventoryProducts: InventoryProduct[];
@@ -418,8 +447,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [policies, setPolicies] = useState<ArcotelPolicy[]>(INITIAL_POLICIES);
   const [vault, setVault] = useState<VaultCredential[]>(INITIAL_VAULT);
   const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [ticketSubjects, setTicketSubjects] = useState<TicketSubject[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
+  const [clientAdvances, setClientAdvances] = useState<ClientAdvance[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
 
   // Projects & Tasks State (Notion-style hierarchy)
@@ -608,8 +639,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.policies)) setPolicies(p.policies);
           if (Array.isArray(p.vault)) setVault(p.vault);
           if (Array.isArray(p.tickets)) setTickets(p.tickets);
+          if (Array.isArray(p.ticketSubjects)) setTicketSubjects(p.ticketSubjects);
           if (Array.isArray(p.expenses)) setExpenses(p.expenses);
           if (Array.isArray(p.monthlyCharges)) setMonthlyCharges(p.monthlyCharges);
+          if (Array.isArray(p.clientAdvances)) setClientAdvances(p.clientAdvances);
           if (Array.isArray(p.auditLogs)) setAuditLogs(p.auditLogs);
           if (Array.isArray(p.projects)) setProjects(p.projects);
           if (Array.isArray(p.clientProjects)) setClientProjects(p.clientProjects);
@@ -750,8 +783,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           policies,
           vault,
           tickets,
+          ticketSubjects,
           expenses,
           monthlyCharges,
+          clientAdvances,
           auditLogs,
           projects,
           clientProjects,
@@ -797,8 +832,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     policies,
     vault,
     tickets,
+    ticketSubjects,
     expenses,
     monthlyCharges,
+    clientAdvances,
     auditLogs,
     projects,
     clientProjects,
@@ -1026,8 +1063,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "policies", setter: setPolicies, initialData: INITIAL_POLICIES },
       { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
       { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
+      { name: "ticketSubjects", setter: setTicketSubjects, initialData: [] },
       { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
       { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
+      { name: "clientAdvances", setter: setClientAdvances, initialData: [] },
       { name: "projects", setter: setProjects, initialData: INITIAL_PROJECTS },
       { name: "clientProjects", setter: setClientProjects, initialData: INITIAL_PROJECT_TASKS },
       { name: "clientQuotes", setter: setClientQuotes, initialData: INITIAL_QUOTES },
@@ -1192,6 +1231,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return exists ? prev.map((c) => (c.id === targetId ? ({ ...c, ...recordWithId } as MonthlyCharge) : c)) : [...prev, recordWithId as MonthlyCharge];
         });
         break;
+      case "clientAdvances":
+        setClientAdvances((prev) => {
+          const exists = prev.some((a) => a.id === targetId);
+          return exists ? prev.map((a) => (a.id === targetId ? ({ ...a, ...recordWithId } as ClientAdvance) : a)) : [...prev, recordWithId as ClientAdvance];
+        });
+        break;
+      case "ticketSubjects":
+        setTicketSubjects((prev) => {
+          const exists = prev.some((s) => s.id === targetId);
+          return exists ? prev.map((s) => (s.id === targetId ? ({ ...s, ...recordWithId } as TicketSubject) : s)) : [...prev, recordWithId as TicketSubject];
+        });
+        break;
       case "vault":
         setVault((prev) => {
           const exists = prev.some((v) => v.id === targetId);
@@ -1316,6 +1367,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       case "tickets": setTickets((prev) => prev.filter((t) => t.id !== id)); break;
       case "expenses": setExpenses((prev) => prev.filter((e) => e.id !== id)); break;
       case "monthlyCharges": setMonthlyCharges((prev) => prev.filter((c) => c.id !== id)); break;
+      case "clientAdvances": setClientAdvances((prev) => prev.filter((a) => a.id !== id)); break;
+      case "ticketSubjects": setTicketSubjects((prev) => prev.filter((s) => s.id !== id)); break;
       case "vault": setVault((prev) => prev.filter((v) => v.id !== id)); break;
       case "clientVaultItems": setClientVaultItems((prev) => prev.filter((v) => v.id !== id)); break;
       case "clientProjects": setClientProjects((prev) => prev.filter((p) => p.id !== id)); break;
@@ -1585,6 +1638,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setClientContracts((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
+  };
+
+  // Asuntos de Tickets configurables
+  const addTicketSubject = async (subject: Omit<TicketSubject, "id">) => {
+    const newSubject: TicketSubject = { ...subject, id: "tsub-" + Date.now() };
+    await syncToFirestore("ticketSubjects", newSubject.id, newSubject);
+    setTicketSubjects((prev) => [...prev, newSubject]);
+  };
+
+  const updateTicketSubject = async (id: string, updates: Partial<TicketSubject>) => {
+    await syncToFirestore("ticketSubjects", id, updates);
+    setTicketSubjects((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  };
+
+  const deleteTicketSubject = async (id: string) => {
+    await deleteFromFirestore("ticketSubjects", id);
+    setTicketSubjects((prev) => prev.filter((s) => s.id !== id));
   };
 
   // Hosting & Dominios
@@ -1860,6 +1930,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("GENERATE_DOC", `Póliza ARCOTEL: ${newPolicy.policyNumber}`, `$${newPolicy.insuredAmount}`);
   };
 
+  const deletePolicy = async (id: string) => {
+    await deleteFromFirestore("policies", id);
+    setPolicies((prev) => prev.filter((p) => p.id !== id));
+  };
+
   const updatePolicy = async (id: string, updates: Partial<ArcotelPolicy>) => {
     await syncToFirestore("policies", id, updates);
     setPolicies((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
@@ -2115,6 +2190,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog("CREATE_EXPENSE", `Factura Manual: ${newCharge.invoiceNumber}`, `$${newCharge.total} USD - ${newCharge.clientName}`);
   };
 
+  const addPaymentToCharge = async (
+    chargeId: string,
+    payment: {
+      amount: number;
+      method: string;
+      reference?: string;
+      bankAccountId?: string;
+      advanceId?: string;
+      notes?: string;
+      date?: string;
+    }
+  ) => {
+    const charge = monthlyCharges.find((c) => c.id === chargeId);
+    if (!charge) return;
+
+    const payAmount = Math.max(0, Math.round(payment.amount * 100) / 100);
+    const currentPaid = Number(charge.paidAmount || (charge.status === "pagado" ? charge.total : 0));
+    const newTotalPaid = Math.min(charge.total, Math.round((currentPaid + payAmount) * 100) / 100);
+    const currentBalance =
+      charge.balanceRemaining !== undefined
+        ? charge.balanceRemaining
+        : Math.max(0, charge.total - currentPaid);
+    const newBalance = Math.max(0, Math.round((currentBalance - payAmount) * 100) / 100);
+    const newStatus: "pagado" | "parcial" = newBalance <= 0.009 ? "pagado" : "parcial";
+    const payDate = payment.date || getEcuadorDate();
+
+    const targetBank = payment.bankAccountId
+      ? bankAccounts.find((b) => b.id === payment.bankAccountId)
+      : bankAccounts[0];
+
+    const newPaymentRecord: ChargePayment = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      date: payDate,
+      amount: payAmount,
+      method: payment.method,
+      reference: payment.reference || "",
+      bankAccountId: targetBank?.id,
+      bankAccountName: targetBank?.bankName,
+      advanceId: payment.advanceId,
+    };
+
+    const updatedCharge: MonthlyCharge = {
+      ...charge,
+      paidAmount: newTotalPaid,
+      balanceRemaining: newBalance,
+      status: newStatus,
+      paymentDate: payDate,
+      paymentMethod: payment.method,
+      paymentReference: payment.reference || charge.paymentReference,
+      payments: [...(charge.payments || []), newPaymentRecord],
+      notes: payment.notes
+        ? `${charge.notes ? charge.notes + " | " : ""}${payment.notes}`
+        : charge.notes,
+    };
+
+    await syncToFirestore("monthlyCharges", chargeId, updatedCharge);
+    setMonthlyCharges((prev) => prev.map((c) => (c.id === chargeId ? updatedCharge : c)));
+
+    // Si no es aplicación de anticipo previo (es dinero nuevo), registrar movimiento y actualizar banco
+    if (!payment.advanceId && targetBank && payAmount > 0) {
+      const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
+        payment.method.toLowerCase().includes("efectivo")
+          ? "efectivo"
+          : payment.method.toLowerCase().includes("cheque")
+          ? "cheque"
+          : "transferencia";
+
+      await addFinancialMovement({
+        type: "ingreso",
+        date: payDate,
+        amount: payAmount,
+        category: "cobro_cliente",
+        description: `Abono a Comprobante ${charge.invoiceNumber} - ${charge.clientName}`,
+        bankAccountId: targetBank.id,
+        bankAccountName: targetBank.bankName,
+        paymentMethod: normalizedMethod,
+        referenceNumber: payment.reference || undefined,
+        relatedEntityId: charge.invoiceId || charge.id,
+      });
+    }
+
+    // Actualizar saldo pendiente en la ficha del cliente
+    if (charge.clientId && charge.clientId !== "cf-9999999999999") {
+      const clientObj = clients.find((c) => c.id === charge.clientId);
+      if (clientObj) {
+        const newBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - payAmount) * 100) / 100);
+        await syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
+        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
+      }
+    }
+
+    addAuditLog(
+      "EXPORT_BILLING",
+      `Abono Comprobante: ${charge.invoiceNumber}`,
+      `$${payAmount} USD (${newStatus.toUpperCase()}) - Saldo restante: $${newBalance} USD`
+    );
+  };
+
   const markChargeAsPaid = async (
     chargeId: string,
     method: string,
@@ -2125,60 +2298,188 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ) => {
     const charge = monthlyCharges.find((c) => c.id === chargeId);
     if (!charge) return;
+    const paymentAmount =
+      paidAmount !== undefined
+        ? paidAmount
+        : (charge.balanceRemaining !== undefined ? charge.balanceRemaining : Math.max(0, charge.total - (charge.paidAmount || 0)));
 
-    const paymentAmount = paidAmount !== undefined ? paidAmount : charge.total;
-    const currentPaid = charge.paidAmount || (charge.status === "pagado" ? charge.total : 0);
-    const newTotalPaid = Math.min(charge.total, Math.round((currentPaid + paymentAmount) * 100) / 100);
-    const newRemaining =
-      remainingBalance !== undefined
-        ? Math.max(0, Math.round(remainingBalance * 100) / 100)
-        : Math.max(0, Math.round((charge.total - newTotalPaid) * 100) / 100);
-    const newStatus: "pagado" | "parcial" = newRemaining <= 0.009 ? "pagado" : "parcial";
+    await addPaymentToCharge(chargeId, {
+      amount: paymentAmount,
+      method,
+      reference,
+      bankAccountId,
+    });
+  };
 
-    const updated: Partial<MonthlyCharge> = {
-      status: newStatus,
-      paymentDate: getEcuadorDate(),
-      paymentMethod: method,
-      paymentReference: reference || "COBRO-CLIENTE",
-      paidAmount: newTotalPaid,
-      balanceRemaining: newRemaining,
+  const updateMonthlyCharge = async (id: string, updates: Partial<MonthlyCharge>) => {
+    await syncToFirestore("monthlyCharges", id, updates);
+    setMonthlyCharges((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+    addAuditLog("UPDATE_CLIENT", `Cobro Modificado: ${id}`, "Actualización de datos");
+  };
+
+  const deleteMonthlyCharge = async (id: string) => {
+    const charge = monthlyCharges.find((c) => c.id === id);
+    if (!charge) return;
+
+    const linkedMovs = financialMovements.filter(
+      (m) => m.relatedEntityId === charge.id || (charge.invoiceId && m.relatedEntityId === charge.invoiceId)
+    );
+    for (const mov of linkedMovs) {
+      if (mov.bankAccountId) {
+        const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+        if (bank) {
+          const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
+          await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
+          setBankAccounts((prev) =>
+            prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+          );
+        }
+      }
+      await deleteFromFirestore("financialMovements", mov.id);
+    }
+    if (linkedMovs.length > 0) {
+      const linkedIds = new Set(linkedMovs.map((m) => m.id));
+      setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
+    }
+
+    await deleteFromFirestore("monthlyCharges", id);
+    setMonthlyCharges((prev) => prev.filter((c) => c.id !== id));
+    addAuditLog(
+      "UPDATE_CLIENT",
+      `Cobro Eliminado: ${charge.invoiceNumber}`,
+      `Cliente: ${charge.clientName} - Total: $${charge.total}`
+    );
+  };
+
+  const addClientAdvance = async (
+    advanceData: Omit<ClientAdvance, "id" | "remaining" | "status" | "applications">
+  ): Promise<ClientAdvance> => {
+    const id = `adv-${Date.now()}`;
+    const newAdvance: ClientAdvance = {
+      ...advanceData,
+      id,
+      remaining: advanceData.amount,
+      status: "vigente",
+      applications: [],
     };
 
-    await syncToFirestore("monthlyCharges", chargeId, updated);
-    setMonthlyCharges((prev) =>
-      prev.map((c) => (c.id === chargeId ? { ...c, ...updated } : c))
-    );
+    await syncToFirestore("clientAdvances", id, newAdvance);
+    setClientAdvances((prev) => [newAdvance, ...prev]);
 
-    // Acreditar en la cuenta bancaria seleccionada (o la primera activa) y registrar en Movimientos
-    const targetBank =
-      bankAccounts.find((b) => b.id === bankAccountId) ||
-      bankAccounts.find((b) => b.status === "activa") ||
-      bankAccounts[0];
-    if (targetBank && paymentAmount > 0) {
-      const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
-        method.toLowerCase().includes("efectivo")
-          ? "efectivo"
-          : method.toLowerCase().includes("cheque")
-          ? "cheque"
-          : "transferencia";
-      await addFinancialMovement({
-        type: "ingreso",
-        date: getEcuadorDate(),
-        amount: paymentAmount,
-        category: "cobro_cliente",
-        description: `Cobro ${charge.invoiceNumber} - ${charge.clientName}`,
-        bankAccountId: targetBank.id,
-        bankAccountName: targetBank.bankName,
-        paymentMethod: normalizedMethod,
-        referenceNumber: reference || undefined,
-      });
+    if (advanceData.bankAccountId && advanceData.amount > 0) {
+      const targetBank = bankAccounts.find((b) => b.id === advanceData.bankAccountId);
+      if (targetBank) {
+        const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
+          advanceData.method?.toLowerCase().includes("efectivo")
+            ? "efectivo"
+            : advanceData.method?.toLowerCase().includes("cheque")
+            ? "cheque"
+            : "transferencia";
+
+        await addFinancialMovement({
+          type: "ingreso",
+          date: advanceData.date,
+          amount: advanceData.amount,
+          category: "cobro_cliente",
+          description: `Pago Anticipado (${advanceData.monthsCovered || 1} meses) - ${advanceData.clientName}`,
+          bankAccountId: targetBank.id,
+          bankAccountName: targetBank.bankName,
+          paymentMethod: normalizedMethod,
+          referenceNumber: advanceData.reference || undefined,
+          relatedEntityId: id,
+        });
+      }
     }
 
     addAuditLog(
       "EXPORT_BILLING",
-      `Cobro: ${charge.invoiceNumber}`,
-      `Registrado cobro de $${paymentAmount} USD (${newStatus.toUpperCase()}) vía ${method}`
+      `Pago Anticipado Registrado: ${advanceData.clientName}`,
+      `$${advanceData.amount} USD por ${advanceData.monthsCovered || 1} mes(es) adelantado(s)`
     );
+
+    return newAdvance;
+  };
+
+  const applyClientAdvance = async (
+    advanceId: string,
+    chargeId: string,
+    amount: number
+  ): Promise<void> => {
+    const advance = clientAdvances.find((a) => a.id === advanceId);
+    const charge = monthlyCharges.find((c) => c.id === chargeId);
+    if (!advance || !charge) throw new Error("Anticipo o cobro no encontrado");
+
+    const chargeBalance =
+      charge.balanceRemaining !== undefined
+        ? charge.balanceRemaining
+        : Math.max(0, charge.total - (charge.paidAmount || 0));
+
+    const applyAmount = Math.min(
+      Math.round(amount * 100) / 100,
+      advance.remaining,
+      chargeBalance
+    );
+    if (applyAmount <= 0) return;
+
+    const newAdvRemaining = Math.max(0, Math.round((advance.remaining - applyAmount) * 100) / 100);
+    const newAdvStatus: "vigente" | "aplicado" = newAdvRemaining <= 0.009 ? "aplicado" : "vigente";
+    const updatedAdvance: ClientAdvance = {
+      ...advance,
+      remaining: newAdvRemaining,
+      status: newAdvStatus,
+      applications: [
+        ...(advance.applications || []),
+        {
+          chargeId,
+          invoiceNumber: charge.invoiceNumber,
+          amount: applyAmount,
+          date: getEcuadorDate(),
+        },
+      ],
+    };
+
+    await syncToFirestore("clientAdvances", advanceId, updatedAdvance);
+    setClientAdvances((prev) => prev.map((a) => (a.id === advanceId ? updatedAdvance : a)));
+
+    await addPaymentToCharge(chargeId, {
+      amount: applyAmount,
+      method: "Anticipo de Cliente",
+      reference: `Anticipo ${advance.id}`,
+      advanceId: advance.id,
+      notes: `Aplicación de saldo a favor de anticipo por $${applyAmount}`,
+      date: getEcuadorDate(),
+    });
+  };
+
+  const deleteClientAdvance = async (id: string): Promise<void> => {
+    const adv = clientAdvances.find((a) => a.id === id);
+    if (!adv) return;
+    if ((adv.applications || []).length > 0) {
+      throw new Error("No se puede eliminar un anticipo que ya ha sido aplicado a cobros.");
+    }
+
+    const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === id);
+    for (const mov of linkedMovs) {
+      if (mov.bankAccountId) {
+        const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
+        if (bank) {
+          const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
+          await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
+          setBankAccounts((prev) =>
+            prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
+          );
+        }
+      }
+      await deleteFromFirestore("financialMovements", mov.id);
+    }
+    if (linkedMovs.length > 0) {
+      const linkedIds = new Set(linkedMovs.map((m) => m.id));
+      setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
+    }
+
+    await deleteFromFirestore("clientAdvances", id);
+    setClientAdvances((prev) => prev.filter((a) => a.id !== id));
+    addAuditLog("UPDATE_CLIENT", `Anticipo Eliminado: ${adv.clientName}`, `$${adv.amount} USD`);
   };
 
   // ==========================================
@@ -2777,6 +3078,76 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           syncToFirestore("clients", clientObj.id, { currentBalance: newClientBal });
         }
       }
+
+      // Registro y vinculación automática del comprobante de venta a Cobranzas
+      const chargeId = `chg-inv-${newInvoice.id}`;
+      const balanceRemaining =
+        creditPart > 0
+          ? creditPart
+          : data.paymentMethod === "credito"
+          ? data.total
+          : Math.max(0, Math.round((newInvoice.total - paidImmediate) * 100) / 100);
+
+      const chargeStatus: "pagado" | "parcial" | "pendiente" =
+        balanceRemaining <= 0.009
+          ? "pagado"
+          : paidImmediate > 0
+          ? "parcial"
+          : "pendiente";
+
+      const initialPayments: ChargePayment[] = [];
+      if (paidImmediate > 0) {
+        initialPayments.push({
+          id: `pay-init-${Date.now()}`,
+          date: dateStr,
+          amount: paidImmediate,
+          method: data.paymentMethod === "credito" ? "efectivo" : data.paymentMethod,
+          reference: data.transferenciaRef || data.tarjetaRef || documentNumber,
+          bankAccountId: data.bankAccountId,
+          bankAccountName: data.bankAccountId
+            ? bankAccounts.find((b) => b.id === data.bankAccountId)?.bankName
+            : undefined,
+        });
+      }
+
+      const dateParts = dateStr.split("-");
+      const chargeYear = parseInt(dateParts[0] || "2026", 10);
+      const chargeMonth = parseInt(dateParts[1] || "1", 10);
+
+      const newCharge: MonthlyCharge = {
+        id: chargeId,
+        invoiceId: newInvoice.id,
+        invoiceNumber: newInvoice.documentNumber,
+        saleDate: dateStr,
+        clientId: data.clientId || "cf-9999999999999",
+        clientName: newInvoice.clientName,
+        clientRuc: newInvoice.clientRuc,
+        month: chargeMonth,
+        year: chargeYear,
+        serviceDescription:
+          newInvoice.items.map((i) => i.name).join(", ") ||
+          (docType === "nota_venta" ? "Nota de Venta" : "Factura de Venta"),
+        subtotal: (newInvoice.subtotal15 || 0) + (newInvoice.subtotal0 || 0),
+        ivaAmount: newInvoice.ivaTotal || 0,
+        maxPaymentDate: data.creditDueDate || dateStr,
+        total: newInvoice.total,
+        paidAmount: paidImmediate,
+        balanceRemaining,
+        status: chargeStatus,
+        paymentMethod: data.paymentMethod,
+        paymentReference: data.transferenciaRef || data.tarjetaRef || undefined,
+        paymentDate: paidImmediate > 0 ? dateStr : undefined,
+        payments: initialPayments,
+        notes: data.notes || undefined,
+      };
+
+      setMonthlyCharges((prev) => [
+        newCharge,
+        ...prev.filter(
+          (c) => c.invoiceId !== newInvoice.id && c.invoiceNumber !== newInvoice.documentNumber
+        ),
+      ]);
+      void syncToFirestore("monthlyCharges", newCharge.id, newCharge);
 
       // Sincronización y seguimiento automático de servicios del cliente desde Nota de Venta / Factura
       if (data.clientId && data.clientId !== "cf-9999999999999") {
@@ -3629,6 +4000,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // 2. Eliminar de Firestore y estado local
     await deleteFromFirestore("billingInvoices", id);
     setBillingInvoices((prev) => prev.filter((i) => i.id !== id));
+
+    // 3. Purga en cascada de cobros y abonos comerciales vinculados a esta venta
+    const linkedCharges = monthlyCharges.filter(
+      (c) => c.invoiceId === id || c.invoiceNumber === inv.documentNumber
+    );
+    for (const chg of linkedCharges) {
+      await deleteFromFirestore("monthlyCharges", chg.id);
+    }
+    if (linkedCharges.length > 0) {
+      setMonthlyCharges((prev) =>
+        prev.filter((c) => c.invoiceId !== id && c.invoiceNumber !== inv.documentNumber)
+      );
+    }
+
     addAuditLog(
       "UPDATE_CLIENT",
       `Eliminación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"}: ${inv.documentNumber}`,
@@ -4468,8 +4853,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPolicies(INITIAL_POLICIES);
     setVault(INITIAL_VAULT);
     setTickets(INITIAL_TICKETS);
+    setTicketSubjects([]);
     setExpenses(INITIAL_EXPENSES);
     setMonthlyCharges(INITIAL_MONTHLY_CHARGES);
+    setClientAdvances([]);
     setAuditLogs([]);
     setClientProjects([]);
     setClientQuotes([]);
@@ -4536,6 +4923,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deleteClientQuote,
           clientVaultItems,
           addClientVaultItem,
+          addTicketSubject,
+          updateTicketSubject,
+          deleteTicketSubject,
           updateClientVaultItem,
           deleteClientVaultItem,
           clientContracts,
@@ -4557,8 +4947,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           policies,
           vault,
           tickets,
+          ticketSubjects,
           expenses,
           monthlyCharges,
+          clientAdvances,
           auditLogs,
           addClient,
           updateClient,
@@ -4569,6 +4961,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           renewClientService,
           emitRecurringInvoiceForClient,
           addPolicy,
+          deletePolicy,
           updatePolicy,
           addVaultCredential,
           updateVaultCredential,
@@ -4592,6 +4985,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           generateMonthlyBillingBatch,
           markChargeAsPaid,
           addMonthlyCharge,
+          updateMonthlyCharge,
+          deleteMonthlyCharge,
+          addPaymentToCharge,
+          addClientAdvance,
+          applyClientAdvance,
+          deleteClientAdvance,
           // Inventory Module
           inventoryProducts,
           inventoryWarehouses,

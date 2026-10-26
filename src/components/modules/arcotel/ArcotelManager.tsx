@@ -543,14 +543,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                   <Building2 className="w-4 h-4 text-[#004ac6]" />
                   Datos del Título Habilitante & Sistemas Concesionarios (INNTEL CORP S.A.)
                 </h3>
-                <button
-                  type="button"
-                  onClick={handleAddCustomField}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Agregar Campo / Atributo</span>
-                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -625,39 +617,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
               </div>
 
               {/* Campos Dinámicos Adicionales (PDF: "debe permitir poder agregar más opciones en caso de requerir") */}
-              {concessionForm.additionalFields && concessionForm.additionalFields.length > 0 && (
-                <div className="pt-3 border-t border-slate-100 space-y-3">
-                  <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Atributos Adicionales</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {concessionForm.additionalFields.map((field) => (
-                      <div key={field.id} className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <label className="text-[10px] text-[#737686] font-bold block mb-0.5">{cleanMojibake(field.label)}</label>
-                          <input
-                            type="text"
-                            value={field.value}
-                            onChange={(e) => {
-                              const updated = (concessionForm.additionalFields || []).map((f) =>
-                                f.id === field.id ? { ...f, value: e.target.value } : f
-                              );
-                              setConcessionForm({ ...concessionForm, additionalFields: updated });
-                            }}
-                            className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCustomField(field.id)}
-                          className="mt-4 p-2 text-slate-400 hover:text-rose-600 rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="pt-4 flex justify-end border-t border-slate-100">
                 <button
                   type="submit"
