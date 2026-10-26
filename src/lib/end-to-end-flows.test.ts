@@ -1293,3 +1293,72 @@ test("Flujo E2E 23: Soporte Técnico UX/UI — Clean Workspace (Caja al Pie, Pan
   );
 });
 
+test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas & Ficha de Clientes: Identificación y Servicios)", () => {
+  const rootDir = process.cwd();
+
+  // 1. TemplateGenerator.tsx
+  const tmplPath = path.resolve(rootDir, "src/components/modules/templates/TemplateGenerator.tsx");
+  const tmplContent = fs.readFileSync(tmplPath, "utf8");
+  assert.ok(
+    tmplContent.includes("w-6/12") && tmplContent.includes("w-3/12"),
+    "TemplateGenerator debe tener anchos de columna fijos en Plantillas del Sistema"
+  );
+  assert.ok(
+    tmplContent.includes("w-4/12") && tmplContent.includes("w-1/12"),
+    "TemplateGenerator debe tener anchos de columna fijos en Plantillas Institucionales"
+  );
+  assert.ok(
+    !tmplContent.includes("rounded-2xl"),
+    "TemplateGenerator debe usar radio de esquinas moderado rounded-xl sin excesos rounded-2xl"
+  );
+
+  // 2. ClientProfile360.tsx (Tab Identificación)
+  const profilePath = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profileContent = fs.readFileSync(profilePath, "utf8");
+  assert.ok(
+    profileContent.includes("Single Canvas, Cero Tarjetas Anidadas"),
+    "ClientProfile360 debe unificar datos fiscales y contactos en un único canvas plano"
+  );
+  assert.ok(
+    profileContent.includes("text-xs font-semibold text-[#64748b]") &&
+      profileContent.includes("text-[#0b1c30]"),
+    "ClientProfile360 debe emplear tipografía legible y de alto contraste"
+  );
+  assert.ok(
+    profileContent.includes("font-mono font-bold text-[#004ac6] text-sm"),
+    "ClientProfile360 debe destacar el RUC/CI en mono azul corporativo"
+  );
+
+  // 3. ClientContractTab.tsx (Tab Servicios & Documentos)
+  const contractPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractContent = fs.readFileSync(contractPath, "utf8");
+  assert.ok(
+    contractContent.includes("min-w-[850px] table-fixed") &&
+      contractContent.includes("w-4/12") &&
+      contractContent.includes("w-2/12"),
+    "ClientContractTab debe estructurar la tabla de servicios con layout fijo y columnas balanceadas"
+  );
+  assert.ok(
+    contractContent.includes("min-w-[650px] table-fixed") &&
+      contractContent.includes("w-5/12"),
+    "ClientContractTab debe estructurar la tabla de documentos con layout fijo"
+  );
+  assert.ok(
+    !contractContent.includes("rounded-[6px]") && !contractContent.includes("rounded-2xl"),
+    "ClientContractTab debe homogeneizar bordes a rounded-xl en contenedores y rounded-lg/md en controles"
+  );
+
+  // 4. ClientDossierTab.tsx (Expediente Técnico)
+  const dossierPath = path.resolve(rootDir, "src/components/modules/clients/ClientDossierTab.tsx");
+  const dossierContent = fs.readFileSync(dossierPath, "utf8");
+  assert.ok(
+    !dossierContent.includes("rounded-3xl"),
+    "ClientDossierTab no debe usar rounded-3xl en el contenedor de impresión"
+  );
+  assert.ok(
+    dossierContent.includes("rounded-xl border border-[#e2e8f0] shadow-2xs"),
+    "ClientDossierTab debe unificarse al estándar rounded-xl y border #e2e8f0"
+  );
+});
+
+

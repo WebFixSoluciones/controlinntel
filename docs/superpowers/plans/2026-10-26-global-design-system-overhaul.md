@@ -23,30 +23,31 @@
 - Modify: `src/components/modules/clients/ClientContractTab.tsx`
 - Modify: `src/lib/end-to-end-flows.test.ts`
 
-- [ ] **Step 1: Balancear Anchos y Simetría en Módulo de Plantillas**
+- [x] **Step 1: Balancear Anchos y Simetría en Módulo de Plantillas**
   - En `TemplateGenerator.tsx`:
     - Agregar icono temático `<FileText className="w-4 h-4 text-[#004ac6]" />` a `Plantillas del Sistema` para que coincida exactamente con `Plantillas Institucionales`.
     - Asignar anchos porcentuales fijos a las columnas de ambas tablas:
       - Tabla 1: `w-6/12` para Plantilla/Documento, `w-3/12` para Formato, `w-3/12` para Acción (alineado a la derecha).
       - Tabla 2: `w-4/12` para Documento, `w-2/12` para Categoría, `w-3/12` para Archivo, `w-2/12` para Última Actualización, `w-1/12` para Acciones.
     - Eliminar vacíos desproporcionados entre columnas.
+    - Moderar border-radius a `rounded-xl` y `rounded-lg`.
 
-- [ ] **Step 2: Rediseñar Pestaña Identificación del Cliente (Cero Tarjetas Anidadas & Fuentes Legibles)**
-  - En `ClientDossierTab.tsx`:
-    - Erradicar el efecto de tarjetas anidadas; usar un único contenedor blanco continuo.
+- [x] **Step 2: Rediseñar Pestaña Identificación del Cliente (Cero Tarjetas Anidadas & Fuentes Legibles)**
+  - En `ClientProfile360.tsx` y `ClientDossierTab.tsx`:
+    - Erradicar el efecto de tarjetas anidadas; usar un único contenedor blanco continuo (`rounded-xl border border-[#e2e8f0] shadow-2xs`).
     - Bloque de Datos Fiscales en grid limpio de 3 columnas: cambiar etiquetas minúsculas de 10px a `text-xs font-semibold text-[#64748b]` y valores a `text-sm font-bold text-[#0b1c30]`.
     - Separar el Bloque de Contactos mediante un divisor tenue horizontal (`border-t border-[#f1f5f9]`).
-    - Reemplazar la caja punteada tosca de contactos vacía por una fila limpia y ligera.
+    - Reemplazar la caja punteada tosca de contactos vacía por una fila limpia y ligera (`bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg p-4`).
 
-- [ ] **Step 3: Rediseñar Pestaña Servicios del Cliente (Unificación & Flujo Plano)**
+- [x] **Step 3: Rediseñar Pestaña Servicios del Cliente (Unificación & Flujo Plano)**
   - En `ClientContractTab.tsx`:
-    - Homologar la barra de herramientas y tabla de servicios con badges suaves y precios tabulares.
-    - Integrar la sub-sección de Documentos al pie del mismo panel separada por divisor sutil, sin crear otra tarjeta separada flotante abajo.
+    - Homologar la barra de herramientas y tabla de servicios con badges suaves, anchos fijos de columna (`table-fixed`), precios tabulares y esquinas moderadas (`rounded-xl` y `rounded-lg`).
+    - Homologar la sub-sección de Documentos al pie con tabla de layout fijo y modal limpio de carga `rounded-xl`.
 
-- [ ] **Step 4: Escribir Prueba E2E y Validar**
-  - Añadir prueba en `src/lib/end-to-end-flows.test.ts` que valide la simetría de Plantillas, ausencia de tarjetas anidadas y eliminación de micro-textos en la Ficha de Cliente.
-  - Ejecutar `npm test` y `npx tsc --noEmit`.
-  - Commit: `git commit -m "refactor(ui): implement Phase 1 design standard on Plantillas and Client Dossier"`
+- [x] **Step 4: Escribir Prueba E2E y Validar**
+  - Añadir prueba en `src/lib/end-to-end-flows.test.ts` (Flujo E2E 24) que valide la simetría de Plantillas, ausencia de tarjetas anidadas y eliminación de micro-textos en la Ficha de Cliente.
+  - Ejecutar `npm test` (49/49 pasando) y `npx tsc --noEmit`.
+  - Commit y push al repositorio.
 
 ---
 

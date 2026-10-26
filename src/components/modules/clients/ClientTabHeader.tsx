@@ -21,14 +21,14 @@ export function ClientTabHeader({
   actions,
 }: ClientTabHeaderProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 bg-slate-50 rounded-xl border border-slate-200/80 mb-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs mb-4">
       <div className="flex items-center gap-2.5">
         {Icon && (
-          <div className="w-7 h-7 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center border border-blue-100/60">
+          <div className="w-7 h-7 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center border border-[#dce9ff]">
             <Icon className="w-4 h-4" />
           </div>
         )}
-        <h3 className="font-bold text-sm text-slate-900 tracking-tight">
+        <h3 className="font-bold text-sm text-[#0b1c30] tracking-tight">
           {title}
         </h3>
         {badge && <div className="ml-1">{badge}</div>}
@@ -51,10 +51,10 @@ export function ClientSectionHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
+    <div className="flex items-center justify-between border-b border-[#f1f5f9] pb-3 mb-4">
       <div className="flex items-center gap-2">
-        {Icon && <Icon className="w-3.5 h-3.5 text-[#004ac6]" />}
-        <h4 className="font-bold text-xs text-slate-800 tracking-tight">
+        {Icon && <Icon className="w-4 h-4 text-[#004ac6]" />}
+        <h4 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider">
           {title}
         </h4>
       </div>

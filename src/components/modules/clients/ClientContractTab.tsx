@@ -497,31 +497,31 @@ export function ClientContractTab({ client }: { client: Client }) {
     switch (type) {
       case "contrato_adhesion":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-50 text-[#004ac6] border border-blue-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
             Contrato Firmado
           </span>
         );
       case "proteccion_datos":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
             Protección Datos
           </span>
         );
       case "cedula_ruc":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
             Cédula / RUC
           </span>
         );
       case "acta_entrega":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
             Acta Entrega
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">
             Comprobante / Archivo
           </span>
         );
@@ -564,7 +564,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             <button
               type="button"
               onClick={() => setIsAddingService((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-[6px] text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
@@ -576,7 +576,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 setSaleInitialItems(undefined);
                 setIsNewSaleOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-[6px] text-xs font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0b1c30] hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               <Receipt className="w-3.5 h-3.5" />
               <span>Nueva Venta</span>
@@ -587,7 +587,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 type="button"
                 disabled={emittingRecurring}
                 onClick={handleEmitClientRecurringInvoice}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-[6px] text-xs font-semibold transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
@@ -597,12 +597,12 @@ export function ClientContractTab({ client }: { client: Client }) {
         }
       />
 
-      <div className="bg-white rounded-[6px] border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* 1.1 Si no hay servicios creados en inventario: Aviso guiado con acceso directo */}
         {isAddingService && availableServices.length === 0 && (
           <div className="p-4 px-6 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[6px] bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
@@ -618,14 +618,14 @@ export function ClientContractTab({ client }: { client: Client }) {
               <button
                 type="button"
                 onClick={() => setIsAddingService(false)}
-                className="px-3 py-1.5 rounded-[6px] border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Cerrar
               </button>
               <button
                 type="button"
                 onClick={() => setIsProductModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Crear Servicio en Inventario</span>
@@ -638,29 +638,29 @@ export function ClientContractTab({ client }: { client: Client }) {
         {isAddingService && availableServices.length > 0 && (
           <form
             onSubmit={handleCreateService}
-            className="p-5 px-6 bg-blue-50/50 border-b border-blue-100 space-y-4 animate-in fade-in"
+            className="p-5 px-6 bg-[#f8f9ff] border-b border-[#e2e8f0] space-y-4 animate-in fade-in"
           >
-            <div className="flex items-center justify-between border-b border-blue-200/60 pb-2">
+            <div className="flex items-center justify-between border-b border-[#e2e8f0] pb-2">
               <div className="flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-[#004ac6]" />
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                <h4 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wide">
                   Asignar Servicio desde Inventario de Servicios
                 </h4>
               </div>
               <button
                 type="button"
                 onClick={() => setIsProductModalOpen(true)}
-                className="text-[11px] font-bold text-[#004ac6] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-[#004ac6] hover:underline flex items-center gap-1 cursor-pointer"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>Crear Nuevo Servicio en Inventario</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
               {/* Selector Exclusivo de Inventario */}
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-[#434655] mb-1">
                   Servicio del Inventario (Catálogo Oficial) *
                 </label>
                 <select
@@ -674,7 +674,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                       setNewSvcPrice(prod.salePrice ? prod.salePrice.toString() : "0.00");
                     }
                   }}
-                  className="w-full bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
                 >
                   <option value="">-- Selecciona un servicio ({availableServices.length} disponibles) --</option>
                   {availableServices.map((p) => (
@@ -687,7 +687,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
               {/* Tarifa Base sin IVA */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-[#434655] mb-1">
                   Tarifa Asignada ($ sin IVA) *
                 </label>
                 <input
@@ -698,20 +698,20 @@ export function ClientContractTab({ client }: { client: Client }) {
                   placeholder="0.00"
                   value={newSvcPrice}
                   onChange={(e) => setNewSvcPrice(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-[6px] px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
               {/* Periodicidad y Próxima Renovación */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-[#434655] mb-1">
                   Ciclo y Próxima Renovación
                 </label>
                 <div className="flex items-center gap-1.5">
                   <select
                     value={newSvcFreq}
                     onChange={(e) => setNewSvcFreq(e.target.value as ServiceBillingFrequency)}
-                    className="bg-white border border-slate-300 rounded-[6px] px-2 py-2 text-xs font-semibold text-slate-800"
+                    className="bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-semibold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                   >
                     <option value="mensual">Mensual</option>
                     <option value="anual">Anual</option>
@@ -720,7 +720,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     type="date"
                     value={newSvcRenewalDate}
                     onChange={(e) => setNewSvcRenewalDate(e.target.value)}
-                    className="bg-white border border-slate-300 rounded-[6px] px-2 py-2 text-xs font-mono text-slate-800 w-full"
+                    className="bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] w-full focus:border-[#004ac6] focus:outline-hidden"
                   />
                 </div>
               </div>
@@ -735,29 +735,29 @@ export function ClientContractTab({ client }: { client: Client }) {
               const totalVal = Math.round((priceVal + ivaVal) * 100) / 100;
 
               return (
-                <div className="p-3 bg-white rounded-[6px] border border-blue-200/80 text-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="p-3.5 bg-white rounded-lg border border-[#e2e8f0] text-xs flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] font-bold bg-blue-100 text-[#004ac6] px-1.5 py-0.5 rounded-[4px]">
+                      <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-2 py-0.5 rounded-md border border-[#dce9ff]">
                         {prod.sku}
                       </span>
-                      <span className="font-bold text-slate-900">{prod.name}</span>
+                      <span className="font-bold text-[#0b1c30]">{prod.name}</span>
                       {prod.categoryName && (
-                        <span className="text-[10px] text-slate-500">• {prod.categoryName}</span>
+                        <span className="text-xs text-[#64748b]">• {prod.categoryName}</span>
                       )}
                     </div>
                     {prod.description && (
-                      <p className="text-[11px] text-slate-500">{prod.description}</p>
+                      <p className="text-xs text-[#64748b]">{prod.description}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-right">
                     <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Tarifa Base</span>
-                      <span className="font-mono font-bold text-slate-800">${safeNumber(priceVal)}</span>
+                      <span className="text-[10px] text-[#64748b] block uppercase font-bold">Tarifa Base</span>
+                      <span className="font-mono font-bold text-[#0b1c30]">${safeNumber(priceVal)}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">IVA ({prod.ivaRate || 15}%)</span>
-                      <span className="font-mono font-bold text-slate-600">${safeNumber(ivaVal)}</span>
+                      <span className="text-[10px] text-[#64748b] block uppercase font-bold">IVA ({prod.ivaRate || 15}%)</span>
+                      <span className="font-mono font-bold text-[#64748b]">${safeNumber(ivaVal)}</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-[#004ac6] block uppercase font-bold">Total Facturable</span>
@@ -769,9 +769,9 @@ export function ClientContractTab({ client }: { client: Client }) {
             })()}
 
             {/* Información de Asignación */}
-            <div className="flex items-center gap-2.5 p-2.5 rounded-[6px] bg-blue-50/80 border border-blue-200 text-xs text-blue-900">
+            <div className="flex items-center gap-2.5 p-3 rounded-lg bg-[#eff4ff] border border-[#dce9ff] text-xs text-[#004ac6]">
               <ShieldCheck className="w-4 h-4 text-[#004ac6] shrink-0" />
-              <p className="text-[11px]">
+              <p className="text-xs">
                 El servicio seleccionado del catálogo oficial de inventario quedará activo en la ficha técnica del cliente.
               </p>
             </div>
@@ -783,14 +783,14 @@ export function ClientContractTab({ client }: { client: Client }) {
                   setIsAddingService(false);
                   setSelectedServiceId("");
                 }}
-                className="px-3.5 py-1.5 rounded-[6px] border border-slate-300 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
+                className="px-3.5 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#434655] text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={savingService || !selectedServiceId}
-                className="px-4 py-1.5 rounded-[6px] bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
                 {savingService ? "Guardando..." : "Asignar Servicio al Cliente"}
               </button>
@@ -799,15 +799,15 @@ export function ClientContractTab({ client }: { client: Client }) {
         )}
 
         {/* Barra de búsqueda y filtro rápido de estado */}
-        <div className="p-3 px-6 border-b border-slate-100 bg-white flex flex-wrap items-center justify-between gap-3">
+        <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
           <div className="relative flex-1 min-w-[220px] max-w-sm">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Buscar por servicio o SKU..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs pl-8 pr-3 py-1.5 rounded-[6px] border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#64748b] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-colors"
             />
           </div>
 
@@ -821,10 +821,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                 key={tab.id}
                 type="button"
                 onClick={() => setServiceFilter(tab.id as any)}
-                className={`px-3 py-1 rounded-[6px] font-bold text-[11px] transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
                   serviceFilter === tab.id
                     ? "bg-[#004ac6] text-white shadow-2xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
                 }`}
               >
                 {tab.label}
@@ -835,26 +835,26 @@ export function ClientContractTab({ client }: { client: Client }) {
 
         {/* Tabla de Control Individual de Servicios Contratados */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px]">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[10px] uppercase tracking-wider border-b border-[#e2e8f0]">
+          <table className="w-full text-left text-xs min-w-[850px] table-fixed">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5">Servicio</th>
-                <th className="py-3 px-4">Ciclo</th>
-                <th className="py-3 px-4">Renovación</th>
-                <th className="py-3 px-4 text-center">Estado</th>
-                <th className="py-3 px-4 text-center">Facturar</th>
-                <th className="py-3 px-4 text-right">Tarifa</th>
-                <th className="py-3 px-5 text-right">Acciones</th>
+                <th className="py-3 px-5 w-4/12">Servicio</th>
+                <th className="py-3 px-4 w-1/12">Ciclo</th>
+                <th className="py-3 px-4 w-2/12">Renovación</th>
+                <th className="py-3 px-4 w-1/12 text-center">Estado</th>
+                <th className="py-3 px-4 w-1/12 text-center">Facturar</th>
+                <th className="py-3 px-4 w-1/12 text-right">Tarifa</th>
+                <th className="py-3 px-5 w-2/12 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
               {filteredServices.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-xs text-[#737686]">
-                    <p className="font-bold text-slate-600">
+                    <p className="font-bold text-[#434655]">
                       No hay servicios registrados con este filtro.
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-xs text-[#64748b] mt-1">
                       Usa el botón <strong>&quot;Nuevo Servicio&quot;</strong> para asignar servicios del Inventario de Servicios al cliente.
                     </p>
                   </td>
@@ -879,7 +879,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         </span>
                         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
                           {svc.inventorySku && (
-                            <span className="font-mono bg-slate-100 text-slate-700 px-1 py-0.2 rounded text-[9px] font-bold">
+                            <span className="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-sm text-[9px] font-bold">
                               {svc.inventorySku}
                             </span>
                           )}
@@ -901,7 +901,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                               billingFrequency: e.target.value as ServiceBillingFrequency,
                             })
                           }
-                          className="bg-white border border-slate-200 rounded-[6px] px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                          className="bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
                         >
                           <option value="mensual">Mensual</option>
                           <option value="anual">Anual</option>
@@ -917,10 +917,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                             onChange={(e) =>
                               updateClientService(svc.id, { nextRenewalDate: e.target.value })
                             }
-                            className="bg-white border border-slate-200 rounded-[6px] px-2 py-0.5 text-[11px] font-mono text-slate-800 w-32 cursor-pointer"
+                            className="bg-white border border-[#e2e8f0] rounded-lg px-2 py-0.5 text-xs font-mono text-[#0b1c30] w-32 cursor-pointer focus:outline-hidden focus:border-[#004ac6]"
                           />
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold w-fit ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold w-fit ${
                               renewal.tone === "rose"
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : renewal.tone === "amber"
@@ -938,7 +938,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <select
                           value={svc.status}
                           onChange={(e) => handleStatusChange(svc, e.target.value as ServiceStatus)}
-                          className={`rounded-[6px] px-2.5 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
+                          className={`rounded-md px-2.5 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
                             svc.status === "activo"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                               : svc.status === "por_renovar"
@@ -958,21 +958,21 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <button
                           type="button"
                           onClick={() => handleToggleBillable(svc)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase transition cursor-pointer ${
                             isBillable
-                              ? "bg-blue-50 text-[#004ac6] border border-blue-200 hover:bg-blue-100"
+                              ? "bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] hover:bg-blue-100"
                               : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
                           }`}
                           title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
                         >
                           {isBillable ? (
                             <>
-                              <CheckCircle2 className="w-3 h-3 text-[#004ac6]" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#004ac6]" />
                               <span>Facturable</span>
                             </>
                           ) : (
                             <>
-                              <Ban className="w-3 h-3 text-amber-700" />
+                              <Ban className="w-3.5 h-3.5 text-amber-700" />
                               <span>No Facturado</span>
                             </>
                           )}
@@ -981,7 +981,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                       {/* 6. Tarifa Base */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-xs">
-                        <span className={isBillable ? "text-emerald-700" : "text-slate-400 line-through"}>
+                        <span className={isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}>
                           ${safeNumber(price)}
                         </span>
                       </td>
@@ -992,7 +992,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <button
                             type="button"
                             onClick={() => handleNotifyWhatsApp(svc)}
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-[6px] transition cursor-pointer"
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
                             title="Notificar renovación por WhatsApp"
                           >
                             <MessageCircle className="w-4 h-4" />
@@ -1001,7 +1001,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <button
                             type="button"
                             onClick={() => handleNotifyEmail(svc)}
-                            className="p-1.5 text-[#004ac6] hover:bg-blue-50 rounded-[6px] transition cursor-pointer"
+                            className="p-1.5 text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                             title="Notificar renovación por Correo Electrónico"
                           >
                             <Mail className="w-4 h-4" />
@@ -1010,7 +1010,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <button
                             type="button"
                             onClick={() => handleRenewService(svc)}
-                            className="px-2 py-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-[6px] transition flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer"
                             title="Renovar por +1 periodo y activar servicio"
                           >
                             <RefreshCw className="w-3 h-3" />
@@ -1027,7 +1027,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                                 "Eliminar"
                               )
                             }
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-[6px] transition cursor-pointer"
+                            className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                             title="Eliminar servicio"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1063,22 +1063,22 @@ export function ClientContractTab({ client }: { client: Client }) {
         }
       />
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[650px]">
-            <thead className="bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200">
+          <table className="w-full text-left text-xs min-w-[650px] table-fixed">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-2.5 px-5">Tipo</th>
-                <th className="py-2.5 px-5">Título / Archivo</th>
-                <th className="py-2.5 px-5">Fecha Carga</th>
-                <th className="py-2.5 px-5 text-right">Acciones</th>
+                <th className="py-3 px-5 w-2/12">Tipo</th>
+                <th className="py-3 px-5 w-5/12">Título / Archivo</th>
+                <th className="py-3 px-5 w-3/12">Fecha Carga</th>
+                <th className="py-3 px-5 w-2/12 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
               {docs.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-xs text-slate-400">
-                    <Upload className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
+                  <td colSpan={4} className="py-8 text-center text-xs text-[#737686]">
+                    <Upload className="w-6 h-6 text-[#64748b] mx-auto mb-1.5" />
                     <span>No hay archivos digitales cargados en el expediente.</span>
                   </td>
                 </tr>
@@ -1088,13 +1088,13 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <td className="py-3 px-5">{getDocTypeBadge(doc.documentType)}</td>
                     <td className="py-3 px-5">
                       <div className="font-bold text-[#0b1c30] text-xs">{doc.title}</div>
-                      <div className="font-mono text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <FileText className="w-3 h-3 text-slate-400" />
+                      <div className="font-mono text-[10px] text-[#64748b] flex items-center gap-1.5 mt-0.5">
+                        <FileText className="w-3 h-3 text-[#64748b]" />
                         <span>{doc.fileName}</span>
                         <span>({doc.fileSize})</span>
                       </div>
                     </td>
-                    <td className="py-3 px-5 text-slate-600 text-xs font-mono">
+                    <td className="py-3 px-5 text-[#64748b] text-xs font-mono">
                       {doc.uploadedAt.split("T")[0]}
                     </td>
                     <td className="py-3 px-5 text-right">
@@ -1102,7 +1102,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <button
                           type="button"
                           onClick={() => triggerRealDownload(doc.fileUrl, doc.fileName)}
-                          className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
+                          className="p-1.5 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                           title="Descargar archivo"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -1110,7 +1110,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <button
                           type="button"
                           onClick={() => handleDeleteDoc(doc.id, doc.title)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                          className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                           title="Eliminar documento"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1128,16 +1128,16 @@ export function ClientContractTab({ client }: { client: Client }) {
       {/* MODAL: SUBIR DOCUMENTO AL EXPEDIENTE */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-            <div className="p-4 px-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-[#e2e8f0] overflow-hidden">
+            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-[#004ac6]" />
-                <h3 className="font-bold text-slate-900 text-xs">Cargar Archivo al Expediente</h3>
+                <h3 className="font-bold text-[#0b1c30] text-xs">Cargar Archivo al Expediente</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1145,11 +1145,11 @@ export function ClientContractTab({ client }: { client: Client }) {
 
             <form onSubmit={handleUploadSubmit} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Tipo de Archivo *</label>
+                <label className="font-bold text-[#434655] block mb-1">Tipo de Archivo *</label>
                 <select
                   value={docType}
                   onChange={(e) => setDocType(e.target.value as ClientDocumentFile["documentType"])}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-[#004ac6] outline-hidden cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] outline-hidden cursor-pointer"
                 >
                   <option value="contrato_adhesion">Contrato de Adhesión / Servicios Firmado</option>
                   <option value="proteccion_datos">Autorización de Protección de Datos</option>
@@ -1160,19 +1160,19 @@ export function ClientContractTab({ client }: { client: Client }) {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Título del Documento *</label>
+                <label className="font-bold text-[#434655] block mb-1">Título del Documento *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ej: Contrato Firmado 2026 / Comprobante de Depósito"
                   value={docTitle}
                   onChange={(e) => setDocTitle(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-[#004ac6] outline-hidden"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Seleccionar Archivo (PDF, Word, JPG, PNG) *</label>
+                <label className="font-bold text-[#434655] block mb-1">Seleccionar Archivo (PDF, Word, JPG, PNG) *</label>
                 <input
                   type="file"
                   required
@@ -1185,22 +1185,22 @@ export function ClientContractTab({ client }: { client: Client }) {
                       }
                     }
                   }}
-                  className="w-full bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3 text-xs text-slate-600 cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#004ac6] file:text-white hover:file:bg-[#003da6]"
+                  className="w-full bg-[#f8f9ff] border border-dashed border-[#cbd5e1] rounded-lg p-3 text-xs text-[#434655] cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#004ac6] file:text-white hover:file:bg-[#003da6]"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#e2e8f0]">
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold transition cursor-pointer"
+                  className="px-3.5 py-2 text-[#737686] hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={busy}
-                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>{busy ? "Cargando..." : "Subir Archivo"}</span>

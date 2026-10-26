@@ -493,7 +493,7 @@ export function TemplateGenerator() {
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-150">
       {/* Top Filter and Action Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-2xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* Search Input */}
           <div className="relative w-full sm:w-80">
@@ -503,7 +503,7 @@ export function TemplateGenerator() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar plantilla o documento..."
-              className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] transition-colors"
             />
           </div>
 
@@ -511,7 +511,7 @@ export function TemplateGenerator() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#434655] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-semibold text-[#434655] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
           >
             <option value="todas">Todas las Categorías</option>
             <option value="Contratos">Contratos</option>
@@ -525,7 +525,7 @@ export function TemplateGenerator() {
         {/* Upload / New Template Button */}
         <button
           onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer shrink-0"
         >
           <Upload className="w-4 h-4" />
           <span>Subir Archivo / Plantilla</span>
@@ -537,18 +537,19 @@ export function TemplateGenerator() {
       {/* ========================================================= */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-bold text-[#0b1c30]">
-            Plantillas del Sistema
+          <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#004ac6]" />
+            <span>Plantillas del Sistema</span>
           </h2>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-2xs">
+        <div className="overflow-x-auto rounded-xl border border-[#e2e8f0] bg-white shadow-2xs">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4">Plantilla / Documento</th>
-                <th className="py-3 px-4">Formato</th>
-                <th className="py-3 px-4 text-right">Acción</th>
+                <th className="py-3 px-4 w-6/12">Plantilla / Documento</th>
+                <th className="py-3 px-4 w-3/12">Formato</th>
+                <th className="py-3 px-4 w-3/12 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -562,18 +563,18 @@ export function TemplateGenerator() {
                 filteredSystemTemplates.map((tmpl) => {
                   return (
                     <tr key={tmpl.id} className="hover:bg-[#f8f9ff] transition-colors">
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 w-6/12">
                         <p className="font-bold text-[#0b1c30] text-xs">{tmpl.title}</p>
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${tmpl.badgeBg}`}>
+                      <td className="py-3.5 px-4 w-3/12 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${tmpl.badgeBg}`}>
                           {tmpl.format}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 w-3/12 text-right whitespace-nowrap">
                         <button
                           onClick={tmpl.action}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>{tmpl.buttonText}</span>
@@ -595,19 +596,19 @@ export function TemplateGenerator() {
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-bold text-[#0b1c30] flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-[#004ac6]" />
-            Plantillas Institucionales
+            <span>Plantillas Institucionales</span>
           </h2>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-[#e2e8f0] bg-white shadow-2xs">
+        <div className="overflow-x-auto rounded-xl border border-[#e2e8f0] bg-white shadow-2xs">
           <table className="w-full text-left text-xs">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4">Documento / Título</th>
-                <th className="py-3 px-4">Categoría</th>
-                <th className="py-3 px-4">Archivo & Formato</th>
-                <th className="py-3 px-4">Última Actualización</th>
-                <th className="py-3 px-4 text-right">Acciones</th>
+                <th className="py-3 px-4 w-4/12">Documento / Título</th>
+                <th className="py-3 px-4 w-2/12">Categoría</th>
+                <th className="py-3 px-4 w-3/12">Archivo & Formato</th>
+                <th className="py-3 px-4 w-2/12">Última Actualización</th>
+                <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -627,7 +628,7 @@ export function TemplateGenerator() {
 
                   return (
                     <tr key={item.id} className="hover:bg-[#f8f9ff] transition-colors">
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 w-4/12">
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-[#0b1c30] text-xs">{item.name}</p>
                           {currentVer > 1 && (
@@ -637,14 +638,14 @@ export function TemplateGenerator() {
                           )}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                      <td className="py-3.5 px-4 w-2/12 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                           {item.category}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 w-3/12">
                         <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-lg border shrink-0 ${badge.color}`}>
+                          <div className={`p-1.5 rounded-md border shrink-0 ${badge.color}`}>
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           <span className="font-mono text-[11px] text-[#0b1c30] truncate max-w-[200px]" title={item.fileName}>
@@ -652,7 +653,7 @@ export function TemplateGenerator() {
                           </span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-[#737686] whitespace-nowrap">
+                      <td className="py-3.5 px-4 w-2/12 font-mono text-[11px] text-[#737686] whitespace-nowrap">
                         {item.updatedAt ? (
                           <span title={`Actualizado el ${item.updatedAt}`}>
                             {item.updatedAt} <span className="text-[9px] text-[#004ac6] font-bold">(act)</span>
@@ -661,11 +662,11 @@ export function TemplateGenerator() {
                           item.uploadedAt
                         )}
                       </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 w-1/12 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => openEditModal(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                             title="Editar plantilla y actualizar archivo"
                           >
                             <Edit2 className="w-3.5 h-3.5 text-[#004ac6]" />
@@ -673,7 +674,7 @@ export function TemplateGenerator() {
                           </button>
                           <button
                             onClick={() => handleDownloadCustom(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
                             title="Descargar archivo"
                           >
                             <Download className="w-3.5 h-3.5" />
@@ -681,7 +682,7 @@ export function TemplateGenerator() {
                           </button>
                           <button
                             onClick={() => handleDeleteCustom(item.id, item.name)}
-                            className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             title="Eliminar plantilla"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -702,10 +703,10 @@ export function TemplateGenerator() {
       {/* ========================================================= */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-[#e2e8f0] overflow-hidden">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">
+                <div className="p-2 rounded-lg bg-[#eff4ff] text-[#004ac6]">
                   <Upload className="w-4 h-4" />
                 </div>
                 <div>
@@ -730,7 +731,7 @@ export function TemplateGenerator() {
                   placeholder="Ej: Acta de Entrega ONT / Formato de Cesión de Derechos"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
@@ -739,7 +740,7 @@ export function TemplateGenerator() {
                 <select
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value as any)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
                 >
                   <option value="Contratos">Contratos</option>
                   <option value="Técnico / Red">Técnico / Red</option>
@@ -756,7 +757,7 @@ export function TemplateGenerator() {
                   placeholder="Explica brevemente cuándo o quién debe utilizar este documento..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
@@ -767,7 +768,7 @@ export function TemplateGenerator() {
                   required
                   accept=".docx,.doc,.xlsx,.xls,.pdf,.csv"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-[#434655] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#eff4ff] file:text-[#004ac6] hover:file:bg-[#dce9ff] cursor-pointer"
+                  className="w-full text-xs text-[#434655] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#eff4ff] file:text-[#004ac6] hover:file:bg-[#dce9ff] cursor-pointer"
                 />
                 {selectedFile && (
                   <p className="text-[11px] text-[#059669] font-medium mt-1">
@@ -780,14 +781,14 @@ export function TemplateGenerator() {
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2 text-[#737686] hover:bg-slate-50 rounded-xl font-bold cursor-pointer"
+                  className="px-4 py-2 text-[#737686] hover:bg-slate-50 rounded-lg font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <Upload className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`} />
                   <span>{isUploading ? "Subiendo..." : "Guardar Plantilla"}</span>
@@ -803,10 +804,10 @@ export function TemplateGenerator() {
       {/* ========================================================= */}
       {editingTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-[#e2e8f0] overflow-hidden">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 px-6 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 text-[#004ac6]">
+                <div className="p-2 rounded-lg bg-blue-50 text-[#004ac6]">
                   <Edit2 className="w-4 h-4" />
                 </div>
                 <div>
@@ -833,7 +834,7 @@ export function TemplateGenerator() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
@@ -842,7 +843,7 @@ export function TemplateGenerator() {
                 <select
                   value={editCategory}
                   onChange={(e) => setEditCategory(e.target.value as any)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden cursor-pointer"
                 >
                   <option value="Contratos">Contratos</option>
                   <option value="Técnico / Red">Técnico / Red</option>
@@ -858,12 +859,12 @@ export function TemplateGenerator() {
                   rows={2}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
               {/* Archivo Actual */}
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
                   Archivo Actual en el Repositorio
                 </span>
@@ -882,7 +883,7 @@ export function TemplateGenerator() {
               </div>
 
               {/* Reemplazar Archivo / Subir Actualización */}
-              <div className="p-3.5 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/40 space-y-2">
+              <div className="p-3.5 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/40 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#004ac6]">
                   <FileUp className="w-4 h-4" />
                   <span>Actualizar / Reemplazar Formato de la Plantilla</span>
@@ -927,14 +928,14 @@ export function TemplateGenerator() {
                     setEditingTemplate(null);
                     setEditReplacementFile(null);
                   }}
-                  className="px-4 py-2 text-[#737686] hover:bg-slate-50 rounded-xl font-bold cursor-pointer"
+                  className="px-4 py-2 text-[#737686] hover:bg-slate-50 rounded-lg font-bold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
                 >
                   <RefreshCw className={`w-4 h-4 ${isUpdating ? "animate-spin" : ""}`} />
                   <span>{isUpdating ? "Guardando..." : "Guardar Cambios"}</span>
