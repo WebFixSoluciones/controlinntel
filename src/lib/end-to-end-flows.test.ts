@@ -1165,5 +1165,14 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
       !policiesContent.includes("handleDownloadRenewal"),
     "PoliciesList no debe incluir la columna ni la opción de documento/oficio ARCOTEL"
   );
+
+  // 8. Modal Registrar Póliza ARCOTEL: Campo Notas u Observaciones eliminado
+  const policyModalPath = path.resolve(rootDir, "src/components/modules/arcotel/PolicyModal.tsx");
+  const modalContent = fs.readFileSync(policyModalPath, "utf8");
+  assert.ok(
+    !modalContent.includes("Notas u Observaciones") &&
+      !modalContent.includes("Endoso número 3 remitido por QUIPUX"),
+    "PolicyModal no debe incluir el campo de Notas u Observaciones"
+  );
 });
 

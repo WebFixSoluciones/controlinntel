@@ -24,7 +24,6 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
   const [startDate, setStartDate] = useState(getEcuadorDate());
   const [expirationDate, setExpirationDate] = useState("");
   const [insuredAmount, setInsuredAmount] = useState<number | "">("");
-  const [notes, setNotes] = useState("");
 
   if (!isOpen) return null;
 
@@ -68,7 +67,6 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
         insuredAmount: numAmount,
         status,
         daysUntilExpiration: days,
-        notes: notes.trim(),
       });
 
       showSuccess("Póliza Registrada", `Póliza ${policyNumber} guardada en el registro regulatorio ARCOTEL.`);
@@ -161,17 +159,6 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
                 className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 font-bold text-[#0b1c30]"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="font-bold text-[#434655] block mb-1">Notas u Observaciones</label>
-            <textarea
-              rows={2}
-              placeholder="Endoso número 3 remitido por QUIPUX..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-white border border-[#cbd5e1] rounded-[6px] px-3 py-2 text-[#0b1c30]"
-            />
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#e2e8f0]">
