@@ -2,10 +2,7 @@
 
 import React from "react";
 import { useApp } from "@/lib/state";
-import { useToast } from "@/lib/toast-context";
-import { ArcotelPolicy } from "@/types";
-import { ShieldCheck, Plus, Download, Clock } from "lucide-react";
-import { generateArcotelRenewalLetterDocx, triggerBrowserDownload } from "@/lib/doc-generator";
+import { ShieldCheck, Plus, Clock } from "lucide-react";
 import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 
 interface PoliciesListProps {
@@ -14,17 +11,6 @@ interface PoliciesListProps {
 
 export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
   const { policies } = useApp();
-  const { showSuccess, showError } = useToast();
-
-  const handleDownloadRenewal = async (policy: ArcotelPolicy) => {
-    try {
-      const blob = await generateArcotelRenewalLetterDocx(policy);
-      triggerBrowserDownload(blob, `Oficio_Renovacion_${policy.policyNumber}.docx`);
-      showSuccess("Oficio Generado", `Borrador oficial para ARCOTEL descargado en Word (.docx).`);
-    } catch (e) {
-      showError("Error de Descarga", "No se pudo generar el archivo Word.");
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -56,13 +42,12 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
               <th scope="col" className="px-5 py-3 font-bold">Monto asegurado</th>
               <th scope="col" className="px-5 py-3 font-bold">Vencimiento</th>
               <th scope="col" className="px-5 py-3 font-bold">Estado</th>
-              <th scope="col" className="px-5 py-3 text-right font-bold">Documento</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
             {policies.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-xs italic text-[#737686]">
+                <td colSpan={6} className="px-5 py-10 text-center text-xs italic text-[#737686]">
                   No hay pólizas registradas aún. Usa “Registrar Póliza” para añadir la primera.
                 </td>
               </tr>
@@ -110,15 +95,6 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     }`}>
                       {dynamicStatus.replace("_", " ")}
                     </span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => void handleDownloadRenewal(p)}
-                      className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#dce9ff] bg-[#eff4ff] px-3 py-1.5 text-xs font-bold text-[#004ac6] hover:bg-[#dce9ff]"
-                    >
-                      <Download className="size-3.5" />
-                      Oficio ARCOTEL
-                    </button>
                   </td>
                 </tr>
               );

@@ -1155,5 +1155,15 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
     !sidebarContent.includes('label: "Credenciales"'),
     "Sidebar.tsx no debe incluir el ítem Credenciales en el menú lateral principal"
   );
+
+  // 7. Pólizas ARCOTEL: Columna y botón de Documento (Oficio ARCOTEL) eliminados
+  const policiesListPath = path.resolve(rootDir, "src/components/modules/arcotel/PoliciesList.tsx");
+  const policiesContent = fs.readFileSync(policiesListPath, "utf8");
+  assert.ok(
+    !policiesContent.includes(">Documento</th>") &&
+      !policiesContent.includes("Oficio ARCOTEL") &&
+      !policiesContent.includes("handleDownloadRenewal"),
+    "PoliciesList no debe incluir la columna ni la opción de documento/oficio ARCOTEL"
+  );
 });
 
