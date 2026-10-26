@@ -21,6 +21,7 @@ import {
   FileCode2,
   Terminal,
   ShieldCheck,
+  FolderArchive,
   Package,
   AlertCircle,
   X,
@@ -2193,6 +2194,17 @@ export function NewSaleView({
                       >
                         <ShieldCheck className="w-3 h-3 text-slate-500" />
                         <span>Servicios</span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </a>
+                      <a
+                        href={`/clientes?id=${selectedClient.id}&tab=archivos`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                        title="Abrir archivos y contratos del cliente en una nueva pestaña"
+                      >
+                        <FolderArchive className="w-3 h-3 text-slate-500" />
+                        <span>Archivos</span>
                         <ExternalLink className="w-3 h-3 text-slate-400" />
                       </a>
                       <button

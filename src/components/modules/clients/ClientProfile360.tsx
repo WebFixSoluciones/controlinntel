@@ -15,12 +15,14 @@ import { ClientTramitesTab } from "./ClientTramitesTab";
 import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
 import { ClientContactsModal } from "./ClientContactsModal";
+import { ClientFilesTab } from "./ClientFilesTab";
 import { ClientTabHeader, ClientSectionHeader } from "./ClientTabHeader";
 import {
   User,
   Radio,
   KeyRound,
   ShieldCheck,
+  FolderArchive,
   FileSpreadsheet,
   DollarSign,
   Ticket as TicketIcon,
@@ -56,6 +58,7 @@ type ProfileTab =
   | "red"
   | "boveda"
   | "contratos"
+  | "archivos"
   | "cotizaciones"
   | "finanzas"
   | "tickets"
@@ -152,6 +155,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
     { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
     { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
+    { id: "archivos", label: "Archivos", icon: FolderArchive, permission: "manage_clients" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
@@ -162,13 +166,13 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
   ];
 
   // Regla de Negocio: Si el cliente NO tiene servicios contratados, solo se habilitan
-  // "Identificación" y "Servicios" (para poder asignarle servicios).
+  // "Identificación", "Servicios" y "Archivos" (para poder adjuntar contratos previos o cédula/RUC).
   // Una vez que el cliente tome un servicio, se desbloquean automáticamente todas las pestañas.
   const hasServices = services.some((s) => s.status !== "retirado");
 
   const eligibleTabs = allTabs.filter((t) => {
     if (!hasServices) {
-      return t.id === "fiscal" || t.id === "contratos";
+      return t.id === "fiscal" || t.id === "contratos" || t.id === "archivos";
     }
     return true;
   });
@@ -518,6 +522,9 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab }: Client
 
           {/* TAB 4: CONTRATOS & ARCOTEL */}
           {currentTabAllowed && activeTab === "contratos" && <ClientContractTab client={client} />}
+
+          {/* TAB ARCHIVOS / MINI DRIVE DEL CLIENTE */}
+          {currentTabAllowed && activeTab === "archivos" && <ClientFilesTab client={client} />}
 
           {/* TAB 5: COTIZACIONES & ORDENES */}
           {currentTabAllowed && activeTab === "cotizaciones" && <ClientQuotesManager client={client} />}

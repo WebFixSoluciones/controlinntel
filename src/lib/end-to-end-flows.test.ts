@@ -2037,6 +2037,55 @@ test("Flujo E2E 33: Autoguardado Continuo de Borrador en Ventas y Apertura de Hi
   );
 });
 
+test("Flujo E2E 34: Pestaña 'Archivos' (Mini Drive) en Perfil del Cliente para Contratos y Documentación", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificación de ClientFilesTab.tsx
+  const filesTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientFilesTab.tsx");
+  assert.ok(fs.existsSync(filesTabPath), "El componente ClientFilesTab.tsx debe existir");
+
+  const filesTabContent = fs.readFileSync(filesTabPath, "utf8");
+  assert.ok(
+    filesTabContent.includes("Archivos del Cliente") &&
+      filesTabContent.includes("addClientDocument") &&
+      filesTabContent.includes("deleteClientDocument"),
+    "ClientFilesTab debe conectarse a useApp para gestionar documentos del cliente"
+  );
+
+  assert.ok(
+    filesTabContent.includes("contrato_adhesion") &&
+      filesTabContent.includes("cedula_ruc") &&
+      filesTabContent.includes("acta_entrega"),
+    "ClientFilesTab debe soportar tipos de documentos oficiales (contrato, cédula/RUC, actas)"
+  );
+
+  assert.ok(
+    filesTabContent.includes("/api/blob/upload") &&
+      filesTabContent.includes("table-fixed") &&
+      filesTabContent.includes("bg-[#004ac6] text-white"),
+    "ClientFilesTab debe implementar subida a blob, Master Modal corporativo y tabla fija"
+  );
+
+  // 2. Registro de la Pestaña "Archivos" en ClientProfile360.tsx
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+  assert.ok(
+    profile360Content.includes('"archivos"') &&
+      profile360Content.includes('label: "Archivos"') &&
+      profile360Content.includes("<ClientFilesTab client={client} />"),
+    "ClientProfile360 debe registrar la pestaña 'Archivos' con su renderizado correspondiente"
+  );
+
+  // 3. Acceso directo en NewSaleView.tsx
+  const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
+  const newSaleContent = fs.readFileSync(newSalePath, "utf8");
+  assert.ok(
+    newSaleContent.includes("tab=archivos"),
+    "NewSaleView debe incluir acceso directo a la pestaña de Archivos del cliente"
+  );
+});
+
+
 
 
 

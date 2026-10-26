@@ -287,11 +287,19 @@ export interface ClientDocumentFile {
   id: string;
   clientId: string;
   title: string;
-  documentType: "contrato_adhesion" | "proteccion_datos" | "cedula_ruc" | "acta_entrega" | "otro";
+  documentType:
+    | "contrato_adhesion"
+    | "proteccion_datos"
+    | "cedula_ruc"
+    | "acta_entrega"
+    | "comprobante_pago"
+    | "ficha_tecnica"
+    | "otro";
   fileName: string;
   fileSize: string;
   uploadedAt: string;
   fileUrl?: string;
+  notes?: string;
 }
 
 export interface IpPool {
