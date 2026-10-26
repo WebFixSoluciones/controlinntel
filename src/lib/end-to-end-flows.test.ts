@@ -1188,5 +1188,15 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
       mockDataContent.includes("Resolución ARCOTEL Matriz"),
     "mock-data.ts debe contener caracteres limpios en español sin mojibake"
   );
+
+  // 10. ARCOTEL: Título superior y contador eliminados para subir directamente las pestañas
+  const arcotelManagerPath = path.resolve(rootDir, "src/components/modules/arcotel/ArcotelManager.tsx");
+  const arcotelContent = fs.readFileSync(arcotelManagerPath, "utf8");
+  assert.ok(
+    !arcotelContent.includes('title="ARCOTEL"') &&
+      !arcotelContent.includes("Archivos Regulatorios:") &&
+      !arcotelContent.includes("Expediente Habilitado"),
+    "ArcotelManager no debe incluir el banner/título redundante de ARCOTEL ni el contador, subiendo directo las pestañas"
+  );
 });
 

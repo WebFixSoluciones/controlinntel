@@ -7,7 +7,6 @@ import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem, Client } from "@/
 import { cleanMojibake, sanitizeObjectTexts } from "@/lib/sanitize-text";
 import { PoliciesList } from "./PoliciesList";
 import { PolicyModal } from "./PolicyModal";
-import { ClientTabHeader } from "../clients/ClientTabHeader";
 import {
   ShieldCheck,
   FileSpreadsheet,
@@ -359,53 +358,9 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-150">
-      {/* Banner estandarizado de Cliente en la Ficha 360 */}
-      {client && (
-        <ClientTabHeader
-          title="ARCOTEL"
-          icon={ShieldCheck}
-          badge={
-            <span className="font-mono text-xs text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 font-semibold">
-              Concesionario: {arcotelConcession.concessionaireCode}
-            </span>
-          }
-          actions={
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Expediente Habilitado
-            </span>
-          }
-        />
-      )}
-
-      {/* Action Toolbar without redundant description */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#434655]">Archivos Regulatorios:</span>
-          <span className="px-2.5 py-0.5 rounded-[6px] text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
-            {arcotelFiles.length}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setIsPolicyModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#004ac6] rounded-[6px] text-xs font-bold shadow-2xs transition-all cursor-pointer"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Registrar Póliza</span>
-          </button>
-          <button
-            onClick={() => handleOpenUploadModal("sietel_lopam")}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Subir Archivo Regulatorio</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Navigation Ribbon */}
-      <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-2 overflow-x-auto">
+      {/* Pestañas de Navegación Regulatoria y Acciones Directas */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e8f0] pb-2.5">
+        <div className="flex items-center gap-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("concesion")}
           title="Título Habilitante & Concesión ARCOTEL"
@@ -510,6 +465,24 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
           <span>Pólizas</span>
         </button>
       </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => setIsPolicyModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#004ac6] rounded-[6px] text-xs font-bold shadow-2xs transition-all cursor-pointer"
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>Registrar Póliza</span>
+        </button>
+        <button
+          onClick={() => handleOpenUploadModal("sietel_lopam")}
+          className="flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-[6px] text-xs font-bold shadow-xs transition-all cursor-pointer"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          <span>Subir Archivo Regulatorio</span>
+        </button>
+      </div>
+    </div>
 
       {/* PESTAÑA 1: TITULO HABILITANTE & DATOS DEL CONCESIONARIO (PDF Página 3) */}
       {activeTab === "concesion" && (
