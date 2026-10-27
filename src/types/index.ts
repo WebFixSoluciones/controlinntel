@@ -113,6 +113,7 @@ export interface ClientService {
   saleDocNumber?: string;              // Número de documento (ej. 010-001-000000045)
   saleDate?: string;                   // Fecha de emisión de la venta
   saleStatus?: "emitida" | "pendiente_venta"; // "emitida" si tiene nota de venta / factura, "pendiente_venta" si fue asignado manualmente sin venta
+  lastBilledInvoiceId?: string;        // ID de la última nota de venta o factura recurrente emitida
 }
 
 export interface ClientContactPerson {

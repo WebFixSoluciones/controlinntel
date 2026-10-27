@@ -3227,6 +3227,56 @@ test("Flujo E2E 60: Drive del cliente con carpetas / directorios dinámicos, eli
   );
 });
 
+test("Flujo E2E 61: Eliminación de Servicios Recurrentes y Cascada Integral con Ventas y Cobranzas", () => {
+  const rootDir = process.cwd();
+  const statePath = path.resolve(rootDir, "src/lib/state.tsx");
+  const recurringViewPath = path.resolve(rootDir, "src/components/modules/billing/RecurringBillingView.tsx");
+
+  const stateContent = fs.readFileSync(statePath, "utf8");
+  const recurringContent = fs.readFileSync(recurringViewPath, "utf8");
+
+  // 1. RecurringBillingView debe permitir eliminar servicios individuales y masivos
+  assert.ok(
+    recurringContent.includes("deleteClientService,") &&
+      recurringContent.includes("handleDeleteService") &&
+      recurringContent.includes("handlePurgeAllClientServices") &&
+      recurringContent.includes("Trash2"),
+    "RecurringBillingView debe importar deleteClientService y definir handlers de eliminación"
+  );
+
+  // 2. Botón de eliminación en la lista desplegable de servicios y en renovaciones
+  assert.ok(
+    recurringContent.includes("Eliminar Todos los Servicios") &&
+      recurringContent.includes("title=\"Eliminar este servicio recurrente\"") &&
+      recurringContent.includes("<th className=\"py-2 px-3 text-center\">Acciones</th>"),
+    "RecurringBillingView debe contar con columna Acciones, botón de purga masiva y botón individual de eliminación"
+  );
+
+  // 3. emitRecurringInvoiceForClient debe vincular invoiceId en MonthlyCharge y lastBilledInvoiceId en ClientService
+  assert.ok(
+    stateContent.includes("invoiceId: invoice.id,") &&
+      stateContent.includes("lastBilledInvoiceId: invoice.id,") &&
+      stateContent.includes("saleInvoiceId: invoice.id,"),
+    "emitRecurringInvoiceForClient debe vincular estrictamente invoiceId en el cobro y servicio"
+  );
+
+  // 4. deleteInvoice debe eliminar servicios creados por la venta y purgar cobranzas en cascada
+  assert.ok(
+    stateContent.includes("s.lastBilledInvoiceId === inv.id") &&
+      stateContent.includes("const wasCreatedBySale =") &&
+      stateContent.includes("await deleteFromFirestore(\"clientServices\", svc.id);") &&
+      stateContent.includes("c.id === `chg-${inv.clientId}-${invMonth}-${invYear}`"),
+    "deleteInvoice debe eliminar servicios nacidos de la venta, revertir servicios preexistentes y purgar cobranzas"
+  );
+
+  // 5. deleteClientService debe limpiar cobros pendientes huérfanos de cobranzas
+  assert.ok(
+    stateContent.includes("// Quitar de cobranzas si correspondía a este servicio o si el cliente ya no tiene servicios activos") &&
+      stateContent.includes("remainingForClient.length === 0"),
+    "deleteClientService debe limpiar automáticamente cobros pendientes huérfanos en cobranzas"
+  );
+});
+
 
 
 

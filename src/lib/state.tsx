@@ -1882,16 +1882,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteClientService = async (id: string) => {
     const target = clientServices.find((s) => s.id === id);
     await deleteFromFirestore("clientServices", id);
-    setClientServices((prev) => {
-      const next = prev.filter((s) => s.id !== id);
-      if (target) {
-        const activeCount = next.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
-        setClients((cPrev) =>
-          cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
-        );
+    const nextServices = clientServices.filter((s) => s.id !== id);
+    setClientServices(nextServices);
+
+    if (target) {
+      const activeCount = nextServices.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
+      setClients((cPrev) =>
+        cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
+      );
+
+      // Quitar de cobranzas si correspondía a este servicio o si el cliente ya no tiene servicios activos
+      const remainingForClient = nextServices.filter((s) => s.clientId === target.clientId);
+      const pendingCharges = monthlyCharges.filter((c) => {
+        if (c.clientId !== target.clientId || c.status !== "pendiente") return false;
+        if (c.payments && c.payments.length > 0) return false;
+        if (remainingForClient.length === 0) return true;
+        if (c.serviceDescription && c.serviceDescription.includes(target.planName) && !c.serviceDescription.includes("+")) {
+          return true;
+        }
+        return false;
+      });
+
+      for (const chg of pendingCharges) {
+        await deleteFromFirestore("monthlyCharges", chg.id);
       }
-      return next;
-    });
+      if (pendingCharges.length > 0) {
+        const pIds = new Set(pendingCharges.map((c) => c.id));
+        setMonthlyCharges((prev) => prev.filter((c) => !pIds.has(c.id)));
+      }
+    }
   };
 
   const renewClientService = async (id: string) => {
@@ -3361,6 +3380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ivaAmount: ivaTotal,
       total,
       status: "pendiente",
+      invoiceId: invoice.id,
       invoiceNumber: invoice.documentNumber,
     };
     setMonthlyCharges((prev) => [newCharge, ...prev.filter((c) => c.id !== chargeId)]);
@@ -3379,6 +3399,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await updateClientService(srv.id, {
         lastBilledPeriod: periodKey,
+        lastBilledInvoiceId: invoice.id,
+        saleInvoiceId: invoice.id,
+        saleDocNumber: invoice.documentNumber,
         nextRenewalDate: nextDate,
         ...(contractExpired ? { status: "por_renovar" } : { status: "activo" }),
       });
@@ -4023,17 +4046,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // 4. Reversión de estado en servicios del cliente vinculados a esta venta
-      const linkedServices = clientServices.filter((s) => s.saleInvoiceId === inv.id);
+      // 4. Reversión y eliminación en cascada de servicios del cliente vinculados a esta venta
+      const linkedServices = clientServices.filter(
+        (s) =>
+          s.saleInvoiceId === inv.id ||
+          s.saleDocNumber === inv.documentNumber ||
+          s.lastBilledInvoiceId === inv.id
+      );
+
+      const servicesToDelete: string[] = [];
+      const servicesToRevert: ClientService[] = [];
+
       for (const svc of linkedServices) {
-        const updates: Partial<ClientService> = {
-          saleInvoiceId: undefined,
-          saleDocNumber: undefined,
-          saleDate: undefined,
-          saleStatus: "pendiente_venta",
-        };
-        await syncToFirestore("clientServices", svc.id, updates);
-        setClientServices((prev) => prev.map((s) => (s.id === svc.id ? { ...s, ...updates } : s)));
+        // Si el servicio fue generado por la emisión de esta venta/nota de venta comercial:
+        const wasCreatedBySale =
+          svc.origin === "nota_venta" ||
+          svc.origin === "factura" ||
+          (!svc.origin && svc.saleInvoiceId === inv.id);
+
+        if (wasCreatedBySale) {
+          servicesToDelete.push(svc.id);
+          await deleteFromFirestore("clientServices", svc.id);
+        } else {
+          // Si era un servicio preexistente (ej. de contrato o recurrente periódico facturado):
+          servicesToRevert.push(svc);
+          const updates: Partial<ClientService> = {
+            saleInvoiceId: undefined,
+            saleDocNumber: undefined,
+            saleDate: undefined,
+            saleStatus: "pendiente_venta",
+            lastBilledPeriod: undefined,
+            lastBilledInvoiceId: undefined,
+          };
+          await syncToFirestore("clientServices", svc.id, updates);
+        }
+      }
+
+      if (servicesToDelete.length > 0) {
+        const delSet = new Set(servicesToDelete);
+        setClientServices((prev) => prev.filter((s) => !delSet.has(s.id)));
+      }
+      if (servicesToRevert.length > 0) {
+        const revSet = new Set(servicesToRevert.map((s) => s.id));
+        setClientServices((prev) =>
+          prev.map((s) => {
+            if (revSet.has(s.id)) {
+              return {
+                ...s,
+                saleInvoiceId: undefined,
+                saleDocNumber: undefined,
+                saleDate: undefined,
+                saleStatus: "pendiente_venta",
+                lastBilledPeriod: undefined,
+                lastBilledInvoiceId: undefined,
+              };
+            }
+            return s;
+          })
+        );
+      }
+
+      // Actualizar contador de servicios activos del cliente si cambió
+      if (inv.clientId) {
+        const clientObj = clients.find((c) => c.id === inv.clientId);
+        if (clientObj) {
+          const activeCount = clientServices.filter(
+            (s) => s.clientId === inv.clientId && !servicesToDelete.includes(s.id) && s.status === "activo"
+          ).length;
+          await syncToFirestore("clients", clientObj.id, { totalActiveServices: activeCount });
+          setClients((prev) =>
+            prev.map((c) => (c.id === clientObj.id ? { ...c, totalActiveServices: activeCount } : c))
+          );
+        }
       }
     }
 
@@ -4042,12 +4126,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setBillingInvoices((prev) => prev.filter((i) => i.id !== id));
 
     // 6. Purga en cascada de cobros y abonos comerciales vinculados a esta venta
+    const invDate = new Date(inv.date);
+    const invMonth = isNaN(invDate.getTime()) ? undefined : invDate.getMonth() + 1;
+    const invYear = isNaN(invDate.getTime()) ? undefined : invDate.getFullYear();
     const linkedCharges = monthlyCharges.filter(
       (c) =>
         c.invoiceId === id ||
         c.invoiceNumber === inv.documentNumber ||
         c.id === id ||
-        c.id === `chg-inv-${id}`
+        c.id === `chg-inv-${id}` ||
+        (invMonth && invYear && c.id === `chg-${inv.clientId}-${invMonth}-${invYear}`) ||
+        (c.clientId === inv.clientId && (c.invoiceNumber === inv.documentNumber || c.invoiceId === id))
     );
     for (const chg of linkedCharges) {
       const chgMovs = financialMovements.filter((m) => m.relatedEntityId === chg.id);

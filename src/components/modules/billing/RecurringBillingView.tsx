@@ -17,6 +17,7 @@ import {
   Receipt,
   BellRing,
   SlidersHorizontal,
+  Trash2,
 } from "lucide-react";
 
 const MONTHS = [
@@ -43,10 +44,11 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     clients,
     clientServices,
     updateClientService,
+    deleteClientService,
     renewClientService,
     emitRecurringInvoiceForClient,
   } = useApp();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showConfirm } = useToast();
 
   // Sub-mode: "lote" (Emisión Recurrente por Cliente) | "renovaciones" (Alertas y Seguimiento Global)
   const [subView, setSubView] = useState<"lote" | "renovaciones">("lote");
@@ -288,6 +290,43 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     } finally {
       setEmittingBatch(false);
     }
+  };
+
+  // Eliminar un servicio recurrente individual
+  const handleDeleteService = (serviceId: string, planName: string, clientName: string) => {
+    showConfirm(
+      "¿Eliminar Servicio Recurrente?",
+      `¿Deseas eliminar el servicio "${planName}" de ${clientName}? Se retirará de la facturación recurrente y cobranzas.`,
+      async () => {
+        try {
+          await deleteClientService(serviceId);
+          showSuccess("Servicio Eliminado", `El servicio "${planName}" fue eliminado correctamente.`);
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message || "No se pudo eliminar el servicio.");
+        }
+      },
+      "Eliminar"
+    );
+  };
+
+  // Limpiar / Eliminar todos los servicios de un cliente
+  const handlePurgeAllClientServices = (clientId: string, clientName: string, count: number) => {
+    showConfirm(
+      "¿Eliminar Todos los Servicios?",
+      `¿Estás seguro de eliminar los ${count} servicio(s) de ${clientName}? Se retirarán por completo de la recurrencia y se limpiarán los cobros pendientes.`,
+      async () => {
+        try {
+          const clientSvcs = clientServices.filter((s) => s.clientId === clientId);
+          for (const s of clientSvcs) {
+            await deleteClientService(s.id);
+          }
+          showSuccess("Servicios Eliminados", `Se eliminaron ${clientSvcs.length} servicios de ${clientName}.`);
+        } catch (err: any) {
+          showError("Error al Eliminar", err?.message || "No se pudieron eliminar los servicios.");
+        }
+      },
+      "Eliminar Todos"
+    );
   };
 
   // Toggle service billable status
@@ -641,17 +680,61 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                   ? "Re-emitir NV"
                                   : "Generar Nota Venta"}
                               </button>
+
+                              {row.services.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handlePurgeAllClientServices(
+                                      row.client.id,
+                                      row.client.businessName,
+                                      row.services.length
+                                    )
+                                  }
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                  title={`Eliminar los ${row.services.length} servicios de ${row.client.businessName}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
 
-                        {/* Desplegable limpio para encender/apagar servicios del cliente antes de facturar */}
+                        {/* Desplegable limpio para encender/apagar y eliminar servicios del cliente */}
                         {isExpanded && (
                           <tr className="bg-slate-50/90">
                             <td colSpan={9} className="p-4 px-6 border-b border-slate-200">
-                              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-slate-800 text-xs">
+                                      Servicios Recurrentes ({row.services.length})
+                                    </span>
+                                    <span className="text-[10px] text-slate-500">
+                                      — {row.client.businessName}
+                                    </span>
+                                  </div>
+                                  {row.services.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handlePurgeAllClientServices(
+                                          row.client.id,
+                                          row.client.businessName,
+                                          row.services.length
+                                        )
+                                      }
+                                      className="text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg font-bold inline-flex items-center gap-1 border border-rose-200 transition cursor-pointer"
+                                      title="Eliminar todos los servicios recurrentes acumulados de este cliente"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Eliminar Todos los Servicios</span>
+                                    </button>
+                                  )}
+                                </div>
                                 <table className="w-full text-left text-xs">
-                                  <thead className="text-[10px] uppercase text-slate-400 bg-slate-50 border-b border-slate-100">
+                                  <thead className="text-[10px] uppercase text-slate-400 bg-slate-50/60 border-b border-slate-100">
                                     <tr>
                                       <th className="py-2 px-4">Servicio</th>
                                       <th className="py-2 px-3">Ciclo</th>
@@ -659,6 +742,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                       <th className="py-2 px-3 text-center">Estado</th>
                                       <th className="py-2 px-3 text-center">Facturar</th>
                                       <th className="py-2 px-4 text-right">Tarifa</th>
+                                      <th className="py-2 px-3 text-center">Acciones</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
@@ -668,7 +752,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                         svc.isBillableInCurrentCycle !== false;
                                       const price = svc.customPrice ?? svc.basePrice ?? 0;
                                       return (
-                                        <tr key={svc.id}>
+                                        <tr key={svc.id} className="hover:bg-slate-50/60 transition">
                                           <td className="py-2.5 px-4 font-bold text-slate-800">
                                             {svc.planName}
                                           </td>
@@ -711,6 +795,22 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                           </td>
                                           <td className="py-2.5 px-4 text-right font-mono font-bold">
                                             ${price.toFixed(2)}
+                                          </td>
+                                          <td className="py-2.5 px-3 text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleDeleteService(
+                                                  svc.id,
+                                                  svc.planName,
+                                                  row.client.businessName
+                                                )
+                                              }
+                                              className="p-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                              title="Eliminar este servicio recurrente"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                           </td>
                                         </tr>
                                       );
@@ -913,6 +1013,17 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                             >
                               <RefreshCw className="w-3 h-3" />
                               <span>Renovar</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteService(svc.id, svc.planName, client.businessName)
+                              }
+                              className="p-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                              title="Eliminar este servicio recurrente"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
