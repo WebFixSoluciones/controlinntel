@@ -5,7 +5,6 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, RegulatoryTramite } from "@/types";
 import { TramiteModal } from "@/components/modules/tramites/TramiteModal";
-import { ClientTabHeader } from "./ClientTabHeader";
 import {
   FileText,
   Plus,
@@ -145,28 +144,6 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-150">
-      <ClientTabHeader
-        title="Trámites"
-        icon={FileText}
-        badge={
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-            {clientTramites.length}
-          </span>
-        }
-        actions={
-          <button
-            onClick={() => {
-              setTramiteToEdit(null);
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Nuevo Trámite</span>
-          </button>
-        }
-      />
-
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex items-center justify-between">

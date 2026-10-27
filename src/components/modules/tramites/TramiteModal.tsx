@@ -99,9 +99,10 @@ export function TramiteModal({
       setClientId(cId);
       setClientName(cName);
       setTaskId(defaultTaskId || "");
-      setTaskTitle(defaultTaskTitle || "");
+      setTaskTitle(defaultTaskId ? (defaultTaskTitle || "") : "");
       setProjectId(defaultProjectId || "");
-      setProjectName(defaultProjectName || "");
+      const prj = defaultProjectId ? projects.find((p) => p.id === defaultProjectId) : undefined;
+      setProjectName(defaultProjectName || prj?.title || "");
 
       setDocumentNumber("");
       setReason("");
@@ -122,6 +123,7 @@ export function TramiteModal({
     defaultProjectId,
     defaultProjectName,
     clients,
+    projects,
     currentUser,
   ]);
 
@@ -130,11 +132,11 @@ export function TramiteModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!documentNumber.trim()) {
-      showError("Documento Requerido", "Ingresa el número o código de documento.");
+      showError("Campo Obligatorio", "Por favor ingresa el número o código de documento.");
       return;
     }
     if (!reason.trim()) {
-      showError("Motivo Requerido", "Ingresa el motivo o asunto del trámite.");
+      showError("Campo Obligatorio", "Por favor ingresa el asunto o motivo del trámite.");
       return;
     }
 
@@ -159,9 +161,9 @@ export function TramiteModal({
           clientId: clientId || undefined,
           clientName: clientName || undefined,
           taskId: taskId || undefined,
-          taskTitle: taskTitle || undefined,
+          taskTitle: taskId ? taskTitle || undefined : undefined,
           projectId: projectId || undefined,
-          projectName: projectName || undefined,
+          projectName: projectId ? projectName || undefined : undefined,
           documentNumber: documentNumber.trim(),
           reason: reason.trim(),
           submissionDate,
@@ -194,9 +196,9 @@ export function TramiteModal({
           clientId: clientId || undefined,
           clientName: clientName || undefined,
           taskId: taskId || undefined,
-          taskTitle: taskTitle || undefined,
+          taskTitle: taskId ? taskTitle || undefined : undefined,
           projectId: projectId || undefined,
-          projectName: projectName || undefined,
+          projectName: projectId ? projectName || undefined : undefined,
           documentNumber: documentNumber.trim(),
           reason: reason.trim(),
           submissionDate,
@@ -250,7 +252,7 @@ export function TramiteModal({
                 {tramiteToEdit ? `Editar Trámite: ${tramiteToEdit.code}` : "Nuevo Trámite"}
               </h3>
               <p className="text-xs text-blue-100">
-                Seguimiento de trámites regulatorios e institucionales
+                Control y gestión del trámite
               </p>
             </div>
           </div>
@@ -263,23 +265,22 @@ export function TramiteModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto text-xs">
-          {/* Vinculación: Cliente y Tarea / Proyecto */}
-          <div className="bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg p-4 space-y-3">
-            <div className="text-[11px] font-bold text-[#004ac6] uppercase tracking-wider flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Vinculación de Cliente y Tarea de Proyecto</span>
+          {/* Vinculación: Cliente, Proyecto y Tarea */}
+          <div className="bg-[#f8f9ff] border border-[#e2e8f0] rounded-xl p-3.5 space-y-2.5">
+            <div className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
+              <span>Vinculación</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">
-                  Cliente Titular *
+                <label className="font-bold text-slate-700 block mb-1">
+                  Cliente *
                 </label>
                 {defaultClientId ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e2e8f0] rounded-xl text-[#0b1c30] font-semibold">
-                    <Building2 className="w-4 h-4 text-[#004ac6]" />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e2e8f0] rounded-xl text-[#0b1c30] font-semibold text-xs">
+                    <Building2 className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
                     <span className="truncate">{clientName || defaultClientName}</span>
-                    <span className="ml-auto text-[10px] font-bold text-[#004ac6] bg-[#eff4ff] px-2 py-0.5 rounded-full">Ficha Actual</span>
                   </div>
                 ) : (
                   <select
@@ -294,12 +295,12 @@ export function TramiteModal({
                       setProjectId("");
                       setProjectName("");
                     }}
-                    className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] text-xs focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
                   >
                     <option value="">-- Seleccionar Cliente --</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.businessName} ({c.identificationNumber})
+                        {c.businessName}
                       </option>
                     ))}
                   </select>
@@ -307,8 +308,40 @@ export function TramiteModal({
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">
-                  Tarea / Proyecto Vinculado
+                <label className="font-bold text-slate-700 block mb-1">
+                  Proyecto (Opcional)
+                </label>
+                <select
+                  value={projectId}
+                  onChange={(e) => {
+                    const selPId = e.target.value;
+                    setProjectId(selPId);
+                    const prj = projects.find((p) => p.id === selPId);
+                    setProjectName(prj ? prj.title : "");
+                    if (taskId) {
+                      const curTask = clientProjects.find((t) => t.id === taskId);
+                      if (curTask && curTask.projectId && curTask.projectId !== selPId) {
+                        setTaskId("");
+                        setTaskTitle("");
+                      }
+                    }
+                  }}
+                  className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] text-xs focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
+                >
+                  <option value="">-- Sin Proyecto --</option>
+                  {projects
+                    .filter((p) => !p.isDeleted && (!clientId || !p.clientId || p.clientId === clientId))
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        📁 {p.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">
+                  Tarea (Opcional)
                 </label>
                 <select
                   value={taskId}
@@ -317,92 +350,100 @@ export function TramiteModal({
                     setTaskId(selTaskId);
                     if (!selTaskId) {
                       setTaskTitle("");
-                      setProjectId("");
-                      setProjectName("");
                     } else {
                       const t = clientProjects.find((cp) => cp.id === selTaskId);
                       if (t) {
                         setTaskTitle(t.title);
-                        setProjectId(t.projectId || "");
-                        setProjectName(t.projectName || "");
+                        if (t.projectId && !projectId) {
+                          setProjectId(t.projectId);
+                          setProjectName(t.projectName || "");
+                        }
                       }
                     }
                   }}
-                  className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                  className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] text-xs focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
                 >
-                  <option value="">-- Ninguna (Trámite General de Cliente) --</option>
+                  <option value="">-- Sin Tarea --</option>
                   {clientProjects
-                    .filter((t) => !clientId || t.clientId === clientId)
+                    .filter(
+                      (t) =>
+                        !t.isDeleted &&
+                        (!clientId || t.clientId === clientId) &&
+                        (!projectId || t.projectId === projectId)
+                    )
                     .map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.projectName ? `[${t.projectName}] ` : ""}{t.title}
+                        ☑️ {t.title}
                       </option>
                     ))}
                 </select>
               </div>
             </div>
-            {taskTitle && (
+
+            {(taskTitle || projectName) && (
               <div className="text-[11px] text-[#004ac6] flex items-center gap-1.5 bg-[#eff4ff] px-2.5 py-1.5 rounded-lg border border-[#c3d3ff]">
                 <CheckSquare className="w-3.5 h-3.5 shrink-0" />
                 <span>
-                  Asociado a Tarea: <strong>{taskTitle}</strong>
-                  {projectName ? ` (Proyecto: ${projectName})` : ""}
+                  {projectName ? <>Proyecto: <strong>{projectName}</strong></> : null}
+                  {projectName && taskTitle ? " · " : null}
+                  {taskTitle ? <>Tarea: <strong>{taskTitle}</strong></> : null}
                 </span>
               </div>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Número de Documento / Oficio / Quipux *
+              <label className="font-bold text-slate-700 block mb-1">
+                Nº de Documento / Oficio *
               </label>
               <input
                 type="text"
                 required
-                placeholder="Ej: OFICIO-ARCOTEL-2026-0914-O"
+                placeholder="Ej: OFICIO-2026-0914"
                 value={documentNumber}
                 onChange={(e) => setDocumentNumber(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-mono font-bold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Fecha del Trámite / Ingreso *
+              <label className="font-bold text-slate-700 block mb-1">
+                Fecha de Ingreso *
               </label>
               <input
                 type="date"
                 required
                 value={submissionDate}
                 onChange={(e) => setSubmissionDate(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
           </div>
 
           <div>
-            <label className="font-bold text-[#434655] block mb-1">
-              Motivo o Asunto del Trámite *
+            <label className="font-bold text-slate-700 block mb-1">
+              Asunto / Motivo *
             </label>
             <textarea
               required
               rows={2}
-              placeholder="Describa el objeto de la gestión (ej. Solicitud de renovación de título habilitante para prestación de servicio de valor agregado)..."
+              placeholder="Descripción u objeto del trámite..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+              className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Entidad u Organismo *
+              <label className="font-bold text-slate-700 block mb-1">
+                Entidad *
               </label>
               <select
                 value={entity}
                 onChange={(e) => setEntity(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               >
                 {ENTITY_OPTIONS.map((ent) => (
                   <option key={ent} value={ent}>
@@ -413,34 +454,34 @@ export function TramiteModal({
             </div>
 
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Estado Dinámico del Trámite *
+              <label className="font-bold text-slate-700 block mb-1">
+                Estado *
               </label>
               <select
                 value={dynamicStatus}
                 onChange={(e) => setDynamicStatus(e.target.value as any)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               >
-                <option value="ingresado">1. INGRESADO (Ventanilla / Quipux)</option>
-                <option value="en_revision">2. EN REVISIÓN TÉCNICA</option>
-                <option value="observado">3. OBSERVADO (Requiere Subsanación)</option>
-                <option value="subsanado">4. SUBSANADO</option>
-                <option value="aprobado">5. APROBADO / FAVORABLE</option>
-                <option value="finalizado">6. FINALIZADO / CONCLUIDO</option>
-                <option value="archivado">7. ARCHIVADO</option>
+                <option value="ingresado">1. Ingresado (Ventanilla / Quipux)</option>
+                <option value="en_revision">2. En Revisión</option>
+                <option value="observado">3. Observado (Subsanar)</option>
+                <option value="subsanado">4. Subsanado</option>
+                <option value="aprobado">5. Aprobado</option>
+                <option value="finalizado">6. Finalizado</option>
+                <option value="archivado">7. Archivado</option>
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Responsable Asignado *
+              <label className="font-bold text-slate-700 block mb-1">
+                Responsable *
               </label>
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               >
                 {systemUsers.map((u) => (
                   <option key={u.uid} value={u.displayName}>
@@ -451,45 +492,45 @@ export function TramiteModal({
             </div>
 
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
+              <label className="font-bold text-slate-700 block mb-1">
                 Prioridad
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               >
                 <option value="normal">Normal</option>
                 <option value="alta">Alta</option>
-                <option value="urgente">Urgente (Término Perentorio)</option>
+                <option value="urgente">Urgente</option>
               </select>
             </div>
           </div>
 
           {tramiteToEdit ? (
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Agregar Nota de Seguimiento a la Bitácora
+              <label className="font-bold text-slate-700 block mb-1">
+                Nota de Seguimiento
               </label>
               <input
                 type="text"
-                placeholder="Ej. Oficio de respuesta entregado el 25/09..."
+                placeholder="Actualización o nota de avance..."
                 value={statusUpdateNote}
                 onChange={(e) => setStatusUpdateNote(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
           ) : (
             <div>
-              <label className="font-bold text-[#434655] block mb-1">
-                Observaciones Generales
+              <label className="font-bold text-slate-700 block mb-1">
+                Observaciones
               </label>
               <input
                 type="text"
-                placeholder="Observaciones adicionales o enlace al archivo..."
+                placeholder="Notas u observaciones adicionales..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                className="w-full bg-white border border-[#e2e8f0] rounded-xl px-3 py-2 text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6] focus:outline-hidden"
               />
             </div>
           )}
@@ -498,14 +539,14 @@ export function TramiteModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[#737686] hover:bg-slate-100 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              className="px-4 py-2 text-[#737686] hover:bg-slate-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>{busy ? "Guardando..." : tramiteToEdit ? "Guardar Cambios" : "Crear Trámite"}</span>

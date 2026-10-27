@@ -2857,6 +2857,79 @@ test("Flujo E2E 52: Simplificación de Modal de Tareas, Contexto Automático de 
   );
 });
 
+test("Flujo E2E 53: Selector Independiente de Proyectos y Simplificación Integral de Labels en Trámites", () => {
+  const rootDir = process.cwd();
+  const tramiteModalPath = path.resolve(rootDir, "src/components/modules/tramites/TramiteModal.tsx");
+  const tramiteModalContent = fs.readFileSync(tramiteModalPath, "utf8");
+
+  // Selector de Proyecto y Tarea independientes
+  assert.ok(
+    tramiteModalContent.includes("Proyecto (Opcional)") &&
+      tramiteModalContent.includes("projects") &&
+      tramiteModalContent.includes(".filter((p) => !p.isDeleted"),
+    "TramiteModal debe incluir selector independiente para listar y vincular Proyectos"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Tarea (Opcional)") &&
+      tramiteModalContent.includes("clientProjects") &&
+      tramiteModalContent.includes(".filter("),
+    "TramiteModal debe incluir selector independiente para Tareas"
+  );
+  assert.ok(
+    !tramiteModalContent.includes("Tarea / Proyecto Vinculado"),
+    "No debe mantener el label ambiguo 'Tarea / Proyecto Vinculado'"
+  );
+
+  // Labels y títulos simplificados
+  assert.ok(
+    tramiteModalContent.includes("Control y gestión del trámite") &&
+      !tramiteModalContent.includes("Seguimiento de trámites regulatorios e institucionales"),
+    "Subtítulo debe ser 'Control y gestión del trámite'"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Nº de Documento / Oficio *") &&
+      !tramiteModalContent.includes("Número de Documento / Oficio / Quipux *"),
+    "Label de documento debe ser 'Nº de Documento / Oficio *'"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Fecha de Ingreso *") &&
+      !tramiteModalContent.includes("Fecha del Trámite / Ingreso *"),
+    "Label de fecha debe ser 'Fecha de Ingreso *'"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Asunto / Motivo *") &&
+      !tramiteModalContent.includes("Motivo o Asunto del Trámite *"),
+    "Label de asunto debe ser 'Asunto / Motivo *'"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Entidad *") &&
+      !tramiteModalContent.includes("Entidad u Organismo *"),
+    "Label de entidad debe ser 'Entidad *'"
+  );
+  assert.ok(
+    tramiteModalContent.includes("Responsable *") &&
+      !tramiteModalContent.includes("Responsable Asignado *"),
+    "Label de responsable debe ser 'Responsable *'"
+  );
+  assert.ok(
+    !tramiteModalContent.includes("Urgente (Término Perentorio)"),
+    "Opción urgente debe ser 'Urgente' limpia sin términos redundantes"
+  );
+  assert.ok(
+    !tramiteModalContent.includes("Observaciones Generales"),
+    "Label debe ser 'Observaciones' en lugar de 'Observaciones Generales'"
+  );
+
+  // ClientTramitesTab: Retiro de cabecera redundante
+  const clientTramitesPath = path.resolve(rootDir, "src/components/modules/clients/ClientTramitesTab.tsx");
+  const clientTramitesContent = fs.readFileSync(clientTramitesPath, "utf8");
+  assert.ok(
+    !clientTramitesContent.includes("ClientTabHeader"),
+    "ClientTramitesTab no debe incluir ClientTabHeader redundante"
+  );
+});
+
+
 
 
 
