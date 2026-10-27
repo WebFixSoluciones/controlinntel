@@ -14,10 +14,10 @@ import {
   User,
   X,
   ArrowLeft,
+  Search,
 } from "lucide-react";
 import { TicketModal } from "../tickets/TicketModal";
 import { TicketDetail } from "../tickets/TicketDetail";
-import { ClientTabHeader } from "./ClientTabHeader";
 
 interface ClientTicketsTabProps {
   client: Client;
@@ -30,6 +30,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"abiertos" | "todos">("abiertos");
+  const [ticketSearch, setTicketSearch] = useState("");
 
   // Strictly filter tickets for this client
   const clientTickets = useMemo(() => {
@@ -45,7 +46,18 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
     return clientTickets.filter((t) => t.status !== "cerrado" && t.status !== "resuelto");
   }, [clientTickets]);
 
-  const displayedTickets = filterMode === "abiertos" ? openTickets : clientTickets;
+  const displayedTickets = useMemo(() => {
+    const base = filterMode === "abiertos" ? openTickets : clientTickets;
+    if (!ticketSearch.trim()) return base;
+    const q = ticketSearch.trim().toLowerCase();
+    return base.filter(
+      (t) =>
+        t.ticketNumber.toLowerCase().includes(q) ||
+        t.title.toLowerCase().includes(q) ||
+        (t.assignedToName && t.assignedToName.toLowerCase().includes(q)) ||
+        (t.category && t.category.toLowerCase().includes(q))
+    );
+  }, [filterMode, openTickets, clientTickets, ticketSearch]);
 
   const handleResolveTicket = (ticket: Ticket) => {
     showConfirm(
@@ -153,40 +165,55 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
 
   return (
     <div className="space-y-4">
-      <ClientTabHeader
-        title="Tickets"
-        icon={TicketIcon}
-        badge={
-          <span className="text-xs px-2.5 py-0.5 rounded-md font-bold bg-sky-50 text-sky-700 border border-sky-200">
-            {openTickets.length} Abierto{openTickets.length === 1 ? "" : "s"}
-          </span>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-slate-200/70 p-0.5 rounded-lg text-xs font-semibold">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        {/* Barra de búsqueda y filtros rápidos con botón Nuevo Ticket alineado a la derecha */}
+        <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Buscar por ticket, asunto o técnico..."
+              value={ticketSearch}
+              onChange={(e) => setTicketSearch(e.target.value)}
+              className="w-full text-xs pl-8 pr-8 py-1.5 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#64748b] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-colors"
+            />
+            {ticketSearch && (
               <button
                 type="button"
-                onClick={() => setFilterMode("abiertos")}
-                className={`px-3 py-1 rounded-md transition cursor-pointer ${
-                  filterMode === "abiertos"
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                onClick={() => setTicketSearch("")}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title="Limpiar búsqueda"
               >
-                Abiertos • {openTickets.length}
+                <X className="w-3.5 h-3.5" />
               </button>
-              <button
-                type="button"
-                onClick={() => setFilterMode("todos")}
-                className={`px-3 py-1 rounded-md transition cursor-pointer ${
-                  filterMode === "todos"
-                    ? "bg-white text-slate-900 shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Todos • {clientTickets.length}
-              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs">
+              {[
+                { id: "abiertos", label: "Abiertos" },
+                { id: "todos", label: "Todos" },
+              ].map((tab) => {
+                const isActive = filterMode === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFilterMode(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-[#004ac6] text-white shadow-2xs"
+                        : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
+
+            <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
 
             <button
               type="button"
@@ -197,26 +224,35 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
               <span>Nuevo Ticket</span>
             </button>
           </div>
-        }
-      />
-
-      {/* Tickets Table */}
-      {displayedTickets.length === 0 ? (
-        <div className="py-12 text-center bg-white rounded-xl border border-dashed border-slate-200">
-          <TicketIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="font-bold text-slate-700 text-xs">
-            {filterMode === "abiertos"
-              ? "No hay tickets abiertos para este cliente"
-              : "Sin incidencias registradas para este cliente"}
-          </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            {filterMode === "abiertos"
-              ? "Todas las incidencias técnicas y requerimientos han sido atendidos y resueltos."
-              : "Puedes registrar un nuevo ticket de soporte usando el botón superior."}
-          </p>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+
+        {/* Tabla o Estado Vacío */}
+        {displayedTickets.length === 0 ? (
+          <div className="py-12 text-center bg-white">
+            <TicketIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="font-bold text-slate-700 text-xs">
+              {clientTickets.length === 0
+                ? "Sin incidencias registradas para este cliente"
+                : filterMode === "abiertos"
+                ? "No hay tickets abiertos para este cliente"
+                : "No se encontraron tickets con los filtros aplicados"}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {filterMode === "abiertos" && clientTickets.length > 0
+                ? "Todas las incidencias técnicas y requerimientos han sido atendidos y resueltos."
+                : "Puedes registrar un nuevo ticket de soporte usando el botón de la barra."}
+            </p>
+            {ticketSearch && (
+              <button
+                type="button"
+                onClick={() => setTicketSearch("")}
+                className="mt-3 inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-[#004ac6] hover:underline cursor-pointer"
+              >
+                Restablecer búsqueda
+              </button>
+            )}
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
@@ -304,8 +340,8 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Ticket Modal for this client */}
       {isModalOpen && (

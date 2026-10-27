@@ -2762,6 +2762,41 @@ test("Flujo E2E 50: Barra de Filtros, Impresión de Estado de Cuenta e Informes 
   );
 });
 
+test("Flujo E2E 51: Eliminación de Barra de Título y Numerales en Botones de Tickets", () => {
+  const rootDir = process.cwd();
+  const ticketsPath = path.resolve(rootDir, "src/components/modules/clients/ClientTicketsTab.tsx");
+  const ticketsContent = fs.readFileSync(ticketsPath, "utf8");
+
+  // No debe incluir barra de título redundante para Tickets
+  assert.ok(
+    !ticketsContent.includes("ClientTabHeader"),
+    "ClientTicketsTab no debe incluir la barra de título redundante ClientTabHeader"
+  );
+  assert.ok(
+    !ticketsContent.includes('title="Tickets"'),
+    "ClientTicketsTab no debe incluir title='Tickets'"
+  );
+
+  // Botones de filtro no deben contener numerales / contadores numéricos
+  assert.ok(
+    !ticketsContent.includes("Abiertos •"),
+    "Botón 'Abiertos' no debe contener numerales"
+  );
+  assert.ok(
+    !ticketsContent.includes("Todos •"),
+    "Botón 'Todos' no debe contener numerales"
+  );
+
+  // Debe incluir barra de búsqueda y botón 'Nuevo Ticket' alineado a la derecha
+  assert.ok(
+    ticketsContent.includes("ticketSearch") &&
+      ticketsContent.includes("Buscar por ticket, asunto o técnico...") &&
+      ticketsContent.includes("Nuevo Ticket") &&
+      ticketsContent.includes("flex flex-wrap items-center justify-between"),
+    "ClientTicketsTab debe integrar buscador y botón Nuevo Ticket en barra de herramientas"
+  );
+});
+
 
 
 
