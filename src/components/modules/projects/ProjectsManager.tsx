@@ -296,7 +296,7 @@ export function ProjectsManager() {
                 <th className="py-3.5 px-4 w-[13%]">Tareas Globales</th>
                 <th className="py-3.5 px-4 w-[10%]">Presupuesto</th>
                 <th className="py-3.5 px-4 w-[10%]">Estado</th>
-                <th className="py-3.5 px-4 w-[7%] text-center">Acciones</th>
+                <th className="py-3.5 px-4 w-[7%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -416,8 +416,8 @@ export function ProjectsManager() {
                       </td>
 
                       {/* 8. Iconos de Acciones Solicitados */}
-                      <td className="py-4 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           {/* 👁️ Ver Proyecto */}
                           <button
                             onClick={() => setSelectedProjectId(p.id)}

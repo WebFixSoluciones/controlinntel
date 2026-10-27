@@ -227,7 +227,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                   <th className="py-3 px-4 w-[12%] text-center">Estado</th>
                   <th className="py-3 px-4 w-[11%]">Fecha Reporte</th>
                   <th className="py-3 px-4 w-[11%]">Asignado a</th>
-                  <th className="py-3 px-4 w-[8%] text-center">Acciones</th>
+                  <th className="py-3 px-4 w-[8%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -272,8 +272,8 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                     </td>
 
                     {/* Acciones */}
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         {/* Ver / Gestionar Ticket */}
                         <button
                           type="button"

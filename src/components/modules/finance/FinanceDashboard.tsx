@@ -714,7 +714,7 @@ export function FinanceDashboard() {
                   <th className="w-[10%] py-3 px-3 text-right">Abonado</th>
                   <th className="w-[10%] py-3 px-3 text-right">Saldo Pend.</th>
                   <th className="w-[9%] py-3 px-3 text-center">Estado</th>
-                  <th className="w-[9%] py-3 px-3 text-center">Acciones</th>
+                  <th className="w-[9%] py-3 px-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -837,8 +837,8 @@ export function FinanceDashboard() {
                         </td>
 
                         {/* Acciones */}
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
                             {!isPaid && (
                               <button
                                 type="button"
@@ -933,7 +933,7 @@ export function FinanceDashboard() {
                   <th className="w-1/12 py-3 px-3 text-right">Saldo Disponible</th>
                   <th className="w-2/12 py-3 px-3">Método / Banco</th>
                   <th className="w-1/12 py-3 px-3 text-center">Estado</th>
-                  <th className="w-1/12 py-3 px-3 text-center">Acciones</th>
+                  <th className="w-1/12 py-3 px-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -986,8 +986,8 @@ export function FinanceDashboard() {
                             {isAvailable ? "Disponible" : "Aplicado"}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="py-3 px-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             {isAvailable && (
                               <button
                                 type="button"

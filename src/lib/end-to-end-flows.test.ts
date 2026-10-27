@@ -2338,6 +2338,35 @@ test("Flujo E2E 38: Directorio de Clientes con Columna de Servicios Minimalista 
   );
 });
 
+test("Flujo E2E 39: Alineación Estricta a la Derecha de Iconos de Acción en Finanzas y Tablas Maestras", () => {
+  const rootDir = process.cwd();
+  const financePath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeContent = fs.readFileSync(financePath, "utf8");
+
+  // 1. Cobros por Comprobante en Finanzas: Header text-right y contenedor justify-end
+  assert.ok(
+    financeContent.includes('text-right">Acciones</th>') &&
+      financeContent.includes('flex items-center justify-end gap-1'),
+    "FinanceDashboard debe alinear la cabecera y los iconos de acción a la derecha en Cobros por Comprobante"
+  );
+
+  // 2. Anticipos de Clientes en Finanzas: Header text-right y contenedor justify-end
+  assert.ok(
+    financeContent.includes('flex items-center justify-end gap-1.5'),
+    "FinanceDashboard debe alinear los botones de acción a la derecha en Anticipos de Clientes"
+  );
+
+  // 3. Verificación en Compras, Proyectos y Clientes
+  const purchasesPath = path.resolve(rootDir, "src/components/modules/purchases/PurchaseHistoryTab.tsx");
+  const purchasesContent = fs.readFileSync(purchasesPath, "utf8");
+  assert.ok(
+    purchasesContent.includes('text-right">Acciones</th>') &&
+      purchasesContent.includes('flex items-center justify-end gap-1'),
+    "PurchaseHistoryTab debe tener los iconos de acción alineados a la derecha"
+  );
+});
+
+
 
 
 

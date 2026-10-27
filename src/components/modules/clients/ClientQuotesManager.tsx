@@ -401,7 +401,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                   <th className="py-3 px-4 w-[18%]">Fecha / Vigencia</th>
                   <th className="py-3 px-4 w-[12%] text-center">Estado</th>
                   <th className="py-3 px-4 w-[10%] text-right">Total</th>
-                  <th className="py-3 px-4 w-[10%] text-center">Acciones</th>
+                  <th className="py-3 px-4 w-[10%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -455,8 +455,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                     </td>
 
                     {/* Acciones (solo iconos de acción) */}
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
                         {/* Icono: Transformar a Venta */}
                         <button
                           type="button"

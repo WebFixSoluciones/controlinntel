@@ -120,7 +120,7 @@ export function PurchaseHistoryTab({
                 <th className="py-3 px-4 w-1/12 text-right font-black">Total Factura</th>
                 <th className="py-3 px-4 w-1/12 text-center">Estado Pago</th>
                 <th className="py-3 px-4 w-1/12 text-center">Inventario</th>
-                <th className="py-3 px-4 w-1/12 text-center">Acciones</th>
+                <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -204,8 +204,8 @@ export function PurchaseHistoryTab({
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => setSelectedInvoice(inv)}
                             className="p-1.5 rounded-lg text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
