@@ -2855,6 +2855,10 @@ test("Flujo E2E 52: Simplificación de Modal de Tareas, Contexto Automático de 
       clientTasksContent.includes("Tablero Kanban"),
     "ClientTasksTab debe mantener el switcher de vistas y el botón Nueva Tarea en toolbar limpia"
   );
+  assert.ok(
+    !clientTasksContent.includes("p-3 bg-slate-50/80 rounded-xl border border-slate-200/80"),
+    "Las tarjetas KPI no deben estar anidadas dentro de otra tarjeta contenedor"
+  );
 });
 
 test("Flujo E2E 53: Selector Independiente de Proyectos y Simplificación Integral de Labels en Trámites", () => {

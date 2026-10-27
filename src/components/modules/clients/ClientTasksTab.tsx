@@ -470,33 +470,31 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         </button>
       </div>
 
-      {/* KPI Cards Container */}
-      <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Total Tareas</span>
-            <p className="text-xs font-extrabold text-slate-900 mt-0.5">{clientTasks.length}</p>
-          </div>
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs">
+          <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Tareas</span>
+          <p className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">{clientTasks.length}</p>
+        </div>
 
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-            <span className="text-[10px] font-bold uppercase text-amber-600">Pendientes</span>
-            <p className="text-xs font-extrabold text-amber-700 mt-0.5">{pendingTasksTotal.length}</p>
-          </div>
+        <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs">
+          <span className="text-[10px] font-bold uppercase text-amber-600 block">Pendientes</span>
+          <p className="text-xs sm:text-sm font-extrabold text-amber-700 mt-0.5">{pendingTasksTotal.length}</p>
+        </div>
 
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-            <span className="text-[10px] font-bold uppercase text-emerald-600">Completadas</span>
-            <p className="text-xs font-extrabold text-emerald-700 mt-0.5">{completedTasksCount}</p>
-          </div>
+        <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs">
+          <span className="text-[10px] font-bold uppercase text-emerald-600 block">Completadas</span>
+          <p className="text-xs sm:text-sm font-extrabold text-emerald-700 mt-0.5">{completedTasksCount}</p>
+        </div>
 
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Presupuesto Obra</span>
-            <p className="text-xs font-extrabold text-slate-900 mt-0.5">${totalBudget.toFixed(2)}</p>
-          </div>
+        <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs">
+          <span className="text-[10px] font-bold uppercase text-slate-400 block">Presupuesto Obra</span>
+          <p className="text-xs sm:text-sm font-extrabold text-slate-900 mt-0.5">${totalBudget.toFixed(2)}</p>
+        </div>
 
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/70">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Costo Ejecutado</span>
-            <p className="text-xs font-extrabold text-sky-700 mt-0.5">${executedCost.toFixed(2)}</p>
-          </div>
+        <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs">
+          <span className="text-[10px] font-bold uppercase text-slate-400 block">Costo Ejecutado</span>
+          <p className="text-xs sm:text-sm font-extrabold text-sky-700 mt-0.5">${executedCost.toFixed(2)}</p>
         </div>
       </div>
 
