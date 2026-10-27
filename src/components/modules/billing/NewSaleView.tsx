@@ -271,7 +271,7 @@ export function NewSaleView({
     tarjeta: boolean;
     credito: boolean;
   }>({
-    efectivo: true,
+    efectivo: false,
     transferencia: false,
     tarjeta: false,
     credito: false,
@@ -468,6 +468,7 @@ export function NewSaleView({
     setNotes("");
     setGlobalDiscountType("none");
     setGlobalDiscountValue(0);
+    setActiveMethods({ efectivo: false, transferencia: false, tarjeta: false, credito: false });
     setPaymentValues({ efectivo: "", transferencia: "", tarjeta: "", credito: "" });
     setTransferenciaRef("");
     setTarjetaRef("");
@@ -875,11 +876,6 @@ export function NewSaleView({
     const willBeActive = !activeMethods[method];
     const nextActive = { ...activeMethods, [method]: willBeActive };
 
-    // Garantizar al menos 1 método activo
-    if (!Object.values(nextActive).some(Boolean)) {
-      return;
-    }
-
     setActiveMethods(nextActive);
 
     if (willBeActive) {
@@ -1172,6 +1168,20 @@ export function NewSaleView({
         });
         return false;
       }
+    }
+
+    // Validar que se haya seleccionado al menos una forma de pago
+    const hasAnyPaymentMethod = Object.values(activeMethods).some(Boolean);
+    if (!hasAnyPaymentMethod) {
+      setValidationDialog({
+        isOpen: true,
+        title: "Selecciona una Forma de Pago",
+        message:
+          "Debes seleccionar al menos una forma de pago (Efectivo, Transferencia, Tarjeta o Crédito) para emitir la venta.",
+        actionLabel: "Seleccionar Forma de Pago",
+        targetSection: "payment",
+      });
+      return false;
     }
 
     // Validar que el pago cubra el total
@@ -3059,6 +3069,8 @@ export function NewSaleView({
                   <span className="text-xs font-bold block">
                     {calculatedTotals.total === 0
                       ? "Sin ítems"
+                      : !Object.values(activeMethods).some(Boolean)
+                      ? "Selecciona método"
                       : paymentSummary.isCovered
                       ? paymentSummary.change > 0
                         ? "✓ Con vuelto"

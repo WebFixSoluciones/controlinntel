@@ -2291,6 +2291,21 @@ test("Flujo E2E 37: Estructura Anti-Colisión y Sin Sobre-Montado en Formulario 
       newSaleContent.includes("9999999999999"),
     "NewSaleView debe mostrar un banner limpio para Consumidor Final sin accesos a pestañas inexistentes"
   );
+
+  // 5. Forma de Pago: Efectivo NO debe estar seleccionado por defecto (inicio neutral)
+  assert.ok(
+    newSaleContent.includes("efectivo: false") &&
+      newSaleContent.includes("transferencia: false") &&
+      newSaleContent.includes("tarjeta: false") &&
+      newSaleContent.includes("credito: false"),
+    "NewSaleView debe inicializar los métodos de pago en falso (sin efectivo por defecto)"
+  );
+
+  assert.ok(
+    newSaleContent.includes("Selecciona una Forma de Pago") &&
+      newSaleContent.includes("hasAnyPaymentMethod"),
+    "NewSaleView debe exigir la selección explícita de al menos un método de pago antes de emitir"
+  );
 });
 
 
