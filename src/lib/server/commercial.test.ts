@@ -96,3 +96,46 @@ test("R05: one calculation preserves zero and supports mixed configured tax rate
   const sum=calculateLines([{quantity:1,unitPrice:50,ivaRate:15},{quantity:2,unitPrice:10,ivaRate:0},{quantity:1,unitPrice:0,ivaRate:0}]);
   assert.equal(sum.total,77.5);assert.equal(sum.ivaTotal,7.5);assert.equal(sum.items[2].unitPrice,0);
 });
+
+const servicePayload=(extra={})=>({clientId:"a",inventoryProductId:"srv",planId:"srv",planName:"Servicio QA",
+  customPrice:100,ivaRate:15,billingType:"prepago",billingFrequency:"mensual",cycleAnchor:"calendario",
+  contractStartDate:"2026-11-01",billingDay:1,advanceNoticeDay:26,status:"activo",...extra});
+
+test("R28: assigning a service issues its first note dated by the configured cycle and books it to receivables",async()=>{
+  const db=new Database(initial());
+  const result=await run(db,"assignService",servicePayload());
+  assert.ok(result.invoice,"el alta debe emitir la nota de venta del primer período");
+  assert.match(result.invoice.documentNumber,/^010-001-\d{9}$/);
+  assert.equal(result.invoice.date,"2026-11-01");
+  assert.equal(result.invoice.total,115);
+  const charge=db.row("monthlyCharges",`chg-inv-${result.invoice.id}`);
+  assert.equal(charge.month,11);assert.equal(charge.year,2026);
+  assert.equal(charge.balanceRemaining,115);assert.equal(charge.status,"pendiente");
+  assert.equal(db.row("clients","a").currentBalance,115);
+  assert.equal(db.list("billingPeriods").length,1);
+  assert.equal(db.row("clientServices",result.id).lastBilledPeriod,"2026-11");
+  assert.equal(db.row("sequences","nota_venta_010-001").lastDate,"2026-11-01");
+});
+
+test("R28: editing the assigned service never issues a second note for the same period",async()=>{
+  const db=new Database(initial()), first=await run(db,"assignService",servicePayload());
+  const edited=await run(db,"editService",servicePayload({id:first.id,customPrice:120}));
+  assert.equal(db.list("billingInvoices").length,1);
+  assert.equal(edited.invoice,undefined);
+  assert.equal(db.list("monthlyCharges").length,1);
+});
+
+test("R28: a post-dated note blocks any earlier date in the same series",async()=>{
+  const db=new Database(initial());
+  await run(db,"assignService",servicePayload());
+  await assert.rejects(run(db,"issueSale",sale("b",{date:"2026-10-01"})),/anterior al último comprobante/);
+  assert.equal(db.list("billingInvoices").length,1);
+});
+
+test("R28: a non-billable service is saved without a note and reports the reason",async()=>{
+  const db=new Database(initial());
+  const result=await run(db,"assignService",servicePayload({isBillableInCurrentCycle:false}));
+  assert.equal(db.list("billingInvoices").length,0);
+  assert.equal(db.list("clientServices").length,1);
+  assert.equal(result.firstInvoiceSkipped,"Servicio no activo o no facturable.");
+});

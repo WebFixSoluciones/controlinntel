@@ -4,7 +4,7 @@ import type { UserProfile } from "@/types";
 import { adminServices } from "./admin.ts";
 import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
-import { calculateLines, cents, money, chargeBalance, planServicePeriod, validDate, type RecordData as Row } from "../commercial-core.ts";
+import { calculateLines, cents, money, chargeBalance, planServicePeriod, validDate, addDays, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { schemas } from "./schemas.ts";
 import { canUser, canPerformAction } from "../permissions.ts";
@@ -79,6 +79,13 @@ class Context {
 function checkedAmount(value: unknown) { const amount=cents(value); if(amount<=0) throw new HttpError(400,"El importe debe ser mayor que cero."); return amount; }
 function checkedDate(value: string | undefined) { const date=value || getEcuadorDate(); if(!validDate(date)) throw new HttpError(400,"Fecha inválida."); return date; }
 
+// Primer período facturable de un servicio recién asignado. Se planifica sobre el mes de
+// activación y se permite fecha futura: el comprobante se emite por anticipado al ciclo.
+function firstPeriodFor(service: Row, today: string) {
+  const start = String(service.contractStartDate || service.installationDate || today);
+  return planServicePeriod(service, Number(start.slice(5, 7)), Number(start.slice(0, 4)), today, { allowFuture: true });
+}
+
 async function payCharge(c: Context, data: Row) {
   const charge=await c.get("monthlyCharges",data.chargeId), amount=checkedAmount(data.amount);
   if(charge.status==="anulado" || amount>chargeBalance(charge)) throw new HttpError(409,"El abono excede el saldo pendiente o la deuda está anulada.");
@@ -121,7 +128,11 @@ async function issueSale(c: Context, input: Row) {
     documentNumber=`${series}-${String(next).padStart(9,"0")}`;
     const reservation=await c.get("documentNumbers",`nota_venta_${documentNumber}`,false);
     if(reservation.id) throw new HttpError(409,"Numeración reservada; revisa la serie.");
-    c.put("sequences",{id:sequenceId,value:next});
+    // Los documentos pueden emitirse con fecha futura (primer período al dar de alta el servicio).
+    // La serie debe conservar el orden cronológico: ninguna fecha anterior al último comprobante.
+    const lastDate=String(counter.lastDate||"");
+    if(lastDate && date<lastDate) throw new HttpError(409,`La fecha ${date} es anterior al último comprobante de la serie ${series} (${lastDate}). Ajusta el período o emite en orden cronológico.`);
+    c.put("sequences",{id:sequenceId,value:next,lastDate:date>lastDate?date:lastDate});
     c.put("documentNumbers",{id:`nota_venta_${documentNumber}`,invoiceId:id});
   }
   const immediate=input.paymentsBreakdown ? cents(input.paymentsBreakdown.efectivo||0)+cents(input.paymentsBreakdown.transferencia||0)+cents(input.paymentsBreakdown.tarjeta||0) : input.paymentMethod==="credito"?0:cents(calculated.total);
@@ -137,7 +148,7 @@ async function issueSale(c: Context, input: Row) {
     if(!isDraft&&item.serviceId){
       const service=await c.get("clientServices",item.serviceId);
       if(service.clientId!==client.id||!item.periodStart||!item.periodEnd)throw new HttpError(400,"El período o servicio no pertenece al cliente.");
-      const plan=planServicePeriod(service,Number(String(item.periodStart).slice(5,7)),Number(String(item.periodStart).slice(0,4)),getEcuadorDate());
+      const plan=planServicePeriod(service,Number(String(item.periodStart).slice(5,7)),Number(String(item.periodStart).slice(0,4)),getEcuadorDate(),{allowFuture:input.allowFuturePeriod===true});
       if(!plan.eligible)throw new HttpError(409,plan.reason);
       if(plan.periodStart!==item.periodStart||plan.periodEnd!==item.periodEnd||item.quantity!==1)throw new HttpError(409,"El período cambió; vuelve a previsualizar el servicio.");
       if((await c.get("billingPeriods",plan.key,false)).id||service.lastBilledPeriod===plan.periodStart.slice(0,7))throw new HttpError(409,"El período ya fue emitido o requiere conciliación histórica.");
@@ -335,7 +346,15 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const services=await c.list("clientServices","clientId",client.id);
       c.put("clientServices",service);
       c.put("clients",{...client,totalActiveServices:services.filter(s=>s.id!==service.id&&s.status==="activo").length+(service.status==="activo"?1:0)});
-      return service;
+      // El alta emite de inmediato la nota de venta del primer período, con la fecha que
+      // dicta el ciclo configurado en el formulario (modalidad, día de cobro y anticipo).
+      if(action!=="assignService"||source.emitFirstInvoice===false) return service;
+      const first=firstPeriodFor(service,getEcuadorDate());
+      if(!first.eligible) return {...service,firstInvoiceSkipped:first.reason};
+      const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:first.issueDate,
+        allowFuturePeriod:true,paymentMethod:"credito",creditDueDate:first.dueDate,items:[{...first.line}],
+        notes:`Primer período ${first.periodStart} al ${addDays(first.periodEnd,-1)}`});
+      return {...(c.writes.get("clientServices/"+service.id)||service),invoice};
     }
     case "issueSale": return issueSale(c,data);
     case "editSale": {

@@ -5,7 +5,7 @@
 | **Documento** | Guion de pruebas de aceptación de usuario |
 | **Versión del sistema** | Commit `dd8d4c5` (cierre del plan R01–R27) |
 | **Fecha de emisión** | 27 de octubre de 2026 |
-| **Casos cubiertos** | T03, T39, T40, T41, T42, T43, T47 |
+| **Casos cubiertos** | T03, T39, T40, T41, T42, T43, T47, T49 |
 | **Ejecuta** | Responsable de Finanzas (con acompañamiento de TI) |
 | **Duración estimada** | 90–120 minutos |
 | **Naturaleza** | Verificación en navegador real. No sustituye a las 107 pruebas automatizadas, las complementa |
@@ -51,8 +51,10 @@ Ejecutar en este orden y no continuar si algo falla.
 |---|---|---|---|
 | 3.1 | Ir a **Clientes** → botón de alta → crear **CLIENTE UAT A** con RUC válido | Aparece en el directorio | ☐ |
 | 3.2 | Repetir para **CLIENTE UAT B** | Dos clientes visibles | ☐ |
-| 3.3 | Abrir ficha de **CLIENTE UAT A** → pestaña **Servicios** → **Agregar Servicio** → asignar el servicio con IVA 15 % | El servicio aparece en la tabla con su precio e IVA | ☐ |
+| 3.3 | Abrir ficha de **CLIENTE UAT A** → pestaña **Servicios** → **Agregar Servicio** → asignar el servicio con IVA 15 % | Se muestra el aviso **"Servicio Asignado y Facturado"** con el número de nota y su fecha. El servicio aparece en la tabla | ☐ |
 | 3.4 | Ir a **Ventas** → **Generar Venta** → emitir una nota a **CLIENTE UAT A** con el producto físico, cantidad 1 | Documento emitido con número visible | ☐ |
+
+> **Cambio funcional del 27/10 (R28):** asignar un servicio **emite de inmediato su nota de venta**, fechada según el ciclo configurado en el propio formulario (modalidad, día de cobro y anticipo). El caso **T49** verifica ese comportamiento en detalle.
 
 > **Registrar los datos creados** para poder trazarlos al final:
 
@@ -283,6 +285,38 @@ Asignación de servicio y confirmaciones se completan íntegramente por teclado;
 
 ---
 
+## T49 — Al asignar el servicio se emite su nota de venta con la fecha del ciclo
+
+| Campo | Detalle |
+|---|---|
+| **Cubre** | R28 (emisión automática al alta) · requisito incorporado el 27/10/2026 |
+| **Riesgo** | Que el servicio quede asignado **sin comprobante**, que la fecha no respete el ciclo configurado, o que se emita dos veces |
+| **Precondición** | Un servicio de catálogo con tarifa y IVA configurados; un cliente activo |
+
+### Pasos
+
+| # | Acción | Resultado esperado | ☐ |
+|---|---|---|---|
+| 1 | **Clientes** → ficha de **CLIENTE UAT A** → **Servicios** → **Agregar Servicio** | Se abre el formulario | ☐ |
+| 2 | Seleccionar el servicio y configurar **Modalidad = PREPAGO**, **Día de facturación = 1**, **Anticipo de cobranza = 26**, con **alta el día 1 del próximo mes** | Los selectores reflejan esos valores | ☐ |
+| 3 | Guardar el servicio | Aparece el aviso **"Servicio Asignado y Facturado"** con: número de nota, importe con IVA y **fecha igual al día 1 del próximo mes** | ☐ |
+| 4 | Anotar el número de nota y la fecha mostrados | Coinciden con el ciclo configurado, no con la fecha de hoy | ☐ |
+| 5 | Ir a **Finanzas → Cobranzas** | Existe **una** deuda por ese cliente, por el importe con IVA, con el número de nota y estado pendiente | ☐ |
+| 6 | Abrir la ficha del cliente y revisar el **saldo** | El saldo del cliente coincide con el importe de la nota | ☐ |
+| 7 | Volver a **Servicios** y **editar** el mismo servicio (por ejemplo, cambiar la descripción) y guardar | Se muestra el aviso habitual, **sin** "Facturado"; el número de notas **no aumenta** | ☐ |
+| 8 | Intentar emitir otra venta con **fecha anterior** a la del paso 4 | El sistema **rechaza** la emisión indicando que la fecha es anterior al último comprobante de la serie | ☐ |
+
+### Criterio de aceptación
+
+El alta emite **una** nota con la fecha que dicta el ciclo configurado, la registra en cobranzas y en el saldo del cliente, no se duplica al editar, y la serie no admite fechas anteriores a la última emitida.
+
+> **Nota:** el rechazo del paso 8 es **comportamiento correcto**, no un defecto. Al permitir comprobantes posfechados, la serie debe conservar el orden cronológico.
+
+**Resultado:** ☐ Conforme ☐ No conforme ☐ Bloqueado
+**Evidencia:** ______________________ **Observaciones:** ______________________
+
+---
+
 # RESUMEN Y FIRMAS
 
 ## Tabla de resultados
@@ -296,6 +330,7 @@ Asignación de servicio y confirmaciones se completan íntegramente por teclado;
 | T42 | Exportación abre bien | ☐ C ☐ NC ☐ B | |
 | T43 | Correo no simula entrega | ☐ C ☐ NC ☐ B | |
 | T47 | Teclado, foco y móvil | ☐ C ☐ NC ☐ B | |
+| T49 | Nota automática al asignar servicio | ☐ C ☐ NC ☐ B | |
 
 *C = Conforme · NC = No conforme · B = Bloqueado*
 
@@ -349,6 +384,7 @@ Estos siete casos completan la matriz T01–T48, que en el informe de cierre que
 | T42 | Sin cobertura de navegador | R22 | `doc-generator.ts:164` ExcelJS; `FinancialReportsTab.tsx:277` XLSX |
 | T43 | Sin cobertura de navegador | R21 | `NewSaleView.tsx:1602-1621`; `/api/messages/email:29` exige `messageId` |
 | T47 | Sin cobertura de navegador | R25 | `ModalFocusGuard.tsx:15` role/aria-modal/foco; montado en `state.tsx:3593` |
+| T49 | Nuevo requisito (27/10) | R28 | `commercial.ts` `firstPeriodFor` + `assignService` → `issueSale` con `allowFuturePeriod`; guarda `sequences.lastDate` |
 
 ## Anexo B — Qué hacer si la sesión se bloquea
 

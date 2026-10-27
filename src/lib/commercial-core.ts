@@ -37,7 +37,7 @@ export function dateOnDay(month: string, day: number) {
   return `${month.slice(0, 7)}-${String(Math.min(day, new Date(Date.UTC(y, m, 0)).getUTCDate())).padStart(2, "0")}`;
 }
 
-export function planServicePeriod(service: RecordData, month: number, year: number, today: string) {
+export function planServicePeriod(service: RecordData, month: number, year: number, today: string, options: { allowFuture?: boolean } = {}) {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2020 || year > 2100) throw new CommercialValidationError("Período inválido.");
   const skip = (reason: string) => ({ eligible: false as const, serviceId: String(service.id), reason });
   if (service.status !== "activo" || service.isBillableInCurrentCycle === false) return skip("Servicio no activo o no facturable.");
@@ -61,7 +61,9 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
   if(service.creditDays===undefined&&service.billingDay){dueDate=dateOnDay(issueDate,Number(service.billingDay));if(dueDate<issueDate)dueDate=dateOnDay(addMonthsSafely(issueDate,1),Number(service.billingDay));}
   let noticeDate=dueDate;
   if(service.advanceNoticeDay){noticeDate=dateOnDay(dueDate,Number(service.advanceNoticeDay));if(noticeDate>dueDate)noticeDate=dateOnDay(addMonthsSafely(dueDate,-1),Number(service.advanceNoticeDay));}
-  if (issueDate > today) return skip("El período todavía no es exigible.");
+  // El alta de servicio emite su primer período por anticipado (documento posfechado),
+  // por eso solo el flujo de asignación habilita explícitamente allowFuture.
+  if (!options.allowFuture && issueDate > today) return skip("El período todavía no es exigible.");
   const unitPrice = service.customPrice ?? service.basePrice;
   const rate = service.ivaRate;
   if (unitPrice === undefined || rate === undefined) return skip("Revisa la tarifa y el impuesto del servicio.");

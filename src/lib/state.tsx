@@ -205,7 +205,14 @@ interface AppContextType {
   addClient: (client: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>) => Promise<Client>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
-  addClientService: (service: Omit<ClientService, "id">) => Promise<ClientService>;
+  addClientService: (
+    service: Omit<ClientService, "id">
+  ) => Promise<
+    ClientService & {
+      invoice?: { id: string; documentNumber: string; date: string; total: number };
+      firstInvoiceSkipped?: string;
+    }
+  >;
   updateClientService: (id: string, updates: Partial<ClientService>) => Promise<void>;
   deleteClientService: (id: string) => Promise<void>;
   renewClientService: (id: string) => Promise<void>;

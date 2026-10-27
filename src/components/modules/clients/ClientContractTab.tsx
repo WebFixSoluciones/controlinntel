@@ -62,7 +62,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     deleteClientService,
     renewClientService,
   } = useApp();
-  const { showError, showSuccess, showConfirm } = useToast();
+  const { showError, showSuccess, showWarning, showConfirm } = useToast();
 
   // Mode: Sale Emission / Add service via sale
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
@@ -476,7 +476,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
     setSavingService(true);
     try {
-      await addClientService({
+      const created = await addClientService({
         clientId: client.id,
         planId: selectedService.id,
         planName: finalName,
@@ -515,10 +515,23 @@ export function ClientContractTab({ client }: { client: Client }) {
         installationAddress: client.address || "Dirección Principal",
         installationDate: newSvcStartDate || getEcuadorDate(),
       });
-      showSuccess(
-        "Servicio Asignado",
-        `Se vinculó "${finalName}" (${getFreqLabel(newSvcFreq)} / Contrato: ${getDurationLabel(newSvcDuration)}) a la ficha del cliente.`
-      );
+      const issued = created?.invoice;
+      if (issued) {
+        showSuccess(
+          "Servicio Asignado y Facturado",
+          `Nota de venta ${issued.documentNumber} por $${safeNumber(issued.total)} con fecha ${issued.date}. Ya está registrada en cobranzas.`
+        );
+      } else if (created?.firstInvoiceSkipped) {
+        showWarning(
+          "Servicio Asignado sin Nota",
+          `No se emitió el comprobante: ${created.firstInvoiceSkipped} Corrígelo desde la ficha antes del próximo ciclo.`
+        );
+      } else {
+        showSuccess(
+          "Servicio Asignado",
+          `Se vinculó "${finalName}" (${getFreqLabel(newSvcFreq)} / Contrato: ${getDurationLabel(newSvcDuration)}) a la ficha del cliente.`
+        );
+      }
       setSelectedService(null);
       setServiceSearchQuery("");
       setNewSvcName("");

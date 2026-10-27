@@ -91,7 +91,8 @@ Cada paquete se verificó con **evidencia de código en la ruta crítica**, no c
 | **R24** | Navegación y borradores | ✅ | `clientes/page.tsx` — efecto de URL con `clientsRef` (no depende de `clients`) + reintento de hidratación guardado por `!selectedClient` | Enlace profundo funciona y no cierra la ficha al mutar servicios |
 | **R25** | UX/UI y accesibilidad | ✅ | `ModalFocusGuard.tsx:15` aplica `role="dialog"` + `aria-modal` + retorno de foco; montado globalmente en `state.tsx:3593` | Operación completa por teclado; mensajes coherentes |
 | **R26** | Reparación de información | ✅ | `/api/recovery` con modo simulación vs `commit`; `recovery.ts:recoverSnapshot` + `rebuildFromLog`; `RecoveryPanel` montado en Configuración | Registros dañados identificados y conciliados, no ocultos |
-| **R27** | Regresión y aceptación | 🟡 | 11 archivos de prueba, **107 casos**; script `scripts/qa-commercial-emulator.mjs` (12 escenarios) y `firebase.qa.json` | Ejecución de emuladores y navegador pendiente de entorno (§10) |
+| **R27** | Regresión y aceptación | 🟡 | 11 archivos de prueba, **111 casos**; script `scripts/qa-commercial-emulator.mjs` (12 escenarios) y `firebase.qa.json` | Ejecución de emuladores y navegador pendiente de entorno (§10) |
+| **R28** | Emisión automática al asignar servicio *(requisito añadido el 27/10)* | ✅ | `commercial.ts` — el alta emite la nota del primer período con la fecha del ciclo configurado (`allowFuture`), reserva el número y registra la deuda; guarda de orden cronológico por serie | Nota emitida con fecha del ciclo; una sola por período; serie sin fechas invertidas (§15) |
 
 ---
 
@@ -137,7 +138,7 @@ Cada paquete se verificó con **evidencia de código en la ruta crítica**, no c
 | Comprobación | Comando | Resultado |
 |---|---|---|
 | Tipos | `npx tsc --noEmit --strict` | ✅ **0 errores** |
-| Pruebas | `npm test` | ✅ **107 / 107** |
+| Pruebas | `npm test` | ✅ **111 / 111** |
 | Build de producción | `npm run build` | ✅ **29 rutas** |
 | Lint y tipos en build | `next.config.mjs` | ✅ `ignoreBuildErrors: false` · `ignoreDuringBuilds: false` |
 | Escrituras directas del cliente a Firestore | búsqueda en `src/` | ✅ **0** |
@@ -147,7 +148,7 @@ Cada paquete se verificó con **evidencia de código en la ruta crítica**, no c
 | Archivo | Casos |
 |---|---|
 | `src/lib/end-to-end-flows.test.ts` | 61 |
-| `src/lib/server/commercial.test.ts` | 11 |
+| `src/lib/server/commercial.test.ts` | 15 |
 | `src/lib/qa-commercial-audit.test.ts` | 7 |
 | `src/lib/date-utils.test.ts` | 5 |
 | `src/lib/inventory-service.test.ts` | 5 |
@@ -157,7 +158,7 @@ Cada paquete se verificó con **evidencia de código en la ruta crítica**, no c
 | `src/lib/validation-engine.test.ts` | 3 |
 | `src/lib/server/auth-boundary.test.ts` | 2 |
 | `src/lib/print-service.test.ts` | 2 |
-| **Total** | **107** |
+| **Total** | **111** |
 
 ---
 
@@ -229,7 +230,7 @@ Según §12 del plan, el flujo puede proponerse para habilitación cuando se cum
 
 | # | Condición | Estado |
 |---|---|---|
-| 1 | Paquetes P0 con pruebas aprobadas y evidencia | ✅ 107 pruebas verdes; evidencia por paquete en §3 |
+| 1 | Paquetes P0 con pruebas aprobadas y evidencia | ✅ 111 pruebas verdes; evidencia por paquete en §3 |
 | 2 | Sin identidades ni documentos duplicados sin resolver | ✅ Prevención implementada; **saneamiento de datos históricos corresponde a R26 en producción** |
 | 3 | Diferencias de cartera, anticipos, bancos e inventario resueltas o aisladas | 🟡 Depende de ejecutar R26 sobre la base real |
 | 4 | Persistencia, reglas y API probadas con fallos y concurrencia | 🟡 Implementado; prueba de emuladores pendiente de entorno |
@@ -263,6 +264,56 @@ Los informes de auditoría de referencia y su evidencia visual **no se versionan
 
 ---
 
+## 15. Anexo — R28: emisión automática al asignar servicio
+
+Requisito incorporado el **27/10/2026**, después del cierre del plan original. No sustituye a R07/R08: los completa adelantando la primera emisión al momento del alta.
+
+### Decisión funcional (aprobada por el negocio)
+
+| Aspecto | Decisión |
+|---|---|
+| Momento de emisión | **Al guardar el servicio**, en la misma operación |
+| Fecha del comprobante | La que dicta el **ciclo configurado en el formulario de asignación** (modalidad, día de cobro, anticipo). Para prepago es el **inicio del período**: un alta con ciclo que inicia el 01/11 emite la nota con fecha **01/11/2026** |
+| Naturaleza | **Documento posfechado**: se crea hoy, fechado al inicio del ciclo |
+| Períodos posteriores | Se siguen emitiendo por el proceso recurrente ya existente (R07/R08) |
+| Numeración | Se **reserva en el momento del alta** dentro de la transacción |
+
+### Implementación
+
+| Elemento | Ubicación |
+|---|---|
+| Cálculo del primer período | `commercial.ts` → `firstPeriodFor()` sobre `planServicePeriod(..., { allowFuture: true })` |
+| Emisión | `assignService` invoca `issueSale` con `allowFuturePeriod: true`, `paymentMethod: "credito"` y `creditDueDate` del ciclo |
+| Cadena comercial | La nota genera su **cuenta por cobrar** (`chg-inv-…`), actualiza `clientBalance` y entra a cobranzas y bancos por los mismos comandos que cualquier venta |
+| Idempotencia | `billingPeriods` impide emitir dos veces el mismo período; `editService` **no** emite |
+| Orden cronológico | `sequences.lastDate` guarda la última fecha emitida por serie y **rechaza** cualquier comprobante anterior: requisito indispensable al permitir posfechado |
+| Sin emisión | Si el período no es elegible (servicio no facturable, sin tarifa o sin impuesto), el servicio **se guarda igual** y se devuelve `firstInvoiceSkipped` con el motivo, que la interfaz muestra como advertencia |
+
+### Efecto en la interfaz
+
+Al guardar el servicio, el aviso cambia según el resultado:
+
+- **Con documento**: *"Servicio Asignado y Facturado — Nota de venta 010-001-000000001 por $115.00 con fecha 2026-11-01. Ya está registrada en cobranzas."*
+- **Sin documento**: *"Servicio Asignado sin Nota — No se emitió el comprobante: <motivo>."*
+- **Edición**: mensaje habitual, sin emisión.
+
+### Pruebas añadidas (4)
+
+| Prueba | Verifica |
+|---|---|
+| `R28: assigning a service issues its first note dated by the configured cycle…` | Fecha 2026-11-01, número de serie válido, deuda por 115 en el mes 11/2026, saldo del cliente, `billingPeriods` y `lastBilledPeriod` |
+| `R28: editing the assigned service never issues a second note…` | Sin duplicado al editar |
+| `R28: a post-dated note blocks any earlier date in the same series` | Guarda cronológica de la serie |
+| `R28: a non-billable service is saved without a note and reports the reason` | Persistencia sin emisión y motivo devuelto |
+
+### Riesgo introducido y su control
+
+El posfechado permite que un comprobante con fecha 01/11 exista el 27/10. Sin control, un documento fechado 27/10 emitido después dejaría la serie con fechas invertidas. **Mitigación:** la guarda de `sequences.lastDate` rechaza esa emisión con un mensaje accionable.
+
+**Consecuencia operativa asumida:** una vez emitido un documento posfechado, no se pueden emitir documentos con fecha anterior en la misma serie hasta que el negocio decida abrir otra serie o ajustar el período.
+
+---
+
 **Fin del informe.**
 
-*Documento generado el 27 de octubre de 2026. Verificado contra `5a0de75`.*
+*Documento generado el 27 de octubre de 2026. Verificado contra `5a0de75`; anexo R28 incorporado sobre el árbol de trabajo posterior.*
