@@ -27,6 +27,7 @@ import { FinanceErrorBoundary } from "@/components/modules/finance/FinanceErrorB
 
 export type FinanceSubmoduleTab =
   | "cobranzas"
+  | "anticipos"
   | "cobranzas_opex"
   | "gastos"
   | "general"
@@ -49,6 +50,13 @@ const FINANCE_TABS: {
     icon: TrendingUp,
     submoduleKey: "cobranzas",
     href: "/finanzas?sub=cobranzas",
+  },
+  {
+    id: "anticipos",
+    label: "Anticipos",
+    icon: CreditCard,
+    submoduleKey: "anticipos",
+    href: "/finanzas?sub=anticipos",
   },
   {
     id: "gastos",
@@ -101,6 +109,7 @@ function FinanzasContent() {
 
   const canAccessFinanzas = canAccessModule(currentUser, "finanzas");
   const canCobranzas = canAccessSubmodule(currentUser, "finanzas", "cobranzas");
+  const canAnticipos = canAccessSubmodule(currentUser, "finanzas", "anticipos") || canCobranzas;
   const canGastos = canAccessSubmodule(currentUser, "finanzas", "gastos");
   const canMovimientos = canAccessSubmodule(currentUser, "finanzas", "movimientos");
   const canBancos = canAccessSubmodule(currentUser, "finanzas", "bancos");
@@ -183,11 +192,20 @@ function FinanzasContent() {
       <div className="w-full">
         <FinanceErrorBoundary key={resolvedTab}>
           {(resolvedTab === "cobranzas" || resolvedTab === "general") && (
-            canCobranzas ? <FinanceDashboard /> : (
+            canCobranzas ? <FinanceDashboard activeTabProp="comprobantes" /> : (
               <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
                 <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
                 <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Cobranzas Restringido</h3>
                 <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para gestionar cobranzas.</p>
+              </div>
+            )
+          )}
+          {resolvedTab === "anticipos" && (
+            canAnticipos ? <FinanceDashboard activeTabProp="anticipos" /> : (
+              <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center space-y-2">
+                <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
+                <h3 className="text-sm font-bold text-[#0b1c30]">Submódulo de Anticipos Restringido</h3>
+                <p className="text-xs text-[#737686]">Tu perfil no cuenta con permisos para gestionar anticipos.</p>
               </div>
             )
           )}

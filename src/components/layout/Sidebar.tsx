@@ -114,6 +114,7 @@ const NAV_ITEMS: NavItem[] = [
     moduleKey: "finanzas",
     submodules: [
       { key: "cobranzas", label: "Cobranzas", href: "/finanzas?sub=cobranzas", submoduleKey: "cobranzas" },
+      { key: "anticipos", label: "Anticipos", href: "/finanzas?sub=anticipos", submoduleKey: "anticipos" },
       { key: "gastos", label: "Gastos", href: "/finanzas?sub=gastos", submoduleKey: "gastos" },
       { key: "movimientos", label: "Movimientos", href: "/finanzas?sub=movimientos", submoduleKey: "movimientos" },
       { key: "bancos", label: "Bancos", href: "/finanzas?sub=bancos", submoduleKey: "bancos" },

@@ -1002,9 +1002,8 @@ test("Flujo E2E 17: Simplificación del Módulo de Finanzas y Submódulos (Térm
     "FinanceDashboard no debe contener métodos de pago extraños ni botones de emisión de facturas ajenos a Finanzas"
   );
   assert.ok(
-    (financeDashboardContent.includes("Control de Cobros") || financeDashboardContent.includes("Cobros de Clientes")) &&
-      financeDashboardContent.includes("formatFinanceCategory"),
-    "FinanceDashboard debe usar etiquetas claras y formateador de categorías reconocibles"
+    financeDashboardContent.includes("formatFinanceCategory"),
+    "FinanceDashboard debe usar formateador de categorías reconocibles"
   );
 });
 
@@ -2399,21 +2398,19 @@ test("Flujo E2E 40: Navegación de Finanzas en Sidebar Exclusivo, Título Dinám
     "FinanzasPage no debe renderizar pestañas horizontales superiores redundantes con el sidebar"
   );
 
-  // 3. FinanceDashboard y ExpensesManager deben tener títulos limpios sin redundancias
+  // 3. FinanceDashboard y ExpensesManager no deben tener títulos ni banners redundantes
   const financeDashboardPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
   const financeDashboardContent = fs.readFileSync(financeDashboardPath, "utf8");
   assert.ok(
-    financeDashboardContent.includes("Control de Cobros") &&
-      !financeDashboardContent.includes("Control de Cobros de Clientes & Comprobantes de Venta"),
-    "FinanceDashboard debe presentar 'Control de Cobros' conciso"
+    !financeDashboardContent.includes("Control de Cobros de Clientes & Comprobantes de Venta"),
+    "FinanceDashboard no debe presentar banners redundantes"
   );
 
   const expensesPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
   const expensesContent = fs.readFileSync(expensesPath, "utf8");
   assert.ok(
-    expensesContent.includes("Gastos Operativos") &&
-      !expensesContent.includes("Control de Gastos Operativos & OPEX"),
-    "ExpensesManager debe presentar 'Gastos Operativos' conciso"
+    !expensesContent.includes("Control de Gastos Operativos & OPEX"),
+    "ExpensesManager no debe presentar banners redundantes"
   );
 });
 
@@ -2494,6 +2491,54 @@ test("Flujo E2E 42: Eliminación Integral de Comprobantes de Venta y Cobros desd
       stateContent.includes("c.invoiceId === id ||") &&
       stateContent.includes("c.id === `chg-inv-${id}`"),
     "deleteInvoice debe revertir inventario, finanzas bancarias y purgar cobros sintéticos y asociados"
+  );
+});
+
+test("Flujo E2E 43: Botones Específicos por Pantalla (Registrar Gasto, Registrar Anticipo, Registrar Cobro) y Eliminación de Métricas", () => {
+  const rootDir = process.cwd();
+
+  // 1. Gastos: botón Registrar Gasto en barra de herramientas y sin métricas OPEX
+  const expensesPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
+  const expensesContent = fs.readFileSync(expensesPath, "utf8");
+  assert.ok(
+    expensesContent.includes("Registrar Gasto") &&
+      !expensesContent.includes("Registrar Gasto OPEX") &&
+      !expensesContent.includes("Total Egresos OPEX") &&
+      !expensesContent.includes("Tránsito IP & Conectividad"),
+    "ExpensesManager debe tener solo el botón 'Registrar Gasto' en su barra y no tener tarjetas de métricas"
+  );
+
+  // 2. Cobranzas: botón Registrar Cobro en barra de herramientas junto a Exportar Excel y sin métricas
+  const financePath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeContent = fs.readFileSync(financePath, "utf8");
+  assert.ok(
+    financeContent.includes("Registrar Cobro") &&
+      !financeContent.includes("Nuevo Cobro Manual") &&
+      !financeContent.includes("Total Facturado / Emitido") &&
+      !financeContent.includes("Total Recaudado / Cobrado"),
+    "FinanceDashboard debe tener el botón 'Registrar Cobro' en la barra junto a Exportar Excel y no tener tarjetas de métricas"
+  );
+
+  // 3. Anticipos: botón Registrar Anticipo en la pantalla de anticipos
+  assert.ok(
+    financeContent.includes("Registrar Anticipo") &&
+      !financeContent.includes("Registrar Pago Anticipado de Cliente"),
+    "FinanceDashboard debe presentar 'Registrar Anticipo' en la pantalla de anticipos"
+  );
+
+  // 4. Sidebar y Header integran 'anticipos' como pantalla independiente
+  const sidebarPath = path.resolve(rootDir, "src/components/layout/Sidebar.tsx");
+  const sidebarContent = fs.readFileSync(sidebarPath, "utf8");
+  assert.ok(
+    sidebarContent.includes('href: "/finanzas?sub=anticipos"'),
+    "Sidebar debe incluir el submódulo Anticipos de forma independiente"
+  );
+
+  const headerPath = path.resolve(rootDir, "src/components/layout/Header.tsx");
+  const headerContent = fs.readFileSync(headerPath, "utf8");
+  assert.ok(
+    headerContent.includes('case "anticipos":') && headerContent.includes('return "Anticipos";'),
+    "Header debe desplegar 'Anticipos' como título dinámico"
   );
 });
 

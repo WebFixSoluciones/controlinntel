@@ -62,54 +62,11 @@ export function ExpensesManager() {
   const totalOpex = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <div className="w-full space-y-6">
-      {/* Header & KPI */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-[#712ae2]" />
-            Gastos Operativos
-          </h2>
-        </div>
-
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Registrar Gasto OPEX</span>
-        </button>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Total Egresos OPEX</span>
-          <span className="text-2xl font-black text-[#ef4444] mt-1 block font-tnum">${totalOpex.toFixed(2)} USD</span>
-          <span className="text-[11px] text-[#737686]">{filteredExpenses.length} egresos contabilizados</span>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Tránsito IP & Conectividad</span>
-          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
-            ${expenses.filter((e) => e.category === "enlace_transito").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
-          </span>
-          <span className="text-[11px] text-[#737686]">Enlaces dedicados BGP / Carriers</span>
-        </div>
-
-        <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">Infraestructura & Nodos</span>
-          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-tnum">
-            ${expenses.filter((e) => e.category === "alquiler_nodo" || e.category === "mantenimiento").reduce((s, e) => s + e.amount, 0).toFixed(2)} USD
-          </span>
-          <span className="text-[11px] text-[#737686]">Arriendos de torres y mantenimiento</span>
-        </div>
-      </div>
-
+    <div className="w-full space-y-4">
       {/* Main Table Card */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* Search & Filters */}
-        <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#fcfdff]">
+        <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#fcfdff]">
           <div className="relative flex-1 max-w-sm">
             <input
               type="text"
@@ -132,6 +89,15 @@ export function ExpensesManager() {
               <option value="fibra_equipos">Fibra & Equipos</option>
               <option value="mantenimiento">Mantenimiento</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Registrar Gasto</span>
+            </button>
           </div>
         </div>
 
@@ -186,7 +152,7 @@ export function ExpensesManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Gasto de Operación</h3>
+              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Gasto</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
                 <X className="w-4 h-4" />
               </button>

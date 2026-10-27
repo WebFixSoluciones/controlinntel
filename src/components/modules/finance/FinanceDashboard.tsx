@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber, safeFloat } from "@/lib/print-service";
@@ -56,7 +57,11 @@ export function formatFinanceCategory(cat?: string): string {
   return EXPENSE_CATEGORY_LABELS[cat] || cat.replace(/_/g, " ");
 }
 
-export function FinanceDashboard() {
+export function FinanceDashboard({
+  activeTabProp,
+}: {
+  activeTabProp?: "comprobantes" | "anticipos";
+} = {}) {
   const {
     monthlyCharges,
     billingInvoices,
@@ -74,10 +79,24 @@ export function FinanceDashboard() {
   } = useApp();
   const { showSuccess, showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<"comprobantes" | "anticipos">("comprobantes");
+  const searchParams = useSearchParams();
+  const subParam = searchParams.get("sub");
+  const initialTab =
+    activeTabProp ||
+    (subParam === "anticipos" ? "anticipos" : "comprobantes");
+  const [activeTab, setActiveTab] = useState<"comprobantes" | "anticipos">(initialTab);
+
+  useEffect(() => {
+    if (activeTabProp) {
+      setActiveTab(activeTabProp);
+    } else if (subParam) {
+      setActiveTab(subParam === "anticipos" ? "anticipos" : "comprobantes");
+    }
+  }, [activeTabProp, subParam]);
 
   // Filtros de Cobros
   const [searchQuery, setSearchQuery] = useState("");
+  const [advSearchQuery, setAdvSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [typeFilter, setTypeFilter] = useState("todos"); // "todos" | "nota_venta" | "factura"
   const [startDate, setStartDate] = useState("");
@@ -119,7 +138,7 @@ export function FinanceDashboard() {
   const [targetChargeIdForAdvance, setTargetChargeIdForAdvance] = useState("");
   const [amountToApplyFromAdv, setAmountToApplyFromAdv] = useState<number>(0);
 
-  // Modal Nuevo Cobro Manual Libre
+  // Modal Registrar Cobro Libre
   const [isNewManualChargeOpen, setIsNewManualChargeOpen] = useState(false);
   const [manualClientId, setManualClientId] = useState("");
   const [manualDescription, setManualDescription] = useState("");
@@ -266,6 +285,18 @@ export function FinanceDashboard() {
     });
     return map;
   }, [clientAdvances]);
+
+  const filteredAdvances = useMemo(() => {
+    return (clientAdvances || []).filter((adv) => {
+      if (!adv) return false;
+      const q = (advSearchQuery || "").toLowerCase().trim();
+      if (!q) return true;
+      const name = (adv.clientName || "").toLowerCase();
+      const ruc = String(adv.clientRuc || "");
+      const method = (adv.method || "").toLowerCase();
+      return name.includes(q) || ruc.includes(q) || method.includes(q);
+    });
+  }, [clientAdvances, advSearchQuery]);
 
   const handleExportBatch = async () => {
     if (filteredCharges.length === 0) {
@@ -505,129 +536,7 @@ export function FinanceDashboard() {
   };
 
   return (
-    <div className="w-full space-y-6">
-      {/* Encabezado Principal & Acciones */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#004ac6]" />
-            Control de Cobros
-          </h2>
-          <p className="text-xs text-[#737686] mt-0.5">
-            Seguimiento de cobranzas, registro de abonos parciales y pagos anticipados.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              setAdvDate(new Date().toISOString().slice(0, 10));
-              setAdvBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
-              setIsAdvanceModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Registrar Pago Anticipado</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setManualDueDate(new Date().toISOString().slice(0, 10));
-              setIsNewManualChargeOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Cobro Manual</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-[#737686] uppercase tracking-wider block">
-            Total Facturado / Emitido
-          </span>
-          <span className="text-2xl font-black text-[#0b1c30] mt-1 block font-mono">
-            ${safeNumber(totalBilled)} USD
-          </span>
-          <span className="text-[11px] text-[#737686]">{filteredCharges.length} comprobantes en cartera</span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block flex items-center gap-1">
-            <ArrowDownCircle className="w-3.5 h-3.5 text-emerald-600" />
-            Total Recaudado / Cobrado
-          </span>
-          <span className="text-2xl font-black text-emerald-600 mt-1 block font-mono">
-            ${safeNumber(totalPaid)} USD
-          </span>
-          <span className="text-[11px] text-emerald-700/80">Cobros efectivos y abonos asentados</span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-            Cartera Pendiente / Saldo
-          </span>
-          <span className="text-2xl font-black text-amber-600 mt-1 block font-mono">
-            ${safeNumber(totalPending)} USD
-          </span>
-          <span className="text-[11px] text-amber-700/80">Por cobrar a clientes a crédito/plazo</span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs">
-          <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider block flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-            Anticipos / Saldo a Favor
-          </span>
-          <span className="text-2xl font-black text-indigo-600 mt-1 block font-mono">
-            ${safeNumber(totalAdvancesAvailable)} USD
-          </span>
-          <span className="text-[11px] text-indigo-700/80">
-            {(clientAdvances || []).filter((a) => a.status === "vigente" && a.remaining > 0).length} clientes con anticipos vigentes
-          </span>
-        </div>
-      </div>
-
-      {/* Tabs Principales de la Vista */}
-      <div className="flex items-center gap-2 border-b border-[#e2e8f0]">
-        <button
-          type="button"
-          onClick={() => setActiveTab("comprobantes")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === "comprobantes"
-              ? "border-[#004ac6] text-[#004ac6] bg-blue-50/50"
-              : "border-transparent text-[#737686] hover:text-[#0b1c30]"
-          }`}
-        >
-          <Receipt className="w-4 h-4" />
-          <span>Cobros por Comprobante ({filteredCharges.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("anticipos")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === "anticipos"
-              ? "border-amber-600 text-amber-700 bg-amber-50/50"
-              : "border-transparent text-[#737686] hover:text-[#0b1c30]"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-600" />
-          <span>Anticipos de Clientes ({(clientAdvances || []).length})</span>
-          {totalAdvancesAvailable > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-              ${safeNumber(totalAdvancesAvailable)}
-            </span>
-          )}
-        </button>
-      </div>
-
+    <div className="w-full space-y-4">
       {/* VISTA 1: COBROS POR COMPROBANTE DE VENTA */}
       {activeTab === "comprobantes" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
@@ -703,14 +612,28 @@ export function FinanceDashboard() {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={handleExportBatch}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Exportar Excel</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportBatch}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Exportar Excel</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setManualDueDate(new Date().toISOString().slice(0, 10));
+                  setIsNewManualChargeOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Registrar Cobro</span>
+              </button>
+            </div>
           </div>
 
           {/* Tabla de Cobros */}
@@ -908,15 +831,16 @@ export function FinanceDashboard() {
       {/* VISTA 2: ANTICIPOS DE CLIENTES */}
       {activeTab === "anticipos" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#fcfdff]">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                Historial de Pagos Anticipados & Saldos a Favor
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Pagos adelantados por 1, 2 o más meses para cubrir comprobantes presentes y futuros.
-              </p>
+          <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#fcfdff]">
+            <div className="relative min-w-[280px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Buscar anticipo por cliente o RUC..."
+                value={advSearchQuery}
+                onChange={(e) => setAdvSearchQuery(e.target.value)}
+                className="w-full bg-[#f8f9ff] text-xs text-slate-900 rounded-lg pl-8 pr-3 py-1.5 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+              />
             </div>
 
             <button
@@ -926,7 +850,7 @@ export function FinanceDashboard() {
                 setAdvBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
                 setIsAdvanceModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Registrar Anticipo</span>
@@ -948,14 +872,14 @@ export function FinanceDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {(clientAdvances || []).length === 0 ? (
+                {(filteredAdvances || []).length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-slate-400">
                       No hay pagos anticipados registrados hasta el momento.
                     </td>
                   </tr>
                 ) : (
-                  (clientAdvances || []).map((adv) => {
+                  (filteredAdvances || []).map((adv) => {
                     const isAvailable = adv.status === "vigente" && adv.remaining > 0;
                     return (
                       <tr key={adv.id} className="hover:bg-[#f8f9ff] transition-colors">
@@ -1424,7 +1348,7 @@ export function FinanceDashboard() {
               <div>
                 <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  Registrar Pago Anticipado de Cliente
+                  Registrar Anticipo
                 </h3>
                 <span className="text-[11px] text-slate-500">
                   Abono por adelantado para cubrir 1 o varios meses a futuro
@@ -1687,14 +1611,14 @@ export function FinanceDashboard() {
         </div>
       )}
 
-      {/* MODAL 7: NUEVO COBRO MANUAL */}
+      {/* MODAL 7: REGISTRAR COBRO */}
       {isNewManualChargeOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <Plus className="w-4 h-4 text-[#004ac6]" />
-                Registrar Cobro Manual
+                Registrar Cobro
               </h3>
               <button
                 type="button"

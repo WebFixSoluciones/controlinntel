@@ -74,6 +74,8 @@ function getPageTitle(pathname: string, subParam: string | null): string {
       case "cobranzas":
       case "cobranzas_opex":
         return "Cobranzas";
+      case "anticipos":
+        return "Anticipos";
       case "gastos":
         return "Gastos";
       case "movimientos":
