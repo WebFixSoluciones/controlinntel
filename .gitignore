@@ -31,6 +31,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# QA de referencia y su evidencia: solo local, no se versionan.
+# El cierre del plan vive en docs/CIERRE_PLAN_CORRECCIONES_2026-10-27.md
+/docs/qa-2026-10-27/
+/docs/qa-evidencias/
+/docs/qa-remediacion/
+/docs/INFORME-TOTAL-QA-INNTEL-CORP-2026-10-27.md
+/docs/INFORME_QA_PROCESO_COMERCIAL_2026-10-26.md
+/docs/PLAN_INTEGRAL_CORRECCIONES_FLUJO_SISTEMA_2026-10-27.md
+
 # OS files
 .DS_Store
 *.pem
