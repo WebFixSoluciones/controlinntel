@@ -66,6 +66,7 @@ export function FinanceDashboard() {
     addMonthlyCharge,
     updateMonthlyCharge,
     deleteMonthlyCharge,
+    deleteInvoice,
     addPaymentToCharge,
     addClientAdvance,
     applyClientAdvance,
@@ -368,11 +369,29 @@ export function FinanceDashboard() {
   const handleConfirmDeleteCharge = async () => {
     if (!deletingCharge) return;
     try {
+      const invId =
+        deletingCharge.invoiceId ||
+        (deletingCharge.id.startsWith("chg-inv-")
+          ? deletingCharge.id.replace("chg-inv-", "")
+          : undefined) ||
+        billingInvoices.find(
+          (i) =>
+            (deletingCharge.invoiceNumber && i.documentNumber === deletingCharge.invoiceNumber) ||
+            (deletingCharge.invoiceId && i.id === deletingCharge.invoiceId)
+        )?.id;
+
+      if (invId) {
+        await deleteInvoice(invId);
+      }
       await deleteMonthlyCharge(deletingCharge.id);
-      showSuccess("Cobro Eliminado", `Se eliminó el cobro del comprobante ${deletingCharge.invoiceNumber}.`);
+
+      showSuccess(
+        "Comprobante Eliminado",
+        `Se eliminó correctamente el comprobante ${deletingCharge.invoiceNumber || ""}.`
+      );
       setDeletingCharge(null);
     } catch (error) {
-      showError("Error", error instanceof Error ? error.message : "No se pudo eliminar el cobro.");
+      showError("Error", error instanceof Error ? error.message : "No se pudo eliminar el comprobante.");
     }
   };
 

@@ -2460,6 +2460,43 @@ test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutiva
   );
 });
 
+test("Flujo E2E 42: Eliminación Integral de Comprobantes de Venta y Cobros desde Finanzas", () => {
+  const rootDir = process.cwd();
+  const statePath = path.resolve(rootDir, "src/lib/state.tsx");
+  const stateContent = fs.readFileSync(statePath, "utf8");
+
+  const financePath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeContent = fs.readFileSync(financePath, "utf8");
+
+  // 1. FinanceDashboard debe extraer deleteInvoice y usarlo al confirmar eliminación de cobro comercial
+  assert.ok(
+    financeContent.includes("deleteInvoice,") &&
+      financeContent.includes("handleConfirmDeleteCharge = async () => {") &&
+      financeContent.includes("await deleteInvoice(invId)") &&
+      financeContent.includes("await deleteMonthlyCharge(deletingCharge.id)"),
+    "FinanceDashboard debe invocar deleteInvoice para purgar comprobantes comerciales y deleteMonthlyCharge"
+  );
+
+  // 2. deleteMonthlyCharge en state.tsx debe resolver IDs sintéticos 'chg-inv-...' y comprobantes asociados
+  assert.ok(
+    stateContent.includes('if (id.startsWith("chg-inv-")) {') &&
+      stateContent.includes('const invId = id.replace("chg-inv-", "");') &&
+      stateContent.includes("const associatedInvoice =") &&
+      stateContent.includes("await deleteInvoice(associatedInvoice.id);"),
+    "deleteMonthlyCharge debe resolver IDs sintéticos e invocar deleteInvoice para evitar re-sintetización"
+  );
+
+  // 3. deleteInvoice en state.tsx debe revertir kardex, movimientos financieros, cuentas bancarias y purgar monthlyCharges
+  assert.ok(
+    stateContent.includes('else if (inv.status !== "anulada") {') &&
+      stateContent.includes("if (inv.kardexRegistered) {") &&
+      stateContent.includes("CUSTOMER_RETURN") &&
+      stateContent.includes("c.invoiceId === id ||") &&
+      stateContent.includes("c.id === `chg-inv-${id}`"),
+    "deleteInvoice debe revertir inventario, finanzas bancarias y purgar cobros sintéticos y asociados"
+  );
+});
+
 
 
 
