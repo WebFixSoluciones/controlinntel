@@ -9,13 +9,11 @@ import {
   X,
   Briefcase,
   Building2,
-  Radio,
   Calendar,
   DollarSign,
   Clock,
   Layers,
   CheckCircle2,
-  AlertCircle,
 } from "lucide-react";
 
 interface ProjectModalProps {
@@ -33,16 +31,13 @@ export function ProjectModal({
   defaultClientId,
   defaultClientName,
 }: ProjectModalProps) {
-  const { clients, nodes, addProject, updateProject } = useApp();
+  const { clients, addProject, updateProject } = useApp();
   const { showSuccess, showError } = useToast();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState<"cliente" | "infraestructura_interna">("cliente");
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
-  const [nodeId, setNodeId] = useState("");
-  const [nodeName, setNodeName] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(
     new Date(Date.now() + 86400000 * 30).toISOString().split("T")[0]
@@ -58,13 +53,15 @@ export function ProjectModal({
     if (projectToEdit) {
       setTitle(projectToEdit.title || "");
       setDescription(projectToEdit.description || "");
-      setType(projectToEdit.type || "cliente");
-      setClientId(projectToEdit.clientId || "");
-      setClientName(projectToEdit.clientName || "");
-      setNodeId(projectToEdit.nodeId || "");
-      setNodeName(projectToEdit.nodeName || "");
+      const cId = projectToEdit.clientId || defaultClientId || "";
+      const cName =
+        projectToEdit.clientName || (cId ? clients.find((c) => c.id === cId)?.businessName || "" : "");
+      setClientId(cId);
+      setClientName(cName);
       setStartDate(projectToEdit.startDate || new Date().toISOString().split("T")[0]);
-      setEndDate(projectToEdit.endDate || new Date(Date.now() + 86400000 * 30).toISOString().split("T")[0]);
+      setEndDate(
+        projectToEdit.endDate || new Date(Date.now() + 86400000 * 30).toISOString().split("T")[0]
+      );
       setEstimatedBudget(projectToEdit.estimatedBudget || 0);
       setExecutedCost(projectToEdit.executedCost || 0);
       setStatus(projectToEdit.status || "inicio");
@@ -72,20 +69,18 @@ export function ProjectModal({
       // New project default values
       setTitle("");
       setDescription("");
-      setType("cliente");
-      const cId = defaultClientId || (clients[0]?.id || "");
-      const cName = defaultClientName || (clients.find((c) => c.id === cId)?.businessName || "");
+      const cId = defaultClientId || "";
+      const cName =
+        defaultClientName || (cId ? clients.find((c) => c.id === cId)?.businessName || "" : "");
       setClientId(cId);
       setClientName(cName);
-      setNodeId(nodes[0]?.id || "");
-      setNodeName(nodes[0]?.name || "");
       setStartDate(new Date().toISOString().split("T")[0]);
       setEndDate(new Date(Date.now() + 86400000 * 30).toISOString().split("T")[0]);
       setEstimatedBudget(0);
       setExecutedCost(0);
       setStatus("inicio");
     }
-  }, [isOpen, projectToEdit, defaultClientId, defaultClientName, clients, nodes]);
+  }, [isOpen, projectToEdit, defaultClientId, defaultClientName, clients]);
 
   if (!isOpen) return null;
 
@@ -96,15 +91,13 @@ export function ProjectModal({
       return;
     }
 
-    if (type === "cliente" && !clientId) {
-      showError("Campo Obligatorio", "Por favor selecciona el cliente asignado al proyecto.");
+    if (!clientId) {
+      showError("Campo Obligatorio", "Por favor selecciona la cuenta de cliente para vincular el proyecto.");
       return;
     }
 
-    if (type === "infraestructura_interna" && !nodeId) {
-      showError("Campo Obligatorio", "Por favor selecciona el nodo o POP de infraestructura.");
-      return;
-    }
+    const resolvedClientName =
+      clientName || clients.find((c) => c.id === clientId)?.businessName || "Cliente";
 
     setBusy(true);
     try {
@@ -112,11 +105,9 @@ export function ProjectModal({
         await updateProject(projectToEdit.id, {
           title: title.trim(),
           description: description.trim(),
-          type,
-          clientId: type === "cliente" ? clientId : undefined,
-          clientName: type === "cliente" ? clientName : undefined,
-          nodeId: type === "infraestructura_interna" ? nodeId : undefined,
-          nodeName: type === "infraestructura_interna" ? nodeName : undefined,
+          type: "cliente",
+          clientId,
+          clientName: resolvedClientName,
           startDate,
           endDate,
           estimatedBudget: Number(estimatedBudget) || 0,
@@ -128,11 +119,9 @@ export function ProjectModal({
         await addProject({
           title: title.trim(),
           description: description.trim(),
-          type,
-          clientId: type === "cliente" ? clientId : undefined,
-          clientName: type === "cliente" ? clientName : undefined,
-          nodeId: type === "infraestructura_interna" ? nodeId : undefined,
-          nodeName: type === "infraestructura_interna" ? nodeName : undefined,
+          type: "cliente",
+          clientId,
+          clientName: resolvedClientName,
           startDate,
           endDate,
           estimatedBudget: Number(estimatedBudget) || 0,
@@ -141,7 +130,7 @@ export function ProjectModal({
           columns: DEFAULT_PROJECT_COLUMNS,
           isDeleted: false,
         });
-        showSuccess("Proyecto Creado", `Proyecto "${title}" inicializado con su Canvas de trabajo.`);
+        showSuccess("Proyecto Creado", `Proyecto "${title}" vinculado a ${resolvedClientName}.`);
       }
       onClose();
     } catch {
@@ -194,86 +183,33 @@ export function ProjectModal({
             />
           </div>
 
-          {/* Vinculación: Cliente vs Infraestructura */}
-          <div className="space-y-2">
-            <label className="block text-[11px] font-bold text-slate-700">
-              Tipo de Vinculación <span className="text-rose-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setType("cliente")}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                  type === "cliente"
-                    ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Cliente Corporativo</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setType("infraestructura_interna")}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                  type === "infraestructura_interna"
-                    ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-white"
-                }`}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                <span>POP / Infraestructura</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Selector de Cliente o Nodo */}
-          {type === "cliente" ? (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
+          {/* Selector directo de Cliente */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
+              <span>
                 Cliente Asignado <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={clientId}
-                onChange={(e) => {
-                  setClientId(e.target.value);
-                  const c = clients.find((cl) => cl.id === e.target.value);
-                  if (c) setClientName(c.businessName);
-                }}
-                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-              >
-                <option value="">-- Seleccionar Cliente --</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.businessName} ({c.identificationNumber})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                POP / Nodo de Red Asignado <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={nodeId}
-                onChange={(e) => {
-                  setNodeId(e.target.value);
-                  const n = nodes.find((nd) => nd.id === e.target.value);
-                  if (n) setNodeName(n.name);
-                }}
-                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-              >
-                <option value="">-- Seleccionar Nodo / POP --</option>
-                {nodes.map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {n.name} - {n.address}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+              </span>
+            </label>
+            <select
+              required
+              value={clientId}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                setClientId(selectedId);
+                const c = clients.find((cl) => cl.id === selectedId);
+                setClientName(c ? c.businessName : "");
+              }}
+              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+            >
+              <option value="">-- Seleccionar Cuenta de Cliente --</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.businessName} ({c.identificationNumber})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Fechas de Inicio y Fin (Cronograma Global) */}
           <div className="grid grid-cols-2 gap-3">
@@ -332,7 +268,7 @@ export function ProjectModal({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
+                className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-bold text-slate-800 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
               >
                 <option value="inicio">Inicio / Planificación</option>
                 <option value="en_proceso">En Proceso / Ejecución</option>

@@ -3151,6 +3151,38 @@ test("Flujo E2E 58: Simplificación de formulario Asignar Servicio con modalidad
   );
 });
 
+test("Flujo E2E 59: Creación de proyecto vinculada directamente al selector de cliente sin opción de infraestructura ni POP", () => {
+  const rootDir = process.cwd();
+  const projectModalPath = path.resolve(rootDir, "src/components/modules/projects/ProjectModal.tsx");
+  const projectModal = fs.readFileSync(projectModalPath, "utf8");
+
+  // 1. Eliminación de opción de infraestructura y POP
+  assert.ok(
+    !projectModal.includes("Tipo de Vinculación") &&
+      !projectModal.includes("POP / Infraestructura") &&
+      !projectModal.includes("POP / Nodo de Red Asignado") &&
+      !projectModal.includes("infraestructura_interna"),
+    "ProjectModal no debe contener la sección 'Tipo de Vinculación' ni la opción 'POP / Infraestructura'"
+  );
+
+  // 2. Selector directo de cliente para vincular a una cuenta de cliente
+  assert.ok(
+    projectModal.includes("Cliente Asignado") &&
+      projectModal.includes("-- Seleccionar Cuenta de Cliente --") &&
+      projectModal.includes("setClientId") &&
+      projectModal.includes("setClientName"),
+    "ProjectModal debe mostrar directamente el selector de cliente para vincular a una cuenta de cliente"
+  );
+
+  // 3. Vinculación directa al cliente al guardar o crear
+  assert.ok(
+    projectModal.includes('type: "cliente"') &&
+      projectModal.includes("clientId") &&
+      projectModal.includes("clientName"),
+    "Al guardar o crear, el proyecto debe registrarse directamente con type cliente y su respectivo clientId/clientName"
+  );
+});
+
 
 
 
