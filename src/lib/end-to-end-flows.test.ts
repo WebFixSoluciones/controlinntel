@@ -2552,20 +2552,20 @@ test("Flujo E2E 44: Ficha 360 Minimalista (Estado en Minúsculas Abajo del Nombr
     "ClientProfile360 no debe incluir botón Volver ni ArrowLeft en cabecera"
   );
 
-  // La pestaña 'archivos' debe mostrarse SOLO como icono azul (sin etiqueta de texto 'Archivos' en la barra de pestañas)
+  // La pestaña 'archivos' se accede mediante icono circular de acción rápida en la barra superior
   assert.ok(
-    profile360Content.includes('const isArchivos = tab.id === "archivos";') &&
-      profile360Content.includes('!isArchivos && <span>{tab.label}</span>') &&
+    profile360Content.includes('UploadCloud') &&
+      profile360Content.includes('handleTabChange("archivos")') &&
       profile360Content.includes('text-[#004ac6]'),
-    "En la barra de pestañas, archivos no debe mostrar texto sino solo el icono azul representativo de Drive"
+    "En la barra del cliente, archivos debe contar con icono circular representativo de subida/Drive"
   );
 
-  // El estado debe estar abajo del nombre del cliente, en minúsculas y sin burbuja
+  // El estado se presenta como círculo indicador de estado junto al nombre del cliente en una sola línea
   assert.ok(
-    profile360Content.includes('client.status.toLowerCase()') &&
-      profile360Content.includes('text-emerald-600') &&
-      profile360Content.includes('text-rose-600'),
-    "ClientProfile360 debe incluir el estado abajo del nombre en minúsculas, verde para activo, rojo para inactivo y sin burbuja"
+    profile360Content.includes('client.status === "activo"') &&
+      profile360Content.includes('bg-[#10b981]') &&
+      profile360Content.includes('bg-[#ef4444]'),
+    "ClientProfile360 debe incluir el semáforo de estado mediante círculo indicador (verde para activo, rojo para inactivo)"
   );
 
   // 2. Verificación de ClientFilesTab.tsx
@@ -2989,6 +2989,46 @@ test("Flujo E2E 55: Unificación de Botón Agregar Servicio en Azul y Retiro de 
     "ClientContractTab debe mantener todas las capacidades operativas de gestión y renovación de servicios"
   );
 });
+
+test("Flujo E2E 56: Barra Superior del Cliente con Estado Inline, Título y Accesos Directos Circulares de Archivos e Informes", () => {
+  const rootDir = process.cwd();
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profileContent = fs.readFileSync(profile360Path, "utf8");
+
+  // 1. Semáforo de estado inline (punto circular) junto al título y RUC en una sola fila
+  assert.ok(
+    profileContent.includes('client.status === "activo"') &&
+      profileContent.includes('"bg-[#10b981]"') &&
+      profileContent.includes("client.businessName") &&
+      profileContent.includes("RUC / CI: {client.identificationNumber}"),
+    "El estado del cliente debe presentarse como punto circular antes del nombre y RUC en una sola fila horizontal"
+  );
+
+  // 2. Icono circular de subida/archivos (UploadCloud) con borde azul (#004ac6) y acción a archivos
+  assert.ok(
+    profileContent.includes("UploadCloud") &&
+      profileContent.includes('handleTabChange("archivos")') &&
+      profileContent.includes("w-9 h-9 rounded-full") &&
+      profileContent.includes("border-[#004ac6]"),
+    "La barra superior debe incluir el botón circular de Archivos con icono de nube de subida"
+  );
+
+  // 3. Icono circular de informes (FileBarChart) con borde azul (#004ac6) y acción a dossier/informes
+  assert.ok(
+    profileContent.includes("FileBarChart") &&
+      profileContent.includes('handleTabChange("dossier")') &&
+      profileContent.includes("w-9 h-9 rounded-full"),
+    "La barra superior debe incluir el botón circular de Informes con icono de reporte"
+  );
+
+  // 4. La cinta horizontal de pestañas inferiores debe excluir 'archivos' y 'dossier' manteniendo las 10 pestañas limpias
+  assert.ok(
+    profileContent.includes('ribbonTabs = authorizedTabs.filter((t) => t.id !== "archivos" && t.id !== "dossier")') &&
+      profileContent.includes("ribbonTabs.map"),
+    "La cinta de navegación inferior debe excluir archivos y dossier al estar disponibles como accesos directos superiores"
+  );
+});
+
 
 
 

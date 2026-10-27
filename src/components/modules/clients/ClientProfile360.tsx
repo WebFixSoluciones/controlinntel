@@ -47,6 +47,8 @@ import {
   Users,
   Search,
   X,
+  UploadCloud,
+  FileBarChart,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -322,38 +324,68 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     }
   }, [hasServices, activeTab, authorizedTabs]);
 
+  // Pestañas visibles en la barra horizontal (Archivos e Informes se ubican como iconos en la barra superior)
+  const ribbonTabs = authorizedTabs.filter((t) => t.id !== "archivos" && t.id !== "dossier");
+
   if (!client) return null;
 
   return (
     <div className="w-full animate-in fade-in duration-200">
       {/* Contenedor Principal de la Ficha */}
       <div className="w-full bg-white rounded-xl shadow-2xs border border-[#e2e8f0] overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
-        {/* Hub Header Elegante y Limpio */}
+        {/* Hub Header Elegante y Limpio con Estado, Título e Iconos de Acción */}
         <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-base font-semibold text-slate-800 tracking-normal">
-                {client.businessName}
-              </h1>
-              <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
-              <span className="font-mono text-xs font-medium text-slate-600">
-                RUC / CI: {client.identificationNumber}
-              </span>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
             <span
-              className={`text-xs font-medium ${
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                 client.status === "activo"
-                  ? "text-emerald-600"
+                  ? "bg-[#10b981]"
                   : client.status === "suspendido"
-                  ? "text-amber-600"
-                  : "text-rose-600"
+                  ? "bg-[#f59e0b]"
+                  : "bg-[#ef4444]"
               }`}
-            >
-              {client.status.toLowerCase()}
+              title={`Estado: ${client.status.toUpperCase()}`}
+            />
+            <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase">
+              {client.businessName}
+            </h1>
+            <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
+            <span className="font-mono text-xs font-medium text-slate-600">
+              RUC / CI: {client.identificationNumber}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
+            {authorizedTabs.some((t) => t.id === "archivos") && (
+              <button
+                type="button"
+                onClick={() => handleTabChange("archivos")}
+                title="Cargar / Gestionar Archivos del Cliente"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  activeTab === "archivos"
+                    ? "bg-[#004ac6] text-white border-2 border-[#004ac6] shadow-xs"
+                    : "bg-white text-[#004ac6] border border-[#004ac6] hover:bg-[#eff4ff]"
+                }`}
+              >
+                <UploadCloud className="w-4 h-4" />
+              </button>
+            )}
+
+            {authorizedTabs.some((t) => t.id === "dossier") && (
+              <button
+                type="button"
+                onClick={() => handleTabChange("dossier")}
+                title="Informes y Reportes del Cliente"
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  activeTab === "dossier"
+                    ? "bg-[#004ac6] text-white border-2 border-[#004ac6] shadow-xs"
+                    : "bg-white text-[#004ac6] border border-[#004ac6] hover:bg-[#eff4ff]"
+                }`}
+              >
+                <FileBarChart className="w-4 h-4" />
+              </button>
+            )}
+
             {(currentUser.role === "admin" ||
               currentUser.role === "superadmin" ||
               currentUser.permissions?.includes("all") ||
@@ -385,26 +417,23 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}
         <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
           <div className="flex items-center gap-1.5 overflow-x-auto">
-            {authorizedTabs.map((tab) => {
+            {ribbonTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const isArchivos = tab.id === "archivos";
 
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  title={isArchivos ? "Archivos / Drive del Cliente" : tab.label}
+                  title={tab.label}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
-                      : isArchivos
-                      ? "bg-[#eff4ff] text-[#004ac6] hover:bg-[#dce9ff] border border-[#dce9ff]"
                       : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : isArchivos ? "text-[#004ac6]" : "text-slate-600"}`} />
-                  {!isArchivos && <span>{tab.label}</span>}
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
