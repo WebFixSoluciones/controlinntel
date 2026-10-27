@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast-context";
 import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Cloud,
+  HardDrive,
   Upload,
   Search,
   FileText,
@@ -216,7 +217,7 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
       {/* Header Estándar de Pestaña */}
       <ClientTabHeader
         title="Archivos del Cliente"
-        icon={Cloud}
+        icon={HardDrive}
         badge={
           <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
             {totalFiles} {totalFiles === 1 ? "archivo" : "archivos"}
@@ -321,8 +322,8 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
       {/* Visualización de Archivos: Cuadrícula (Mini Drive) o Tabla */}
       {filteredDocs.length === 0 ? (
         <div className="bg-white p-8 rounded-xl border border-[#e2e8f0] text-center space-y-2">
-          <Cloud className="w-10 h-10 text-slate-300 mx-auto" />
-          <h4 className="text-xs font-bold text-slate-700">Sin archivos en la nube</h4>
+          <HardDrive className="w-10 h-10 text-slate-300 mx-auto" />
+          <h4 className="text-xs font-bold text-slate-700">Sin archivos en el Drive</h4>
           <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
             {searchQuery || categoryFilter !== "all"
               ? "No hay documentos que coincidan con los filtros de búsqueda."
@@ -479,8 +480,8 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-5 py-3.5 bg-[#004ac6] text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4" />
-                <h3 className="text-sm font-bold">Subir Archivo a la Nube</h3>
+                <HardDrive className="w-4 h-4" />
+                <h3 className="text-sm font-bold">Subir Archivo al Drive</h3>
               </div>
               <button
                 type="button"

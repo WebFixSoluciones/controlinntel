@@ -23,6 +23,7 @@ import {
   KeyRound,
   ShieldCheck,
   Cloud,
+  HardDrive,
   FileSpreadsheet,
   DollarSign,
   Ticket as TicketIcon,
@@ -166,7 +167,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
     { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
-    { id: "archivos", label: "Archivos", icon: Cloud, permission: "manage_clients" },
+    { id: "archivos", label: "Archivos", icon: HardDrive, permission: "manage_clients" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
@@ -211,38 +212,30 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
       <div className="w-full bg-white rounded-xl shadow-2xs border border-[#e2e8f0] overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
         {/* Hub Header Elegante y Limpio */}
         <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-base font-semibold text-slate-800 tracking-normal">
-              {client.businessName}
-            </h1>
-            <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
-            <span className="font-mono text-xs font-medium text-slate-600">
-              RUC / CI: {client.identificationNumber}
+          <div className="flex flex-col gap-0.5">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-base font-semibold text-slate-800 tracking-normal">
+                {client.businessName}
+              </h1>
+              <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
+              <span className="font-mono text-xs font-medium text-slate-600">
+                RUC / CI: {client.identificationNumber}
+              </span>
+            </div>
+            <span
+              className={`text-xs font-medium ${
+                client.status === "activo"
+                  ? "text-emerald-600"
+                  : client.status === "suspendido"
+                  ? "text-amber-600"
+                  : "text-rose-600"
+              }`}
+            >
+              {client.status.toLowerCase()}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                client.status === "activo"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                  : client.status === "suspendido"
-                  ? "bg-amber-50 text-amber-700 border-amber-200/80"
-                  : "bg-slate-100 text-slate-600 border-slate-200"
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  client.status === "activo"
-                    ? "bg-emerald-500"
-                    : client.status === "suspendido"
-                    ? "bg-amber-500"
-                    : "bg-slate-400"
-                }`}
-              />
-              <span className="capitalize">{client.status}</span>
-            </span>
-
+          <div className="flex items-center gap-2">
             {(currentUser.role === "admin" ||
               currentUser.role === "superadmin" ||
               currentUser.permissions?.includes("all") ||
@@ -277,19 +270,23 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             {authorizedTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const isArchivos = tab.id === "archivos";
 
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
+                  title={isArchivos ? "Archivos / Drive del Cliente" : tab.label}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     isActive
                       ? "bg-[#004ac6] text-white shadow-sm border border-[#003da6]"
+                      : isArchivos
+                      ? "bg-[#eff4ff] text-[#004ac6] hover:bg-[#dce9ff] border border-[#dce9ff]"
                       : "bg-white text-slate-700 hover:text-[#0b1c30] hover:bg-slate-50 border border-slate-300 shadow-2xs"
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-slate-600"}`} />
-                  <span>{tab.label}</span>
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : isArchivos ? "text-[#004ac6]" : "text-slate-600"}`} />
+                  {!isArchivos && <span>{tab.label}</span>}
                 </button>
               );
             })}
