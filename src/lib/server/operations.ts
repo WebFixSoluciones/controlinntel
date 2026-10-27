@@ -88,9 +88,16 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     if (entity==="vault" || entity==="clientVaultItems") {
       data.secret=old.data()?.secret;
       if (entity==="vault" && old.exists && user.role!=="superadmin" && !old.data()?.allowedRoles?.includes(user.role)) throw new HttpError(403,"Credencial restringida.");
-      if (typeof input.encryptedPassword==="string" && input.encryptedPassword) data.secret=seal(simpleDecrypt(input.encryptedPassword),entity+"/"+reference.id);
+      // La contraseña llega en claro por HTTPS y se sella aquí. `encryptedPassword` se
+      // mantiene solo como compatibilidad para clientes antiguos.
+      const incoming = typeof input.password==="string" && input.password
+        ? input.password
+        : typeof input.encryptedPassword==="string" && input.encryptedPassword
+        ? simpleDecrypt(input.encryptedPassword)
+        : "";
+      if (incoming) data.secret=seal(incoming,entity+"/"+reference.id);
       if (!data.secret) throw new HttpError(400,"Contraseña requerida.");
-      delete data.encryptedPassword;
+      delete data.encryptedPassword; delete data.password;
     }
     if (entity==="clientQuotes") {
       data.items=data.items.map((item:DocumentData)=>({...item,total:Math.round(item.quantity*item.unitPrice*100)/100}));

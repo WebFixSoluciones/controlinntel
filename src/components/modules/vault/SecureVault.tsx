@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { simpleEncrypt } from "@/lib/crypto-vault";
 import {
   Eye,
   EyeOff,
@@ -84,7 +83,9 @@ export function SecureVault({ clientId }: { clientId?: string }) {
     const data = {
       serviceName: String(values.get("service")),
       username: String(values.get("username")),
-      ...(!editingId || rawPass ? { encryptedPassword: simpleEncrypt(rawPass) } : {}),
+      // La contraseña viaja en claro por HTTPS y el servidor la sella con AES-256-GCM.
+      // El cifrado en el navegador era reversible y no aportaba protección real.
+      ...(!editingId || rawPass ? { password: rawPass } : {}),
       notes: String(values.get("notes") || ""),
     };
     try {
