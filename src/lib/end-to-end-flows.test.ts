@@ -2417,6 +2417,50 @@ test("Flujo E2E 40: Navegación de Finanzas en Sidebar Exclusivo, Título Dinám
   );
 });
 
+test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutivas, Cobranzas, Gastos, CxC, CxP, Bancos e Ingresos Totales)", () => {
+  const rootDir = process.cwd();
+  const reportsPath = path.resolve(rootDir, "src/components/modules/finance/FinancialReportsTab.tsx");
+  const reportsContent = fs.readFileSync(reportsPath, "utf8");
+
+  // 1. Tarjetas KPI Ejecutivas Visibles
+  assert.ok(
+    reportsContent.includes("Ingresos Totales") &&
+      reportsContent.includes("Gastos OPEX") &&
+      reportsContent.includes("Flujo Neto") &&
+      reportsContent.includes("Por Cobrar (CxC)") &&
+      reportsContent.includes("Por Pagar (CxP)") &&
+      reportsContent.includes("Bancos & Cajas"),
+    "FinancialReportsTab debe presentar las 6 tarjetas KPI ejecutivas en pantalla"
+  );
+
+  // 2. Gráficas Visuales Interactivas (Recharts)
+  assert.ok(
+    reportsContent.includes("ResponsiveContainer") &&
+      reportsContent.includes("ComposedChart") &&
+      reportsContent.includes("Distribución de Gastos OPEX por Categoría") &&
+      reportsContent.includes("Efectividad y Recuperación de Cartera"),
+    "FinancialReportsTab debe incluir gráficas visuales y barras de distribución analítica"
+  );
+
+  // 3. Vistas Especializadas de Reportes
+  assert.ok(
+    reportsContent.includes("Reporte Cobranzas") &&
+      reportsContent.includes("Reporte Gastos OPEX") &&
+      reportsContent.includes("Cuentas por Cobrar") &&
+      reportsContent.includes("Cuentas por Pagar") &&
+      reportsContent.includes("Bancos & Liquidez"),
+    "FinancialReportsTab debe permitir alternar entre los 6 sub-reportes especializados"
+  );
+
+  // 4. Exportación e Impresión
+  assert.ok(
+    reportsContent.includes("handleExportCsv") &&
+      reportsContent.includes("window.print()"),
+    "FinancialReportsTab debe permitir exportar a CSV/Excel e imprimir el reporte formal"
+  );
+});
+
+
 
 
 
