@@ -1108,11 +1108,10 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
   const clientContractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
   const tabContent = fs.readFileSync(clientContractTabPath, "utf8");
 
-  // 1. Título de Servicios limpio sin contadores
+  // 1. Título de Servicios limpio sin barra redundante
   assert.ok(
-    !tabContent.includes('badge=') &&
-      tabContent.includes('title="Servicios"'),
-    "ClientContractTab no debe incluir badges con contadores en el encabezado de Servicios"
+    !tabContent.includes('title="Servicios"'),
+    "ClientContractTab no debe incluir barra de título redundante para Servicios"
   );
 
   // 2. Barra de monto mensual y alertas de origen removidas
@@ -2669,6 +2668,28 @@ test("Flujo E2E 47: Eliminación de Barra de Título en Bóveda y Reubicación d
       vaultContent.includes("Buscar por servicio, usuario o notas...") &&
       vaultContent.includes("flex flex-wrap items-center justify-between"),
     "SecureVault debe integrar el botón 'Nueva Credencial' en la barra de búsqueda y filtros"
+  );
+});
+
+test("Flujo E2E 48: Eliminación de Barra de Título en Servicios y Reubicación de Botones en la Barra de Filtros", () => {
+  const rootDir = process.cwd();
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractContent = fs.readFileSync(contractTabPath, "utf8");
+
+  // No debe incluir barra de título redundante para Servicios
+  assert.ok(
+    !contractContent.includes('title="Servicios"'),
+    "ClientContractTab no debe incluir la barra de título redundante ClientTabHeader para Servicios"
+  );
+
+  // Los 3 botones deben estar en la barra de búsqueda y filtros alineados a la derecha
+  assert.ok(
+    contractContent.includes("Nuevo Servicio") &&
+      contractContent.includes("Nueva Venta") &&
+      contractContent.includes("Facturar Activos") &&
+      contractContent.includes("Buscar por servicio o SKU...") &&
+      contractContent.includes("flex flex-wrap items-center justify-between"),
+    "ClientContractTab debe integrar los 3 botones en la barra de filtros alineados a la derecha"
   );
 });
 

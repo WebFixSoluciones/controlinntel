@@ -981,49 +981,6 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      {/* ========================================================================= */}
-      {/* 1. SEGUIMIENTO DE SERVICIOS */}
-      <ClientTabHeader
-        title="Servicios"
-        icon={ShieldCheck}
-        actions={
-          <>
-            <button
-              type="button"
-              onClick={() => setIsAddingService((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSaleInitialItems(undefined);
-                setIsNewSaleOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0b1c30] hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Nueva Venta</span>
-            </button>
-
-            {serviceMetrics.billableCount > 0 && (
-              <button
-                type="button"
-                disabled={emittingRecurring}
-                onClick={handleEmitClientRecurringInvoice}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
-              </button>
-            )}
-          </>
-        }
-      />
-
       {/* Banner de alerta cuando existen servicios a punto de caducar o vencidos */}
       {serviceMetrics.expiringCount > 0 && (
         <div className="p-3.5 px-4 bg-amber-50 border border-amber-300 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950 shadow-xs animate-in fade-in">
@@ -1538,9 +1495,9 @@ export function ClientContractTab({ client }: { client: Client }) {
           </form>
         )}
 
-        {/* Barra de búsqueda y filtro rápido de estado */}
+        {/* Barra de búsqueda y filtro rápido de estado con botones de acción alineados a la derecha */}
         <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
             <input
               type="text"
@@ -1551,39 +1508,76 @@ export function ClientContractTab({ client }: { client: Client }) {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs flex-wrap">
-            {[
-              { id: "todos", label: "Todos" },
-              { id: "facturables", label: "Activos" },
-              { id: "por_renovar", label: "Por Renovar" },
-            ].map((tab) => {
-              const isActive = serviceFilter === tab.id;
-              const isWarningTab = tab.id === "por_renovar" && serviceMetrics.expiringCount > 0;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setServiceFilter(tab.id as any)}
-                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                    isActive
-                      ? isWarningTab
-                        ? "bg-amber-600 text-white shadow-xs"
-                        : "bg-[#004ac6] text-white shadow-2xs"
-                      : isWarningTab
-                      ? "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
-                      : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
-                  }`}
-                >
-                  {isWarningTab && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
-                  <span>{tab.label}</span>
-                  {tab.id === "por_renovar" && serviceMetrics.expiringCount > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                      {serviceMetrics.expiringCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs">
+              {[
+                { id: "todos", label: "Todos" },
+                { id: "facturables", label: "Activos" },
+                { id: "por_renovar", label: "Por Renovar" },
+              ].map((tab) => {
+                const isActive = serviceFilter === tab.id;
+                const isWarningTab = tab.id === "por_renovar" && serviceMetrics.expiringCount > 0;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setServiceFilter(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? isWarningTab
+                          ? "bg-amber-600 text-white shadow-xs"
+                          : "bg-[#004ac6] text-white shadow-2xs"
+                        : isWarningTab
+                        ? "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
+                        : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                    }`}
+                  >
+                    {isWarningTab && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+                    <span>{tab.label}</span>
+                    {tab.id === "por_renovar" && serviceMetrics.expiringCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
+                        {serviceMetrics.expiringCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
+
+            <button
+              type="button"
+              onClick={() => setIsAddingService((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSaleInitialItems(undefined);
+                setIsNewSaleOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0b1c30] hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Nueva Venta</span>
+            </button>
+
+            {serviceMetrics.billableCount > 0 && (
+              <button
+                type="button"
+                disabled={emittingRecurring}
+                onClick={handleEmitClientRecurringInvoice}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
+              </button>
+            )}
           </div>
         </div>
 
