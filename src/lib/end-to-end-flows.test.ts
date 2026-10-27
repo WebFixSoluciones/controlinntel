@@ -2693,6 +2693,38 @@ test("Flujo E2E 48: Eliminación de Barra de Título en Servicios y Reubicación
   );
 });
 
+test("Flujo E2E 49: Eliminación de Barra de Título en Cotizaciones y Barra de Filtros con Búsqueda y Estados", () => {
+  const rootDir = process.cwd();
+  const quotesMgrPath = path.resolve(rootDir, "src/components/modules/clients/ClientQuotesManager.tsx");
+  const quotesContent = fs.readFileSync(quotesMgrPath, "utf8");
+
+  // No debe incluir barra de título redundante para Cotizaciones
+  assert.ok(
+    !quotesContent.includes("ClientTabHeader"),
+    "ClientQuotesManager no debe incluir la barra de título redundante ClientTabHeader"
+  );
+  assert.ok(
+    !quotesContent.includes('title="Cotizaciones"'),
+    "ClientQuotesManager no debe incluir title='Cotizaciones'"
+  );
+
+  // Debe incluir barra de filtros con buscador y filtros de estado
+  assert.ok(
+    quotesContent.includes("searchQuery") &&
+      quotesContent.includes("statusFilter") &&
+      quotesContent.includes("filteredQuotes") &&
+      quotesContent.includes("Buscar por N° o detalle..."),
+    "ClientQuotesManager debe implementar barra de filtros con búsqueda y filtros de estado"
+  );
+
+  // El botón 'Nueva Cotización' debe estar integrado a la derecha en la barra de filtros
+  assert.ok(
+    quotesContent.includes("Nueva Cotización") &&
+      quotesContent.includes("flex flex-wrap items-center justify-between"),
+    "ClientQuotesManager debe integrar el botón 'Nueva Cotización' en la barra de filtros alineado a la derecha"
+  );
+});
+
 
 
 

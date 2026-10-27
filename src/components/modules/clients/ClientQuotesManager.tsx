@@ -17,11 +17,11 @@ import {
   Receipt,
   Eye,
   Edit2,
+  Search,
 } from "lucide-react";
 import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";
-import { ClientTabHeader } from "./ClientTabHeader";
 
 interface ClientQuotesManagerProps {
   client: Client;
@@ -82,6 +82,10 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
   // Modal create/edit quote
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quoteToEdit, setQuoteToEdit] = useState<ClientQuote | null>(null);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
 
   // Helper to convert quote items to standard InvoiceItem format for NewSaleView
   const quoteItemsToInvoiceItems = (rawItems: NormalizedQuoteItem[]): InvoiceItem[] => {
@@ -224,6 +228,41 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     );
   }, [clientQuotes, billingQuotes, client]);
 
+  // Status counts for quick filters
+  const statusCounts = useMemo(() => {
+    return {
+      todos: quotes.length,
+      enviada: quotes.filter((q) => q.status === "enviada").length,
+      orden_pedido: quotes.filter((q) => q.status === "orden_pedido" || q.status === "aprobada").length,
+      facturada: quotes.filter((q) => q.status === "facturada").length,
+      borrador: quotes.filter((q) => q.status === "borrador").length,
+    };
+  }, [quotes]);
+
+  // Filtered quotes based on search query and status filter
+  const filteredQuotes = useMemo(() => {
+    return quotes.filter((q) => {
+      const search = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !search ||
+        q.quoteNumber.toLowerCase().includes(search) ||
+        q.title.toLowerCase().includes(search) ||
+        q.items.some(
+          (it) =>
+            (it.name && it.name.toLowerCase().includes(search)) ||
+            (it.description && it.description.toLowerCase().includes(search))
+        );
+
+      const matchStatus =
+        statusFilter === "todos" ||
+        (statusFilter === "orden_pedido"
+          ? q.status === "orden_pedido" || q.status === "aprobada"
+          : q.status === statusFilter);
+
+      return matchSearch && matchStatus;
+    });
+  }, [quotes, searchQuery, statusFilter]);
+
   // Open modal for new quote
   const handleOpenModal = () => {
     setQuoteToEdit(null);
@@ -359,39 +398,113 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     );
   }
 
+  const statusTabs = [
+    { id: "todos", label: "Todos", count: statusCounts.todos },
+    { id: "enviada", label: "Enviadas", count: statusCounts.enviada },
+    { id: "orden_pedido", label: "Orden Pedido", count: statusCounts.orden_pedido },
+    { id: "facturada", label: "Facturadas", count: statusCounts.facturada },
+    { id: "borrador", label: "Borradores", count: statusCounts.borrador },
+  ];
+
   return (
     <div className="space-y-4">
-      <ClientTabHeader
-        title="Cotizaciones"
-        icon={FileSpreadsheet}
-        badge={
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-            {quotes.length}
-          </span>
-        }
-        actions={
-          <button
-            type="button"
-            onClick={handleOpenModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Nueva Cotización</span>
-          </button>
-        }
-      />
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+        {/* Barra de búsqueda y filtros rápidos con botón Nueva Cotización alineado a la derecha */}
+        <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Buscar por N° o detalle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-xs pl-8 pr-8 py-1.5 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#64748b] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title="Limpiar búsqueda"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
-      {/* Quotes Table */}
-      {quotes.length === 0 ? (
-        <div className="py-12 text-center bg-white rounded-xl border border-dashed border-slate-200">
-          <FileSpreadsheet className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="font-bold text-slate-700 text-xs">Sin cotizaciones registradas</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            No existen cotizaciones asignadas para este cliente.
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs">
+              {statusTabs.map((tab) => {
+                const isActive = statusFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.id)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-[#004ac6] text-white shadow-2xs"
+                        : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.count > 0 && (
+                      <span
+                        className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                          isActive
+                            ? "bg-white/20 text-white"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
+
+            <button
+              type="button"
+              onClick={handleOpenModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Nueva Cotización</span>
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+
+        {/* Quotes Table / Empty State */}
+        {filteredQuotes.length === 0 ? (
+          <div className="py-12 text-center bg-white">
+            <FileSpreadsheet className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="font-bold text-slate-700 text-xs">
+              {quotes.length === 0
+                ? "Sin cotizaciones registradas"
+                : "No se encontraron cotizaciones coincidentes"}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {quotes.length === 0
+                ? "No existen cotizaciones asignadas para este cliente. Haz clic en 'Nueva Cotización' para crear una."
+                : "Prueba ajustando el término de búsqueda o el filtro de estado."}
+            </p>
+            {quotes.length > 0 && (searchQuery || statusFilter !== "todos") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("todos");
+                }}
+                className="mt-3 inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-[#004ac6] hover:underline cursor-pointer"
+              >
+                Restablecer filtros
+              </button>
+            )}
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
@@ -405,7 +518,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {quotes.map((q) => (
+                {filteredQuotes.map((q) => (
                   <tr key={q.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* N° Cotización */}
                     <td className="py-3.5 px-4 font-mono font-bold text-[#004ac6] whitespace-nowrap">
@@ -510,8 +623,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Modal: Vista Previa e Impresión Oficial */}
       {previewQuote && (
