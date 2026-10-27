@@ -158,11 +158,16 @@ export function ProjectTaskModal({
     if (taskToEdit) {
       setProjectId(taskToEdit.projectId || defaultProjectId || "");
       setProjectName(taskToEdit.projectName || defaultProjectName || "");
-      setProjectType(taskToEdit.type || (taskToEdit.nodeId ? "infraestructura_interna" : "cliente"));
-      setClientId(taskToEdit.clientId || "");
-      setClientName(taskToEdit.clientName || "");
-      setNodeId(taskToEdit.nodeId || "");
-      setNodeName(taskToEdit.nodeName || "");
+      setProjectType(defaultClientId ? "cliente" : (taskToEdit.type || (taskToEdit.nodeId ? "infraestructura_interna" : "cliente")));
+      setClientId(defaultClientId || taskToEdit.clientId || "");
+      setClientName(
+        (defaultClientId ? defaultClientName : null) ||
+        taskToEdit.clientName ||
+        clients.find((c) => c.id === (defaultClientId || taskToEdit.clientId))?.businessName ||
+        ""
+      );
+      setNodeId(defaultClientId ? "" : (taskToEdit.nodeId || ""));
+      setNodeName(defaultClientId ? "" : (taskToEdit.nodeName || ""));
 
       setTitle(taskToEdit.title || "");
       setDescription(taskToEdit.description || "");
@@ -315,23 +320,29 @@ export function ProjectTaskModal({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      showError("Campo Obligatorio", "Por favor ingresa el título del proyecto o tarea.");
+      showError("Campo Obligatorio", "Por favor ingresa el nombre de la tarea.");
       setActiveTab("general");
       return;
     }
 
     try {
-      const selectedClient = projectType === "cliente" ? clients.find((c) => c.id === clientId) : undefined;
-      const selectedNode = projectType === "infraestructura_interna" ? nodes.find((n) => n.id === nodeId) : undefined;
+      const isClientTarget = Boolean(defaultClientId) || projectType === "cliente";
+      const targetClientId = defaultClientId || (projectType === "cliente" ? clientId : undefined);
+      const selectedClient = targetClientId ? clients.find((c) => c.id === targetClientId) : undefined;
+      const targetClientName = isClientTarget
+        ? (clientName || defaultClientName || selectedClient?.businessName || "Cliente Asignado")
+        : undefined;
+
+      const selectedNode = !defaultClientId && projectType === "infraestructura_interna" ? nodes.find((n) => n.id === nodeId) : undefined;
 
       const taskDataPayload = {
-        type: projectType,
+        type: isClientTarget ? ("cliente" as const) : projectType,
         projectId: projectId || undefined,
         projectName: projectName || undefined,
-        clientId: projectType === "cliente" ? clientId : undefined,
-        clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName || "Cliente No Asignado") : undefined,
-        nodeId: projectType === "infraestructura_interna" ? nodeId : undefined,
-        nodeName: projectType === "infraestructura_interna" ? (selectedNode?.name || nodeName || "POP / Nodo Interno") : undefined,
+        clientId: isClientTarget ? targetClientId : undefined,
+        clientName: isClientTarget ? targetClientName : undefined,
+        nodeId: !defaultClientId && projectType === "infraestructura_interna" ? nodeId : undefined,
+        nodeName: !defaultClientId && projectType === "infraestructura_interna" ? (selectedNode?.name || nodeName || "POP / Nodo Interno") : undefined,
         title: title.trim(),
         description: description.trim(),
         boardFlow,
@@ -358,8 +369,8 @@ export function ProjectTaskModal({
             taskTitle: title.trim(),
             projectId: projectId || undefined,
             projectName: projectName || undefined,
-            clientId: projectType === "cliente" ? clientId : undefined,
-            clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName) : undefined,
+            clientId: isClientTarget ? targetClientId : undefined,
+            clientName: isClientTarget ? targetClientName : undefined,
           });
         }
 
@@ -372,7 +383,7 @@ export function ProjectTaskModal({
           });
         }
 
-        showSuccess("Proyecto Actualizado", `Los cambios en "${title}" se han guardado.`);
+        showSuccess("Tarea Actualizada", `Los cambios en "${title}" se han guardado.`);
       } else {
         const createdTask = await addClientProjectTask(taskDataPayload);
         if (createdTask && tramiteIds.length > 0) {
@@ -382,12 +393,12 @@ export function ProjectTaskModal({
               taskTitle: createdTask.title,
               projectId: projectId || undefined,
               projectName: projectName || undefined,
-              clientId: projectType === "cliente" ? clientId : undefined,
-              clientName: projectType === "cliente" ? (selectedClient?.businessName || clientName) : undefined,
+              clientId: isClientTarget ? targetClientId : undefined,
+              clientName: isClientTarget ? targetClientName : undefined,
             });
           }
         }
-        showSuccess("Proyecto Creado", `"${title}" ha sido incorporado al tablero Kanban.`);
+        showSuccess("Tarea Creada", `"${title}" ha sido registrada exitosamente.`);
       }
       onClose();
     } catch (err) {
@@ -416,10 +427,10 @@ export function ProjectTaskModal({
             </div>
             <div>
               <h3 className="text-base font-bold text-white leading-tight">
-                {taskToEdit ? "Ficha de Proyecto / Tarea" : "Nuevo Proyecto & Control de Obra"}
+                {taskToEdit ? "Editar Tarea" : "Nueva Tarea"}
               </h3>
               <p className="text-xs text-white/80">
-                {taskToEdit ? `ID: ${taskToEdit.id}` : "Gestión integral de despliegue, costos y bitácora"}
+                {taskToEdit ? `ID: ${taskToEdit.id}` : "Control y seguimiento de la tarea"}
               </p>
             </div>
           </div>
@@ -443,7 +454,7 @@ export function ProjectTaskModal({
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Datos & Asignación</span>
+            <span>Datos</span>
           </button>
 
           <button
@@ -456,7 +467,7 @@ export function ProjectTaskModal({
             }`}
           >
             <DollarSign className="w-4 h-4" />
-            <span>Presupuesto & Costos</span>
+            <span>Presupuestos</span>
           </button>
 
           <button
@@ -528,7 +539,7 @@ export function ProjectTaskModal({
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                   <label className="block text-[11px] font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
                     <Briefcase className="w-3.5 h-3.5 text-[#004ac6]" />
-                    <span>Asignar a un Proyecto (Opcional)</span>
+                    <span>Proyecto (Opcional)</span>
                   </label>
                   <select
                     value={projectId}
@@ -538,14 +549,16 @@ export function ProjectTaskModal({
                       const prj = projects.find((p) => p.id === pId);
                       if (prj) {
                         setProjectName(prj.title);
-                        if (prj.clientId) {
-                          setProjectType("cliente");
-                          setClientId(prj.clientId);
-                          setClientName(prj.clientName || "");
-                        } else if (prj.nodeId) {
-                          setProjectType("infraestructura_interna");
-                          setNodeId(prj.nodeId);
-                          setNodeName(prj.nodeName || "");
+                        if (!defaultClientId) {
+                          if (prj.clientId) {
+                            setProjectType("cliente");
+                            setClientId(prj.clientId);
+                            setClientName(prj.clientName || "");
+                          } else if (prj.nodeId) {
+                            setProjectType("infraestructura_interna");
+                            setNodeId(prj.nodeId);
+                            setNodeName(prj.nodeName || "");
+                          }
                         }
                         if (prj.columns && prj.columns.length > 0) {
                           setColumn(prj.columns[0].id);
@@ -556,56 +569,75 @@ export function ProjectTaskModal({
                     }}
                     className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
                   >
-                    <option value="">-- Sin Proyecto (Tarea Suelta / Independiente) --</option>
+                    <option value="">-- Sin Proyecto (Tarea Independiente) --</option>
                     {projects
-                      .filter((p) => !p.isDeleted)
+                      .filter((p) => !p.isDeleted && (!defaultClientId || !p.clientId || p.clientId === defaultClientId))
                       .map((p) => (
                         <option key={p.id} value={p.id}>
-                          📁 {p.title} ({p.clientName || p.nodeName || "General"})
+                          📁 {p.title} {!defaultClientId && (p.clientName || p.nodeName) ? `(${p.clientName || p.nodeName})` : ""}
                         </option>
                       ))}
                   </select>
                 </div>
               ) : null}
 
-              {/* Type and Workflow Selection */}
-              <div className={`grid grid-cols-1 ${projectId || (availableColumns && availableColumns.length > 0) ? "md:grid-cols-1" : "md:grid-cols-2"} gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80`}>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
-                    Vinculación de la Tarea
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setProjectType("cliente")}
-                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                        projectType === "cliente"
-                          ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                          : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                      }`}
-                    >
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span>Cliente</span>
-                    </button>
+              {/* Type and Workflow Selection - Oculto en contexto de ficha de cliente */}
+              {!defaultClientId && (
+                <div className={`grid grid-cols-1 ${projectId || (availableColumns && availableColumns.length > 0) ? "md:grid-cols-1" : "md:grid-cols-2"} gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80`}>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1.5">
+                      Vinculación de la Tarea
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setProjectType("cliente")}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          projectType === "cliente"
+                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
+                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
+                        }`}
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        <span>Cliente</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setProjectType("infraestructura_interna")}
-                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                        projectType === "infraestructura_interna"
-                          ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
-                          : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
-                      }`}
-                    >
-                      <Radio className="w-3.5 h-3.5" />
-                      <span>POP / Infraestructura</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setProjectType("infraestructura_interna")}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          projectType === "infraestructura_interna"
+                            ? "bg-white border-[#004ac6] text-[#004ac6] shadow-2xs"
+                            : "bg-transparent border-slate-200 text-slate-600 hover:bg-white"
+                        }`}
+                      >
+                        <Radio className="w-3.5 h-3.5" />
+                        <span>POP / Infraestructura</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Target Entity Selector */}
-              {projectType === "cliente" ? (
+              {/* Target Entity Selector - Auto-selección y confirmación limpia en contexto de cliente */}
+              {defaultClientId ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Cliente Asignado
+                  </label>
+                  <div className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+                      <span className="font-bold text-slate-900">
+                        {clientName || defaultClientName || clients.find((c) => c.id === defaultClientId)?.businessName || "Cliente"}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] font-semibold text-[#004ac6] bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                      {clients.find((c) => c.id === (clientId || defaultClientId))?.identificationNumber || "Activo"}
+                    </span>
+                  </div>
+                </div>
+              ) : projectType === "cliente" ? (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Cliente Asignado <span className="text-rose-500">*</span>
@@ -649,15 +681,15 @@ export function ProjectTaskModal({
                 </div>
               )}
 
-              {/* Title & Description */}
+              {/* Title & Description Simplificados */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nombre del Proyecto / Tarea de Obra <span className="text-rose-500">*</span>
+                  Nombre de la Tarea <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej: Tendido e interconexión troncal 10G o Fusión splitter 1:8"
+                  placeholder="Ej: Tendido de fibra, soporte técnico, instalación..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
@@ -666,11 +698,11 @@ export function ProjectTaskModal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Descripción Detallada & Especificaciones
+                  Descripción
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Detalles técnicos, alcances, metrajes de fibra, atenuaciones esperadas o requerimientos especiales..."
+                  placeholder="Detalles o notas de la tarea..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
@@ -1186,7 +1218,7 @@ export function ProjectTaskModal({
               className="px-5 py-2 text-xs font-bold bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Kanban className="w-4 h-4" />
-              <span>{taskToEdit ? "Guardar Cambios" : "Crear Proyecto / Tarea"}</span>
+              <span>{taskToEdit ? "Guardar Cambios" : "Crear Tarea"}</span>
             </button>
           </div>
         </form>

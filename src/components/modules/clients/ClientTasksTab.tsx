@@ -23,7 +23,6 @@ const normalizeColumn = (col?: string): ProjectKanbanColumn => {
   if (col === "pruebas_homologacion" || col === "revision" || col === "en_pausa") return "en_pausa";
   return (col as ProjectKanbanColumn);
 };
-import { ClientTabHeader } from "./ClientTabHeader";
 import {
   Calendar,
   Clock,
@@ -426,56 +425,50 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
         </div>
       ) : null}
 
-      {/* Standard Tab Header */}
-      <ClientTabHeader
-        title="Tareas"
-        icon={ListTodo}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {/* View Switcher: Cronograma vs Kanban */}
-            <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setViewMode("cronograma")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
-                  viewMode === "cronograma"
-                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Cronograma & Lista</span>
-              </button>
+      {/* Top Toolbar: Switcher & Nueva Tarea (sin barra de título redundante) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* View Switcher: Cronograma vs Kanban */}
+        <div className="flex items-center p-0.5 bg-slate-200/70 rounded-lg text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setViewMode("cronograma")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
+              viewMode === "cronograma"
+                ? "bg-white text-[#004ac6] shadow-2xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Cronograma & Lista</span>
+          </button>
 
-              <button
-                type="button"
-                onClick={() => setViewMode("kanban")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
-                  viewMode === "kanban"
-                    ? "bg-white text-[#004ac6] shadow-2xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                <Kanban className="w-3.5 h-3.5" />
-                <span>Tablero Kanban</span>
-              </button>
-            </div>
+          <button
+            type="button"
+            onClick={() => setViewMode("kanban")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all cursor-pointer ${
+              viewMode === "kanban"
+                ? "bg-white text-[#004ac6] shadow-2xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Kanban className="w-3.5 h-3.5" />
+            <span>Tablero Kanban</span>
+          </button>
+        </div>
 
-            {/* Create Task Button */}
-            <button
-              onClick={() => {
-                setTaskToEdit(null);
-                setModalDefaultCol("por_iniciar");
-                setIsModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Nueva Tarea</span>
-            </button>
-          </div>
-        }
-      />
+        {/* Create Task Button */}
+        <button
+          onClick={() => {
+            setTaskToEdit(null);
+            setModalDefaultCol("por_iniciar");
+            setIsModalOpen(true);
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Nueva Tarea</span>
+        </button>
+      </div>
 
       {/* KPI Cards Container */}
       <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">

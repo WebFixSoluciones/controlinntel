@@ -2797,6 +2797,67 @@ test("Flujo E2E 51: Eliminación de Barra de Título y Numerales en Botones de T
   );
 });
 
+test("Flujo E2E 52: Simplificación de Modal de Tareas, Contexto Automático de Cliente y Retiro de Título Redundante", () => {
+  const rootDir = process.cwd();
+  const taskModalPath = path.resolve(rootDir, "src/components/modules/projects/ProjectTaskModal.tsx");
+  const taskModalContent = fs.readFileSync(taskModalPath, "utf8");
+
+  // Pestañas simplificadas
+  assert.ok(
+    taskModalContent.includes("<span>Datos</span>") &&
+      !taskModalContent.includes("<span>Datos & Asignación</span>"),
+    "La pestaña 1 debe llamarse exactamente 'Datos'"
+  );
+  assert.ok(
+    taskModalContent.includes("<span>Presupuestos</span>") &&
+      !taskModalContent.includes("<span>Presupuesto & Costos</span>"),
+    "La pestaña 2 debe llamarse exactamente 'Presupuestos'"
+  );
+
+  // Título y descripciones simplificados
+  assert.ok(
+    taskModalContent.includes("Nueva Tarea") &&
+      !taskModalContent.includes("Nuevo Proyecto & Control de Obra"),
+    "Título del modal debe ser 'Nueva Tarea' en lugar de 'Nuevo Proyecto & Control de Obra'"
+  );
+  assert.ok(
+    taskModalContent.includes("Nombre de la Tarea") &&
+      !taskModalContent.includes("Nombre del Proyecto / Tarea de Obra"),
+    "Campo de nombre debe ser 'Nombre de la Tarea'"
+  );
+  assert.ok(
+    taskModalContent.includes("<span>{taskToEdit ? \"Guardar Cambios\" : \"Crear Tarea\"}</span>"),
+    "Botón submit debe ser 'Crear Tarea' o 'Guardar Cambios'"
+  );
+
+  // Ocultamiento de 'Vinculación de la Tarea' (Cliente vs POP) e identificación automática
+  assert.ok(
+    taskModalContent.includes("!defaultClientId && (") &&
+      taskModalContent.includes("Vinculación de la Tarea"),
+    "Sección 'Vinculación de la Tarea' debe ocultarse cuando defaultClientId está presente"
+  );
+  assert.ok(
+    taskModalContent.includes("defaultClientId ? (") &&
+      taskModalContent.includes("Cliente Asignado"),
+    "Debe identificar y preseleccionar automáticamente el cliente activo en el modal"
+  );
+
+  // ClientTasksTab: Retiro de cabecera redundante
+  const clientTasksPath = path.resolve(rootDir, "src/components/modules/clients/ClientTasksTab.tsx");
+  const clientTasksContent = fs.readFileSync(clientTasksPath, "utf8");
+  assert.ok(
+    !clientTasksContent.includes("ClientTabHeader"),
+    "ClientTasksTab no debe incluir la cabecera ClientTabHeader"
+  );
+  assert.ok(
+    clientTasksContent.includes("Nueva Tarea") &&
+      clientTasksContent.includes("Cronograma & Lista") &&
+      clientTasksContent.includes("Tablero Kanban"),
+    "ClientTasksTab debe mantener el switcher de vistas y el botón Nueva Tarea en toolbar limpia"
+  );
+});
+
+
 
 
 
