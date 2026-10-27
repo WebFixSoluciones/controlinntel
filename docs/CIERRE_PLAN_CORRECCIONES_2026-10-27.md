@@ -324,6 +324,28 @@ El formulario de asignación ahora **define cómo pagará el cliente sus factura
 - El formulario pasó a **dos columnas**: el buscador comparte fila con el nombre del servicio, y la descripción ocupa una sola línea de ancho completo.
 - El bloque de ciclo mantiene cuatro columnas por fila con el nuevo selector en el lugar liberado.
 
+### Series y canales de venta (R29)
+
+**El problema:** dos flujos distintos producen el mismo tipo de documento —una venta puntual de mostrador (un soporte de $10) y la emisión derivada de un servicio contratado (ARCOTEL mensual). Ambos son **NOTA DE VENTA**, por lo que la pregunta es cómo se reparten los correlativos.
+
+**Decisión adoptada:** una sola serie por tipo de comprobante, con el **canal** registrado en el documento para trazabilidad. Es la práctica estándar y evita dos contadores que crecen por separado. Si el negocio necesita correlativos independientes, se habilita por configuración, sin tocar código.
+
+| Escenario | Configuración | Resultado |
+|---|---|---|
+| Por defecto | sin `puntoEmisionServicios` | Ambos canales comparten serie: `010-001-000000001`, `…002` |
+| Series separadas | `sriCompanyConfig.puntoEmisionServicios = "002"` | Mostrador → `010-001-…`; Servicios → `010-002-…` |
+
+**Implementación**
+
+| Elemento | Detalle |
+|---|---|
+| Campo `saleChannel` | `"mostrador"` (Nueva Venta) o `"servicio"` (alta y recurrencia); se persiste en el comprobante |
+| Resolución de serie | `establecimiento` + `puntoEmision` del canal; el correlativo se reserva por serie en `sequences` |
+| Establecimiento elegido | El selector **"Establecimiento"** de Nueva Venta ahora **sí se aplica**; antes el servidor lo ignoraba y usaba siempre la configuración |
+| Origen del canal | `issueSale` (mostrador por defecto), `assignService` y `recur` (servicio) |
+
+**Pruebas añadidas (3):** serie compartida por defecto con canal correcto en cada documento; series y correlativos independientes al configurar el punto de emisión de servicios; y respeto del establecimiento solicitado por el punto de venta.
+
 ### Riesgo introducido y su control
 
 El posfechado permite que un comprobante con fecha 01/11 exista el 27/10. Sin control, un documento fechado 27/10 emitido después dejaría la serie con fechas invertidas. **Mitigación:** la guarda de `sequences.lastDate` rechaza esa emisión con un mensaje accionable.

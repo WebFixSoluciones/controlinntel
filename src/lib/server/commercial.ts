@@ -117,7 +117,15 @@ async function issueSale(c: Context, input: Row) {
   const calculated=calculateLines(input.items), id=randomUUID();
   if(calculated.items.some(item=>Number(item.unitPrice)===0&&!String(item.zeroPriceReason||input.notes||"").trim()))throw new HttpError(400,"Indica el motivo de la partida gratuita en las notas.");
   const configs=await c.list("sriCompanyConfig"), config=configs[0]||{};
-  const series=`${config.establecimiento||"010"}-${config.puntoEmision||"001"}`;
+  // Canal comercial: mostrador (venta puntual) o servicio (alta y recurrencia).
+  const saleChannel=input.saleChannel==="servicio"?"servicio":"mostrador";
+  const establishment=String(input.establishment||config.establecimiento||"010").padStart(3,"0").slice(-3);
+  if(!/^\d{3}$/.test(establishment)) throw new HttpError(400,"Establecimiento inválido.");
+  // Si el negocio configura un punto de emisión distinto para servicios, ambos canales
+  // llevan series separadas y correlativos independientes; si no, comparten uno solo.
+  const servicePoint=config.puntoEmisionServicios?String(config.puntoEmisionServicios).padStart(3,"0").slice(-3):undefined;
+  const emissionPoint=saleChannel==="servicio"&&servicePoint?servicePoint:String(config.puntoEmision||"001").padStart(3,"0").slice(-3);
+  const series=`${establishment}-${emissionPoint}`;
   let documentNumber=`BORRADOR-${id}`;
   if(!isDraft) {
     const sequenceId=`nota_venta_${series}`, counter=await c.get("sequences",sequenceId,false);
@@ -139,7 +147,7 @@ async function issueSale(c: Context, input: Row) {
   if(immediate<0 || immediate>cents(calculated.total)) throw new HttpError(400,"Pago inicial inválido.");
   if(input.paymentsBreakdown && immediate+cents(input.paymentsBreakdown.credito||0)!==cents(calculated.total)) throw new HttpError(400,"La distribución del pago no coincide con el total calculado.");
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
-  const invoice={...input,...calculated,id,documentNumber,date,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
+  const invoice={...input,...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
   for(const item of calculated.items) {
     if(!item.productId) continue;
     const product=await c.get("inventoryProducts",item.productId,false);
@@ -352,7 +360,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const first=firstPeriodFor(service,getEcuadorDate());
       if(!first.eligible) return {...service,firstInvoiceSkipped:first.reason};
       const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:first.issueDate,
-        allowFuturePeriod:true,paymentMethod:"credito",creditDueDate:first.dueDate,items:[{...first.line}],
+        saleChannel:"servicio",allowFuturePeriod:true,paymentMethod:"credito",creditDueDate:first.dueDate,items:[{...first.line}],
         expectedPaymentMethod:service.paymentMethod,
         notes:`Primer período ${first.periodStart} al ${addDays(first.periodEnd,-1)}`});
       return {...(c.writes.get("clientServices/"+service.id)||service),invoice};
@@ -405,7 +413,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       }
       const previewTotal=calculateLines(eligible.map(p=>p.line)).total;
       if(data.expectedTotal!==undefined&&cents(data.expectedTotal)!==cents(previewTotal))throw new HttpError(409,"La tarifa cambió después de la vista previa. Revisa el nuevo importe.");
-      const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:getEcuadorDate(),items:eligible.map(p=>p.line),paymentMethod:"credito",creditDueDate:eligible.map(p=>p.dueDate).sort()[0],recurring:true});
+      const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:getEcuadorDate(),items:eligible.map(p=>p.line),saleChannel:"servicio",paymentMethod:"credito",creditDueDate:eligible.map(p=>p.dueDate).sort()[0],recurring:true});
       return invoice;
     }
     case "payCharge": return payCharge(c,data);

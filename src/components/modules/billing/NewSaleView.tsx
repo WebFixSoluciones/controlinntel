@@ -1376,6 +1376,8 @@ export function NewSaleView({
         // FLUJO RÁPIDO: NOTA DE VENTA (RECIBO INTERNO)
         const nota = await createInvoice({
           documentType: "nota_venta",
+          saleChannel: "mostrador",
+          establishment: selectedEstablecimiento,
           date: issueDate,
           time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
           clientId: selectedClient.id,

@@ -12,6 +12,14 @@ export type SriDocumentType =
 
 export type SriEnvironment = "1" | "2"; // 1: Pruebas, 2: Producción
 
+/**
+ * Canal comercial del documento. Ambos producen NOTA DE VENTA, pero se distinguen
+ * para trazabilidad y, si el negocio lo configura, para usar una serie distinta.
+ *  - mostrador: venta puntual o administrativa (Nueva Venta).
+ *  - servicio : emisión derivada de un servicio contratado (alta y recurrencia).
+ */
+export type SaleChannel = "mostrador" | "servicio";
+
 export interface SriCompanyConfig {
   representanteLegal?: string;
   website?: string;
@@ -23,6 +31,8 @@ export interface SriCompanyConfig {
   direccionEstablecimiento: string;
   establecimiento: string; // ej. "001"
   puntoEmision: string;    // ej. "001"
+  /** Punto de emisión para documentos derivados de servicios. Si se omite, comparte puntoEmision. */
+  puntoEmisionServicios?: string;
   obligadoContabilidad: boolean;
   tipoContribuyente: "general" | "rimpe_emprendedor" | "rimpe_popular";
   ambiente: SriEnvironment;
@@ -109,7 +119,12 @@ export interface SriInvoice {
   basesByRate?: Record<string, number>;
   id: string;
   documentType?: "factura" | "nota_venta";
+  /** Canal que originó el documento; por defecto "mostrador". */
+  saleChannel?: SaleChannel;
   documentNumber: string; // ej. "001-001-000000045"
+  /** Serie usada (establecimiento-punto de emisión) y establecimiento solicitado. */
+  series?: string;
+  establishment?: string;
   claveAcceso: string;    // 49 dígitos oficiales del SRI (vacío o "NO_APLICA_SRI" si es nota_venta)
   date: string;           // YYYY-MM-DD
   time?: string;

@@ -153,3 +153,30 @@ test("R28: consecutive assignments take sequential numbers and keep the agreed p
   assert.equal(db.row("monthlyCharges",`chg-inv-${first.invoice.id}`).paidAmount,0);
   assert.equal(db.list("financialMovements").length,0);
 });
+
+test("R29: counter sales and service billing share one series by default, each keeping its channel",async()=>{
+  const db=new Database(initial());
+  const counter=await run(db,"issueSale",sale());
+  const service=await run(db,"assignService",servicePayload());
+  assert.equal(counter.documentNumber,"010-001-000000001");
+  assert.equal(service.invoice.documentNumber,"010-001-000000002");
+  assert.equal(counter.saleChannel,"mostrador");
+  assert.equal(service.invoice.saleChannel,"servicio");
+});
+
+test("R29: a configured service emission point gives each channel its own sequential",async()=>{
+  const db=new Database({...initial(),sriCompanyConfig:[{id:"cfg",establecimiento:"001",puntoEmision:"001",puntoEmisionServicios:"002"}]});
+  const counter=await run(db,"issueSale",sale());
+  const service=await run(db,"assignService",servicePayload());
+  assert.equal(counter.documentNumber,"001-001-000000001");
+  assert.equal(service.invoice.documentNumber,"001-002-000000001");
+  assert.equal(db.row("sequences","nota_venta_001-001").value,1);
+  assert.equal(db.row("sequences","nota_venta_001-002").value,1);
+});
+
+test("R29: the series honours the establishment chosen at the point of sale",async()=>{
+  const db=new Database(initial());
+  const custom=await run(db,"issueSale",sale("a",{establishment:"007"}));
+  assert.equal(custom.documentNumber,"007-001-000000001");
+  assert.equal(db.row("sequences","nota_venta_007-001").value,1);
+});
