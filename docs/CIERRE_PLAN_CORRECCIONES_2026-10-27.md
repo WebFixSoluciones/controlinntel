@@ -182,7 +182,7 @@ Sobre el trabajo previo, se corrigieron los defectos que impedían el cierre:
 |---|---|---|
 | **Verificado por prueba automatizada o evidencia de emulador previa** | T01, T02, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35, T36, T44, T45, T46, T48 | 107 pruebas + 12 escenarios de `emulator-results.json` (evidencia previa) |
 | **Verificado por código, requiere prueba de carga** | T37 (>2.000 documentos) | Paginación implementada y verificada en código; sin prueba de volumen |
-| **Requiere entorno de navegador (no disponible)** | T03, T39, T40, T41, T42, T43, T47 | Interacción, impresión física, exportación abierta y accesibilidad |
+| **Requiere entorno de navegador** | T03, T39, T40, T41, T42, T43, T47 | Cubiertos por `docs/UAT_GUION_ACEPTACION_2026-10-27.md`; pendientes de ejecución y firma |
 
 ---
 
@@ -233,7 +233,7 @@ Según §12 del plan, el flujo puede proponerse para habilitación cuando se cum
 | 2 | Sin identidades ni documentos duplicados sin resolver | ✅ Prevención implementada; **saneamiento de datos históricos corresponde a R26 en producción** |
 | 3 | Diferencias de cartera, anticipos, bancos e inventario resueltas o aisladas | 🟡 Depende de ejecutar R26 sobre la base real |
 | 4 | Persistencia, reglas y API probadas con fallos y concurrencia | 🟡 Implementado; prueba de emuladores pendiente de entorno |
-| 5 | Caso de negocio de punta a punta validado por un responsable | ❌ **Pendiente: requiere UAT con Finanzas** |
+| 5 | Caso de negocio de punta a punta validado por un responsable | 🟡 **Guion emitido**: `docs/UAT_GUION_ACEPTACION_2026-10-27.md` (T03, T39–T43, T47). Pendiente de ejecución y firma de Finanzas |
 | 6 | Copia recuperable, reversión de despliegue y seguimiento de fallos | ✅ `/api/recovery`, `operationLog`, reversión por commit |
 | 7 | Limitaciones visibles y no presentadas como funciones activas | ✅ §10 de este documento y exclusiones en §1 |
 
