@@ -66,15 +66,15 @@ export function ExpensesManager() {
       {/* Header & KPI */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-[#712ae2]" />
-            Control de Gastos Operativos & OPEX
-          </h1>
+          <h2 className="text-base font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-[#712ae2]" />
+            Gastos Operativos
+          </h2>
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar Gasto OPEX</span>

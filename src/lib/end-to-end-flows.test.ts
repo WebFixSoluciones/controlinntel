@@ -1002,8 +1002,7 @@ test("Flujo E2E 17: Simplificación del Módulo de Finanzas y Submódulos (Térm
     "FinanceDashboard no debe contener métodos de pago extraños ni botones de emisión de facturas ajenos a Finanzas"
   );
   assert.ok(
-    financeDashboardContent.includes("Cobros de Clientes") &&
-      financeDashboardContent.includes("Nuevo Gasto") &&
+    (financeDashboardContent.includes("Control de Cobros") || financeDashboardContent.includes("Cobros de Clientes")) &&
       financeDashboardContent.includes("formatFinanceCategory"),
     "FinanceDashboard debe usar etiquetas claras y formateador de categorías reconocibles"
   );
@@ -2365,6 +2364,59 @@ test("Flujo E2E 39: Alineación Estricta a la Derecha de Iconos de Acción en Fi
     "PurchaseHistoryTab debe tener los iconos de acción alineados a la derecha"
   );
 });
+
+test("Flujo E2E 40: Navegación de Finanzas en Sidebar Exclusivo, Título Dinámico en Header y Eliminación de Pestañas Redundantes", () => {
+  const rootDir = process.cwd();
+
+  // 1. Header.tsx debe mapear todos los submódulos de /finanzas
+  const headerPath = path.resolve(rootDir, "src/components/layout/Header.tsx");
+  const headerContent = fs.readFileSync(headerPath, "utf8");
+  assert.ok(
+    headerContent.includes('pathname === "/finanzas"') &&
+      headerContent.includes('case "cobranzas":') &&
+      headerContent.includes('return "Cobranzas"') &&
+      headerContent.includes('case "gastos":') &&
+      headerContent.includes('return "Gastos"') &&
+      headerContent.includes('case "movimientos":') &&
+      headerContent.includes('return "Movimientos"') &&
+      headerContent.includes('case "bancos":') &&
+      headerContent.includes('return "Bancos"') &&
+      headerContent.includes('case "cuentas_por_cobrar":') &&
+      headerContent.includes('return "Por Cobrar"') &&
+      headerContent.includes('case "cuentas_por_pagar":') &&
+      headerContent.includes('return "Por Pagar"') &&
+      headerContent.includes('case "reportes":') &&
+      headerContent.includes('return "Reportes"'),
+    "Header.tsx debe resolver dinámicamente el título del submódulo de Finanzas arriba"
+  );
+
+  // 2. finanzas/page.tsx no debe tener la cinta de pestañas horizontal redundante
+  const finanzasPagePath = path.resolve(rootDir, "src/app/finanzas/page.tsx");
+  const finanzasPageContent = fs.readFileSync(finanzasPagePath, "utf8");
+  assert.ok(
+    !finanzasPageContent.includes("Submodule Navigation Ribbon") &&
+      !finanzasPageContent.includes("visibleTabs.map"),
+    "FinanzasPage no debe renderizar pestañas horizontales superiores redundantes con el sidebar"
+  );
+
+  // 3. FinanceDashboard y ExpensesManager deben tener títulos limpios sin redundancias
+  const financeDashboardPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
+  const financeDashboardContent = fs.readFileSync(financeDashboardPath, "utf8");
+  assert.ok(
+    financeDashboardContent.includes("Control de Cobros") &&
+      !financeDashboardContent.includes("Control de Cobros de Clientes & Comprobantes de Venta"),
+    "FinanceDashboard debe presentar 'Control de Cobros' conciso"
+  );
+
+  const expensesPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
+  const expensesContent = fs.readFileSync(expensesPath, "utf8");
+  assert.ok(
+    expensesContent.includes("Gastos Operativos") &&
+      !expensesContent.includes("Control de Gastos Operativos & OPEX"),
+    "ExpensesManager debe presentar 'Gastos Operativos' conciso"
+  );
+});
+
 
 
 

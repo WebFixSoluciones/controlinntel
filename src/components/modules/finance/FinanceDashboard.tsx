@@ -490,24 +490,16 @@ export function FinanceDashboard() {
       {/* Encabezado Principal & Acciones */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-[#004ac6]" />
-            Control de Cobros de Clientes & Comprobantes de Venta
-          </h1>
+          <h2 className="text-base font-bold text-[#0b1c30] tracking-tight flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-[#004ac6]" />
+            Control de Cobros
+          </h2>
           <p className="text-xs text-[#737686] mt-0.5">
-            Seguimiento de cobranzas ligadas al comprobante de venta, registro de abonos parciales y pagos anticipados.
+            Seguimiento de cobranzas, registro de abonos parciales y pagos anticipados.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <a
-            href="/finanzas?sub=gastos"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold shadow-2xs transition cursor-pointer"
-          >
-            <Receipt className="w-4 h-4 text-purple-600" />
-            <span>Nuevo Gasto</span>
-          </a>
-
           <button
             type="button"
             onClick={() => {

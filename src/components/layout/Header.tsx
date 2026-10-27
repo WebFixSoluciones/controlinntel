@@ -71,6 +71,13 @@ function getPageTitle(pathname: string, subParam: string | null): string {
 
   if (pathname === "/finanzas") {
     switch (subParam) {
+      case "cobranzas":
+      case "cobranzas_opex":
+        return "Cobranzas";
+      case "gastos":
+        return "Gastos";
+      case "movimientos":
+        return "Movimientos";
       case "bancos":
         return "Bancos";
       case "cuentas_por_cobrar":
@@ -79,10 +86,8 @@ function getPageTitle(pathname: string, subParam: string | null): string {
         return "Por Pagar";
       case "reportes":
         return "Reportes";
-      case "cobranzas_opex":
-        return "Cobranzas";
       default:
-        return "Movimientos";
+        return "Cobranzas";
     }
   }
 

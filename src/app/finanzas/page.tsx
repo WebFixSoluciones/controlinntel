@@ -177,66 +177,8 @@ function FinanzasContent() {
     );
   }
 
-  const visibleTabs = FINANCE_TABS.filter((tab) => {
-    if (tab.id === "cobranzas" || tab.id === "cobranzas_opex") return canCobranzas;
-    if (tab.id === "gastos") return canGastos;
-    return canAccessSubmodule(currentUser, "finanzas", tab.submoduleKey);
-  });
-
   return (
-    <div className="space-y-6">
-      {/* Submodule Navigation Ribbon */}
-      <div className="flex items-center gap-1.5 pb-2 border-b border-[#e2e8f0] overflow-x-auto scrollbar-thin">
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive =
-            resolvedTab === tab.id ||
-            ((tab.id === "cobranzas" || (tab.id as string) === "cobranzas_opex") &&
-              (resolvedTab === "cobranzas" || resolvedTab === "general"));
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.id);
-                router.push(tab.href);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? "bg-[#004ac6] text-white shadow-xs"
-                  : "bg-white text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] border border-[#e2e8f0]"
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-[#737686]"}`} />
-              <span>{tab.label}</span>
-              {tab.id === "cuentas_por_cobrar" && pendingCxCCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
-                    isActive
-                      ? "bg-white text-[#004ac6]"
-                      : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                  }`}
-                >
-                  {pendingCxCCount}
-                </span>
-              )}
-              {tab.id === "cuentas_por_pagar" && pendingCxPCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${
-                    isActive
-                      ? "bg-white text-[#004ac6]"
-                      : "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                  }`}
-                >
-                  {pendingCxPCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
+    <div className="w-full">
       {/* Submodule View Content */}
       <div className="w-full">
         <FinanceErrorBoundary key={resolvedTab}>
