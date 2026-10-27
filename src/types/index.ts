@@ -309,19 +309,23 @@ export interface ClientDocumentFile {
   id: string;
   clientId: string;
   title: string;
-  documentType:
+  documentType?:
     | "contrato_adhesion"
     | "proteccion_datos"
     | "cedula_ruc"
     | "acta_entrega"
     | "comprobante_pago"
     | "ficha_tecnica"
-    | "otro";
+    | "otro"
+    | string;
+  folderName?: string;     // Carpeta / Directorio (ej. "Contratos", "Facturación & Pagos", "Actas de Entrega", "General")
   fileName: string;
   fileSize: string;
   uploadedAt: string;
   fileUrl?: string;
   notes?: string;
+  shareToken?: string;     // Token privado de acceso para compartir
+  isShared?: boolean;      // Si está habilitado para compartir por link privado
 }
 
 export interface IpPool {

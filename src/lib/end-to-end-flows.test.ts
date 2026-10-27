@@ -3183,6 +3183,50 @@ test("Flujo E2E 59: Creación de proyecto vinculada directamente al selector de 
   );
 });
 
+test("Flujo E2E 60: Drive del cliente con carpetas / directorios dinámicos, eliminación de selector de categoría y enlaces privados compartibles", () => {
+  const rootDir = process.cwd();
+  const filesTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientFilesTab.tsx");
+  const filesTab = fs.readFileSync(filesTabPath, "utf8");
+  const sharePagePath = path.resolve(rootDir, "src/app/drive/share/[id]/page.tsx");
+
+  // 1. Eliminación del selector rígido de categoría en el modal de subida
+  assert.ok(
+    !filesTab.includes("Categoría del Documento *"),
+    "ClientFilesTab no debe contener el selector de 'Categoría del Documento *' en el modal de subida"
+  );
+
+  // 2. Organización por Directorios / Carpetas
+  assert.ok(
+    filesTab.includes("Directorios del Expediente") &&
+      filesTab.includes("+ Nueva Carpeta") &&
+      filesTab.includes("DEFAULT_FOLDERS") &&
+      filesTab.includes("Carpeta / Directorio de Destino *"),
+    "ClientFilesTab debe permitir crear y seleccionar carpetas/directorios para organizar la documentación"
+  );
+
+  // 3. Enlace privado seguro para compartir con clientes
+  assert.ok(
+    filesTab.includes("Compartir Enlace Privado") &&
+      filesTab.includes("getShareLink") &&
+      filesTab.includes("handleCopyShareLink") &&
+      filesTab.includes("handleShareViaWhatsApp") &&
+      filesTab.includes("shareToken"),
+    "ClientFilesTab debe permitir compartir archivos por enlaces privados y vía WhatsApp"
+  );
+
+  // 4. Portal seguro de visualización de documentos compartidos
+  assert.ok(
+    fs.existsSync(sharePagePath),
+    "La página pública segura de visualización de enlace privado /drive/share/[id] debe existir"
+  );
+  const shareContent = fs.readFileSync(sharePagePath, "utf8");
+  assert.ok(
+    shareContent.includes("Portal Seguro de Documentación al Cliente") &&
+      shareContent.includes("Descargar Archivo"),
+    "El visor de documentos compartidos debe mostrar opciones de descarga y seguridad"
+  );
+});
+
 
 
 

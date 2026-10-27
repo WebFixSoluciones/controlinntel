@@ -233,6 +233,7 @@ interface AppContextType {
 
   clientDocuments: ClientDocumentFile[];
   addClientDocument: (doc: Omit<ClientDocumentFile, "id" | "uploadedAt">) => Promise<void>;
+  updateClientDocument: (id: string, updates: Partial<ClientDocumentFile>) => Promise<void>;
   deleteClientDocument: (id: string) => Promise<void>;
 
   addTicket: (ticket: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => Promise<void>;
@@ -2009,6 +2010,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     await syncToFirestore("clientDocuments", newDoc.id, newDoc);
     setClientDocuments((prev) => [newDoc, ...prev]);
+  };
+
+  const updateClientDocument = async (id: string, updates: Partial<ClientDocumentFile>) => {
+    setClientDocuments((prev) =>
+      prev.map((doc) => {
+        if (doc.id !== id) return doc;
+        const updated = { ...doc, ...updates };
+        syncToFirestore("clientDocuments", updated.id, updated);
+        return updated;
+      })
+    );
   };
 
   const deleteClientDocument = async (id: string) => {
@@ -5027,6 +5039,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deleteArcotelFile,
           clientDocuments,
           addClientDocument,
+          updateClientDocument,
           deleteClientDocument,
           addTicket,
           updateTicketStatus,
