@@ -16,7 +16,6 @@ import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
 import { ClientContactsModal } from "./ClientContactsModal";
 import { ClientFilesTab } from "./ClientFilesTab";
-import { ClientTabHeader, ClientSectionHeader } from "./ClientTabHeader";
 import {
   User,
   Radio,
@@ -315,44 +314,39 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
           {/* TAB 1: IDENTIFICACION */}
           {currentTabAllowed && activeTab === "fiscal" && (
             <div className="space-y-4">
-              <ClientTabHeader
-                title="Identificación"
-                icon={User}
-                badge={
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {client.sriValidated && (
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> Validado SRI
-                      </span>
-                    )}
-                    {client.tipoContribuyente && (
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] uppercase">
-                        Régimen: {client.tipoContribuyente.replace(/_/g, " ")}
-                      </span>
-                    )}
-                    {client.obligadoContabilidad && (
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                        Obligado Contabilidad
-                      </span>
-                    )}
-                    {client.agenteRetencion && (
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        Agente Retención
-                      </span>
-                    )}
-                  </div>
-                }
-              />
-
               {/* Contenedor Unificado (Single Canvas, Cero Tarjetas Anidadas) */}
               <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-6 space-y-6">
                 {/* 1.1 Datos Generales y Fiscales */}
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <User className="w-4 h-4 text-[#004ac6]" />
-                    <h4 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wider">
-                      Datos Fiscales y de Registro
-                    </h4>
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-[#004ac6]" />
+                      <h4 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wider">
+                        Datos Fiscales y de Registro
+                      </h4>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {client.sriValidated && (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Validado SRI
+                        </span>
+                      )}
+                      {client.tipoContribuyente && (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] uppercase">
+                          Régimen: {client.tipoContribuyente.replace(/_/g, " ")}
+                        </span>
+                      )}
+                      {client.obligadoContabilidad && (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          Obligado Contabilidad
+                        </span>
+                      )}
+                      {client.agenteRetencion && (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          Agente Retención
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
@@ -557,16 +551,6 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
           {/* TAB 6: FINANZAS & COBROS */}
           {currentTabAllowed && activeTab === "finanzas" && (
             <div className="space-y-4">
-              <ClientTabHeader
-                title="Cobros"
-                icon={DollarSign}
-                badge={
-                  <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-                    {charges.length}
-                  </span>
-                }
-              />
-
               <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
                 <table className="table-fixed w-full text-left text-xs border-collapse">
                   <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">

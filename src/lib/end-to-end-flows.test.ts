@@ -2626,6 +2626,32 @@ test("Flujo E2E 45: Eliminación Total del Pie de Página Institucional en Toda 
   }
 });
 
+test("Flujo E2E 46: Eliminación de Barras de Título Redundantes en Ficha 360 (Identificación y Cobros)", () => {
+  const rootDir = process.cwd();
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+
+  // No debe incluir la barra ClientTabHeader con title="Identificación"
+  assert.ok(
+    !profile360Content.includes('title="Identificación"'),
+    "ClientProfile360 no debe incluir barra de título redundante para Identificación"
+  );
+
+  // No debe incluir la barra ClientTabHeader con title="Cobros"
+  assert.ok(
+    !profile360Content.includes('title="Cobros"'),
+    "ClientProfile360 no debe incluir barra de título redundante para Cobros"
+  );
+
+  // Los badges tributarios se integran en Datos Fiscales y de Registro
+  assert.ok(
+    profile360Content.includes("Datos Fiscales y de Registro") &&
+      profile360Content.includes("Validado SRI") &&
+      profile360Content.includes("tipoContribuyente"),
+    "ClientProfile360 debe mantener los badges tributarios dentro de la sección Datos Fiscales y de Registro"
+  );
+});
+
 
 
 
