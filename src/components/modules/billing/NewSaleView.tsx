@@ -2128,9 +2128,9 @@ export function NewSaleView({
         <div className="lg:col-span-8 space-y-4">
           {/* Bloque 1: Selección de Cliente + Parámetros del Comprobante */}
           <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-              {/* Selector de Cliente (5 cols) */}
-              <div className="md:col-span-5 space-y-1.5">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+              {/* Selector de Cliente (6 cols en pantallas xl, ancho completo en inferiores) */}
+              <div className="xl:col-span-6 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Cliente <span className="text-rose-500">*</span>
@@ -2164,62 +2164,85 @@ export function NewSaleView({
                 </div>
 
                 {selectedClient ? (
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 px-3 py-2 rounded-lg bg-blue-50/50 border border-blue-200">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-xs text-slate-900 truncate">
-                        {selectedClient.businessName}
+                  isConsumidorFinal ? (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 border border-slate-300">
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-slate-900">CONSUMIDOR FINAL</div>
+                        <div className="text-[10px] font-mono text-slate-500">C.I. / RUC: 9999999999999</div>
                       </div>
-                      <div className="text-[10px] font-mono text-slate-500">
-                        {selectedClient.identificationType}: {limpiarIdentificacion(selectedClient.identificationNumber)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <a
-                        href={`/clientes?id=${selectedClient.id}&tab=finanzas`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-[#004ac6] border border-blue-200 hover:bg-blue-50 shadow-2xs transition cursor-pointer"
-                        title="Abrir historial de facturación y cobros de este cliente en una nueva pestaña"
-                      >
-                        <DollarSign className="w-3 h-3 text-[#004ac6]" />
-                        <span>Historial de Facturación</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </a>
-                      <a
-                        href={`/clientes?id=${selectedClient.id}&tab=contratos`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-                        title="Abrir servicios técnicos del cliente en una nueva pestaña"
-                      >
-                        <ShieldCheck className="w-3 h-3 text-slate-500" />
-                        <span>Servicios</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </a>
-                      <a
-                        href={`/clientes?id=${selectedClient.id}&tab=archivos`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
-                        title="Abrir archivos y contratos del cliente en una nueva pestaña"
-                      >
-                        <FolderArchive className="w-3 h-3 text-slate-500" />
-                        <span>Archivos</span>
-                        <ExternalLink className="w-3 h-3 text-slate-400" />
-                      </a>
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedClientId("");
                           setIsConsumidorFinal(false);
                         }}
-                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer"
+                        className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer shrink-0"
                         title="Cambiar cliente"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rounded-lg bg-blue-50/60 border border-blue-200 p-2.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-xs text-slate-900 truncate" title={selectedClient.businessName}>
+                            {selectedClient.businessName}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500 font-semibold">
+                            {selectedClient.identificationType}: {limpiarIdentificacion(selectedClient.identificationNumber)}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedClientId("");
+                            setIsConsumidorFinal(false);
+                          }}
+                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-white transition cursor-pointer shrink-0"
+                          title="Cambiar cliente"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-blue-200/60">
+                        <a
+                          href={`/clientes?id=${selectedClient.id}&tab=finanzas`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white text-[#004ac6] border border-blue-200 hover:bg-blue-100/60 shadow-2xs transition cursor-pointer"
+                          title="Abrir historial de facturación y cobros de este cliente en una nueva pestaña"
+                        >
+                          <DollarSign className="w-3 h-3 text-[#004ac6] shrink-0" />
+                          <span>Historial de Facturación</span>
+                          <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                        </a>
+                        <a
+                          href={`/clientes?id=${selectedClient.id}&tab=contratos`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 shadow-2xs transition cursor-pointer"
+                          title="Abrir servicios técnicos del cliente en una nueva pestaña"
+                        >
+                          <ShieldCheck className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>Servicios</span>
+                          <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                        </a>
+                        <a
+                          href={`/clientes?id=${selectedClient.id}&tab=archivos`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 shadow-2xs transition cursor-pointer"
+                          title="Abrir archivos y contratos del cliente en una nueva pestaña"
+                        >
+                          <FolderArchive className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>Archivos</span>
+                          <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                        </a>
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <div className="relative" ref={clientDropdownRef}>
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -2284,8 +2307,8 @@ export function NewSaleView({
                 )}
               </div>
 
-              {/* Configuración del Documento (7 cols -> 4 campos compactos) */}
-              <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {/* Configuración del Documento (6 cols en pantallas xl, ancho completo en inferiores) */}
+              <div className="xl:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {/* Tipo Documento (fijo: NOTA DE VENTA en el flujo comercial) */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">

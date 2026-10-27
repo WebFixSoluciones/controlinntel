@@ -2255,6 +2255,45 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
   );
 });
 
+test("Flujo E2E 37: Estructura Anti-Colisión y Sin Sobre-Montado en Formulario de Emisión de Ventas", () => {
+  const rootDir = process.cwd();
+  const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
+  const newSaleContent = fs.readFileSync(newSalePath, "utf8");
+
+  // 1. Selector de Cliente con distribución responsive espaciosa
+  assert.ok(
+    newSaleContent.includes("xl:grid-cols-12") &&
+      newSaleContent.includes("xl:col-span-6"),
+    "NewSaleView debe usar distribución xl:grid-cols-12 y xl:col-span-6 para evitar compresión en pantallas estándar"
+  );
+
+  // 2. Fila superior exclusiva para identificación del cliente y cambio
+  assert.ok(
+    newSaleContent.includes("selectedClient.businessName") &&
+      newSaleContent.includes("limpiarIdentificacion(selectedClient.identificationNumber)") &&
+      newSaleContent.includes("Cambiar cliente"),
+    "NewSaleView debe presentar la razón social y RUC del cliente con botón de cambio sin obstrucciones"
+  );
+
+  // 3. Fila inferior exclusiva y auto-ajustable (flex-wrap) para accesos rápidos
+  assert.ok(
+    newSaleContent.includes("flex flex-wrap items-center gap-1.5 pt-1.5 border-t") &&
+      newSaleContent.includes("Historial de Facturación") &&
+      newSaleContent.includes("Servicios") &&
+      newSaleContent.includes("Archivos"),
+    "NewSaleView debe colocar los accesos rápidos en fila independiente con flex-wrap para impedir sobre-montado"
+  );
+
+  // 4. Distinción para Consumidor Final sin renderizar enlaces rotos
+  assert.ok(
+    newSaleContent.includes("isConsumidorFinal ?") &&
+      newSaleContent.includes("CONSUMIDOR FINAL") &&
+      newSaleContent.includes("9999999999999"),
+    "NewSaleView debe mostrar un banner limpio para Consumidor Final sin accesos a pestañas inexistentes"
+  );
+});
+
+
 
 
 
