@@ -1788,7 +1788,7 @@ test("Flujo E2E 30: Buscador Predictivo de Servicios con Nombre y Descripción E
 
   // 1. Buscador predictivo en vez de un simple <select>
   assert.ok(
-    contractTab.includes("Buscar Producto / Servicio en Catálogo Oficial *") &&
+    contractTab.includes("Buscar Producto / Servicio *") &&
       contractTab.includes("searchedInventoryServices") &&
       contractTab.includes("showServiceDropdown"),
     "ClientContractTab debe contar con un buscador predictivo con dropdown tipo nota de venta"
@@ -1800,12 +1800,12 @@ test("Flujo E2E 30: Buscador Predictivo de Servicios con Nombre y Descripción E
 
   // 2. Extracción de nombre y descripción editable
   assert.ok(
-    contractTab.includes("Nombre del Servicio (Editable) *") &&
+    contractTab.includes("Nombre del Servicio *") &&
       contractTab.includes("newSvcName"),
     "ClientContractTab debe permitir editar el nombre del servicio extraído"
   );
   assert.ok(
-    contractTab.includes("Descripción del Servicio (Editable)") &&
+    contractTab.includes("Descripción") &&
       contractTab.includes("newSvcDescription"),
     "ClientContractTab debe permitir editar la descripción del servicio extraído"
   );
@@ -3062,6 +3062,92 @@ test("Flujo E2E 57: Barra de Filtros en Ventas con Botón Generar Venta, Selecto
       salesContent.includes("saleDate >= dateFrom") &&
       salesContent.includes("saleDate <= dateTo"),
     "La lógica de filteredSales debe evaluar adecuadamente el rango de fechas"
+  );
+});
+
+test("Flujo E2E 58: Simplificación de formulario Asignar Servicio con modalidad PREPAGO/POSTPAGO, día de facturación y anticipo de cobranza", () => {
+  const rootDir = process.cwd();
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractTab = fs.readFileSync(contractTabPath, "utf8");
+  const typesPath = path.resolve(rootDir, "src/types/index.ts");
+  const typesContent = fs.readFileSync(typesPath, "utf8");
+
+  // 1. Tipos actualizados con ServiceBillingType y campos de cobranza
+  assert.ok(
+    typesContent.includes('export type ServiceBillingType = "prepago" | "pospago" | "postpago";') ||
+      typesContent.includes('"prepago" | "pospago" | "postpago"'),
+    "ServiceBillingType debe soportar prepago y postpago"
+  );
+  assert.ok(
+    typesContent.includes("billingDay?: number;") && typesContent.includes("advanceNoticeDay?: number;"),
+    "ClientService debe incluir billingDay y advanceNoticeDay opcionales"
+  );
+
+  // 2. Títulos, descripciones y botones simplificados en el formulario
+  assert.ok(
+    contractTab.includes("Asignar Servicio") &&
+      !contractTab.includes("Asignar Servicio desde Inventario de Servicios"),
+    "El encabezado del formulario debe estar simplificado a 'Asignar Servicio'"
+  );
+  assert.ok(
+    contractTab.includes("+ Crear Servicio") &&
+      !contractTab.includes("Crear Nuevo Servicio en Inventario"),
+    "El botón superior debe estar simplificado a '+ Crear Servicio'"
+  );
+  assert.ok(
+    contractTab.includes("Buscar Producto / Servicio *") &&
+      !contractTab.includes("Buscar Producto / Servicio en Catálogo Oficial *"),
+    "El label de búsqueda debe estar simplificado a 'Buscar Producto / Servicio *'"
+  );
+  assert.ok(
+    contractTab.includes("Nombre del Servicio *") &&
+      !contractTab.includes("Nombre del Servicio (Editable) *"),
+    "El label de nombre debe estar simplificado a 'Nombre del Servicio *'"
+  );
+  assert.ok(
+    contractTab.includes("Tarifa con IVA ($) *"),
+    "El label de tarifa con IVA debe estar simplificado"
+  );
+  assert.ok(
+    contractTab.includes("Ciclo de Facturación y Vigencia"),
+    "El título de ciclo debe estar simplificado a 'Ciclo de Facturación y Vigencia'"
+  );
+
+  // 3. Selectores de Modalidad (PREPAGO / POSTPAGO), Día de Facturación y Anticipo de Cobranza
+  assert.ok(
+    contractTab.includes("newSvcBillingType") &&
+      contractTab.includes("PREPAGO (Por adelantado)") &&
+      contractTab.includes("POSTPAGO (Mes vencido)"),
+    "Debe permitir seleccionar entre modalidad PREPAGO y POSTPAGO"
+  );
+  assert.ok(
+    contractTab.includes("newSvcBillingDay") &&
+      contractTab.includes("Día 1 de cada mes") &&
+      contractTab.includes("Día 2 de cada mes"),
+    "Debe permitir definir el día de facturación mensual (ej. día 1, día 2)"
+  );
+  assert.ok(
+    contractTab.includes("newSvcAdvanceNoticeDay") &&
+      contractTab.includes("Día 26 de cada mes"),
+    "Debe permitir definir la fecha de anticipo de cobranza (ej. día 26)"
+  );
+
+  // 4. Edición de modalidad y fechas en el modal de edición de servicio
+  assert.ok(
+    contractTab.includes("editBillingType") &&
+      contractTab.includes("editBillingDay") &&
+      contractTab.includes("editAdvanceNoticeDay"),
+    "El modal de edición debe sincronizar y permitir editar modalidad, día de facturación y anticipo de cobranza"
+  );
+
+  // 5. Tabla de servicios visualiza badge de modalidad y días de cobro y anticipo
+  assert.ok(
+    contractTab.includes("POSTPAGO") && contractTab.includes("PREPAGO"),
+    "La tabla de servicios debe mostrar el badge de PREPAGO o POSTPAGO"
+  );
+  assert.ok(
+    contractTab.includes("svc.billingDay") && contractTab.includes("svc.advanceNoticeDay"),
+    "La tabla de servicios debe mostrar el día de cobro y anticipo asignado"
   );
 });
 

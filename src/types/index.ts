@@ -48,7 +48,7 @@ export interface SystemUser extends UserProfile {
 }
 
 export type IdentificationType = "RUC" | "CEDULA" | "PASAPORTE";
-export type ServiceBillingType = "prepago" | "pospago";
+export type ServiceBillingType = "prepago" | "pospago" | "postpago";
 export type ServiceBillingFrequency = "mensual" | "trimestral" | "semestral" | "anual";
 export type ServiceContractDuration =
   | "mensual"
@@ -77,6 +77,8 @@ export interface ClientService {
   basePrice: number;
   customPrice: number;
   billingType: ServiceBillingType;
+  billingDay?: number;                        // Día del mes de facturación / emisión (ej: 1, 2, 5...)
+  advanceNoticeDay?: number;                  // Día del mes de anticipo de cobranza / aviso (ej: 26...)
   billingFrequency?: ServiceBillingFrequency; // "mensual" | "trimestral" | "semestral" | "anual"
   contractDuration?: ServiceContractDuration; // "mensual" | "trimestral" | "semestral" | "anual" | "bianual" | "indefinido"
   contractStartDate?: string;                 // YYYY-MM-DD: Fecha de inicio del contrato

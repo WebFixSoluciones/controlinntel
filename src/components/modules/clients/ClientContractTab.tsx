@@ -6,6 +6,7 @@ import {
   SriInvoice,
   ClientService,
   ServiceStatus,
+  ServiceBillingType,
   ServiceBillingFrequency,
   ServiceContractDuration,
   ServiceCategory,
@@ -80,6 +81,9 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcFreq, setNewSvcFreq] = useState<ServiceBillingFrequency>("mensual");
   const [newSvcDuration, setNewSvcDuration] = useState<ServiceContractDuration>("anual");
   const [newSvcCategory, setNewSvcCategory] = useState<ServiceCategory>("internet");
+  const [newSvcBillingType, setNewSvcBillingType] = useState<ServiceBillingType>("prepago");
+  const [newSvcBillingDay, setNewSvcBillingDay] = useState<number>(1);
+  const [newSvcAdvanceNoticeDay, setNewSvcAdvanceNoticeDay] = useState<number>(26);
   const [newSvcStartDate, setNewSvcStartDate] = useState(() => getEcuadorDate());
   const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => addMonthsSafely(getEcuadorDate(), 1));
   const [newSvcEndDate, setNewSvcEndDate] = useState(() => addMonthsSafely(getEcuadorDate(), 12));
@@ -97,6 +101,9 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [editFreq, setEditFreq] = useState<ServiceBillingFrequency>("mensual");
   const [editDuration, setEditDuration] = useState<ServiceContractDuration>("anual");
   const [editCategory, setEditCategory] = useState<ServiceCategory>("internet");
+  const [editBillingType, setEditBillingType] = useState<ServiceBillingType>("prepago");
+  const [editBillingDay, setEditBillingDay] = useState<number>(1);
+  const [editAdvanceNoticeDay, setEditAdvanceNoticeDay] = useState<number>(26);
   const [editStartDate, setEditStartDate] = useState("");
   const [editRenewalDate, setEditRenewalDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
@@ -438,6 +445,32 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
+  const handleBillingDayChange = (day: number) => {
+    setNewSvcBillingDay(day);
+    if (newSvcRenewalDate) {
+      const parts = newSvcRenewalDate.split("-");
+      if (parts.length === 3) {
+        const year = parts[0];
+        const month = parts[1];
+        const dayStr = String(day).padStart(2, "0");
+        setNewSvcRenewalDate(`${year}-${month}-${dayStr}`);
+      }
+    }
+  };
+
+  const handleEditBillingDayChange = (day: number) => {
+    setEditBillingDay(day);
+    if (editRenewalDate) {
+      const parts = editRenewalDate.split("-");
+      if (parts.length === 3) {
+        const year = parts[0];
+        const month = parts[1];
+        const dayStr = String(day).padStart(2, "0");
+        setEditRenewalDate(`${year}-${month}-${dayStr}`);
+      }
+    }
+  };
+
   // Add new service handler taking exclusively from INVENTARIO DE SERVICIOS
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,7 +499,9 @@ export function ClientContractTab({ client }: { client: Client }) {
         inventoryProductId: selectedService.id,
         inventorySku: selectedService.sku,
         status: "activo",
-        billingType: "pospago",
+        billingType: newSvcBillingType,
+        billingDay: newSvcBillingDay,
+        advanceNoticeDay: newSvcAdvanceNoticeDay,
         billingFrequency: newSvcFreq,
         contractDuration: newSvcDuration,
         contractStartDate: newSvcStartDate,
@@ -483,7 +518,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         saleStatus: "pendiente_venta",
         downloadMbps: 100,
         uploadMbps: 100,
-        cutoffDay: 5,
+        cutoffDay: newSvcBillingDay || 5,
         nodeId: "node-1",
         nodeName: "NODO-CENTRAL",
         ipv4Address: "DHCP",
@@ -501,6 +536,9 @@ export function ClientContractTab({ client }: { client: Client }) {
       setNewSvcDescription("");
       setNewSvcPriceSinIva("");
       setNewSvcPriceConIva("");
+      setNewSvcBillingType("prepago");
+      setNewSvcBillingDay(1);
+      setNewSvcAdvanceNoticeDay(26);
       setIsAddingService(false);
     } catch (err: any) {
       showError("Error", err?.message || "No se pudo añadir el servicio.");
@@ -520,6 +558,11 @@ export function ClientContractTab({ client }: { client: Client }) {
     setEditPriceSinIva(sinIva.toFixed(2));
     const conIva = svc.priceConIva ?? Math.round(sinIva * (1 + rate / 100) * 100) / 100;
     setEditPriceConIva(conIva.toFixed(2));
+    setEditBillingType(
+      svc.billingType === "pospago" || svc.billingType === "postpago" ? "postpago" : "prepago"
+    );
+    setEditBillingDay(svc.billingDay ?? 1);
+    setEditAdvanceNoticeDay(svc.advanceNoticeDay ?? 26);
     setEditFreq(svc.billingFrequency || "mensual");
     setEditDuration(svc.contractDuration || "anual");
     const lower = (svc.planName + " " + (svc.notes || "")).toLowerCase();
@@ -598,6 +641,9 @@ export function ClientContractTab({ client }: { client: Client }) {
         customPrice: priceSinIvaNum,
         priceConIva: priceConIvaNum,
         ivaRate: editIvaRate,
+        billingType: editBillingType,
+        billingDay: editBillingDay,
+        advanceNoticeDay: editAdvanceNoticeDay,
         billingFrequency: editFreq,
         contractDuration: editDuration,
         contractStartDate: editStartDate,
@@ -878,7 +924,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               <div className="flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-[#004ac6]" />
                 <h4 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wide">
-                  Asignar Servicio desde Inventario de Servicios
+                  Asignar Servicio
                 </h4>
               </div>
               <button
@@ -887,7 +933,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 className="text-xs font-bold text-[#004ac6] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Crear Nuevo Servicio en Inventario</span>
+                <span>+ Crear Servicio</span>
               </button>
             </div>
 
@@ -895,7 +941,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             <div className="space-y-1 relative" ref={searchDropdownRef}>
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-[#0b1c30]">
-                  Buscar Producto / Servicio en Catálogo Oficial *
+                  Buscar Producto / Servicio *
                 </label>
                 {selectedService && (
                   <button
@@ -913,7 +959,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Escribe el nombre o SKU del servicio para buscar..."
+                  placeholder="Escribe el nombre o SKU para buscar..."
                   value={serviceSearchQuery}
                   onFocus={() => setShowServiceDropdown(true)}
                   onChange={(e) => {
@@ -942,7 +988,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <div className="absolute z-30 mt-1 w-full bg-white rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto divide-y divide-slate-100">
                   {searchedInventoryServices.length === 0 ? (
                     <div className="p-3 text-center text-xs text-slate-500">
-                      No se encontraron servicios técnicos con esa búsqueda. Usa el botón{" "}
+                      No se encontraron servicios con esa búsqueda. Usa el botón{" "}
                       <button
                         type="button"
                         onClick={() => {
@@ -951,7 +997,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         }}
                         className="text-[#004ac6] font-bold underline cursor-pointer"
                       >
-                        + Crear en Inventario
+                        + Crear Servicio
                       </button>
                     </div>
                   ) : (
@@ -1009,16 +1055,16 @@ export function ClientContractTab({ client }: { client: Client }) {
               )}
             </div>
 
-            {/* Datos del Servicio Extraído: Nombre y Descripción Editables */}
+            {/* Datos del Servicio Extraído: Nombre y Descripción */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Nombre del Servicio (Editable) *
+                  Nombre del Servicio *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. INTERNET DEDICADO 100MBPS"
+                  placeholder="Ej. Internet Dedicado 100 Mbps"
                   value={newSvcName}
                   onChange={(e) => setNewSvcName(e.target.value)}
                   className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
@@ -1027,11 +1073,11 @@ export function ClientContractTab({ client }: { client: Client }) {
 
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Descripción del Servicio (Editable)
+                  Descripción
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Detalles técnicos, SLA, alcance, características o notas del servicio..."
+                  placeholder="Detalles técnicos o características del servicio..."
                   value={newSvcDescription}
                   onChange={(e) => setNewSvcDescription(e.target.value)}
                   className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-1.5 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
@@ -1067,7 +1113,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               {/* Tarifa con IVA */}
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Tarifa con IVA ($) [IVA {newSvcIvaRate}%] *
+                  Tarifa con IVA ($) *
                 </label>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
@@ -1110,15 +1156,79 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#004ac6]" />
                   <span className="font-bold text-[#0b1c30] uppercase tracking-wide text-xs">
-                    Ciclo de Facturación y Vigencia de Contrato
+                    Ciclo de Facturación y Vigencia
                   </span>
                 </div>
                 <span className="text-[11px] text-[#64748b]">
-                  Facturación automática durante el período contratado sin requerir renovación manual
+                  Recurrencia y cobranza automática
                 </span>
               </div>
 
+              {/* Fila 1: Modalidad, Día Facturación, Anticipo Cobranza, Tipo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Modalidad: PREPAGO / POSTPAGO */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Modalidad *
+                  </label>
+                  <select
+                    value={newSvcBillingType}
+                    onChange={(e) => setNewSvcBillingType(e.target.value as ServiceBillingType)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value="prepago">PREPAGO (Por adelantado)</option>
+                    <option value="postpago">POSTPAGO (Mes vencido)</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {newSvcBillingType === "prepago" ? "Facturación anticipada" : "Facturación a mes vencido"}
+                  </span>
+                </div>
+
+                {/* Día de Facturación */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Día de Facturación *
+                  </label>
+                  <select
+                    value={newSvcBillingDay}
+                    onChange={(e) => handleBillingDayChange(Number(e.target.value))}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value={1}>Día 1 de cada mes</option>
+                    <option value={2}>Día 2 de cada mes</option>
+                    <option value={5}>Día 5 de cada mes</option>
+                    <option value={10}>Día 10 de cada mes</option>
+                    <option value={15}>Día 15 de cada mes</option>
+                    <option value={20}>Día 20 de cada mes</option>
+                    <option value={25}>Día 25 de cada mes</option>
+                    <option value={28}>Día 28 de cada mes</option>
+                    <option value={30}>Día 30 de cada mes</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Emisión periódica</span>
+                </div>
+
+                {/* Anticipo de Cobranza */}
+                <div>
+                  <label className="block text-xs font-bold text-[#434655] mb-1">
+                    Anticipo de Cobranza *
+                  </label>
+                  <select
+                    value={newSvcAdvanceNoticeDay}
+                    onChange={(e) => setNewSvcAdvanceNoticeDay(Number(e.target.value))}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value={26}>Día 26 de cada mes</option>
+                    <option value={25}>Día 25 de cada mes</option>
+                    <option value={20}>Día 20 de cada mes</option>
+                    <option value={28}>Día 28 de cada mes</option>
+                    <option value={1}>Día 1 de cada mes</option>
+                    <option value={5}>Día 5 de cada mes</option>
+                    <option value={10}>Día 10 de cada mes</option>
+                    <option value={15}>Día 15 de cada mes</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Aviso previo de cobro</span>
+                </div>
+
                 {/* Categoría de Servicio */}
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
@@ -1137,8 +1247,12 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <option value="licencia">Licencia Software</option>
                     <option value="otro">Otro Servicio</option>
                   </select>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Categoría técnica</span>
                 </div>
+              </div>
 
+              {/* Fila 2: Frecuencia, Duración, Fecha Inicio y Próximo Cobro */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                 {/* Frecuencia de Cobro */}
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
@@ -1187,9 +1301,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
                 {/* Próximo Cobro */}
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
@@ -1204,7 +1316,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                   />
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Fecha de la siguiente emisión</span>
                 </div>
+              </div>
 
+              {/* Fila 3: Fin Contrato y Switch Auto-Renovación */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 {/* Fecha Fin Contrato */}
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
@@ -1310,7 +1425,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 disabled={savingService || !selectedService}
                 className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
-                {savingService ? "Guardando..." : "Asignar Servicio al Cliente"}
+                {savingService ? "Guardando..." : "Asignar Servicio"}
               </button>
             </div>
           </form>
@@ -1423,6 +1538,13 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <span className={`font-bold text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
                             {svc.planName}
                           </span>
+                          <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
+                            svc.billingType === "postpago" || svc.billingType === "pospago"
+                              ? "bg-purple-50 text-purple-700 border border-purple-200"
+                              : "bg-blue-50 text-blue-700 border border-blue-200"
+                          }`}>
+                            {svc.billingType === "postpago" || svc.billingType === "pospago" ? "POSTPAGO" : "PREPAGO"}
+                          </span>
                           {svc.serviceCategory && (
                             <span className="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                               {svc.serviceCategory}
@@ -1449,6 +1571,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <span className="text-slate-600">
                             Contrato: <strong>{getDurationLabel(svc.contractDuration || "anual")}</strong>
                           </span>
+                          <span>• Cobro: Día {svc.billingDay ?? 1}</span>
+                          <span>• Anticipo: Día {svc.advanceNoticeDay ?? 26}</span>
                           {svc.contractEndDate && (
                             <span className="text-slate-500 font-mono">
                               • Fin: {formatDateEC(svc.contractEndDate)}
@@ -1683,7 +1807,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             <form onSubmit={handleSaveEditService} className="p-5 space-y-4 text-xs">
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Nombre del Servicio (Editable) *
+                  Nombre del Servicio *
                 </label>
                 <input
                   type="text"
@@ -1696,7 +1820,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
               <div>
                 <label className="block text-xs font-bold text-[#434655] mb-1">
-                  Descripción del Servicio (Editable)
+                  Descripción
                 </label>
                 <textarea
                   rows={2}
@@ -1731,7 +1855,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
-                    Tarifa con IVA ($) [IVA {editIvaRate}%] *
+                    Tarifa con IVA ($) *
                   </label>
                   <div className="relative">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono text-xs text-slate-400">
@@ -1790,7 +1914,64 @@ export function ClientContractTab({ client }: { client: Client }) {
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="flex items-center gap-1.5 text-slate-800 font-bold">
                   <Clock className="w-3.5 h-3.5 text-[#004ac6]" />
-                  <span>Ciclo y Vigencia de Contrato</span>
+                  <span>Ciclo de Facturación y Vigencia</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Modalidad *
+                    </label>
+                    <select
+                      value={editBillingType}
+                      onChange={(e) => setEditBillingType(e.target.value as ServiceBillingType)}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    >
+                      <option value="prepago">PREPAGO</option>
+                      <option value="postpago">POSTPAGO</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Día Facturación *
+                    </label>
+                    <select
+                      value={editBillingDay}
+                      onChange={(e) => handleEditBillingDayChange(Number(e.target.value))}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    >
+                      <option value={1}>Día 1 de cada mes</option>
+                      <option value={2}>Día 2 de cada mes</option>
+                      <option value={5}>Día 5 de cada mes</option>
+                      <option value={10}>Día 10 de cada mes</option>
+                      <option value={15}>Día 15 de cada mes</option>
+                      <option value={20}>Día 20 de cada mes</option>
+                      <option value={25}>Día 25 de cada mes</option>
+                      <option value={28}>Día 28 de cada mes</option>
+                      <option value={30}>Día 30 de cada mes</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#434655] mb-1">
+                      Anticipo Cobranza *
+                    </label>
+                    <select
+                      value={editAdvanceNoticeDay}
+                      onChange={(e) => setEditAdvanceNoticeDay(Number(e.target.value))}
+                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    >
+                      <option value={26}>Día 26 de cada mes</option>
+                      <option value={25}>Día 25 de cada mes</option>
+                      <option value={20}>Día 20 de cada mes</option>
+                      <option value={28}>Día 28 de cada mes</option>
+                      <option value={1}>Día 1 de cada mes</option>
+                      <option value={5}>Día 5 de cada mes</option>
+                      <option value={10}>Día 10 de cada mes</option>
+                      <option value={15}>Día 15 de cada mes</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
