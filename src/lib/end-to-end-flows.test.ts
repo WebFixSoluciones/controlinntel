@@ -2308,6 +2308,37 @@ test("Flujo E2E 37: Estructura Anti-Colisión y Sin Sobre-Montado en Formulario 
   );
 });
 
+test("Flujo E2E 38: Directorio de Clientes con Columna de Servicios Minimalista y Pop-up de Servicios Contratados/Facturados", () => {
+  const rootDir = process.cwd();
+  const clientsTablePath = path.resolve(rootDir, "src/components/modules/clients/ClientsTable.tsx");
+  const clientsContent = fs.readFileSync(clientsTablePath, "utf8");
+
+  // 1. Reducción de tamaño del nombre de cliente y eliminación de burbuja de recurrencia
+  assert.ok(
+    clientsContent.includes("text-xs font-semibold text-[#0b1c30]") &&
+      !clientsContent.includes("rec.isRecurrent &&"),
+    "ClientsTable debe reducir el tamaño del nombre del cliente y no mostrar la burbuja de recurrencia en la fila"
+  );
+
+  // 2. Nueva columna Servicios con botón minimalista 'Ver servicios'
+  assert.ok(
+    clientsContent.includes(">Servicios</th>") &&
+      clientsContent.includes("Ver servicios") &&
+      clientsContent.includes("setSelectedServicesClient(client)"),
+    "ClientsTable debe incluir columna 'Servicios' con botón minimalista 'Ver servicios'"
+  );
+
+  // 3. Pop-up minimalista con pestañas de Servicios Contratados y Facturados
+  assert.ok(
+    clientsContent.includes("selectedServicesClient &&") &&
+      clientsContent.includes("Servicios del Cliente") &&
+      clientsContent.includes("Servicios Contratados") &&
+      clientsContent.includes("Servicios Facturados"),
+    "ClientsTable debe desplegar pop-up modal minimalista con servicios contratados y facturados"
+  );
+});
+
+
 
 
 
