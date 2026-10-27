@@ -305,6 +305,24 @@ Al guardar el servicio, el aviso cambia según el resultado:
 | `R28: editing the assigned service never issues a second note…` | Sin duplicado al editar |
 | `R28: a post-dated note blocks any earlier date in the same series` | Guarda cronológica de la serie |
 | `R28: a non-billable service is saved without a note and reports the reason` | Persistencia sin emisión y motivo devuelto |
+| `R28: consecutive assignments take sequential numbers and keep the agreed payment method` | Series 001 y 002 consecutivas; `paymentMethod` en el servicio y `expectedPaymentMethod` en la deuda; sin cobro aplicado |
+
+### Forma de pago pactada y ajustes del formulario
+
+El formulario de asignación ahora **define cómo pagará el cliente sus facturas**:
+
+| Aspecto | Implementación |
+|---|---|
+| Selector | **Forma de Pago**: Crédito (a cuenta), Efectivo, Transferencia bancaria, Tarjeta de crédito |
+| Persistencia | `clientServices.paymentMethod` y `monthlyCharges.expectedPaymentMethod` |
+| Efecto | **Preferencia, no cobro**: la nota nace pendiente con `paidAmount: 0` y sin movimiento bancario |
+| Uso | El modal de cobro de Finanzas **preselecciona** la forma pactada (`PREFERRED_PAYMENT_LABEL`) |
+
+**Cambios de interfaz en la misma iteración:**
+
+- Se **eliminó el selector "Tipo / Categoría"**: era informativo y no intervenía en el proceso comercial. La categoría sigue visible en el buscador y en la ficha del artículo.
+- El formulario pasó a **dos columnas**: el buscador comparte fila con el nombre del servicio, y la descripción ocupa una sola línea de ancho completo.
+- El bloque de ciclo mantiene cuatro columnas por fila con el nuevo selector en el lugar liberado.
 
 ### Riesgo introducido y su control
 

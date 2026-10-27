@@ -139,3 +139,17 @@ test("R28: a non-billable service is saved without a note and reports the reason
   assert.equal(db.list("clientServices").length,1);
   assert.equal(result.firstInvoiceSkipped,"Servicio no activo o no facturable.");
 });
+
+test("R28: consecutive assignments take sequential numbers and keep the agreed payment method",async()=>{
+  const db=new Database(initial());
+  const first=await run(db,"assignService",servicePayload({paymentMethod:"efectivo"}));
+  const second=await run(db,"assignService",servicePayload({clientId:"b",paymentMethod:"tarjeta"}));
+  assert.equal(first.invoice.documentNumber,"010-001-000000001");
+  assert.equal(second.invoice.documentNumber,"010-001-000000002");
+  assert.equal(db.row("clientServices",first.id).paymentMethod,"efectivo");
+  assert.equal(db.row("monthlyCharges",`chg-inv-${first.invoice.id}`).expectedPaymentMethod,"efectivo");
+  assert.equal(db.row("monthlyCharges",`chg-inv-${second.invoice.id}`).expectedPaymentMethod,"tarjeta");
+  // La nota nace pendiente: la forma de pago es una preferencia, no un cobro aplicado.
+  assert.equal(db.row("monthlyCharges",`chg-inv-${first.invoice.id}`).paidAmount,0);
+  assert.equal(db.list("financialMovements").length,0);
+});

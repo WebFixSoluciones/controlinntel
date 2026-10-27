@@ -49,6 +49,7 @@ export interface SystemUser extends UserProfile {
 
 export type IdentificationType = "RUC" | "CEDULA" | "PASAPORTE";
 export type ServiceBillingType = "prepago" | "pospago" | "postpago";
+export type ServicePaymentMethod = "efectivo" | "transferencia" | "tarjeta" | "credito";
 export type ServiceBillingFrequency = "mensual" | "trimestral" | "semestral" | "anual";
 export type ServiceContractDuration =
   | "mensual"
@@ -89,6 +90,7 @@ export interface ClientService {
   contractStartDate?: string;                 // YYYY-MM-DD: Fecha de inicio del contrato
   contractEndDate?: string;                   // YYYY-MM-DD: Fecha de fin de vigencia del contrato
   autoRenew?: boolean;                        // true = auto-facturación recurrente durante el periodo contratado
+  paymentMethod?: ServicePaymentMethod;       // Forma de pago preferida del cliente para las facturas de este servicio
   serviceCategory?: ServiceCategory;          // Categoría del servicio
   cutoffDay: number;
   nodeId: string;
@@ -440,6 +442,8 @@ export interface MonthlyCharge {
   status: "pendiente" | "pagado" | "anulado" | "parcial";
   paymentDate?: string;
   paymentMethod?: string;
+  /** Forma de pago pactada al asignar el servicio; preselecciona el cobro sin aplicarlo. */
+  expectedPaymentMethod?: string;
   paymentReference?: string;
   maxPaymentDate?: string;
   paidAmount?: number;

@@ -169,7 +169,7 @@ async function issueSale(c: Context, input: Row) {
   }
   c.put("billingInvoices",invoice);
   if(!isDraft) {
-    const charge={id:`chg-inv-${id}`,clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,invoiceId:id,invoiceNumber:documentNumber,saleDate:date,month:Number(date.slice(5,7)),year:Number(date.slice(0,4)),serviceDescription:calculated.items.map(i=>i.name).join(" + "),subtotal:calculated.subtotal,ivaAmount:calculated.ivaTotal,total:calculated.total,paidAmount:0,balanceRemaining:calculated.total,status:"pendiente",payments:[],maxPaymentDate:input.creditDueDate||date};
+    const charge={id:`chg-inv-${id}`,clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,invoiceId:id,invoiceNumber:documentNumber,saleDate:date,month:Number(date.slice(5,7)),year:Number(date.slice(0,4)),serviceDescription:calculated.items.map(i=>i.name).join(" + "),subtotal:calculated.subtotal,ivaAmount:calculated.ivaTotal,total:calculated.total,paidAmount:0,balanceRemaining:calculated.total,status:"pendiente",payments:[],maxPaymentDate:input.creditDueDate||date,...(input.expectedPaymentMethod?{expectedPaymentMethod:String(input.expectedPaymentMethod)}:{})};
     c.put("monthlyCharges",charge);
     if(immediate) {
       let bankId=input.bankAccountId;
@@ -353,6 +353,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(!first.eligible) return {...service,firstInvoiceSkipped:first.reason};
       const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:first.issueDate,
         allowFuturePeriod:true,paymentMethod:"credito",creditDueDate:first.dueDate,items:[{...first.line}],
+        expectedPaymentMethod:service.paymentMethod,
         notes:`Primer período ${first.periodStart} al ${addDays(first.periodEnd,-1)}`});
       return {...(c.writes.get("clientServices/"+service.id)||service),invoice};
     }

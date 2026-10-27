@@ -10,6 +10,7 @@ import {
   ServiceBillingFrequency,
   ServiceContractDuration,
   ServiceCategory,
+  ServicePaymentMethod,
   InvoiceItem,
 } from "@/types";
 import { InventoryProduct } from "@/types/inventory";
@@ -89,6 +90,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => addMonthsSafely(getEcuadorDate(), 1));
   const [newSvcEndDate, setNewSvcEndDate] = useState(() => addMonthsSafely(getEcuadorDate(), 12));
   const [newSvcAutoRenew, setNewSvcAutoRenew] = useState(true);
+  const [newSvcPaymentMethod, setNewSvcPaymentMethod] = useState<ServicePaymentMethod>("credito");
   const [newCycleAnchor, setNewCycleAnchor] = useState<"calendario" | "aniversario">("aniversario");
   const [newPartialPolicy, setNewPartialPolicy] = useState<"prorrateo" | "completo">("prorrateo");
   const [newZeroReason, setNewZeroReason] = useState("");
@@ -381,6 +383,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcRenewalDate(addMonthsSafely(getEcuadorDate(), 1));
     setNewSvcEndDate(addMonthsSafely(getEcuadorDate(), 12));
     setNewSvcAutoRenew(true);
+    setNewSvcPaymentMethod("credito");
     setShowServiceDropdown(true);
   };
 
@@ -497,6 +500,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         firstPeriodPolicy: newPartialPolicy,
         zeroPriceReason: newZeroReason.trim(),
         serviceCategory: newSvcCategory,
+        paymentMethod: newSvcPaymentMethod,
         isBillableInCurrentCycle: true,
         nextRenewalDate: newSvcRenewalDate,
         basePrice: selectedService.salePrice,
@@ -541,6 +545,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       setNewSvcBillingType("prepago");
       setNewSvcBillingDay(1);
       setNewSvcAdvanceNoticeDay(26);
+      setNewSvcPaymentMethod("credito");
       setIsAddingService(false);
     } catch (err: any) {
       showError("Error", err?.message || "No se pudo añadir el servicio.");
@@ -945,8 +950,9 @@ export function ClientContractTab({ client }: { client: Client }) {
               </button>
             </div>
 
-            {/* Buscador de Servicios del Inventario (Predictivo / Autocomplete tipo Nota de Venta) */}
-            <div className="space-y-1 relative" ref={searchDropdownRef}>
+            {/* Fila compacta: el buscador y el nombre comparten línea */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="relative" ref={searchDropdownRef}>
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-[#0b1c30]">
                   Buscar Producto / Servicio *
@@ -1063,8 +1069,6 @@ export function ClientContractTab({ client }: { client: Client }) {
               )}
             </div>
 
-            {/* Datos del Servicio Extraído: Nombre y Descripción */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
               <div>
                 <label htmlFor="client-contract-tab-field-1" className="block text-xs font-bold text-[#434655] mb-1">
                   Nombre del Servicio *
@@ -1078,19 +1082,19 @@ export function ClientContractTab({ client }: { client: Client }) {
                   className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
+            </div>
 
-              <div>
-                <label htmlFor="client-contract-tab-field-2" className="block text-xs font-bold text-[#434655] mb-1">
-                  Descripción
-                </label>
-                <textarea id="client-contract-tab-field-2"
-                  rows={2}
-                  placeholder="Detalles técnicos o características del servicio..."
-                  value={newSvcDescription}
-                  onChange={(e) => setNewSvcDescription(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-1.5 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
-                />
-              </div>
+            <div>
+              <label htmlFor="client-contract-tab-field-2" className="block text-xs font-bold text-[#434655] mb-1">
+                Descripción
+              </label>
+              <textarea id="client-contract-tab-field-2"
+                rows={2}
+                placeholder="Detalles técnicos o características del servicio..."
+                value={newSvcDescription}
+                onChange={(e) => setNewSvcDescription(e.target.value)}
+                className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-1.5 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
+              />
             </div>
 
             {/* Tarifas Sincronizadas (Sin IVA / Con IVA) y Tasa SRI */}
@@ -1237,18 +1241,26 @@ export function ClientContractTab({ client }: { client: Client }) {
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Aviso previo de cobro</span>
                 </div>
 
-                {/* Categoría Oficial de Inventario */}
+                {/* Forma de Pago pactada para las facturas de este servicio */}
                 <div>
-                  <label className="block text-xs font-bold text-[#434655] mb-1">
-                    Categoría de Catálogo
+                  <label htmlFor="client-contract-tab-field-6b" className="block text-xs font-bold text-[#434655] mb-1">
+                    Forma de Pago *
                   </label>
-                  <div className="w-full bg-slate-50 border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-semibold text-slate-700 flex items-center gap-1.5 min-h-[38px]">
-                    <span className="w-2 h-2 rounded-full bg-[#004ac6] shrink-0" />
-                    <span className="truncate">
-                      {selectedService?.categoryName || "Servicios Generales"}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Categoría oficial en inventario</span>
+                  <select id="client-contract-tab-field-6b"
+                    value={newSvcPaymentMethod}
+                    onChange={(e) => setNewSvcPaymentMethod(e.target.value as ServicePaymentMethod)}
+                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                  >
+                    <option value="credito">Crédito (a cuenta)</option>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia bancaria</option>
+                    <option value="tarjeta">Tarjeta de crédito</option>
+                  </select>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    {newSvcPaymentMethod === "credito"
+                      ? "La nota pasa a cuentas por cobrar"
+                      : "Cobro preferido; la nota nace pendiente"}
+                  </span>
                 </div>
               </div>
 

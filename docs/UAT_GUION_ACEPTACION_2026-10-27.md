@@ -298,19 +298,21 @@ Asignación de servicio y confirmaciones se completan íntegramente por teclado;
 | # | Acción | Resultado esperado | ☐ |
 |---|---|---|---|
 | 1 | **Clientes** → ficha de **CLIENTE UAT A** → **Servicios** → **Agregar Servicio** | Se abre el formulario | ☐ |
-| 2 | Seleccionar el servicio y configurar **Modalidad = PREPAGO**, **Día de facturación = 1**, **Anticipo de cobranza = 26**, con **alta el día 1 del próximo mes** | Los selectores reflejan esos valores | ☐ |
+| 2 | Seleccionar el servicio y configurar **Modalidad = PREPAGO**, **Día de facturación = 1**, **Anticipo de cobranza = 26**, **Forma de Pago = Efectivo**, con **alta el día 1 del próximo mes** | Los selectores reflejan esos valores. El formulario se ve en dos columnas y **no** muestra un selector de "Tipo / Categoría" | ☐ |
 | 3 | Guardar el servicio | Aparece el aviso **"Servicio Asignado y Facturado"** con: número de nota, importe con IVA y **fecha igual al día 1 del próximo mes** | ☐ |
 | 4 | Anotar el número de nota y la fecha mostrados | Coinciden con el ciclo configurado, no con la fecha de hoy | ☐ |
 | 5 | Ir a **Finanzas → Cobranzas** | Existe **una** deuda por ese cliente, por el importe con IVA, con el número de nota y estado pendiente | ☐ |
-| 6 | Abrir la ficha del cliente y revisar el **saldo** | El saldo del cliente coincide con el importe de la nota | ☐ |
-| 7 | Volver a **Servicios** y **editar** el mismo servicio (por ejemplo, cambiar la descripción) y guardar | Se muestra el aviso habitual, **sin** "Facturado"; el número de notas **no aumenta** | ☐ |
-| 8 | Intentar emitir otra venta con **fecha anterior** a la del paso 4 | El sistema **rechaza** la emisión indicando que la fecha es anterior al último comprobante de la serie | ☐ |
+| 6 | Abrir el modal de cobro de esa deuda | La forma de pago **aparece preseleccionada en "Efectivo"**, y el importe por defecto es el saldo completo | ☐ |
+| 7 | Cerrar sin cobrar y revisar la ficha del cliente | El **saldo** coincide con el importe de la nota **y no existe ningún movimiento bancario** de ese cobro | ☐ |
+| 8 | Volver a **Servicios** y **editar** el mismo servicio (por ejemplo, cambiar la descripción) y guardar | Se muestra el aviso habitual, **sin** "Facturado"; el número de notas **no aumenta** | ☐ |
+| 9 | Intentar emitir otra venta con **fecha anterior** a la del paso 4 | El sistema **rechaza** la emisión indicando que la fecha es anterior al último comprobante de la serie | ☐ |
+| 10 | Asignar un segundo servicio a **CLIENTE UAT B** | El número de nota es **el siguiente correlativo** (…000000002 si el primero terminó en …000000001) | ☐ |
 
 ### Criterio de aceptación
 
-El alta emite **una** nota con la fecha que dicta el ciclo configurado, la registra en cobranzas y en el saldo del cliente, no se duplica al editar, y la serie no admite fechas anteriores a la última emitida.
+El alta emite **una** nota con la fecha que dicta el ciclo configurado, la registra en cobranzas y en el saldo del cliente, **conserva la forma de pago pactada sin aplicarla**, no se duplica al editar, y la serie no admite fechas anteriores a la última emitida.
 
-> **Nota:** el rechazo del paso 8 es **comportamiento correcto**, no un defecto. Al permitir comprobantes posfechados, la serie debe conservar el orden cronológico.
+> **Nota:** el rechazo del paso 9 es **comportamiento correcto**, no un defecto. Al permitir comprobantes posfechados, la serie debe conservar el orden cronológico.
 
 **Resultado:** ☐ Conforme ☐ No conforme ☐ Bloqueado
 **Evidencia:** ______________________ **Observaciones:** ______________________

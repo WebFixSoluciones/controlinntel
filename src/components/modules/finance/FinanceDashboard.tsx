@@ -37,6 +37,13 @@ const PAYMENT_METHODS = [
   "Saldo a Favor / Anticipo",
 ];
 
+/** Forma de pago pactada al asignar el servicio → etiqueta del selector de cobro. */
+const PREFERRED_PAYMENT_LABEL: Record<string, string> = {
+  transferencia: "Transferencia Bancaria",
+  efectivo: "Efectivo",
+  tarjeta: "Tarjeta de Crédito / Débito",
+};
+
 export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   enlace_transito: "Internet y Enlaces",
   alquiler_nodo: "Alquiler de Nodos / Locales",
@@ -247,7 +254,9 @@ export function FinanceDashboard({
         ? 0
         : charge.total;
     setPaymentAmount(Math.max(0, balance));
-    setPaymentMethod(PAYMENT_METHODS[0]);
+    // Preselecciona la forma de pago pactada al asignar el servicio (R28).
+    const preferred = PREFERRED_PAYMENT_LABEL[String(charge.expectedPaymentMethod || "")];
+    setPaymentMethod(preferred && PAYMENT_METHODS.includes(preferred) ? preferred : PAYMENT_METHODS[0]);
     setPaymentBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
     setPaymentReference(`REF-${Date.now().toString().slice(-6)}`);
     setPaymentDate(getEcuadorDate());
