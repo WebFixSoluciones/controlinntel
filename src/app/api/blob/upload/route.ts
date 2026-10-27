@@ -47,9 +47,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validación de extensiones prohibidas (ejecutables y scripts)
+    // Validación de extensiones prohibidas (ejecutables, scripts y documentos activos)
     const extension = file.name.split(".").pop()?.toLowerCase();
-    const disallowedExtensions = new Set(["exe", "bat", "sh", "cmd", "msi", "vbs", "ps1", "scr", "jar", "bin"]);
+    const disallowedExtensions = new Set([
+      "exe", "bat", "sh", "cmd", "msi", "vbs", "ps1", "scr", "jar", "bin", "com", "dll",
+      "html", "htm", "xhtml",
+    ]);
     if (extension && disallowedExtensions.has(extension)) {
       return NextResponse.json(
         { error: `Extensión de archivo prohibida por seguridad (.${extension}). Solo se admiten documentos, imágenes y certificados.` },
@@ -59,20 +62,37 @@ export async function POST(request: NextRequest) {
 
     const filename = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
     const token = process.env.BLOB_READ_WRITE_TOKEN;
+    // Documentos de cliente pueden contener datos sensibles (cédulas, contratos, certificados
+    // .p12 con clave privada): se guardan privados y se sirven solo por el endpoint autenticado.
+    const isClientDocument = folder.startsWith("clients/");
+    const blobAccess: "public" | "private" = isClientDocument ? "private" : "public";
 
-    // Si el token de Vercel Blob está configurado en el entorno
-    if (token) {
+    if (!token) {
+      return NextResponse.json(
+        {
+          error:
+            "El almacenamiento de archivos no está configurado. Falta BLOB_READ_WRITE_TOKEN en el servidor; no se guardó ningún archivo.",
+        },
+        { status: 503 }
+      );
+    }
       try {
         const blob = await put(filename, file, {
-          access: "public",
+          access: blobAccess,
+          addRandomSuffix: true,
           token,
         });
 
+        const servedUrl = isClientDocument
+          ? `/api/blob/download?pathname=${encodeURIComponent(blob.pathname)}`
+          : blob.url;
+
         return NextResponse.json({
           success: true,
-          url: blob.url,
-          downloadUrl: blob.downloadUrl,
+          url: servedUrl,
+          downloadUrl: isClientDocument ? servedUrl : blob.downloadUrl,
           pathname: blob.pathname,
+          access: blobAccess,
           size: file.size,
           fileName: file.name,
           contentType: file.type,
@@ -80,29 +100,11 @@ export async function POST(request: NextRequest) {
         });
       } catch (blobErr: any) {
         console.error("[VERCEL BLOB ERROR]:", blobErr);
-        // Continuar hacia fallback si hay error de credenciales
+        return NextResponse.json(
+          { error: "No se pudo almacenar el archivo. Intenta de nuevo en unos segundos." },
+          { status: 502 }
+        );
       }
-    }
-
-    // Fallback elegante (desarrollo local o sin token de Vercel Blob conectado)
-    // Se genera una data URI o blob simulado ligero para mantener operatividad del sistema
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Data = buffer.toString("base64");
-    const mimeType = file.type || "application/octet-stream";
-    const dataUrl = `data:${mimeType};base64,${base64Data}`;
-
-    return NextResponse.json({
-      success: true,
-      url: dataUrl,
-      downloadUrl: dataUrl,
-      pathname: filename,
-      size: file.size,
-      fileName: file.name,
-      contentType: mimeType,
-      provider: "local-fallback",
-      note: "Archivo procesado con fallback local (configure BLOB_READ_WRITE_TOKEN en Vercel para almacenamiento Blob en la nube)",
-    });
   } catch (error: any) {
     console.error("[UPLOAD API ERROR]:", error);
     return NextResponse.json(

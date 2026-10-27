@@ -3199,13 +3199,14 @@ test("Flujo E2E 60: Drive del cliente con carpetas / directorios dinámicos, eli
     "ClientFilesTab no debe contener el selector de 'Categoría del Documento *' en el modal de subida"
   );
 
-  // 2. Organización por Directorios / Carpetas
+  // 2. Organización por Directorios / Carpetas: creadas por el usuario, sin sembrar por defecto
   assert.ok(
     filesTab.includes("Directorios del Expediente") &&
       filesTab.includes("+ Nueva Carpeta") &&
-      filesTab.includes("DEFAULT_FOLDERS") &&
-      filesTab.includes("Carpeta / Directorio de Destino *"),
-    "ClientFilesTab debe permitir crear y seleccionar carpetas/directorios para organizar la documentación"
+      filesTab.includes("Carpeta / Directorio de Destino *") &&
+      filesTab.includes("customFolders") &&
+      !filesTab.includes("DEFAULT_FOLDERS"),
+    "ClientFilesTab debe crear carpetas dinámicamente y no sembrar carpetas por defecto"
   );
 
   // 3. Enlace privado seguro para compartir con clientes

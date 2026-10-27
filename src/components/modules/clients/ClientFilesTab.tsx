@@ -4,6 +4,8 @@ import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Client, ClientDocumentFile } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { planUpload, compressImageFile, formatBytes } from "@/lib/file-upload";
+import { openStoredFile } from "@/lib/file-download";
 import { ClientTabHeader } from "./ClientTabHeader";
 import {
   HardDrive,
@@ -36,15 +38,7 @@ interface ClientFilesTabProps {
   client: Client;
 }
 
-// Carpetas estándar iniciales del expediente
-const DEFAULT_FOLDERS = [
-  "Contratos",
-  "Facturación & Pagos",
-  "Actas de Entrega",
-  "Fichas Técnicas",
-  "Documentos de Identidad",
-  "General",
-];
+// Carpetas: el expediente arranca sin carpetas; el usuario crea las que necesite.
 
 // Helper visual por extensión de archivo
 function formatFileSize(bytesOrStr: string | number) {
@@ -131,13 +125,11 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
     [clientDocuments, client.id]
   );
 
-  // Unificación de todas las carpetas (estándar + personalizadas + registradas en docs)
+  // Unificación de todas las carpetas (personalizadas + registradas en docs).
+  // No se siembran carpetas por defecto: el expediente arranca vacío.
   const allFolders = useMemo(() => {
-    const set = new Set<string>(DEFAULT_FOLDERS);
-    customFolders.forEach((f) => set.add(f));
-    docs.forEach((d) => {
-      if (d.folderName) set.add(d.folderName);
-    });
+    const set = new Set<string>(customFolders);
+    docs.forEach((d) => set.add(d.folderName || "General"));
     return Array.from(set);
   }, [customFolders, docs]);
 
@@ -255,10 +247,29 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
 
     setIsUploading(true);
     try {
+      // Política local: cualquier documento (incluye .p12), bloqueo de ejecutables y tope de tamaño.
+      const plan = planUpload({ name: selectedFile.name, size: selectedFile.size, type: selectedFile.type });
+      if (!plan.ok) {
+        showError("Archivo no admitido", plan.reason || "Revisa el archivo antes de subirlo.");
+        return;
+      }
+
+      // Optimiza imágenes pesadas antes de enviarlas; PDF y certificados se envían tal cual.
+      let fileToUpload = selectedFile;
+      if (plan.compress) {
+        fileToUpload = await compressImageFile(selectedFile);
+        if (fileToUpload.size < selectedFile.size) {
+          showSuccess(
+            "Imagen optimizada",
+            `${selectedFile.name}: ${formatBytes(selectedFile.size)} → ${formatBytes(fileToUpload.size)}`
+          );
+        }
+      }
+
       let fileUrl = "";
 
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", fileToUpload);
       formData.append("folder", `clients/${client.id}/documents`);
 
       const res = await fetch("/api/blob/upload", {
@@ -266,17 +277,13 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
         body: formData,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        fileUrl = data.url || data.downloadUrl || "";
-      } else {
-        // Fallback local base64 si la API de blob no estuviera disponible
-        const reader = new FileReader();
-        fileUrl = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(selectedFile);
-        });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.error || "No se pudo almacenar el archivo en el servidor.");
       }
+      const data = await res.json();
+      fileUrl = data.url || data.downloadUrl || "";
+      if (!fileUrl) throw new Error("El servidor no devolvió la ubicación del archivo.");
 
       // Mapeo retrocompatible para documentType (contrato_adhesion, cedula_ruc, acta_entrega, etc.)
       const lowerFolder = uploadFolder.toLowerCase();
@@ -292,11 +299,11 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
 
       await addClientDocument({
         clientId: client.id,
-        title: uploadTitle.trim() || selectedFile.name,
+        title: uploadTitle.trim() || fileToUpload.name,
         documentType: mappedDocType,
         folderName: uploadFolder,
-        fileName: selectedFile.name,
-        fileSize: formatFileSize(selectedFile.size),
+        fileName: fileToUpload.name,
+        fileSize: formatFileSize(fileToUpload.size),
         fileUrl: fileUrl || undefined,
         notes: uploadNotes.trim() || undefined,
         shareToken: token,
@@ -570,7 +577,6 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
           type="file"
           onChange={handleFileChange}
           className="hidden"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
         />
         <div className="w-10 h-10 rounded-full bg-blue-50 text-[#004ac6] flex items-center justify-center mx-auto mb-2">
           <Upload className="w-5 h-5" />
@@ -661,15 +667,18 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
 
                     {/* Descargar / Abrir */}
                     {doc.fileUrl ? (
-                      <a
-                        href={doc.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openStoredFile(doc.fileUrl, doc.fileName || "documento").catch((error: Error) =>
+                            showError("No se pudo abrir el archivo", error.message)
+                          )
+                        }
                         className="p-1.5 rounded-md text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
                         title="Ver o Descargar Archivo"
                       >
                         <Download className="w-3.5 h-3.5" />
-                      </a>
+                      </button>
                     ) : null}
 
                     {/* Eliminar */}
@@ -747,6 +756,12 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
                         {doc.fileUrl && (
                           <a
                             href={doc.fileUrl}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            openStoredFile(doc.fileUrl, doc.fileName || "documento").catch((error: Error) =>
+                              showError("No se pudo abrir el archivo", error.message)
+                            );
+                          }}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1 rounded-md text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 transition cursor-pointer"
@@ -922,7 +937,6 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
                       type="file"
                       onChange={handleFileChange}
                       className="hidden"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp"
                     />
                   </label>
                 </div>
