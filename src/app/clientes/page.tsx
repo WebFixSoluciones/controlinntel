@@ -157,29 +157,6 @@ function ClientesContent() {
             </>
           )}
         </main>
-
-        {/* Institutional Footer */}
-        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686]">
-          <a
-            href="https://www.inntelcorp.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#004ac6] font-medium transition-colors"
-          >
-            &copy; 2026 INNTEL CORP S.A. • Módulo de Clientes • www.inntelcorp.com
-          </a>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-[#004ac6] transition-colors">
-              Soporte
-            </a>
-            <a href="#" className="hover:text-[#004ac6] transition-colors">
-              Privacidad
-            </a>
-            <a href="#" className="hover:text-[#004ac6] transition-colors">
-              Términos
-            </a>
-          </div>
-        </footer>
       </div>
 
       <QuickSearchModal />

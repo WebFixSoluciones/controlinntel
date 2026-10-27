@@ -14,21 +14,6 @@ export default function TramitesPage() {
         <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
           <TramitesManager />
         </main>
-
-        {/* Institutional Footer */}
-        <footer className="px-8 py-4 bg-white border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs text-[#737686]">
-          <a
-            href="https://www.inntelcorp.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#004ac6] font-medium transition-colors"
-          >
-            &copy; 2026 INNTEL CORP S.A. • www.inntelcorp.com
-          </a>
-          <div className="flex items-center gap-4">
-            <span className="text-slate-400">Sistema de Gestión de Trámites v2.0</span>
-          </div>
-        </footer>
       </div>
     </div>
   );

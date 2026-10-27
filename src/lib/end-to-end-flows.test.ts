@@ -2596,6 +2596,35 @@ test("Flujo E2E 44: Ficha 360 Minimalista (Eliminación de Volver, Estado Badge 
   );
 });
 
+test("Flujo E2E 45: Eliminación Total del Pie de Página Institucional en Toda la Aplicación", () => {
+  const rootDir = process.cwd();
+  const pageFiles = [
+    "src/app/page.tsx",
+    "src/app/clientes/page.tsx",
+    "src/app/ventas/page.tsx",
+    "src/app/finanzas/page.tsx",
+    "src/app/facturacion/page.tsx",
+    "src/app/inventarios/page.tsx",
+    "src/app/compras/page.tsx",
+    "src/app/proyectos/page.tsx",
+    "src/app/tickets/page.tsx",
+    "src/app/plantillas/page.tsx",
+    "src/app/personas/page.tsx",
+    "src/app/configuracion/page.tsx",
+    "src/app/tramites/page.tsx",
+  ];
+
+  for (const relativePath of pageFiles) {
+    const fullPath = path.resolve(rootDir, relativePath);
+    assert.ok(fs.existsSync(fullPath), `El archivo ${relativePath} debe existir`);
+    const content = fs.readFileSync(fullPath, "utf8");
+    assert.ok(
+      !content.includes("<footer") && !content.includes("Institutional Footer"),
+      `El archivo ${relativePath} no debe incluir pie de página ni etiqueta <footer`
+    );
+  }
+});
+
 
 
 
