@@ -30,12 +30,6 @@ export function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Limpiar cualquier bloqueo previo al cargar para garantizar acceso al administrador
-  useEffect(() => {
-    clearFailedAttempts("superadmin@inntelcorp.com");
-    clearFailedAttempts("global");
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -43,7 +37,8 @@ export function LoginScreen() {
 
     // 1. CAPA 1: Escaneo Perimetral de Inyección (SQLi, XSS, Path Traversal)
     const emailThreat = detectSecurityThreat(cleanEmail);
-    const passThreat = detectSecurityThreat(password);
+    // Passwords are opaque credentials; valid symbols must reach Firebase unchanged.
+    const passThreat = { isThreat: false, threatName: "", threatType: undefined };
 
     if (emailThreat.isThreat || passThreat.isThreat) {
       const threatName = emailThreat.threatName || passThreat.threatName || "Inyección Maliciosa";

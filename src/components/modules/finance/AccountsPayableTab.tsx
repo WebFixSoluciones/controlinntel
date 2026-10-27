@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -18,6 +19,7 @@ export function AccountsPayableTab() {
     purchaseInvoices,
     bankAccounts,
     addSupplierPayment,
+    supplierCredits,
     currentUser,
   } = useApp();
   const { showSuccess, showError } = useToast();
@@ -31,9 +33,10 @@ export function AccountsPayableTab() {
   const [bankAccountId, setBankAccountId] = useState<string>(bankAccounts[0]?.id || "");
   const [paymentMethod, setPaymentMethod] = useState<"transferencia" | "cheque" | "efectivo">("transferencia");
   const [referenceNumber, setReferenceNumber] = useState<string>("");
-  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState<string>(getEcuadorDate());
+  const [supplierCreditId, setSupplierCreditId] = useState("");
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getEcuadorDate();
 
   const getDueStatus = (dueDate?: string) => {
     if (!dueDate) return { label: "Al Día", color: "green", days: 99 };
@@ -48,6 +51,7 @@ export function AccountsPayableTab() {
 
   const handleOpenPaymentModal = (inv: PurchaseInvoice) => {
     setSelectedInvoice(inv);
+    setSupplierCreditId("");
     setPaymentAmount(inv.balanceRemaining);
     setBankAccountId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
     setReferenceNumber(`REF-${Date.now().toString().slice(-6)}`);
@@ -69,13 +73,13 @@ export function AccountsPayableTab() {
       return;
     }
 
-    const bank = bankAccounts.find((b) => b.id === bankAccountId) || bankAccounts[0];
-    if (!bank) {
+    const bank = bankAccounts.find((b) => b.id === bankAccountId);
+    if (!bank && !supplierCreditId) {
       showError("Cuenta Requerida", "Selecciona una cuenta bancaria.");
       return;
     }
 
-    if (bank.currentBalance < paymentAmount) {
+    if (!supplierCreditId && bank && bank.currentBalance < paymentAmount) {
       showError(
         "Saldo Insuficiente",
         `La cuenta ${bank.bankName} dispone de $${bank.currentBalance.toFixed(2)}.`
@@ -90,9 +94,10 @@ export function AccountsPayableTab() {
         supplierName: selectedInvoice.supplierName,
         date: paymentDate,
         amount: Number(paymentAmount),
-        bankAccountId: bank.id,
-        bankAccountName: bank.bankName,
-        paymentMethod,
+        bankAccountId: supplierCreditId ? "" : bank!.id,
+        bankAccountName: supplierCreditId ? "Saldo a favor del proveedor" : bank!.bankName,
+        paymentMethod: supplierCreditId ? "saldo_favor" : paymentMethod,
+        supplierCreditId: supplierCreditId || undefined,
         referenceNumber: referenceNumber.trim() || `REF-${Date.now().toString().slice(-6)}`,
         registeredBy: currentUser.displayName,
       });
@@ -293,7 +298,7 @@ export function AccountsPayableTab() {
                 <h3 className="text-sm font-bold text-white">Registrar Pago a Proveedor</h3>
                 <p className="text-xs text-blue-100">{selectedInvoice.supplierName}</p>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 onClick={() => setSelectedInvoice(null)}
                 className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 cursor-pointer transition"
               >
@@ -302,6 +307,7 @@ export function AccountsPayableTab() {
             </div>
 
             <form onSubmit={handleSubmitPayment} className="p-5 space-y-3.5 text-xs">
+              <label className="block font-semibold">Origen del pago<select value={supplierCreditId} onChange={e=>{setSupplierCreditId(e.target.value);const credit=supplierCredits.find(c=>c.id===e.target.value);if(credit)setPaymentAmount(Math.min(credit.remaining,selectedInvoice.balanceRemaining));}} className="block w-full border rounded px-3 py-2 mt-1"><option value="">Salida de banco o caja</option>{supplierCredits.filter(c=>c.supplierId===selectedInvoice.supplierId&&c.remaining>0).map(c=><option key={c.id} value={c.id}>Saldo a favor · ${safeNumber(c.remaining)}</option>)}</select></label>
               <div className="p-3 bg-blue-50/70 rounded-lg border border-blue-200/80 flex justify-between">
                 <span className="text-slate-600">Factura {selectedInvoice.documentNumber}</span>
                 <span className="font-mono font-bold text-amber-700">
@@ -311,10 +317,10 @@ export function AccountsPayableTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="accounts-payable-tab-field-1" className="font-bold text-slate-700 block mb-1">
                     Monto a Pagar ($) *
                   </label>
-                  <input
+                  <input id="accounts-payable-tab-field-1"
                     type="number"
                     min="0.01"
                     max={selectedInvoice.balanceRemaining}
@@ -327,10 +333,10 @@ export function AccountsPayableTab() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="accounts-payable-tab-field-2" className="font-bold text-slate-700 block mb-1">
                     Fecha *
                   </label>
-                  <input
+                  <input id="accounts-payable-tab-field-2"
                     type="date"
                     value={paymentDate}
                     onChange={(e) => setPaymentDate(e.target.value)}
@@ -342,10 +348,10 @@ export function AccountsPayableTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="accounts-payable-tab-field-3" className="font-bold text-slate-700 block mb-1">
                     Cuenta Bancaria *
                   </label>
-                  <select
+                  <select id="accounts-payable-tab-field-3"
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
                     className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
@@ -359,10 +365,10 @@ export function AccountsPayableTab() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="accounts-payable-tab-field-4" className="font-bold text-slate-700 block mb-1">
                     Forma de Pago
                   </label>
-                  <select
+                  <select id="accounts-payable-tab-field-4"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
                     className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
@@ -375,10 +381,10 @@ export function AccountsPayableTab() {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
+                <label htmlFor="accounts-payable-tab-field-5" className="font-bold text-slate-700 block mb-1">
                   N° Referencia / Comprobante *
                 </label>
-                <input
+                <input id="accounts-payable-tab-field-5"
                   type="text"
                   value={referenceNumber}
                   onChange={(e) => setReferenceNumber(e.target.value)}

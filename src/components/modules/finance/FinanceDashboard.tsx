@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -76,8 +77,9 @@ export function FinanceDashboard({
     addClientAdvance,
     applyClientAdvance,
     deleteClientAdvance,
+    reverseChargePayment,
   } = useApp();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showError, showConfirm } = useToast();
 
   const searchParams = useSearchParams();
   const subParam = searchParams.get("sub");
@@ -108,7 +110,7 @@ export function FinanceDashboard({
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
   const [paymentBankId, setPaymentBankId] = useState<string>("");
   const [paymentReference, setPaymentReference] = useState("");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(getEcuadorDate());
   const [paymentNotes, setPaymentNotes] = useState("");
 
   // Modal Historial de Abonos
@@ -127,7 +129,7 @@ export function FinanceDashboard({
   const [advClientId, setAdvClientId] = useState("");
   const [advAmount, setAdvAmount] = useState<number>(0);
   const [advMonths, setAdvMonths] = useState<number>(1);
-  const [advDate, setAdvDate] = useState(new Date().toISOString().slice(0, 10));
+  const [advDate, setAdvDate] = useState(getEcuadorDate());
   const [advMethod, setAdvMethod] = useState(PAYMENT_METHODS[0]);
   const [advBankId, setAdvBankId] = useState("");
   const [advReference, setAdvReference] = useState("");
@@ -144,86 +146,10 @@ export function FinanceDashboard({
   const [manualDescription, setManualDescription] = useState("");
   const [manualTotal, setManualTotal] = useState<number>(0);
   const [manualInvoiceNumber, setManualInvoiceNumber] = useState("");
-  const [manualDueDate, setManualDueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [manualDueDate, setManualDueDate] = useState(getEcuadorDate());
 
-  // 1. Unificar todos los cobros (cargados en monthlyCharges + billingInvoices pendientes)
-  const unifiedCharges = useMemo(() => {
-    const list: MonthlyCharge[] = [...(monthlyCharges || [])];
-    const registeredIdentifiers = new Set<string>();
-
-    list.forEach((c) => {
-      if (c.invoiceId) registeredIdentifiers.add(c.invoiceId);
-      if (c.invoiceNumber) registeredIdentifiers.add(c.invoiceNumber.trim());
-    });
-
-    (billingInvoices || []).forEach((inv) => {
-      if (inv.status === "borrador" || inv.status === "anulada") return;
-      const docNumClean = (inv.documentNumber || "").trim();
-      if (registeredIdentifiers.has(inv.id) || (docNumClean && registeredIdentifiers.has(docNumClean))) {
-        return;
-      }
-
-      const breakdown = inv.paymentsBreakdown;
-      const paidImmediate = breakdown
-        ? Math.min(
-            inv.total,
-            (Number(breakdown.efectivo) || 0) +
-              (Number(breakdown.transferencia) || 0) +
-              (Number(breakdown.tarjeta) || 0)
-          )
-        : inv.paymentMethod !== "credito"
-        ? inv.total
-        : 0;
-
-      const creditPart = breakdown
-        ? Number(breakdown.credito) || 0
-        : inv.paymentMethod === "credito"
-        ? inv.total
-        : 0;
-
-      const balanceRemaining =
-        creditPart > 0
-          ? creditPart
-          : inv.paymentMethod === "credito"
-          ? inv.total
-          : Math.max(0, Math.round((inv.total - paidImmediate) * 100) / 100);
-
-      const chargeStatus: "pagado" | "parcial" | "pendiente" =
-        balanceRemaining <= 0.009
-          ? "pagado"
-          : paidImmediate > 0
-          ? "parcial"
-          : "pendiente";
-
-      const dateParts = (inv.date || "").split("-");
-      list.push({
-        id: `chg-inv-${inv.id}`,
-        invoiceId: inv.id,
-        invoiceNumber: inv.documentNumber,
-        saleDate: inv.date,
-        clientId: inv.clientId,
-        clientName: inv.clientName,
-        clientRuc: inv.clientRuc,
-        month: parseInt(dateParts[1] || "1", 10),
-        year: parseInt(dateParts[0] || "2026", 10),
-        serviceDescription:
-          inv.items?.map((i) => i.name).join(", ") ||
-          (inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura de Venta"),
-        subtotal: (inv.subtotal15 || 0) + (inv.subtotal0 || 0),
-        ivaAmount: inv.ivaTotal || 0,
-        maxPaymentDate: inv.creditDueDate || inv.date,
-        total: inv.total,
-        paidAmount: paidImmediate,
-        balanceRemaining,
-        status: chargeStatus,
-        paymentMethod: inv.paymentMethod,
-        paymentDate: paidImmediate > 0 ? inv.date : undefined,
-        notes: inv.notes,
-      });
-    });
-
-    return list;
-  }, [monthlyCharges, billingInvoices]);
+  // Debts are persisted projections, never synthesized from a sale in the browser.
+  const unifiedCharges = useMemo(() => monthlyCharges || [], [monthlyCharges]);
 
   // Filtrado de Cobros
   const filteredCharges = useMemo(() => {
@@ -247,7 +173,7 @@ export function FinanceDashboard({
       let matchesType = true;
       if (typeFilter !== "todos") {
         const invMatch = (billingInvoices || []).find(
-          (i) => i.id === c.invoiceId || i.documentNumber === c.invoiceNumber
+          (i) => i.id === c.invoiceId && i.clientId === c.clientId
         );
         const docType = invMatch?.documentType || "factura";
         matchesType = docType === typeFilter;
@@ -263,7 +189,7 @@ export function FinanceDashboard({
   }, [unifiedCharges, searchQuery, statusFilter, typeFilter, startDate, endDate, billingInvoices]);
 
   // KPI Totales
-  const totalBilled = filteredCharges.reduce((sum, c) => sum + (safeFloat(c.total) || 0), 0);
+  const totalBilled = filteredCharges.filter(c => c.status !== "anulado").reduce((sum, c) => sum + (safeFloat(c.total) || 0), 0);
   const totalPaid = filteredCharges
     .filter((c) => c.status === "pagado" || safeFloat(c.paidAmount) > 0)
     .reduce((sum, c) => sum + (safeFloat(c.paidAmount) || (c.status === "pagado" ? safeFloat(c.total) : 0)), 0);
@@ -305,7 +231,7 @@ export function FinanceDashboard({
     }
     try {
       const blob = await generateBillingBatchExcel(filteredCharges);
-      triggerBrowserDownload(blob, `Cobranzas_Comprobantes_${new Date().toISOString().split("T")[0]}.xlsx`);
+      triggerBrowserDownload(blob, `Cobranzas_Comprobantes_${getEcuadorDate()}.xlsx`);
       showSuccess("Excel Exportado", `Se descargaron ${filteredCharges.length} comprobantes de cobro.`);
     } catch {
       showError("Error", "No se pudo generar el archivo Excel.");
@@ -324,7 +250,7 @@ export function FinanceDashboard({
     setPaymentMethod(PAYMENT_METHODS[0]);
     setPaymentBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
     setPaymentReference(`REF-${Date.now().toString().slice(-6)}`);
-    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentDate(getEcuadorDate());
     setPaymentNotes("");
   };
 
@@ -400,25 +326,17 @@ export function FinanceDashboard({
   const handleConfirmDeleteCharge = async () => {
     if (!deletingCharge) return;
     try {
-      const invId =
-        deletingCharge.invoiceId ||
-        (deletingCharge.id.startsWith("chg-inv-")
-          ? deletingCharge.id.replace("chg-inv-", "")
-          : undefined) ||
-        billingInvoices.find(
-          (i) =>
-            (deletingCharge.invoiceNumber && i.documentNumber === deletingCharge.invoiceNumber) ||
-            (deletingCharge.invoiceId && i.id === deletingCharge.invoiceId)
-        )?.id;
+      const invId = deletingCharge.invoiceId;
 
       if (invId) {
         await deleteInvoice(invId);
+      } else {
+        await deleteMonthlyCharge(deletingCharge.id);
       }
-      await deleteMonthlyCharge(deletingCharge.id);
 
       showSuccess(
-        "Comprobante Eliminado",
-        `Se eliminó correctamente el comprobante ${deletingCharge.invoiceNumber || ""}.`
+        "Anulación registrada",
+        `Se conserva el historial de ${deletingCharge.invoiceNumber || ""} y los importes recibidos quedan identificados.`
       );
       setDeletingCharge(null);
     } catch (error) {
@@ -501,7 +419,7 @@ export function FinanceDashboard({
     const clientObj = clients.find((c) => c.id === manualClientId);
     if (!clientObj) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getEcuadorDate();
     const dateParts = today.split("-");
     const docNum = manualInvoiceNumber.trim() || `COB-${Date.now().toString().slice(-6)}`;
 
@@ -625,7 +543,7 @@ export function FinanceDashboard({
               <button
                 type="button"
                 onClick={() => {
-                  setManualDueDate(new Date().toISOString().slice(0, 10));
+                  setManualDueDate(getEcuadorDate());
                   setIsNewManualChargeOpen(true);
                 }}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
@@ -810,7 +728,7 @@ export function FinanceDashboard({
 
                             <button
                               type="button"
-                              title="Eliminar Cobro"
+                              title="Revisar anulación comercial"
                               onClick={() => setDeletingCharge(charge)}
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md transition cursor-pointer"
                             >
@@ -846,7 +764,7 @@ export function FinanceDashboard({
             <button
               type="button"
               onClick={() => {
-                setAdvDate(new Date().toISOString().slice(0, 10));
+                setAdvDate(getEcuadorDate());
                 setAdvBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
                 setIsAdvanceModalOpen(true);
               }}
@@ -938,15 +856,15 @@ export function FinanceDashboard({
                               </button>
                             )}
 
-                            {(!adv.applications || adv.applications.length === 0) && (
+                            {adv.remaining > 0 && (
                               <button
                                 type="button"
-                                title="Eliminar anticipo sin usar"
+                                title="Devolver saldo disponible del anticipo"
                                 onClick={async () => {
-                                  if (confirm(`¿Eliminar anticipo de $${adv.amount} de ${adv.clientName}?`)) {
+                                  if (confirm(`¿Devolver $${adv.remaining} disponibles de ${adv.clientName} a través de su cuenta de origen? Se registrará un egreso y se conservará el historial.`)) {
                                     try {
                                       await deleteClientAdvance(adv.id);
-                                      showSuccess("Anticipo Eliminado", "Se eliminó el pago anticipado.");
+                                      showSuccess("Devolución registrada", "Se devolvió el saldo disponible y se conservó su historial.");
                                     } catch (err) {
                                       showError("Error", err instanceof Error ? err.message : "No se pudo eliminar.");
                                     }
@@ -983,7 +901,7 @@ export function FinanceDashboard({
                   Cliente: <strong className="text-slate-800">{payingCharge.clientName}</strong>
                 </span>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setPayingCharge(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1043,10 +961,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-1" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Monto a Abonar ($) *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-1"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -1063,10 +981,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-2" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Fecha del Abono *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-2"
                     type="date"
                     required
                     value={paymentDate}
@@ -1078,10 +996,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-3" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Forma de Pago
                   </label>
-                  <select
+                  <select id="finance-dashboard-field-3"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1095,10 +1013,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-4" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Cuenta / Banco Destino
                   </label>
-                  <select
+                  <select id="finance-dashboard-field-4"
                     value={paymentBankId}
                     onChange={(e) => setPaymentBankId(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1114,10 +1032,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-5" className="text-[11px] font-bold text-slate-700 block mb-1">
                   N° Referencia / Comprobante Bancario
                 </label>
-                <input
+                <input id="finance-dashboard-field-5"
                   type="text"
                   placeholder="Ej: Depósito #491029 / Transf. Pichincha"
                   value={paymentReference}
@@ -1127,10 +1045,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-6" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Observaciones / Notas del Cobro
                 </label>
-                <input
+                <input id="finance-dashboard-field-6"
                   type="text"
                   placeholder="Detalle adicional del pago o abono..."
                   value={paymentNotes}
@@ -1173,7 +1091,7 @@ export function FinanceDashboard({
                   Cliente: <strong className="text-slate-800">{historyCharge.clientName}</strong>
                 </span>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setHistoryCharge(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1207,7 +1125,8 @@ export function FinanceDashboard({
                         <span className="font-mono font-bold text-emerald-700 text-sm block">
                           +${safeNumber(p.amount)}
                         </span>
-                        <span className="text-[10px] text-slate-400">Abonado</span>
+                        <span className="text-[10px] text-slate-400">{p.status === "reversed" ? "Aplicación revertida" : "Abonado"}</span>
+                        {p.status !== "reversed" && historyCharge.status !== "anulado" && <button type="button" className="block text-xs text-blue-700 underline mt-1" onClick={() => showConfirm("Revertir aplicación", "La deuda volverá a quedar pendiente y el dinero quedará disponible como anticipo. No se devuelve dinero del banco.", async () => {try{await reverseChargePayment(historyCharge.id,p.id);setHistoryCharge(null);showSuccess("Aplicación revertida","Saldo disponible y deuda actualizados.");}catch(error){showError("No se pudo revertir",error instanceof Error?error.message:"Revisa el historial.");}})}>Revertir aplicación</button>}
                       </div>
                     </div>
                   ))}
@@ -1240,7 +1159,7 @@ export function FinanceDashboard({
                 <Edit2 className="w-4 h-4 text-[#004ac6]" />
                 Editar Cobro: {editingCharge.invoiceNumber}
               </h3>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setEditingCharge(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1251,8 +1170,8 @@ export function FinanceDashboard({
 
             <form onSubmit={handleSaveEditCharge} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Cliente</label>
-                <input
+                <label htmlFor="finance-dashboard-field-7" className="text-[11px] font-bold text-slate-700 block mb-1">Cliente</label>
+                <input id="finance-dashboard-field-7"
                   type="text"
                   disabled
                   value={editingCharge.clientName}
@@ -1261,10 +1180,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-8" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Fecha Límite / Vencimiento
                 </label>
-                <input
+                <input id="finance-dashboard-field-8"
                   type="date"
                   value={editDueDate}
                   onChange={(e) => setEditDueDate(e.target.value)}
@@ -1273,10 +1192,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-9" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Observaciones / Notas
                 </label>
-                <textarea
+                <textarea id="finance-dashboard-field-9"
                   rows={3}
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
@@ -1314,9 +1233,9 @@ export function FinanceDashboard({
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="font-bold text-slate-900 text-sm">¿Eliminar este cobro comercial?</h3>
+              <h3 className="font-bold text-slate-900 text-sm">{deletingCharge.invoiceId ? "¿Anular la venta y su deuda?" : "¿Anular esta deuda manual?"}</h3>
               <p className="text-xs text-slate-600">
-                Se removerá el cobro asociado al comprobante <strong>{deletingCharge.invoiceNumber}</strong> por un total de <strong>${safeNumber(deletingCharge.total)}</strong>.
+                Se anulará {deletingCharge.invoiceId ? "la venta y su deuda" : "la deuda"} <strong>{deletingCharge.invoiceNumber}</strong> por <strong>${safeNumber(deletingCharge.total)}</strong>. El historial se conserva. Los abonos quedan como saldo a favor y la salida de inventario se revierte cuando corresponde. Esta acción no devuelve dinero al cliente.
               </p>
             </div>
 
@@ -1333,7 +1252,7 @@ export function FinanceDashboard({
                 onClick={handleConfirmDeleteCharge}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
               >
-                Sí, Eliminar Cobro
+                Confirmar anulación
               </button>
             </div>
           </div>
@@ -1354,7 +1273,7 @@ export function FinanceDashboard({
                   Abono por adelantado para cubrir 1 o varios meses a futuro
                 </span>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setIsAdvanceModalOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1365,10 +1284,10 @@ export function FinanceDashboard({
 
             <form onSubmit={handleCreateAdvance} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-10" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Cliente *
                 </label>
-                <select
+                <select id="finance-dashboard-field-10"
                   required
                   value={advClientId}
                   onChange={(e) => setAdvClientId(e.target.value)}
@@ -1385,10 +1304,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-11" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Monto Anticipado ($) *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-11"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -1401,10 +1320,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-12" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Meses que Cubre *
                   </label>
-                  <select
+                  <select id="finance-dashboard-field-12"
                     value={advMonths}
                     onChange={(e) => setAdvMonths(parseInt(e.target.value, 10) || 1)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1420,10 +1339,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-13" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Fecha del Anticipo *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-13"
                     type="date"
                     required
                     value={advDate}
@@ -1433,10 +1352,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-14" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Forma de Pago
                   </label>
-                  <select
+                  <select id="finance-dashboard-field-14"
                     value={advMethod}
                     onChange={(e) => setAdvMethod(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1452,10 +1371,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-15" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Cuenta / Banco Destino
                   </label>
-                  <select
+                  <select id="finance-dashboard-field-15"
                     value={advBankId}
                     onChange={(e) => setAdvBankId(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1470,10 +1389,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-16" className="text-[11px] font-bold text-slate-700 block mb-1">
                     N° Referencia
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-16"
                     type="text"
                     placeholder="Ej: Transf. 89102"
                     value={advReference}
@@ -1484,10 +1403,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-17" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Notas / Observaciones
                 </label>
-                <input
+                <input id="finance-dashboard-field-17"
                   type="text"
                   placeholder="Ej: Pago adelantado de internet meses Mayo y Junio..."
                   value={advNotes}
@@ -1531,7 +1450,7 @@ export function FinanceDashboard({
                   <strong className="text-emerald-700 font-mono">${safeNumber(selectedAdvanceToApply.remaining)}</strong>
                 </span>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setSelectedAdvanceToApply(null)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1542,10 +1461,10 @@ export function FinanceDashboard({
 
             <form onSubmit={handleExecuteApplyAdvance} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-18" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Comprobante a Saldar *
                 </label>
-                <select
+                <select id="finance-dashboard-field-18"
                   required
                   value={targetChargeIdForAdvance}
                   onChange={(e) => {
@@ -1576,10 +1495,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-19" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Monto a Aplicar ($) *
                 </label>
-                <input
+                <input id="finance-dashboard-field-19"
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -1620,7 +1539,7 @@ export function FinanceDashboard({
                 <Plus className="w-4 h-4 text-[#004ac6]" />
                 Registrar Cobro
               </h3>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setIsNewManualChargeOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
@@ -1631,8 +1550,8 @@ export function FinanceDashboard({
 
             <form onSubmit={handleCreateManualCharge} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">Cliente *</label>
-                <select
+                <label htmlFor="finance-dashboard-field-20" className="text-[11px] font-bold text-slate-700 block mb-1">Cliente *</label>
+                <select id="finance-dashboard-field-20"
                   required
                   value={manualClientId}
                   onChange={(e) => setManualClientId(e.target.value)}
@@ -1648,10 +1567,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-21" className="text-[11px] font-bold text-slate-700 block mb-1">
                   N° Comprobante / Referencia
                 </label>
-                <input
+                <input id="finance-dashboard-field-21"
                   type="text"
                   placeholder="Ej: 001-001-00000045"
                   value={manualInvoiceNumber}
@@ -1661,10 +1580,10 @@ export function FinanceDashboard({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                <label htmlFor="finance-dashboard-field-22" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Concepto / Detalle del Cobro *
                 </label>
-                <input
+                <input id="finance-dashboard-field-22"
                   type="text"
                   required
                   placeholder="Ej: Instalación de Fibra Óptica, Router Dual Band..."
@@ -1676,10 +1595,10 @@ export function FinanceDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-23" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Total a Cobrar ($) *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-23"
                     type="number"
                     step="0.01"
                     min="0.01"
@@ -1691,10 +1610,10 @@ export function FinanceDashboard({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label htmlFor="finance-dashboard-field-24" className="text-[11px] font-bold text-slate-700 block mb-1">
                     Fecha Vencimiento *
                   </label>
-                  <input
+                  <input id="finance-dashboard-field-24"
                     type="date"
                     required
                     value={manualDueDate}

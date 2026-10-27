@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { validateIdentification } from "../validation-engine";
+import { validateIdentification } from "../validation-engine.ts";
+import { validDate } from "../commercial-core.ts";
 
 const text = z.string().trim().min(1).max(500);
 const optionalText = z.string().trim().max(500).optional();
 const money = z.number().finite().nonnegative().max(100000000);
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => !Number.isNaN(Date.parse(v)));
+const date = z.string().refine(validDate, "Fecha de calendario inválida.");
 
 const client = z
   .object({
@@ -46,7 +47,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
       clientId: text,
       planId: text,
       customPrice: money,
-      status: z.enum(["activo", "suspendido", "retirado", "en_instalacion"]),
+      status: z.enum(["activo", "inactivo", "por_renovar", "suspendido", "retirado", "en_instalacion"]),
     })
     .passthrough(),
   plans: z
@@ -108,7 +109,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     .object({
       name: text,
       address: text,
-      totalCapacityMbps: z.number().positive(),
+      totalCapacityMbps: money,
       usedCapacityMbps: money,
       status: z.enum(["online", "offline", "warning"]),
     })
@@ -138,11 +139,12 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     })
     .passthrough()
     .refine((v) => v.expirationDate >= v.startDate, "Fechas de póliza inválidas"),
-  arcotelFiles: z.object({ title: text }).passthrough(),
+  arcotelFiles: z.object({ fileName: text, subsystem: text, period: text }).passthrough(),
   regulatoryTramites: z
     .object({
-      title: text,
-      tramiteNumber: text,
+      code: text,
+      documentNumber: text,
+      reason: text,
     })
     .passthrough(),
 
@@ -165,7 +167,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
       title: text,
       description: text,
       priority: z.enum(["baja", "media", "alta", "critica"]),
-      status: z.enum(["abierto", "en_progreso", "resuelto", "cerrado"]),
+      status: z.enum(["abierto", "en_progreso", "respondido", "en_espera", "respuesta_cliente", "resuelto", "cerrado"]),
     })
     .passthrough(),
 
@@ -181,8 +183,8 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   billingInvoices: z
     .object({
       clientId: text,
-      invoiceNumber: text,
-      issueDate: date,
+      documentNumber: text,
+      date,
       total: money,
       status: text,
     })
@@ -204,12 +206,12 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   billingWithholdings: z
     .object({
       clientId: text,
-      totalWithheld: money,
+      totalRetained: money,
     })
     .passthrough(),
   billingRemissionGuides: z
     .object({
-      guideNumber: text,
+      documentNumber: text,
     })
     .passthrough(),
   sriCompanyConfig: z
@@ -220,20 +222,21 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     .passthrough(),
 
   // Compras & Proveedores
-  suppliers: supplier,
+  suppliers: z.object({ ruc: text, razonSocial: text, email: z.string().email().or(z.literal("")), status: z.enum(["activo", "inactivo"]) }).passthrough(),
   purchaseInvoices: z
     .object({
       supplierId: text,
       documentNumber: text,
-      issueDate: date,
+      date,
       total: money,
-      status: text,
+      paymentStatus: z.enum(["pagado", "pendiente", "abono_parcial"]),
     })
     .passthrough(),
   supplierCreditNotes: z.object({ supplierId: text, total: money }).passthrough(),
   supplierDebitNotes: z.object({ supplierId: text, total: money }).passthrough(),
   purchaseWithholdings: z.object({ supplierId: text, totalWithheld: money }).passthrough(),
   supplierPayments: z.object({ supplierId: text, amount: money }).passthrough(),
+  supplierCredits: z.object({ supplierId: text, sourceNoteId: text, amount: money, remaining: money }).passthrough(),
 
   // Inventarios
   inventoryProducts: z
@@ -241,7 +244,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
       name: text,
       sku: text,
       salePrice: money,
-      currentStock: z.number(),
+      stock: z.number().finite().nonnegative(),
     })
     .passthrough(),
   inventoryWarehouses: z.object({ name: text }).passthrough(),
@@ -250,12 +253,13 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   inventoryKardex: z
     .object({
       productId: text,
-      movementType: text,
-      quantity: z.number(),
+      type: text,
+      entryQuantity: z.number().finite().nonnegative().optional(),
+      exitQuantity: z.number().finite().nonnegative().optional(),
       date: text,
     })
     .passthrough(),
-  inventoryTransfers: z.object({ originWarehouseId: text, destinationWarehouseId: text }).passthrough(),
+  inventoryTransfers: z.object({ originWarehouseId: text, destWarehouseId: text, quantity: z.number().positive() }).passthrough(),
   inventoryAdjustments: z.object({ warehouseId: text }).passthrough(),
 
   // Finanzas & Tesorería
@@ -274,5 +278,10 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     })
     .passthrough(),
   expenses: z.object({ supplierName: text, amount: money, expenseDate: date, description: text }).passthrough(),
-  hostingDomains: z.object({ domainName: text, annualCostUsd: money }).passthrough(),
+  hostingDomains: z.object({ domainOrService: text, annualCost: money }).passthrough(),
+  ticketSubjects: z.object({ name: text, category: text, defaultDepartment: text }).passthrough(),
+  clientAdvances: z.object({ clientId: text, amount: money, remaining: money, applications: z.array(z.record(z.unknown())) }).passthrough(),
+  billingDebitNotes: z.object({ clientId: text, total: money }).passthrough(),
+  auditLogs: z.object({ action: text, resource: text, details: z.string().max(20000), timestamp: text }).passthrough(),
+  systemConfig: z.object({}).passthrough(),
 };

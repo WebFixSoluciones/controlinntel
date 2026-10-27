@@ -4,14 +4,16 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { validateMonetaryAmount } from "@/lib/validation-engine";
+import { getEcuadorDate } from "@/lib/date-utils";
 import { Receipt, Plus, Check, X } from "lucide-react";
 
 export function ExpensesManager() {
-  const { expenses, addExpense } = useApp();
+  const { expenses, addExpense, bankAccounts } = useApp();
   const { showError, showSuccess } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [supplierName, setSupplierName] = useState("");
-  const [amount, setAmount] = useState(150);
+  const [amount, setAmount] = useState(0);
+  const [bankAccountId, setBankAccountId] = useState("");
   const [category, setCategory] = useState<any>("enlace_transito");
   const [description, setDescription] = useState("");
 
@@ -36,8 +38,9 @@ export function ExpensesManager() {
       amount: Number(amount),
       category,
       description,
-      expenseDate: new Date().toISOString().split("T")[0],
-      paymentMethod: "transferencia",
+      expenseDate: getEcuadorDate(),
+      bankAccountId,
+      paymentMethod: bankAccounts.find(b => b.id === bankAccountId)?.accountType === "caja_efectivo" ? "efectivo" : "transferencia",
     });
 
     showSuccess("Gasto Registrado", `Efectivo/Transferencia por $${Number(amount).toFixed(2)} USD para ${supplierName} asentado.`);
@@ -153,14 +156,15 @@ export function ExpensesManager() {
           <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
               <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Gasto</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
+              <button aria-label="Cerrar" onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-4 space-y-3 text-xs">
+              <label className="block font-semibold">Cuenta de salida<select required value={bankAccountId} onChange={e => setBankAccountId(e.target.value)} className="block w-full border rounded px-3 py-2 mt-1"><option value="">Seleccionar banco o caja</option>{bankAccounts.filter(b => b.status === "activa").map(b => <option key={b.id} value={b.id}>{b.bankName} · {b.accountNumber}</option>)}</select></label>
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Proveedor / Beneficiario *</label>
-                <input
+                <label htmlFor="expenses-manager-field-1" className="font-bold text-[#434655] block mb-1">Proveedor / Beneficiario *</label>
+                <input id="expenses-manager-field-1"
                   type="text"
                   required
                   placeholder="Telconet / Torrecuador / OptiCom"
@@ -171,8 +175,8 @@ export function ExpensesManager() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-[#434655] block mb-1">Categoría</label>
-                  <select
+                  <label htmlFor="expenses-manager-field-2" className="font-bold text-[#434655] block mb-1">Categoría</label>
+                  <select id="expenses-manager-field-2"
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
@@ -184,8 +188,8 @@ export function ExpensesManager() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-bold text-[#434655] block mb-1">Valor ($ USD) *</label>
-                  <input
+                  <label htmlFor="expenses-manager-field-3" className="font-bold text-[#434655] block mb-1">Valor ($ USD) *</label>
+                  <input id="expenses-manager-field-3"
                     type="number"
                     step="0.01"
                     required
@@ -196,8 +200,8 @@ export function ExpensesManager() {
                 </div>
               </div>
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Descripción</label>
-                <textarea
+                <label htmlFor="expenses-manager-field-4" className="font-bold text-[#434655] block mb-1">Descripción</label>
+                <textarea id="expenses-manager-field-4"
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}

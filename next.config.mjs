@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
@@ -54,7 +55,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseio.com https://*.firebaseapp.com",
-              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://cel.sri.gob.ec https://celcer.sri.gob.ec",
+              "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://cel.sri.gob.ec https://celcer.sri.gob.ec" + (process.env.NEXT_PUBLIC_USE_EMULATORS === "true" && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.startsWith("demo-") ? " http://127.0.0.1:9099 http://127.0.0.1:8080 http://localhost:9099 http://localhost:8080 ws://localhost:3040 ws://127.0.0.1:3040" : ""),
               "img-src 'self' data: blob: https:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",

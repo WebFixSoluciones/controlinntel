@@ -2,11 +2,12 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {actor,requirePermission,HttpError,audit} from "@/lib/server/security";
 import {adminServices} from "@/lib/server/admin";
+import {recordOperation} from "@/lib/server/operation-log";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const roles=z.enum(["superadmin","admin","finanzas","tecnico","soporte","legal","consulta"]);
 const permissions=z.array(z.enum(["all","manage_users","manage_vault","manage_clients","manage_network","manage_tickets","manage_finance","manage_policies","export_reports"]));
-const profile=z.object({email:z.string().email(),displayName:z.string().min(3).max(150),role:roles,status:z.enum(["activo","inactivo"]),permissions,department:z.string().max(200).optional(),phone:z.string().max(50).optional()});
+const profile=z.object({email:z.string().email(),displayName:z.string().min(3).max(150),role:roles,status:z.enum(["activo","inactivo"]),permissions,modulePermissions:z.record(z.unknown()).optional(),department:z.string().max(200).optional(),phone:z.string().max(50).optional()});
 const requestSchema=z.object({action:z.enum(["create","update","disable"]),uid:z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/).optional(),data:z.record(z.unknown()).optional()});
 export async function POST(request:NextRequest) {
  try {
@@ -20,8 +21,9 @@ export async function POST(request:NextRequest) {
      const account=await auth.createUser({email:data.email,password,displayName:data.displayName,disabled:true});
      try {
        const batch=db.batch(),ref=db.collection("users").doc(account.uid);
-       batch.create(ref,{...data,uid:account.uid,createdAt:new Date().toISOString()});
-       const log=audit(user,"CREATE_USER",ref.path);batch.create(db.collection("auditLogs").doc(log.id),log);
+       const created=JSON.parse(JSON.stringify({...data,uid:account.uid,createdAt:new Date().toISOString(),version:1}));
+       batch.create(ref,created);
+       recordOperation(batch as any,db,user,"CREATE_USER",[{collection:"users",id:account.uid,beforeVersion:null,after:created}]);
        await batch.commit();
        await auth.updateUser(account.uid,{disabled:data.status!=="activo"});
      } catch(e) {
@@ -44,10 +46,11 @@ export async function POST(request:NextRequest) {
          const admins=await tx.get(db.collection("users").where("role","==","superadmin"));
          if(admins.docs.filter(d=>d.data().status==="activo").length<=1)throw new HttpError(409,"Debe quedar un superadministrador activo.");
        }
-       tx.update(ref,{...data,updatedAt:new Date().toISOString()});
-       const log=audit(user,"UPDATE_USER",ref.path);tx.create(db.collection("auditLogs").doc(log.id),log);
+       const after=JSON.parse(JSON.stringify({...data,uid,version:Number(old.version||0)+1,updatedAt:new Date().toISOString()}));
+       tx.set(ref,after);
+       recordOperation(tx,db,user,"UPDATE_USER",[{collection:"users",id:uid,beforeVersion:old.version??null,after}]);
      });
-     if(password)await auth.updateUser(uid,{password:password as string});
+     await auth.updateUser(uid,{disabled:changes.status==="inactivo",...(password?{password:password as string}:{})});
      await auth.revokeRefreshTokens(uid);
      // Firestore profile is the authority for active/inactive access.
    }

@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -51,7 +52,7 @@ export function MovementsTab() {
     try {
       await addFinancialMovement({
         type,
-        date: new Date().toISOString().slice(0, 10),
+        date: getEcuadorDate(),
         amount: Number(amount),
         category,
         description: description.trim(),

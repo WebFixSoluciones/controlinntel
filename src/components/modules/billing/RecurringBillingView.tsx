@@ -1,7 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
+import { calculateLines, planServicePeriod } from "@/lib/commercial-core";
+import { getEcuadorDate } from "@/lib/date-utils";
+import { api } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientService, ServiceBillingFrequency, ServiceStatus, SriInvoice } from "@/types";
 import {
@@ -47,6 +50,9 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     deleteClientService,
     renewClientService,
     emitRecurringInvoiceForClient,
+    startBillingRun,
+    processBillingRun,
+    refresh,
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
@@ -57,11 +63,15 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[now.getMonth()]);
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
-  const [frequencyFilter, setFrequencyFilter] = useState<"todos" | "mensual" | "anual">("todos");
+  const [frequencyFilter, setFrequencyFilter] = useState<"todos" | ServiceBillingFrequency>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [emittingClientId, setEmittingClientId] = useState<string | null>(null);
   const [emittingBatch, setEmittingBatch] = useState(false);
+  const [batchProgress, setBatchProgress] = useState("");
+  const [savedRuns, setSavedRuns] = useState<{ id: string; units: { index: number; status: string }[] }[]>([]);
+  const loadRuns = async () => setSavedRuns((await api<{ runs: { id: string; units: { index: number; status: string }[] }[] }>("/api/commercial")).runs);
+  useEffect(() => { void loadRuns().catch(() => {}); }, []);
 
   // Filter for Renovaciones tab
   const [renewalFilter, setRenewalFilter] = useState<
@@ -109,23 +119,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         if (matchingFreqServices.length === 0) return null;
 
-        const billableServices = matchingFreqServices.filter(
-          (s) => s.status === "activo" && s.isBillableInCurrentCycle !== false
-        );
-        const nonBillableServices = matchingFreqServices.filter(
-          (s) => !(s.status === "activo" && s.isBillableInCurrentCycle !== false)
-        );
-
-        const subtotal =
-          Math.round(
-            billableServices.reduce((sum, s) => sum + (s.customPrice ?? s.basePrice ?? 0), 0) * 100
-          ) / 100;
-        const iva = Math.round(subtotal * 0.15 * 100) / 100;
-        const total = Math.round((subtotal + iva) * 100) / 100;
-
-        const alreadyBilledInPeriod =
-          billableServices.length > 0 &&
-          billableServices.every((s) => s.lastBilledPeriod === periodKey);
+        const plans = matchingFreqServices.map(service => ({ service, plan: planServicePeriod(service, selectedMonthNum, selectedYear, getEcuadorDate()) }));
+        const billableServices = plans.filter(({ service, plan }) => plan.eligible && service.lastBilledPeriod !== periodKey).map(p => p.service);
+        const nonBillableServices = matchingFreqServices.filter(service => !billableServices.some(s => s.id === service.id));
+        const eligibleLines = plans.filter(({ service, plan }) => plan.eligible && service.lastBilledPeriod !== periodKey).flatMap(({ plan }) => plan.eligible ? [plan.line] : []);
+        const calculated = eligibleLines.length ? calculateLines(eligibleLines) : { subtotal: 0, ivaTotal: 0, total: 0 };
+        const subtotal = calculated.subtotal, iva = calculated.ivaTotal, total = calculated.total;
+        const alreadyBilledInPeriod = matchingFreqServices.length > 0 && matchingFreqServices.every(s => s.lastBilledPeriod === periodKey);
 
         const hasMonthly = matchingFreqServices.some(
           (s) => (s.billingFrequency || "mensual") === "mensual"
@@ -133,6 +133,12 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         const hasAnnual = matchingFreqServices.some((s) => s.billingFrequency === "anual");
         const freqLabel =
           hasMonthly && hasAnnual ? "Mensual / Anual" : hasAnnual ? "Anual" : "Mensual";
+
+        const hasPrepago = matchingFreqServices.some((s) => s.billingType === "prepago");
+        const hasPostpago = matchingFreqServices.some((s) => s.billingType === "pospago" || s.billingType === "postpago");
+        const modalityLabel = hasPrepago && hasPostpago ? "Prepago/Post" : hasPrepago ? "Prepago" : "Postpago";
+        const billingDay = matchingFreqServices[0]?.billingDay || 1;
+        const advanceNoticeDay = matchingFreqServices[0]?.advanceNoticeDay || 26;
 
         return {
           client,
@@ -144,6 +150,11 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           total,
           alreadyBilledInPeriod,
           freqLabel,
+          hasPrepago,
+          hasPostpago,
+          modalityLabel,
+          billingDay,
+          advanceNoticeDay,
         };
       })
       .filter((row): row is NonNullable<typeof row> => {
@@ -234,7 +245,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       const inv = await emitRecurringInvoiceForClient(
         clientId,
         selectedMonthNum,
-        selectedYear
+        selectedYear,
+        recurringClientsRows.find(row => row.client.id === clientId)?.billableServices.map(service => service.id)
       );
       if (inv) {
         showSuccess(
@@ -257,37 +269,37 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     }
   };
 
-  // Emit batch for all pending clients in current filter
-  const handleEmitBatch = async () => {
-    const pendingRows = recurringClientsRows.filter(
-      (r) => !r.alreadyBilledInPeriod && r.billableServices.length > 0
-    );
-    if (pendingRows.length === 0) {
-      showError(
-        "Lote al día",
-        "No hay clientes recurrentes pendientes de generar Nota de Venta en el periodo seleccionado."
-      );
-      return;
-    }
-
+  const resumeBillingRun = async (run: { id: string; units: { index: number; status: string }[] }) => {
     setEmittingBatch(true);
-    let emittedCount = 0;
+    const failures: string[] = [];
+    let done = run.units.filter(unit => unit.status === "completed").length;
     try {
-      for (const row of pendingRows) {
-        const inv = await emitRecurringInvoiceForClient(
-          row.client.id,
-          selectedMonthNum,
-          selectedYear
-        );
-        if (inv) emittedCount++;
+      for (const unit of run.units.filter(unit => unit.status !== "completed")) {
+        setBatchProgress(`${done}/${run.units.length}`);
+        const result = await processBillingRun(run.id, unit.index);
+        if (result.status === "completed") done++;
+        else failures.push(result.error || "Unidad pendiente de revisión.");
       }
-      showSuccess(
-        "Ventas Recurrentes Generadas",
-        `Se emitieron ${emittedCount} Nota(s) de Venta correspondientes a ${selectedMonth} ${selectedYear}.`
-      );
-    } catch (err: any) {
-      showError("Error en Lote", err?.message || "Ocurrió un error al procesar el lote.");
-    } finally {
+      setBatchProgress(`${done}/${run.units.length}`);
+      await refresh();
+      await loadRuns();
+      if (failures.length) showError("Lote con incidencias", failures.slice(0, 3).join(" · "));
+      else showSuccess("Lote completado", `${done} documentos confirmados. El resultado queda guardado.`);
+    } catch (error) {
+      showError("Lote pendiente", error instanceof Error ? error.message : "Puedes reanudar el lote guardado.");
+    } finally { setEmittingBatch(false); }
+  };
+
+  const handleEmitBatch = async () => {
+    const pending = recurringClientsRows.filter(row => row.billableServices.length > 0);
+    if (!pending.length) return;
+    try {
+      setEmittingBatch(true);
+      const run = await startBillingRun(pending.map(row => ({ clientId: row.client.id, month: selectedMonthNum, year: selectedYear,
+        serviceIds: row.billableServices.map(service => service.id), expectedTotal: row.total })));
+      await resumeBillingRun(run);
+    } catch (error) {
+      showError("No se inició el lote", error instanceof Error ? error.message : "Revisa los servicios.");
       setEmittingBatch(false);
     }
   };
@@ -296,7 +308,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   const handleDeleteService = (serviceId: string, planName: string, clientName: string) => {
     showConfirm(
       "¿Eliminar Servicio Recurrente?",
-      `¿Deseas eliminar el servicio "${planName}" de ${clientName}? Se retirará de la facturación recurrente y cobranzas.`,
+      `Se retirará el servicio "${planName}" de ${clientName} de futuras emisiones. Sus deudas y cobros anteriores se conservan.`,
       async () => {
         try {
           await deleteClientService(serviceId);
@@ -458,6 +470,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           >
             <option value="todos">Frecuencia</option>
             <option value="mensual">Mensual</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
             <option value="anual">Anual</option>
           </select>
 
@@ -469,13 +483,17 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-40 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{emittingBatch ? "Emitiendo..." : "Facturar Lote"}</span>
+              <span>{emittingBatch ? `Emitiendo ${batchProgress}` : "Facturar Lote"}</span>
             </button>
           )}
         </div>
       </div>
 
       {/* KPI Strip limpio y directo */}
+      {savedRuns.length > 0 && <div className="rounded-lg border bg-white p-3 space-y-2" aria-label="Lotes pendientes">
+        <p className="text-sm font-semibold">Lotes guardados pendientes de completar</p>
+        {savedRuns.map(run => <button key={run.id} disabled={emittingBatch} onClick={() => { void resumeBillingRun(run); }} className="block text-sm text-blue-700 underline disabled:opacity-50">Reanudar lote {run.id.slice(0, 8)} · {run.units.filter(unit => unit.status === "completed").length}/{run.units.length} confirmados</button>)}
+      </div>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
@@ -595,9 +613,25 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                           </td>
 
                           <td className="py-3.5 px-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
-                              {row.freqLabel}
-                            </span>
+                            <div className="space-y-1">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                                {row.freqLabel}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span
+                                  className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase border ${
+                                    row.hasPrepago
+                                      ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                                      : "bg-purple-50 text-purple-800 border-purple-200"
+                                  }`}
+                                >
+                                  {row.modalityLabel}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono" title={`Facturación: Día ${row.billingDay} • Aviso previo: Día ${row.advanceNoticeDay}`}>
+                                  D{row.billingDay}
+                                </span>
+                              </div>
+                            </div>
                           </td>
 
                           <td className="py-3.5 px-3 text-center">
@@ -667,7 +701,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                 type="button"
                                 disabled={
                                   row.billableServices.length === 0 ||
-                                  emittingClientId === row.client.id
+                                  emittingBatch || emittingClientId === row.client.id
                                 }
                                 onClick={() =>
                                   handleEmitClientInvoice(row.client.id, row.client.businessName)
@@ -677,7 +711,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                 {emittingClientId === row.client.id
                                   ? "Emitiendo..."
                                   : row.alreadyBilledInPeriod
-                                  ? "Re-emitir NV"
+                                  ? "Ya emitida"
                                   : "Generar Nota Venta"}
                               </button>
 
@@ -738,6 +772,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                     <tr>
                                       <th className="py-2 px-4">Servicio</th>
                                       <th className="py-2 px-3">Ciclo</th>
+                                      <th className="py-2 px-3">Modalidad</th>
                                       <th className="py-2 px-3">Renovación</th>
                                       <th className="py-2 px-3 text-center">Estado</th>
                                       <th className="py-2 px-3 text-center">Facturar</th>
@@ -758,6 +793,20 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                           </td>
                                           <td className="py-2.5 px-3 capitalize text-slate-600">
                                             {svc.billingFrequency || "mensual"}
+                                          </td>
+                                          <td className="py-2.5 px-3">
+                                            <span
+                                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase border ${
+                                                svc.billingType === "prepago"
+                                                  ? "bg-cyan-50 text-cyan-800 border-cyan-200"
+                                                  : "bg-purple-50 text-purple-800 border-purple-200"
+                                              }`}
+                                            >
+                                              {svc.billingType === "prepago" ? "PREPAGO" : "POSTPAGO"}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400 block font-mono">
+                                              Día {svc.billingDay ?? 1}
+                                            </span>
                                           </td>
                                           <td className="py-2.5 px-3 font-mono text-slate-600">
                                             {svc.nextRenewalDate || "—"}

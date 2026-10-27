@@ -49,30 +49,7 @@ import {
 import { simpleEncrypt } from "./crypto-vault";
 import { DEFAULT_INNTEL_SRI_CONFIG, generarClaveAccesoSRI } from "./sri-service";
 
-export const INITIAL_SYSTEM_USERS: SystemUser[] = [
-  {
-    uid: "usr-superadmin-00",
-    email: "superadmin@inntelcorp.com",
-    displayName: "Administrador",
-    role: "superadmin",
-    department: "Administración General",
-    phone: "+593 99 876 5432",
-    status: "activo",
-    passwordHash: "Inntel2026*",
-    permissions: [
-      "all",
-      "manage_users",
-      "manage_vault",
-      "manage_clients",
-      "manage_network",
-      "manage_tickets",
-      "manage_finance",
-      "manage_policies",
-      "export_reports",
-    ],
-    createdAt: "2024-01-01T08:00:00Z",
-  },
-];
+export const INITIAL_SYSTEM_USERS: SystemUser[] = [];
 
 export interface SystemAccount {
   user: UserProfile;
@@ -93,7 +70,9 @@ export const SYSTEM_ACCOUNTS: SystemAccount[] = INITIAL_SYSTEM_USERS.map((u) => 
   passwordHash: u.passwordHash,
 }));
 
-export const INITIAL_USER: UserProfile = INITIAL_SYSTEM_USERS[0];
+export const INITIAL_USER: UserProfile = {
+  uid: "", email: "", displayName: "Sin sesión", role: "consulta", status: "inactivo", permissions: [],
+};
 
 export const INITIAL_PLANS: Plan[] = [
   {

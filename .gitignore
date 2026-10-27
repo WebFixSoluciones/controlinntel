@@ -20,6 +20,10 @@
 .env.*
 !.env.example
 *.tsbuildinfo
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+.next-qa/
 
 # debug & logs
 npm-debug.log*

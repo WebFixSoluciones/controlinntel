@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useApp } from "@/lib/state";
+import { monthlyCashSummary } from "@/lib/commercial-core";
+import { getEcuadorDate } from "@/lib/date-utils";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -14,19 +16,8 @@ import {
 } from "recharts";
 
 export function FinancialChart() {
-  const { monthlyCharges, expenses, clientServices } = useApp();
-
-  const mrr = clientServices.filter((s) => s.status === "activo").reduce((sum, s) => sum + s.customPrice, 0);
-  const currentIngresos = monthlyCharges.reduce((sum, c) => sum + c.total, 0) || mrr || 203;
-  const currentGastos = expenses.reduce((sum, e) => sum + e.amount, 0) || 2920;
-
-  const chartData = [
-    { mes: "May", ingresos: 180, egresos: 1200, comparativo: 180 },
-    { mes: "Jun", ingresos: 195, egresos: 1850, comparativo: 195 },
-    { mes: "Jul", ingresos: 210, egresos: 2400, comparativo: 210 },
-    { mes: "Ago", ingresos: 230, egresos: 2100, comparativo: 230 },
-    { mes: "Sep", ingresos: currentIngresos, egresos: currentGastos, comparativo: currentIngresos },
-  ];
+  const { financialMovements } = useApp();
+  const chartData = monthlyCashSummary(financialMovements, getEcuadorDate());
 
   return (
     <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">

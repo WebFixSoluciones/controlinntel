@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -90,7 +91,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
   useEffect(() => {
     if (isOpen && invoice) {
       setErrorMsg("");
-      setDate(invoice.date || new Date().toISOString().slice(0, 10));
+      setDate(invoice.date || getEcuadorDate());
       setNotes(invoice.notes || "");
       setPaymentMethod(invoice.paymentMethod || "transferencia");
       setBankAccountId(invoice.bankAccountId || (bankAccounts[0]?.id || ""));
@@ -162,8 +163,8 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
       return;
     }
 
-    const unitPrice = product.salePrice || 10;
-    const ivaRate = isNotaVenta ? 0 : (product.ivaRate ?? 15);
+    const unitPrice = product.salePrice ?? 0;
+    const ivaRate = product.ivaRate ?? 0;
     const quantity = 1;
     const discount = 0;
     const subtotal = Math.round((unitPrice * quantity - discount) * 100) / 100;
@@ -194,7 +195,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
 
   const handleAddManualItem = () => {
     const defaultPrice = 10;
-    const ivaRate = isNotaVenta ? 0 : 15;
+    const ivaRate = 0;
     const quantity = 1;
     const discount = 0;
     const subtotal = Math.round((defaultPrice * quantity - discount) * 100) / 100;
@@ -478,7 +479,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Cerrar"
             onClick={onClose}
             className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
           >
@@ -544,10 +545,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {clientMode === "registered" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="edit-sale-modal-field-1" className="block text-xs font-semibold text-slate-700 mb-1">
                     Seleccionar Cliente
                   </label>
-                  <select
+                  <select id="edit-sale-modal-field-1"
                     value={selectedClientId}
                     onChange={(e) => setSelectedClientId(e.target.value)}
                     className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -569,10 +570,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {clientMode === "custom" && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="edit-sale-modal-field-2" className="block text-xs font-semibold text-slate-700 mb-1">
                     Nombre / Razón Social *
                   </label>
-                  <input
+                  <input id="edit-sale-modal-field-2"
                     type="text"
                     required
                     value={customClientName}
@@ -582,10 +583,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="edit-sale-modal-field-3" className="block text-xs font-semibold text-slate-700 mb-1">
                     RUC / Cédula *
                   </label>
-                  <input
+                  <input id="edit-sale-modal-field-3"
                     type="text"
                     required
                     value={customClientRuc}
@@ -595,10 +596,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="edit-sale-modal-field-4" className="block text-xs font-semibold text-slate-700 mb-1">
                     Correo Electrónico
                   </label>
-                  <input
+                  <input id="edit-sale-modal-field-4"
                     type="email"
                     value={customClientEmail}
                     onChange={(e) => setCustomClientEmail(e.target.value)}
@@ -618,10 +619,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
             {/* Warehouse & Date row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="edit-sale-modal-field-5" className="block text-xs font-semibold text-slate-700 mb-1">
                   Bodega de Despacho
                 </label>
-                <select
+                <select id="edit-sale-modal-field-5"
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
                   className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -634,10 +635,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="edit-sale-modal-field-6" className="block text-xs font-semibold text-slate-700 mb-1">
                   Fecha de Emisión
                 </label>
-                <input
+                <input id="edit-sale-modal-field-6"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
@@ -836,10 +837,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               {(paymentMethod === "transferencia" || paymentMethod === "tarjeta") && (
                 <div className="space-y-2 bg-[#f8f9ff] p-3 rounded-lg border border-[#e2e8f0]">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    <label htmlFor="edit-sale-modal-field-7" className="block text-[11px] font-semibold text-slate-600 mb-1">
                       Cuenta Bancaria de Destino
                     </label>
-                    <select
+                    <select id="edit-sale-modal-field-7"
                       value={bankAccountId}
                       onChange={(e) => setBankAccountId(e.target.value)}
                       className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -852,10 +853,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    <label htmlFor="edit-sale-modal-field-8" className="block text-[11px] font-semibold text-slate-600 mb-1">
                       Nro. de Referencia / Comprobante
                     </label>
-                    <input
+                    <input id="edit-sale-modal-field-8"
                       type="text"
                       value={paymentMethod === "transferencia" ? transferenciaRef : tarjetaRef}
                       onChange={(e) =>
@@ -871,10 +872,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="edit-sale-modal-field-9" className="block text-xs font-semibold text-slate-700 mb-1">
                   Notas / Observaciones
                 </label>
-                <textarea
+                <textarea id="edit-sale-modal-field-9"
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}

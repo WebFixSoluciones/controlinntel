@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -51,7 +52,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
   const [documentNumber, setDocumentNumber] = useState<string>("");
   const [claveAcceso, setClaveAcceso] = useState<string>("");
   const [purchaseDate, setPurchaseDate] = useState<string>(
-    new Date().toISOString().slice(0, 10)
+    getEcuadorDate()
   );
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>(
     inventoryWarehouses[0]?.id || "bod-central"
@@ -424,10 +425,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-1" className="block text-xs font-semibold text-slate-700 mb-1">
                 Seleccionar Proveedor Registrado (Opcional)
               </label>
-              <select
+              <select id="new-purchase-view-field-1"
                 value={supplierId}
                 onChange={(e) => handleSelectSupplier(e.target.value)}
                 className="w-full text-xs font-medium rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
@@ -442,10 +443,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-2" className="block text-xs font-semibold text-slate-700 mb-1">
                 R.U.C. o Cédula *
               </label>
-              <input
+              <input id="new-purchase-view-field-2"
                 type="text"
                 required
                 value={supplierRuc}
@@ -456,10 +457,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-3" className="block text-xs font-semibold text-slate-700 mb-1">
                 Razón Social *
               </label>
-              <input
+              <input id="new-purchase-view-field-3"
                 type="text"
                 required
                 value={supplierName}
@@ -470,10 +471,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-4" className="block text-xs font-semibold text-slate-700 mb-1">
                 N° de Factura (001-001-...) *
               </label>
-              <input
+              <input id="new-purchase-view-field-4"
                 type="text"
                 required
                 value={documentNumber}
@@ -484,10 +485,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-5" className="block text-xs font-semibold text-slate-700 mb-1">
                 Fecha de Emisión *
               </label>
-              <input
+              <input id="new-purchase-view-field-5"
                 type="date"
                 required
                 value={purchaseDate}
@@ -497,10 +498,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-6" className="block text-xs font-semibold text-slate-700 mb-1">
                 Clave de Acceso SRI (49 dígitos)
               </label>
-              <input
+              <input id="new-purchase-view-field-6"
                 type="text"
                 maxLength={49}
                 value={claveAcceso}
@@ -523,10 +524,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-7" className="block text-xs font-semibold text-slate-700 mb-1">
                 Condición de Pago *
               </label>
-              <select
+              <select id="new-purchase-view-field-7"
                 value={paymentCondition}
                 onChange={(e) =>
                   setPaymentCondition(e.target.value as PurchasePaymentCondition)
@@ -539,10 +540,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-8" className="block text-xs font-semibold text-slate-700 mb-1">
                 Bodega de Ingreso Predeterminada *
               </label>
-              <select
+              <select id="new-purchase-view-field-8"
                 value={defaultWarehouseId}
                 onChange={(e) => {
                   setDefaultWarehouseId(e.target.value);
@@ -563,10 +564,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             {paymentCondition === "contado" ? (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="new-purchase-view-field-9" className="block text-xs font-semibold text-slate-700 mb-1">
                     Cuenta Origen de Pago *
                   </label>
-                  <select
+                  <select id="new-purchase-view-field-9"
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
                     className="w-full text-xs font-medium rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
@@ -580,10 +581,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label htmlFor="new-purchase-view-field-10" className="block text-xs font-semibold text-slate-700 mb-1">
                     Método de Pago *
                   </label>
-                  <select
+                  <select id="new-purchase-view-field-10"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="w-full text-xs font-medium rounded-xl border border-slate-300 p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#004ac6] outline-hidden"
@@ -597,10 +598,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
               </>
             ) : (
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="new-purchase-view-field-11" className="block text-xs font-semibold text-slate-700 mb-1">
                   Fecha de Vencimiento de Crédito *
                 </label>
-                <input
+                <input id="new-purchase-view-field-11"
                   type="date"
                   required
                   value={dueDate}
@@ -611,10 +612,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
             )}
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="new-purchase-view-field-12" className="block text-xs font-semibold text-slate-700 mb-1">
                 Notas / Referencia Comercial
               </label>
-              <input
+              <input id="new-purchase-view-field-12"
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

@@ -23,11 +23,11 @@ export function GeneralSettingsView() {
   const [companyName, setCompanyName] = useState(sriCompanyConfig?.razonSocial || "INNTEL CORP S.A.");
   const [tradeName, setTradeName] = useState(sriCompanyConfig?.nombreComercial || "INNTEL CORP - SOLUCIONES INTEGRALES");
   const [ruc, setRuc] = useState(sriCompanyConfig?.ruc || "1792458921001");
-  const [representative, setRepresentative] = useState("Ing. Carlos Mendoza (Gerente General)");
+  const [representative, setRepresentative] = useState(sriCompanyConfig.representanteLegal || "");
   const [address, setAddress] = useState(sriCompanyConfig?.direccionMatriz || "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito, Ecuador");
   const [email, setEmail] = useState(sriCompanyConfig?.emailNotificaciones || "contacto@inntelcorp.com");
   const [phone, setPhone] = useState(sriCompanyConfig?.telefonoContacto || "+593 2 394 5000");
-  const [website, setWebsite] = useState("https://www.inntelcorp.com");
+  const [website, setWebsite] = useState(sriCompanyConfig.website || "");
   const [currency, setCurrency] = useState("USD ($)");
   const [timeZone, setTimeZone] = useState("America/Guayaquil (UTC-5)");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +43,8 @@ export function GeneralSettingsView() {
         direccionMatriz: address,
         emailNotificaciones: email,
         telefonoContacto: phone,
+        representanteLegal: representative.trim(),
+        website: website.trim(),
       });
       showSuccess(
         "Configuración Guardada",
@@ -90,10 +92,10 @@ export function GeneralSettingsView() {
 
           <div className="space-y-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-1" className="block text-xs font-semibold text-slate-700 mb-1">
                 Razón Social *
               </label>
-              <input
+              <input id="general-settings-view-field-1"
                 type="text"
                 required
                 value={companyName}
@@ -103,10 +105,10 @@ export function GeneralSettingsView() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-2" className="block text-xs font-semibold text-slate-700 mb-1">
                 Nombre Comercial
               </label>
-              <input
+              <input id="general-settings-view-field-2"
                 type="text"
                 value={tradeName}
                 onChange={(e) => setTradeName(e.target.value)}
@@ -116,10 +118,10 @@ export function GeneralSettingsView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="general-settings-view-field-3" className="block text-xs font-semibold text-slate-700 mb-1">
                   RUC Principal *
                 </label>
-                <input
+                <input id="general-settings-view-field-3"
                   type="text"
                   required
                   maxLength={13}
@@ -130,10 +132,10 @@ export function GeneralSettingsView() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="general-settings-view-field-4" className="block text-xs font-semibold text-slate-700 mb-1">
                   Representante Legal
                 </label>
-                <input
+                <input id="general-settings-view-field-4"
                   type="text"
                   value={representative}
                   onChange={(e) => setRepresentative(e.target.value)}
@@ -155,10 +157,10 @@ export function GeneralSettingsView() {
 
           <div className="space-y-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-5" className="block text-xs font-semibold text-slate-700 mb-1">
                 Dirección Matriz *
               </label>
-              <input
+              <input id="general-settings-view-field-5"
                 type="text"
                 required
                 value={address}
@@ -169,10 +171,10 @@ export function GeneralSettingsView() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="general-settings-view-field-6" className="block text-xs font-semibold text-slate-700 mb-1">
                   Correo Institucional *
                 </label>
-                <input
+                <input id="general-settings-view-field-6"
                   type="email"
                   required
                   value={email}
@@ -182,10 +184,10 @@ export function GeneralSettingsView() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label htmlFor="general-settings-view-field-7" className="block text-xs font-semibold text-slate-700 mb-1">
                   Teléfono Central
                 </label>
-                <input
+                <input id="general-settings-view-field-7"
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -195,10 +197,10 @@ export function GeneralSettingsView() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-8" className="block text-xs font-semibold text-slate-700 mb-1">
                 Sitio Web Institucional
               </label>
-              <input
+              <input id="general-settings-view-field-8"
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
@@ -219,32 +221,32 @@ export function GeneralSettingsView() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-9" className="block text-xs font-semibold text-slate-700 mb-1">
                 Moneda Base de Transacciones
               </label>
-              <input
+              <input id="general-settings-view-field-9"
                 type="text"
                 disabled
                 value={currency}
                 className="w-full text-xs font-semibold rounded-lg border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Fijada a Dólar de los Estados Unidos (USD) según normativa tributaria ecuatoriana.
+                Moneda utilizada por este sistema: dólar de los Estados Unidos (USD).
               </span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label htmlFor="general-settings-view-field-10" className="block text-xs font-semibold text-slate-700 mb-1">
                 Zona Horaria Legal
               </label>
-              <input
+              <input id="general-settings-view-field-10"
                 type="text"
                 disabled
                 value={timeZone}
                 className="w-full text-xs font-semibold rounded-lg border border-slate-200 p-2.5 bg-slate-100 text-slate-600 cursor-not-allowed"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Hora Oficial de Ecuador Continental (UTC-5) para timbrado electrónico SRI.
+                Fecha de negocio utilizada para ventas, vencimientos y cobranzas.
               </span>
             </div>
           </div>

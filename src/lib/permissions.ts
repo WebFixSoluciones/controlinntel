@@ -35,14 +35,17 @@ export const collectionPermissions = {
   bankAccounts: "manage_finance",
   financialMovements: "manage_finance",
   supplierPayments: "manage_finance",
+  supplierCredits: "manage_finance",
   hostingDomains: "manage_network",
   regulatoryTramites: "manage_policies",
+  systemConfig: "manage_policies",
+  operationLog: "manage_users",
 } as const;
 
 export type Entity = keyof typeof collectionPermissions;
 
 export function can(user: UserProfile, permission: string) {
-  if (!user || user.status === "inactivo") return false;
+  if (!user || user.status !== "activo") return false;
   if (user.role === "superadmin") return true;
   return !!user.permissions?.some(p => p === "all" || p === permission);
 }
@@ -326,25 +329,15 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
  * Verifica si un usuario tiene acceso a un módulo principal.
  */
 export function canAccessModule(user: UserProfile | undefined | null, moduleKey: keyof UserModulePermissions): boolean {
-  if (!user || user.status === "inactivo") return false;
+  if (!user || user.status !== "activo") return false;
   if (user.role === "superadmin") return true;
   if (moduleKey === "actions") return true;
+  const override = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
+  if (override !== undefined) return override.enabled === true;
   if (user.permissions?.includes("all")) return true;
   if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
-
-  // Si tiene permisos granulares configurados explícitamente
-  const modPerm = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
-  if (modPerm !== undefined) {
-    return !!modPerm?.enabled;
-  }
-
-  // De lo contrario, inferir desde el rol predeterminado
-  const defaultModPerm = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role]?.[moduleKey] as { enabled?: boolean } | undefined;
-  if (defaultModPerm !== undefined) {
-    return !!defaultModPerm?.enabled;
-  }
-
-  return true;
+  const preset = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role]?.[moduleKey] as { enabled?: boolean } | undefined;
+  return preset?.enabled === true;
 }
 
 /**
@@ -376,12 +369,6 @@ export function canAccessSubmodule(
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
 
-  // Permiso 'all' otorga acceso irrestricto a submódulos de módulos activos
-  if (user.permissions?.includes("all")) return true;
-
-  // Permiso 'manage_finance' otorga acceso irrestricto a los submódulos de finanzas (incluyendo bancos)
-  if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
-
   // Si el módulo general está deshabilitado, el submódulo tampoco es accesible
   if (!canAccessModule(user, moduleKey)) return false;
 
@@ -390,6 +377,8 @@ export function canAccessSubmodule(
   if (modPerms && modPerms.submodules && typeof modPerms.submodules[submoduleKey] === "boolean") {
     return modPerms.submodules[submoduleKey];
   }
+  if (user.permissions?.includes("all")) return true;
+  if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
 
   // Fallback a los predeterminados del rol
   const defaultByRole = (DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role] as any)?.[moduleKey];
@@ -397,7 +386,7 @@ export function canAccessSubmodule(
     return defaultByRole.submodules[submoduleKey];
   }
 
-  return true;
+  return false;
 }
 
 export const routePermissions: Record<string, keyof UserModulePermissions> = {
@@ -473,5 +462,5 @@ export function canUser(
     return roleDefault.actions[actionKey];
   }
 
-  return true;
+  return false;
 }

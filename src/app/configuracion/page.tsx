@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { GeneralSettingsView } from "@/components/modules/settings/GeneralSettingsView";
+import { RecoveryPanel } from "@/components/modules/settings/RecoveryPanel";
 import { SriConfigView } from "@/components/modules/settings/SriConfigView";
 import { useApp } from "@/lib/state";
 import { canAccessModule, canAccessSubmodule } from "@/lib/permissions";
@@ -49,6 +50,7 @@ function ConfiguracionContent() {
   return (
     <div className="w-full">
       {activeTab === "general" && canGeneral && <GeneralSettingsView />}
+      {activeTab === "general" && canGeneral && <RecoveryPanel />}
       {activeTab === "sri" && canSri && <SriConfigView />}
     </div>
   );

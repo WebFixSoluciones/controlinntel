@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -54,7 +55,7 @@ export function RegisterPurchaseModal({
   const [documentNumber, setDocumentNumber] = useState<string>("");
   const [claveAcceso, setClaveAcceso] = useState<string>("");
   const [purchaseDate, setPurchaseDate] = useState<string>(
-    new Date().toISOString().slice(0, 10)
+    getEcuadorDate()
   );
   const [defaultWarehouseId, setDefaultWarehouseId] = useState<string>(
     inventoryWarehouses[0]?.id || "bod-central"
@@ -322,7 +323,7 @@ export function RegisterPurchaseModal({
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Cerrar"
             onClick={onClose}
             className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-[#e2e8f0] transition-colors"
           >
@@ -426,10 +427,10 @@ export function RegisterPurchaseModal({
 
             {/* Supplier RUC */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+              <label htmlFor="register-purchase-modal-field-1" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
                 RUC / Identificación *
               </label>
-              <input
+              <input id="register-purchase-modal-field-1"
                 type="text"
                 placeholder="1792189421001"
                 value={supplierRuc}
@@ -441,10 +442,10 @@ export function RegisterPurchaseModal({
 
             {/* Document Number */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+              <label htmlFor="register-purchase-modal-field-2" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
                 N° Comprobante *
               </label>
-              <input
+              <input id="register-purchase-modal-field-2"
                 type="text"
                 placeholder="001-002-000012345"
                 value={documentNumber}
@@ -456,11 +457,11 @@ export function RegisterPurchaseModal({
 
             {/* Date */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
+              <label htmlFor="register-purchase-modal-field-3" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-[#004ac6]" />
                 Fecha de Emisión *
               </label>
-              <input
+              <input id="register-purchase-modal-field-3"
                 type="date"
                 value={purchaseDate}
                 onChange={(e) => setPurchaseDate(e.target.value)}
@@ -471,11 +472,11 @@ export function RegisterPurchaseModal({
 
             {/* Default Warehouse */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
+              <label htmlFor="register-purchase-modal-field-4" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
                 <Boxes className="w-3.5 h-3.5 text-[#004ac6]" />
                 Bodega de Recepción
               </label>
-              <select
+              <select id="register-purchase-modal-field-4"
                 value={defaultWarehouseId}
                 onChange={(e) => {
                   setDefaultWarehouseId(e.target.value);
@@ -497,11 +498,11 @@ export function RegisterPurchaseModal({
           {/* Payment Conditions Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white rounded-xl border border-[#e2e8f0]">
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
+              <label htmlFor="register-purchase-modal-field-5" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-[#004ac6]" />
                 Condición de Pago *
               </label>
-              <select
+              <select id="register-purchase-modal-field-5"
                 value={paymentCondition}
                 onChange={(e) =>
                   setPaymentCondition(e.target.value as PurchasePaymentCondition)
@@ -516,10 +517,10 @@ export function RegisterPurchaseModal({
             {paymentCondition === "contado" ? (
               <>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+                  <label htmlFor="register-purchase-modal-field-6" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
                     Cuenta Bancaria Origen *
                   </label>
-                  <select
+                  <select id="register-purchase-modal-field-6"
                     value={bankAccountId}
                     onChange={(e) => setBankAccountId(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
@@ -532,10 +533,10 @@ export function RegisterPurchaseModal({
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+                  <label htmlFor="register-purchase-modal-field-7" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
                     Método de Pago
                   </label>
-                  <select
+                  <select id="register-purchase-modal-field-7"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6]"
@@ -548,11 +549,11 @@ export function RegisterPurchaseModal({
               </>
             ) : (
               <div className="space-y-1 md:col-span-2">
-                <label className="text-[11px] font-bold text-[#b45309] uppercase tracking-wider flex items-center gap-1.5">
+                <label htmlFor="register-purchase-modal-field-8" className="text-[11px] font-bold text-[#b45309] uppercase tracking-wider flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5" />
                   Fecha Límite de Pago (CxP) *
                 </label>
-                <input
+                <input id="register-purchase-modal-field-8"
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
@@ -723,10 +724,10 @@ export function RegisterPurchaseModal({
           {/* Totals Summary */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-2">
             <div className="w-full md:w-1/2">
-              <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
+              <label htmlFor="register-purchase-modal-field-9" className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
                 Observaciones / Notas de Recepción
               </label>
-              <textarea
+              <textarea id="register-purchase-modal-field-9"
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

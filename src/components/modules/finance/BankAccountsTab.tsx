@@ -16,12 +16,16 @@ import {
 import { BankAccount } from "@/types";
 
 export function BankAccountsTab() {
-  const { bankAccounts = [], addBankAccount, updateBankAccount, addFinancialMovement } = useApp();
+  const { bankAccounts = [], addBankAccount, updateBankAccount, transferBetweenAccounts, adjustBankBalance } = useApp();
   const { showSuccess, showError } = useToast();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [adjustingAccount, setAdjustingAccount] = useState<BankAccount | null>(null);
+  const [adjustDelta, setAdjustDelta] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [adjustBusy, setAdjustBusy] = useState(false);
 
   // Account Form State
   const [bankName, setBankName] = useState("");
@@ -103,7 +107,6 @@ export function BankAccountsTab() {
           bankName: bankName.trim(),
           accountType,
           accountNumber: accountNumber.trim(),
-          currentBalance: Number(initialBalance) || 0,
         });
         showSuccess("Cuenta Actualizada", `Datos de ${bankName.trim()} actualizados con éxito.`);
       } else {
@@ -152,34 +155,7 @@ export function BankAccountsTab() {
     }
 
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      const ref = transferRef.trim() || `TRF-INT-${Date.now().toString().slice(-6)}`;
-
-      // 1. Egreso origen
-      await addFinancialMovement({
-        type: "egreso",
-        date: today,
-        amount: transferAmount,
-        category: "transferencia_interna",
-        description: `Transferencia hacia ${dest.bankName}`,
-        bankAccountId: origin.id,
-        bankAccountName: origin.bankName,
-        paymentMethod: "transferencia",
-        referenceNumber: ref,
-      });
-
-      // 2. Ingreso destino
-      await addFinancialMovement({
-        type: "ingreso",
-        date: today,
-        amount: transferAmount,
-        category: "transferencia_interna",
-        description: `Transferencia recibida desde ${origin.bankName}`,
-        bankAccountId: dest.id,
-        bankAccountName: dest.bankName,
-        paymentMethod: "transferencia",
-        referenceNumber: ref,
-      });
+      await transferBetweenAccounts(origin.id, dest.id, transferAmount, transferRef.trim() || "Transferencia interna");
 
       showSuccess(
         "Transferencia Realizada",
@@ -199,6 +175,15 @@ export function BankAccountsTab() {
 
   return (
     <div className="space-y-6">
+      {adjustingAccount && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="bank-adjust-title">
+        <form className="bg-white rounded-xl p-5 max-w-md w-full space-y-4" onSubmit={async e => {e.preventDefault();setAdjustBusy(true);try{await adjustBankBalance(adjustingAccount.id,Number(adjustDelta),adjustReason);setAdjustingAccount(null);showSuccess("Ajuste registrado","El saldo y su movimiento quedaron vinculados.");}catch(error){showError("No se pudo ajustar",error instanceof Error?error.message:"Revisa los datos.");}finally{setAdjustBusy(false);}}}>
+          <h3 id="bank-adjust-title" className="font-bold">Ajuste de {adjustingAccount.bankName}</h3>
+          <label className="block text-sm">Diferencia en USD, positiva o negativa<input autoFocus required type="number" step="0.01" value={adjustDelta} onChange={e => setAdjustDelta(e.target.value)} className="block w-full border rounded p-2 mt-1"/></label>
+          <label className="block text-sm">Motivo de conciliación<textarea required value={adjustReason} onChange={e => setAdjustReason(e.target.value)} className="block w-full border rounded p-2 mt-1"/></label>
+          <p className="text-sm">Saldo resultante: ${safeNumber(Number(adjustingAccount.currentBalance)+Number(adjustDelta||0))}</p>
+          <div className="flex gap-3"><button disabled={adjustBusy} type="button" onClick={()=>setAdjustingAccount(null)}>Cancelar</button><button disabled={adjustBusy} className="bg-blue-700 text-white px-3 py-2 rounded">{adjustBusy?"Guardando…":"Registrar ajuste"}</button></div>
+        </form>
+      </div>}
       {/* Resumen de Saldo y Acciones */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-3">
@@ -303,6 +288,7 @@ export function BankAccountsTab() {
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
+                      <button type="button" className="text-xs text-blue-700 px-2 py-1 border rounded" onClick={() => {setAdjustingAccount(account);setAdjustDelta("");setAdjustReason("");}}>Ajustar saldo</button>
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(account)}
@@ -356,7 +342,7 @@ export function BankAccountsTab() {
                   {editingAccount ? "Editar Cuenta Bancaria" : "Nueva Cuenta Bancaria / Caja"}
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => {
                   setIsAddModalOpen(false);
@@ -370,10 +356,10 @@ export function BankAccountsTab() {
 
             <form onSubmit={handleSaveAccount} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
+                <label htmlFor="bank-accounts-tab-field-1" className="font-bold text-slate-700 block mb-1">
                   Nombre del Banco o Caja *
                 </label>
-                <input
+                <input id="bank-accounts-tab-field-1"
                   type="text"
                   placeholder="Ej: Banco Pichincha, Caja General..."
                   value={bankName}
@@ -385,10 +371,10 @@ export function BankAccountsTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="bank-accounts-tab-field-2" className="font-bold text-slate-700 block mb-1">
                     Tipo de Cuenta *
                   </label>
-                  <select
+                  <select id="bank-accounts-tab-field-2"
                     value={accountType}
                     onChange={(e) => setAccountType(e.target.value as any)}
                     className="w-full px-2.5 py-2 bg-white border border-slate-300 rounded-lg text-xs"
@@ -400,10 +386,10 @@ export function BankAccountsTab() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="bank-accounts-tab-field-3" className="font-bold text-slate-700 block mb-1">
                     N° de Cuenta *
                   </label>
-                  <input
+                  <input id="bank-accounts-tab-field-3"
                     type="text"
                     placeholder="2100492100"
                     value={accountNumber}
@@ -415,13 +401,14 @@ export function BankAccountsTab() {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
+                <label htmlFor="bank-accounts-tab-field-4" className="font-bold text-slate-700 block mb-1">
                   {editingAccount ? "Saldo Actual ($)" : "Saldo Inicial ($)"}
                 </label>
-                <input
+                <input id="bank-accounts-tab-field-4"
                   type="number"
                   step="any"
                   value={initialBalance || ""}
+                  disabled={!!editingAccount}
                   onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold"
                 />
@@ -459,7 +446,7 @@ export function BankAccountsTab() {
                 <ArrowRightLeft className="w-4 h-4" />
                 <h3 className="text-sm font-bold">Transferir entre Cuentas</h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setIsTransferModalOpen(false)}
                 className="p-1 rounded-md text-white/80 hover:text-white hover:bg-white/10 cursor-pointer"
@@ -470,10 +457,10 @@ export function BankAccountsTab() {
 
             <form onSubmit={handleTransfer} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
+                <label htmlFor="bank-accounts-tab-field-5" className="font-bold text-slate-700 block mb-1">
                   Desde Cuenta *
                 </label>
-                <select
+                <select id="bank-accounts-tab-field-5"
                   value={originBankId}
                   onChange={(e) => handleOriginChange(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
@@ -487,10 +474,10 @@ export function BankAccountsTab() {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">
+                <label htmlFor="bank-accounts-tab-field-6" className="font-bold text-slate-700 block mb-1">
                   Hacia Cuenta *
                 </label>
-                <select
+                <select id="bank-accounts-tab-field-6"
                   value={destBankId}
                   onChange={(e) => setDestBankId(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs"
@@ -505,10 +492,10 @@ export function BankAccountsTab() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="bank-accounts-tab-field-7" className="font-bold text-slate-700 block mb-1">
                     Monto ($) *
                   </label>
-                  <input
+                  <input id="bank-accounts-tab-field-7"
                     type="number"
                     min="0.01"
                     step="any"
@@ -520,10 +507,10 @@ export function BankAccountsTab() {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label htmlFor="bank-accounts-tab-field-8" className="font-bold text-slate-700 block mb-1">
                     N° Referencia
                   </label>
-                  <input
+                  <input id="bank-accounts-tab-field-8"
                     type="text"
                     placeholder="Ej: 009182"
                     value={transferRef}

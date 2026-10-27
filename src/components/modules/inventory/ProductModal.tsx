@@ -101,7 +101,7 @@ export function ProductModal({
       setSku(defaultType === "servicio" ? `SRV-${codeSuffix}` : `PRD-${codeSuffix}`);
       setName("");
       setDescription("");
-      setCategoryId(inventoryCategories[0]?.id || "");
+      setCategoryId("");
       setBrandId(inventoryBrands[0]?.id || "");
       setUnit(defaultType === "servicio" ? "servicio" : "unidad");
       setBaseCost(0);
@@ -131,6 +131,7 @@ export function ProductModal({
 
   const handleTypeSwitch = (newType: InventoryItemType) => {
     setType(newType);
+    if (!inventoryCategories.some(c => c.id === categoryId && (c.itemType === "ambos" || c.itemType === newType))) setCategoryId("");
     if (newType === "servicio") {
       setUnit("servicio");
       if (sku.startsWith("PRD-") || sku.startsWith("ART-")) {
@@ -329,7 +330,7 @@ export function ProductModal({
             : `Nuevo ${type === "servicio" ? "Servicio" : "Producto"}`}
         </h3>
       </div>
-      <button
+      <button aria-label="Cerrar"
         type="button"
         onClick={onClose}
         className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
@@ -384,10 +385,10 @@ export function ProductModal({
           {/* 1. Datos Generales */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             <div className="md:col-span-6">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="product-modal-field-1" className="block text-[11px] font-semibold text-slate-700 mb-1">
                 {type === "servicio" ? "Nombre del Servicio *" : "Nombre del Producto *"}
               </label>
-              <input
+              <input id="product-modal-field-1"
                 type="text"
                 required
                 value={name}
@@ -402,10 +403,10 @@ export function ProductModal({
             </div>
 
             <div className="md:col-span-3">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="product-modal-field-2" className="block text-[11px] font-semibold text-slate-700 mb-1">
                 Código *
               </label>
-              <input
+              <input id="product-modal-field-2"
                 type="text"
                 required
                 value={sku}
@@ -416,10 +417,10 @@ export function ProductModal({
             </div>
 
             <div className="md:col-span-3">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="product-modal-field-3" className="block text-[11px] font-semibold text-slate-700 mb-1">
                 Estado
               </label>
-              <select
+              <select id="product-modal-field-3"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as "activo" | "inactivo")}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
@@ -436,7 +437,7 @@ export function ProductModal({
             } gap-3`}
           >
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
+              <label htmlFor="product-modal-field-4" className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
                 <span>Categoría</span>
                 <button
                   type="button"
@@ -449,12 +450,13 @@ export function ProductModal({
                   <Plus className="w-3 h-3" /> Nueva
                 </button>
               </label>
-              <select
+              <select id="product-modal-field-4"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
               >
-                {inventoryCategories.map((c) => (
+                <option value="">Sin categoría</option>
+                {inventoryCategories.filter(c => c.itemType === "ambos" || c.itemType === type).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -464,7 +466,7 @@ export function ProductModal({
 
             {type === "producto" && (
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                <label htmlFor="product-modal-field-5" className="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
                   <span>Marca</span>
                   <button
                     type="button"
@@ -477,7 +479,7 @@ export function ProductModal({
                     <Plus className="w-3 h-3" /> Nueva
                   </button>
                 </label>
-                <select
+                <select id="product-modal-field-5"
                   value={brandId}
                   onChange={(e) => setBrandId(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
@@ -493,10 +495,10 @@ export function ProductModal({
             )}
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+              <label htmlFor="product-modal-field-6" className="block text-[11px] font-semibold text-slate-700 mb-1">
                 Unidad
               </label>
-              <select
+              <select id="product-modal-field-6"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as UnitOfMeasure)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
@@ -521,10 +523,10 @@ export function ProductModal({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+            <label htmlFor="product-modal-field-7" className="block text-[11px] font-semibold text-slate-700 mb-1">
               Descripción (Opcional)
             </label>
-            <input
+            <input id="product-modal-field-7"
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -542,24 +544,25 @@ export function ProductModal({
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                <label htmlFor="product-modal-field-8" className="block text-[11px] font-semibold text-slate-700 mb-1">
                   Costo ($)
                 </label>
-                <input
+                <input id="product-modal-field-8"
                   type="number"
                   step="0.01"
                   min="0"
                   value={baseCost}
+                  disabled={!!productToEdit}
                   onChange={(e) => setBaseCost(Number(e.target.value))}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6]"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                <label htmlFor="product-modal-field-9" className="block text-[11px] font-semibold text-slate-700 mb-1">
                   IVA
                 </label>
-                <select
+                <select id="product-modal-field-9"
                   value={ivaRate}
                   onChange={(e) => handleIvaRateChange(Number(e.target.value))}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-bold text-slate-800"
@@ -571,10 +574,10 @@ export function ProductModal({
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                <label htmlFor="product-modal-field-10" className="block text-[11px] font-semibold text-slate-700 mb-1">
                   Precio sin IVA ($)
                 </label>
-                <input
+                <input id="product-modal-field-10"
                   type="number"
                   step="0.01"
                   min="0"
@@ -585,10 +588,10 @@ export function ProductModal({
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                <label htmlFor="product-modal-field-11" className="block text-[11px] font-semibold text-slate-700 mb-1">
                   Precio Final con IVA ($)
                 </label>
-                <input
+                <input id="product-modal-field-11"
                   type="number"
                   step="0.01"
                   min="0"
@@ -615,10 +618,10 @@ export function ProductModal({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  <label htmlFor="product-modal-field-12" className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Bodega Principal
                   </label>
-                  <select
+                  <select id="product-modal-field-12"
                     value={defaultWarehouseId}
                     onChange={(e) => setDefaultWarehouseId(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] bg-white font-medium"
@@ -632,10 +635,10 @@ export function ProductModal({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  <label htmlFor="product-modal-field-13" className="block text-[11px] font-semibold text-slate-700 mb-1">
                     Stock Mínimo (Alerta)
                   </label>
-                  <input
+                  <input id="product-modal-field-13"
                     type="number"
                     min="0"
                     value={minStock}

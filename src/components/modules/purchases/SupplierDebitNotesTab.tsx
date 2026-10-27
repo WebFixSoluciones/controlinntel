@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -23,7 +24,7 @@ export function SupplierDebitNotesTab() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [documentNumber, setDocumentNumber] = useState<string>("");
   const [claveAcceso, setClaveAcceso] = useState<string>("");
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(getEcuadorDate());
   const [total, setTotal] = useState<number>(0);
   const [reason, setReason] = useState<string>("");
 

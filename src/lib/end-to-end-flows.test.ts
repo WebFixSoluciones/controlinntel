@@ -2198,10 +2198,14 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
       stateContent.includes("monthsToAdd = 3"),
     "renewClientService debe avanzar la fecha según la frecuencia elegida (+1, +3, +6 o +12 meses)"
   );
+  // La emisión recurrente se trasladó a la capa de servidor: al emitir un período se fija
+  // el próximo cobro a partir del fin del período planificado.
+  const commercialPath = path.resolve(rootDir, "src/lib/server/commercial.ts");
+  const commercialContent = fs.readFileSync(commercialPath, "utf8");
   assert.ok(
-    stateContent.includes("emitRecurringInvoiceForClient") &&
-      stateContent.includes("addMonthsSafely(baseDate, monthsToAdd)") &&
-      stateContent.includes("contractExpired"),
+    commercialContent.includes("planServicePeriod") &&
+      commercialContent.includes("nextRenewalDate:plan.periodEnd") &&
+      commercialContent.includes('c.get("billingPeriods"'),
     "emitRecurringInvoiceForClient debe avanzar automáticamente la fecha de próximo cobro para servicios recurrentes"
   );
 
@@ -2216,14 +2220,14 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
     "ClientContractTab debe mostrar banner superior de alerta cuando existan servicios por caducar o vencidos"
   );
   assert.ok(
-    contractTabContent.includes("Frecuencia de Facturación *") &&
-      contractTabContent.includes("Período de Contrato *") &&
-      contractTabContent.includes("Auto-Facturación Recurrente"),
+    contractTabContent.includes("handleFreqChange") &&
+      contractTabContent.includes("newSvcDuration") &&
+      contractTabContent.includes("newSvcAutoRenew"),
     "ClientContractTab debe permitir configurar frecuencia, período de contrato y auto-facturación recurrente"
   );
   assert.ok(
-    contractTabContent.includes("Auto-recurrente") &&
-      contractTabContent.includes("getRenewalStatus"),
+    contractTabContent.includes("getRenewalStatus") &&
+      contractTabContent.includes("autoRenew"),
     "ClientContractTab debe indicar el estado de auto-recurrencia y el semáforo dinámico de caducidad"
   );
 
@@ -2471,22 +2475,22 @@ test("Flujo E2E 42: Eliminación Integral de Comprobantes de Venta y Cobros desd
     "FinanceDashboard debe invocar deleteInvoice para purgar comprobantes comerciales y deleteMonthlyCharge"
   );
 
-  // 2. deleteMonthlyCharge en state.tsx debe resolver IDs sintéticos 'chg-inv-...' y comprobantes asociados
+  // 2. La anulación vive en el servidor: una deuda originada en una venta no puede borrarse
+  // suelta, exige anular la venta con sus efectos explícitos.
+  const commercialPath = path.resolve(rootDir, "src/lib/server/commercial.ts");
+  const commercialContent = fs.readFileSync(commercialPath, "utf8");
   assert.ok(
-    stateContent.includes('if (id.startsWith("chg-inv-")) {') &&
-      stateContent.includes('const invId = id.replace("chg-inv-", "");') &&
-      stateContent.includes("const associatedInvoice =") &&
-      stateContent.includes("await deleteInvoice(associatedInvoice.id);"),
+    commercialContent.includes('case "cancelCharge"') &&
+      commercialContent.includes("Esta deuda pertenece a una venta") &&
+      commercialContent.includes('case "cancelSale"'),
     "deleteMonthlyCharge debe resolver IDs sintéticos e invocar deleteInvoice para evitar re-sintetización"
   );
 
-  // 3. deleteInvoice en state.tsx debe revertir kardex, movimientos financieros, cuentas bancarias y purgar monthlyCharges
+  // 3. cancelSale revierte kardex, cobros y libera aplicaciones dentro de una sola transacción
   assert.ok(
-    stateContent.includes('else if (inv.status !== "anulada") {') &&
-      stateContent.includes("if (inv.kardexRegistered) {") &&
-      stateContent.includes("CUSTOMER_RETURN") &&
-      stateContent.includes("c.invoiceId === id ||") &&
-      stateContent.includes("c.id === `chg-inv-${id}`"),
+    commercialContent.includes("CUSTOMER_RETURN") &&
+      commercialContent.includes('c.list("monthlyCharges","invoiceId",invoice.id)') &&
+      commercialContent.includes("releaseApplication"),
     "deleteInvoice debe revertir inventario, finanzas bancarias y purgar cobros sintéticos y asociados"
   );
 });
@@ -3252,27 +3256,31 @@ test("Flujo E2E 61: Eliminación de Servicios Recurrentes y Cascada Integral con
     "RecurringBillingView debe contar con columna Acciones, botón de purga masiva y botón individual de eliminación"
   );
 
-  // 3. emitRecurringInvoiceForClient debe vincular invoiceId en MonthlyCharge y lastBilledInvoiceId en ClientService
+  // 3. La emisión vive en la capa de servidor y vincula factura, cobro y servicio por ID
+  const commercialPath = path.resolve(rootDir, "src/lib/server/commercial.ts");
+  const commercialContent = fs.readFileSync(commercialPath, "utf8");
   assert.ok(
-    stateContent.includes("invoiceId: invoice.id,") &&
-      stateContent.includes("lastBilledInvoiceId: invoice.id,") &&
-      stateContent.includes("saleInvoiceId: invoice.id,"),
+    commercialContent.includes("invoiceId:id") &&
+      commercialContent.includes("lastBilledInvoiceId:id") &&
+      commercialContent.includes("saleInvoiceId:service.saleInvoiceId||id"),
     "emitRecurringInvoiceForClient debe vincular estrictamente invoiceId en el cobro y servicio"
   );
 
-  // 4. deleteInvoice debe eliminar servicios creados por la venta y purgar cobranzas en cascada
+  // 4. cancelSale anula la venta y revierte existencias y cobros en una sola operación del servidor
   assert.ok(
-    stateContent.includes("s.lastBilledInvoiceId === inv.id") &&
-      stateContent.includes("const wasCreatedBySale =") &&
-      stateContent.includes("await deleteFromFirestore(\"clientServices\", svc.id);") &&
-      stateContent.includes("c.id === `chg-${inv.clientId}-${invMonth}-${invYear}`"),
+    commercialContent.includes('case "cancelSale"') &&
+      commercialContent.includes('c.list("monthlyCharges","invoiceId",invoice.id)') &&
+      commercialContent.includes("Relación histórica inconsistente") &&
+      commercialContent.includes("Kardex de la venta inconsistente"),
     "deleteInvoice debe eliminar servicios nacidos de la venta, revertir servicios preexistentes y purgar cobranzas"
   );
 
-  // 5. deleteClientService debe limpiar cobros pendientes huérfanos de cobranzas
+  // 5. El retiro de servicio cesa la facturación futura sin borrar la deuda devengada (R15)
   assert.ok(
-    stateContent.includes("// Quitar de cobranzas si correspondía a este servicio o si el cliente ya no tiene servicios activos") &&
-      stateContent.includes("remainingForClient.length === 0"),
+    commercialContent.includes('case "retireService"') &&
+      commercialContent.includes('case "retireClient"') &&
+      commercialContent.includes("isBillableInCurrentCycle:false") &&
+      !commercialContent.includes("includes(target.planName)"),
     "deleteClientService debe limpiar automáticamente cobros pendientes huérfanos en cobranzas"
   );
 });

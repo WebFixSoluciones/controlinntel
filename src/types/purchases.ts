@@ -158,6 +158,7 @@ export interface FinancialMovement {
 }
 
 export interface SupplierPaymentRecord {
+  supplierCreditId?: string;
   id: string;
   purchaseInvoiceId: string;
   supplierId: string;
@@ -166,11 +167,20 @@ export interface SupplierPaymentRecord {
   amount: number;
   bankAccountId: string;
   bankAccountName: string;
-  paymentMethod: "transferencia" | "cheque" | "efectivo";
+  paymentMethod: "transferencia" | "cheque" | "efectivo" | "saldo_favor";
   referenceNumber: string;
   notes?: string;
   registeredBy: string;
   createdAt: string;
+}
+
+export interface SupplierCreditBalance {
+  id: string;
+  supplierId: string;
+  sourceNoteId: string;
+  amount: number;
+  remaining: number;
+  status: "available" | "applied";
 }
 
 export interface InventoryActions {

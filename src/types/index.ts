@@ -68,6 +68,11 @@ export type ServiceCategory =
 export type ServiceStatus = "activo" | "inactivo" | "por_renovar" | "suspendido" | "retirado" | "en_instalacion";
 
 export interface ClientService {
+  version?: number;
+  cycleAnchor?: "calendario" | "aniversario";
+  firstPeriodPolicy?: "prorrateo" | "completo";
+  creditDays?: number;
+  zeroPriceReason?: string;
   id: string;
   clientId: string;
   planId: string;
@@ -408,6 +413,8 @@ export interface Ticket {
 }
 
 export interface Expense {
+  bankAccountId?: string;
+  movementId?: string;
   id: string;
   supplierName: string;
   category: "alquiler_nodo" | "enlace_transito" | "fibra_equipos" | "mantenimiento" | "seguros" | "otro";
@@ -451,6 +458,7 @@ export interface MonthlyCharge {
 
 /** Abono o cobro registrado contra un comprobante de venta */
 export interface ChargePayment {
+  status?: "reversed";
   id: string;
   date: string;
   amount: number;
@@ -480,8 +488,9 @@ export interface ClientAdvance {
   bankAccountName?: string;
   movementId?: string;
   notes?: string;
-  status: "vigente" | "aplicado";
-  applications: { chargeId: string; invoiceNumber: string; amount: number; date: string }[];
+  status: "vigente" | "aplicado" | "anulado";
+  refundedAmount?: number;
+  applications: { id?: string; chargeId: string; invoiceNumber: string; amount: number; date: string; status?: "reversed" }[];
 }
 
 export interface AuditLog {

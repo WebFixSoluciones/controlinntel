@@ -120,7 +120,7 @@ export function RidePreviewModal({
   );
   const subtotalNoObjeto = safeFloat((invoice && invoice.subtotalNoObjeto) || 0);
   const subtotalExento = safeFloat((invoice && invoice.subtotalExento) || 0);
-  const subtotalSinImpuestos = subtotal15 + subtotal0 + subtotalNoObjeto + subtotalExento;
+  const subtotalSinImpuestos = invoice?.subtotal !== undefined ? invoice.subtotal : invoice?.items?.length ? invoice.items.reduce((sum,item) => sum + safeFloat(item.subtotal), 0) : subtotal15 + subtotal0 + subtotalNoObjeto + subtotalExento;
   const discountTotal = safeFloat((invoice && invoice.discountTotal) || 0);
   const ivaTotal = safeFloat(
     (invoice && invoice.ivaTotal) ||
@@ -453,7 +453,7 @@ export function RidePreviewModal({
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>IVA 15%:</span>
+                  <span>IVA de las partidas:</span>
                   <span>${safeNumber(ivaTotal)}</span>
                 </div>
                 <div className="flex justify-between text-xs font-black pt-1 border-t border-slate-300">
@@ -743,7 +743,7 @@ export function RidePreviewModal({
                         <th className="py-2.5 px-3">Descripción</th>
                         <th className="py-2.5 px-3 text-right">Precio Unitario</th>
                         <th className="py-2.5 px-3 text-right">Descuento</th>
-                        <th className="py-2.5 px-3 text-right">Precio Total</th>
+                        <th className="py-2.5 px-3 text-right">Subtotal sin IVA</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-[11.5px]">
@@ -1039,7 +1039,7 @@ export function RidePreviewModal({
                         <span className="font-mono font-semibold text-slate-900">${safeNumber(discountTotal)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
-                        <span className="font-bold text-[#004ac6]">IVA 15%:</span>
+                        <span className="font-bold text-[#004ac6]">IVA de las partidas:</span>
                         <span className="font-mono font-bold text-[#004ac6]">${safeNumber(ivaTotal)}</span>
                       </div>
                       <div className="flex justify-between px-3.5 py-1.5">

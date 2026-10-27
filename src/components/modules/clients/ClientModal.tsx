@@ -427,7 +427,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </p>
             </div>
           </div>
-          <button
+          <button aria-label="Cerrar"
             onClick={onClose}
             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -454,8 +454,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Tipo de Identificación *</label>
-                <select
+                <label htmlFor="client-modal-field-1" className="font-bold text-[#434655] block mb-1">Tipo de Identificación *</label>
+                <select id="client-modal-field-1"
                   value={identificationType}
                   onChange={(e) => setIdentificationType(e.target.value as IdentificationType)}
                   className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
@@ -540,8 +540,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Razón Social / Nombres Completos *</label>
-                <input
+                <label htmlFor="client-modal-field-2" className="font-bold text-[#434655] block mb-1">Razón Social / Nombres Completos *</label>
+                <input id="client-modal-field-2"
                   type="text"
                   required
                   placeholder="ARTEAGA MUÑOZ DANNY HERNAN"
@@ -553,8 +553,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Nombre Comercial</label>
-                <input
+                <label htmlFor="client-modal-field-3" className="font-bold text-[#434655] block mb-1">Nombre Comercial</label>
+                <input id="client-modal-field-3"
                   type="text"
                   placeholder="Ej: Inntelcorp Solutions"
                   value={tradeName}
@@ -565,8 +565,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Representante Legal (opcional)</label>
-                <input
+                <label htmlFor="client-modal-field-4" className="font-bold text-[#434655] block mb-1">Representante Legal (opcional)</label>
+                <input id="client-modal-field-4"
                   type="text"
                   placeholder="Ing. Juan Pérez"
                   value={legalRepresentative}
@@ -579,8 +579,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Correo Electrónico (Facturación)</label>
-                <input
+                <label htmlFor="client-modal-field-5" className="font-bold text-[#434655] block mb-1">Correo Electrónico (Facturación)</label>
+                <input id="client-modal-field-5"
                   type="email"
                   placeholder="facturacion@empresa.com"
                   value={email}
@@ -590,8 +590,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Teléfono / Celular de Contacto</label>
-                <input
+                <label htmlFor="client-modal-field-6" className="font-bold text-[#434655] block mb-1">Teléfono / Celular de Contacto</label>
+                <input id="client-modal-field-6"
                   type="text"
                   placeholder="0989613811"
                   value={phone}
@@ -602,8 +602,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Régimen Fiscal SRI</label>
-                <select
+                <label htmlFor="client-modal-field-7" className="font-bold text-[#434655] block mb-1">Régimen Fiscal SRI</label>
+                <select id="client-modal-field-7"
                   value={tipoContribuyente}
                   onChange={(e) =>
                     setTipoContribuyente(
@@ -622,8 +622,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Dirección Fiscal / Matriz *</label>
-                <input
+                <label htmlFor="client-modal-field-8" className="font-bold text-[#434655] block mb-1">Dirección Fiscal / Matriz *</label>
+                <input id="client-modal-field-8"
                   type="text"
                   required
                   placeholder="Av. Amazonas y Gaspar de Villarroel"
@@ -635,8 +635,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Sector / Ciudad / Parroquia</label>
-                <input
+                <label htmlFor="client-modal-field-9" className="font-bold text-[#434655] block mb-1">Sector / Ciudad / Parroquia</label>
+                <input id="client-modal-field-9"
                   type="text"
                   placeholder="Sector / Parroquia"
                   value={sector}
@@ -647,8 +647,8 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
               </div>
 
               <div>
-                <label className="font-bold text-[#434655] block mb-1">Estado de Vigencia *</label>
-                <select
+                <label htmlFor="client-modal-field-10" className="font-bold text-[#434655] block mb-1">Estado de Vigencia *</label>
+                <select id="client-modal-field-10"
                   value={status}
                   onChange={(e) => setStatus(e.target.value as Client["status"])}
                   className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:border-transparent cursor-pointer"
@@ -760,10 +760,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="font-bold text-[#434655] block mb-1">
+                        <label htmlFor="client-modal-field-11" className="font-bold text-[#434655] block mb-1">
                           Nombre Completo de la Persona *
                         </label>
-                        <input
+                        <input id="client-modal-field-11"
                           type="text"
                           required
                           placeholder="Ej: Lic. Carlos Mendoza"
@@ -774,10 +774,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       </div>
 
                       <div>
-                        <label className="font-bold text-[#434655] block mb-1">
+                        <label htmlFor="client-modal-field-12" className="font-bold text-[#434655] block mb-1">
                           Cargo / Función en la Empresa
                         </label>
-                        <input
+                        <input id="client-modal-field-12"
                           type="text"
                           placeholder="Ej: Administrador, Pagos, Jefe de Sistemas"
                           value={contact.role || ""}
@@ -789,10 +789,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <label className="font-bold text-[#434655] block mb-1">
+                        <label htmlFor="client-modal-field-13" className="font-bold text-[#434655] block mb-1">
                           Teléfono / WhatsApp *
                         </label>
-                        <input
+                        <input id="client-modal-field-13"
                           type="text"
                           required
                           placeholder="0990262239"
@@ -803,10 +803,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       </div>
 
                       <div>
-                        <label className="font-bold text-[#434655] block mb-1">
+                        <label htmlFor="client-modal-field-14" className="font-bold text-[#434655] block mb-1">
                           Correo Electrónico (opcional)
                         </label>
-                        <input
+                        <input id="client-modal-field-14"
                           type="email"
                           placeholder="carlos.mendoza@empresa.com"
                           value={contact.email || ""}
@@ -816,10 +816,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                       </div>
 
                       <div>
-                        <label className="font-bold text-[#434655] block mb-1">
+                        <label htmlFor="client-modal-field-15" className="font-bold text-[#434655] block mb-1">
                           Dirección Particular u Oficina (opcional)
                         </label>
-                        <input
+                        <input id="client-modal-field-15"
                           type="text"
                           placeholder="Oficina 402, Torre B"
                           value={contact.address || ""}

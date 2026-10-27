@@ -8,7 +8,7 @@ import { Receipt, ArrowRight } from "lucide-react";
 export function RecentSalesCard() {
   const { billingInvoices } = useApp();
 
-  const recentInvoices = (billingInvoices || []).slice(0, 5);
+  const recentInvoices = (billingInvoices || []).filter(i => i.documentType === "nota_venta").sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 5);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -16,7 +16,7 @@ export function RecentSalesCard() {
       case "registrado":
         return (
           <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Autorizada
+            {status === "registrado" ? "Registrada" : "Autorizada"}
           </span>
         );
       case "anulada":
@@ -48,7 +48,7 @@ export function RecentSalesCard() {
           Últimas Ventas
         </h3>
         <Link
-          href="/facturacion?sub=facturas"
+          href="/ventas?sub=notas_venta"
           className="text-xs font-bold text-[#004ac6] hover:underline flex items-center gap-1"
         >
           <span>Ver todas</span>

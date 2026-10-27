@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
+import { externalCash } from "@/lib/commercial-core";
+import { getEcuadorDate, addMonthsSafely } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { safeFloat, safeNumber } from "@/lib/print-service";
 import {
@@ -62,13 +64,14 @@ export function FinancialReportsTab() {
 
   // 1. CÁLCULO DE COBRANZAS (Monthly Charges)
   const cobranzasMetrics = useMemo(() => {
-    const totalFacturado = monthlyCharges.reduce((sum, c) => sum + safeFloat(c.total), 0);
-    const totalRecaudado = monthlyCharges.reduce((sum, c) => {
+    const activeCharges = monthlyCharges.filter(c => c.status !== "anulado");
+    const totalFacturado = activeCharges.reduce((sum, c) => sum + safeFloat(c.total), 0);
+    const totalRecaudado = activeCharges.reduce((sum, c) => {
       if (c.status === "pagado") return sum + safeFloat(c.total);
       if (c.paidAmount !== undefined) return sum + safeFloat(c.paidAmount);
       return sum;
     }, 0);
-    const totalPendiente = monthlyCharges.reduce((sum, c) => {
+    const totalPendiente = activeCharges.reduce((sum, c) => {
       if (c.status === "pagado") return sum;
       if (c.balanceRemaining !== undefined) return sum + safeFloat(c.balanceRemaining);
       return sum + safeFloat(c.total);
@@ -87,60 +90,29 @@ export function FinancialReportsTab() {
     };
   }, [monthlyCharges]);
 
-  // 2. CÁLCULO DE GASTOS OPEX (Expenses + Movimientos Egreso)
+  // Cash flow has one source: confirmed external financial movements.
+  const cashMovements = useMemo(() => externalCash(financialMovements), [financialMovements]);
   const gastosMetrics = useMemo(() => {
-    const totalOpex = expenses.reduce((sum, e) => sum + safeFloat(e.amount), 0);
-    const movEgresos = financialMovements
-      .filter((m) => m.type === "egreso")
-      .reduce((sum, m) => sum + safeFloat(m.amount), 0);
-    const totalEgresos = totalOpex + movEgresos;
-
-    // Desglose por categoría
+    const outgoing = cashMovements.filter(m => m.type === "egreso");
     const byCategory: Record<string, number> = {};
-    expenses.forEach((e) => {
-      const cat = e.category || "otro";
-      byCategory[cat] = (byCategory[cat] || 0) + safeFloat(e.amount);
-    });
-    financialMovements
-      .filter((m) => m.type === "egreso")
-      .forEach((m) => {
-        const cat = m.category || "otro";
-        byCategory[cat] = (byCategory[cat] || 0) + safeFloat(m.amount);
-      });
+    outgoing.forEach(m => { byCategory[m.category || "otro"] = (byCategory[m.category || "otro"] || 0) + safeFloat(m.amount); });
+    const totalEgresos = outgoing.reduce((sum, m) => sum + safeFloat(m.amount), 0);
+    return { totalOpex: expenses.reduce((sum,e) => sum + safeFloat(e.amount),0), movEgresos: totalEgresos, totalEgresos, byCategory };
+  }, [expenses, cashMovements]);
 
-    return {
-      totalOpex,
-      movEgresos,
-      totalEgresos,
-      byCategory,
-    };
-  }, [expenses, financialMovements]);
-
-  // 3. CÁLCULO DE INGRESOS GENERALES & FLUJO NETO
   const flujoMetrics = useMemo(() => {
-    const movIngresos = financialMovements
-      .filter((m) => m.type === "ingreso")
-      .reduce((sum, m) => sum + safeFloat(m.amount), 0);
-    const totalIngresos = cobranzasMetrics.totalRecaudado + movIngresos;
+    const totalIngresos = cashMovements.filter(m => m.type === "ingreso").reduce((sum,m) => sum + safeFloat(m.amount),0);
     const totalEgresos = gastosMetrics.totalEgresos;
-    const saldoNeto = totalIngresos - totalEgresos;
-    const margenNeto = totalIngresos > 0 ? (saldoNeto / totalIngresos) * 100 : 0;
-
-    return {
-      movIngresos,
-      totalIngresos,
-      totalEgresos,
-      saldoNeto,
-      margenNeto,
-    };
-  }, [cobranzasMetrics, gastosMetrics, financialMovements]);
+    return { movIngresos: totalIngresos, totalIngresos, totalEgresos, saldoNeto: totalIngresos-totalEgresos,
+      margenNeto: totalIngresos ? (totalIngresos-totalEgresos)/totalIngresos*100 : 0 };
+  }, [cashMovements, gastosMetrics]);
 
   // 4. CÁLCULO DE CUENTAS POR COBRAR (CxC)
   const cxcList = useMemo(() => {
     return monthlyCharges
       .filter((c) => {
         const bal = c.balanceRemaining !== undefined ? c.balanceRemaining : c.status === "pagado" ? 0 : c.total;
-        return bal > 0 && c.status !== "pagado";
+        return bal > 0 && c.status !== "pagado" && c.status !== "anulado";
       })
       .map((c) => ({
         id: c.id,
@@ -206,28 +178,20 @@ export function FinancialReportsTab() {
     };
   }, [bankAccounts]);
 
-  // 7. DATOS HISTÓRICOS PARA LA GRÁFICA INTERACTIVA (Recharts)
   const chartData = useMemo(() => {
-    // Generar comparativa mensual de los últimos 6 meses
-    const months = ["May", "Jun", "Jul", "Ago", "Sep", "Oct"];
-    const baseIngresos = [180, 210, 240, 310, 480, flujoMetrics.totalIngresos || 704.25];
-    const baseEgresos = [90, 120, 150, 190, 280, flujoMetrics.totalEgresos || 300];
-
-    return months.map((m, idx) => {
-      const ing = baseIngresos[idx];
-      const egr = baseEgresos[idx];
-      return {
-        mes: m,
-        ingresos: Math.round(ing),
-        egresos: Math.round(egr),
-        neto: Math.round(ing - egr),
-      };
+    const current = getEcuadorDate().slice(0,7) + "-01";
+    return Array.from({length:6}, (_, index) => {
+      const month=addMonthsSafely(current,index-5).slice(0,7);
+      const movements=cashMovements.filter(m => String(m.date).startsWith(month));
+      const ingresos=movements.filter(m=>m.type==="ingreso").reduce((sum,m)=>sum+safeFloat(m.amount),0);
+      const egresos=movements.filter(m=>m.type==="egreso").reduce((sum,m)=>sum+safeFloat(m.amount),0);
+      return { mes: month, ingresos, egresos, neto: ingresos-egresos };
     });
-  }, [flujoMetrics]);
+  }, [cashMovements]);
 
   // EXPORTACIÓN DINÁMICA A CSV SEGÚN EL REPORTE ACTIVO
-  const handleExportCsv = () => {
-    let filename = `Reporte_Financiero_${activeTab}_${new Date().toISOString().slice(0, 10)}.csv`;
+  const handleExportCsv = async (format: "csv" | "xlsx" = "csv") => {
+    let filename = `Reporte_Financiero_${activeTab}_${getEcuadorDate()}.csv`;
     let headers: string[] = [];
     let rows: (string | number)[][] = [];
 
@@ -300,16 +264,35 @@ export function FinancialReportsTab() {
       ];
     }
 
-    const csvContent =
-      "data:text/csv;charset=utf-8,\uFEFF" +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const q = searchQuery.toLowerCase().trim();
+    if (q) rows = rows.filter(row => row.some(value => String(value).toLowerCase().includes(q)));
+    if (activeTab === "cobranzas" && filterStatus !== "todos") rows = rows.filter(row => row[7] === filterStatus);
+    if (activeTab === "gastos" && filterCategory !== "todas") rows = rows.filter(row => String(row[2]).includes(formatFinanceCategory(filterCategory)));
+    const cleanRows = rows.map(row => row.map((value,index) => {
+      if (typeof value === "number") return value;
+      const text = String(value).replace(/^"([\s\S]*)"$/, "$1").replace(/""/g, '"');
+      return /Monto|Total|Abonado|Saldo|Participacion/i.test(headers[index]) && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text;
+    }));
+    let blob: Blob;
+    if (format === "xlsx") {
+      const ExcelJS = await import("exceljs");
+      const workbook = new ExcelJS.Workbook(), sheet = workbook.addWorksheet("Reporte");
+      sheet.addRow(headers);
+      cleanRows.forEach(row => sheet.addRow(row));
+      sheet.columns.forEach(column => { column.width = 25; });
+      sheet.eachRow(row => row.eachCell(cell => { if (typeof cell.value === "string") cell.numFmt = "@"; }));
+      blob = new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      filename = filename.replace(/\.csv$/, ".xlsx");
+    } else {
+      const escape = (value: string | number) => {
+        const text = String(value);
+        const safe = typeof value === "string" && /^[=+@-]/.test(text) ? "'" + text : text;
+        return '"' + safe.replace(/"/g, '""') + '"';
+      };
+      blob = new Blob(["\uFEFF" + [headers, ...cleanRows].map(row => row.map(escape).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    }
+    const url = URL.createObjectURL(blob), link = document.createElement("a");
+    link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 
     showSuccess("Reporte Exportado", `Archivo ${filename} generado exitosamente.`);
   };
@@ -343,13 +326,14 @@ export function FinancialReportsTab() {
 
           <button
             type="button"
-            onClick={handleExportCsv}
+            onClick={() => { void handleExportCsv("csv"); }}
             className="flex items-center gap-2 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
-            title="Exportar reporte activo a Excel / CSV"
+            title="Exportar reporte activo a CSV"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Exportar CSV / Excel</span>
+            <span>Exportar CSV</span>
           </button>
+          <button type="button" onClick={() => { void handleExportCsv("xlsx"); }} className="px-3 py-2 rounded-lg border text-xs font-bold text-blue-700">Exportar Excel</button>
         </div>
       </div>
 

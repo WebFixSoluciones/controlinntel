@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ToastProvider } from "./toast-context";
 import { LoginScreen } from "@/components/auth/LoginScreen";
+import { ModalFocusGuard } from "@/components/layout/ModalFocusGuard";
 import {
   Client,
   ClientService,
@@ -61,6 +62,7 @@ import {
   BankAccount,
   FinancialMovement,
   SupplierPaymentRecord,
+  SupplierCreditBalance,
   UserModulePermissions,
   HostingDomainRecord,
   RegulatoryTramite,
@@ -112,9 +114,8 @@ import {
   INITIAL_HOSTING_DOMAINS,
   INITIAL_REGULATORY_TRAMITES,
 } from "./mock-data";
-import { app, db, auth } from "./firebase";
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
+import { auth } from "./firebase";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { usePathname } from "next/navigation";
 import { can, canAccessRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
 import {
@@ -129,15 +130,10 @@ import {
   formatearSecuencialSRI,
   DEFAULT_INNTEL_SRI_CONFIG,
 } from "./sri-service";
-import { simpleDecrypt, simpleEncrypt } from "./crypto-vault";
 import { api } from "./api-client";
 import { getEcuadorDate, addMonthsSafely, calculateContractEndDate, calculateNextRenewalDate } from "./date-utils";
-import { sanitizeObjectTexts, cleanMojibake } from "./sanitize-text";
-import {
-  signUserProfile,
-  verifyUserProfileIntegrity,
-  triggerSecurityExplosion,
-} from "./security-shield";
+import { calculateLines, planServicePeriod } from "./commercial-core";
+import { sanitizeObjectTexts } from "./sanitize-text";
 import { SecurityLockoutModal } from "@/components/security/SecurityLockoutModal";
 
 interface AppContextType {
@@ -147,6 +143,9 @@ interface AppContextType {
   logout: () => Promise<void>;
   revealCredential: (entity: "vault" | "clientVaultItems", id: string) => Promise<string>;
   refresh: () => Promise<void>;
+  transferBetweenAccounts: (fromId: string, toId: string, amount: number, description?: string) => Promise<void>;
+  startBillingRun: (units: Record<string, unknown>[]) => Promise<{ id: string; units: { index: number; status: string }[] }>;
+  processBillingRun: (id: string, index: number) => Promise<{ status: string; error?: string }>;
   saveRecord: (entity: Entity, data: Record<string, unknown>, id?: string) => Promise<void>;
   deleteRecord: (entity: Entity, id: string) => Promise<void>;
 
@@ -210,7 +209,7 @@ interface AppContextType {
   updateClientService: (id: string, updates: Partial<ClientService>) => Promise<void>;
   deleteClientService: (id: string) => Promise<void>;
   renewClientService: (id: string) => Promise<void>;
-  emitRecurringInvoiceForClient: (clientId: string, month: number, year: number) => Promise<SriInvoice | null>;
+  emitRecurringInvoiceForClient: (clientId: string, month: number, year: number, serviceIds?: string[]) => Promise<SriInvoice | null>;
 
   addPolicy: (policy: Omit<ArcotelPolicy, "id">) => Promise<void>;
   deletePolicy: (id: string) => Promise<void>;
@@ -379,6 +378,7 @@ interface AppContextType {
   bankAccounts: BankAccount[];
   financialMovements: FinancialMovement[];
   supplierPayments: SupplierPaymentRecord[];
+  supplierCredits: SupplierCreditBalance[];
 
   addSupplier: (supplier: Omit<Supplier, "id" | "createdAt" | "updatedAt">) => Promise<Supplier>;
   updateSupplier: (id: string, updates: Partial<Supplier>) => Promise<void>;
@@ -403,6 +403,8 @@ interface AppContextType {
 
   addBankAccount: (account: Omit<BankAccount, "id">) => Promise<BankAccount>;
   updateBankAccount: (id: string, updates: Partial<BankAccount>) => Promise<void>;
+  adjustBankBalance: (bankAccountId: string, delta: number, reason: string) => Promise<void>;
+  reverseChargePayment: (chargeId: string, paymentId: string) => Promise<void>;
 
   addSupplierPayment: (payment: Omit<SupplierPaymentRecord, "id" | "createdAt">) => Promise<SupplierPaymentRecord>;
   addFinancialMovement: (movement: Omit<FinancialMovement, "id" | "createdAt">) => Promise<FinancialMovement>;
@@ -438,6 +440,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER);
+  const [dataReady, setDataReady] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const cachePreserved = useRef(false);
   const [systemUsers, setSystemUsers] = useState<SystemUser[]>(INITIAL_SYSTEM_USERS);
 
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
@@ -491,6 +496,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(INITIAL_BANK_ACCOUNTS);
   const [financialMovements, setFinancialMovements] = useState<FinancialMovement[]>(INITIAL_FINANCIAL_MOVEMENTS);
   const [supplierPayments, setSupplierPayments] = useState<SupplierPaymentRecord[]>(INITIAL_SUPPLIER_PAYMENTS);
+  const [supplierCredits, setSupplierCredits] = useState<SupplierCreditBalance[]>([]);
   const [hostingDomains, setHostingDomains] = useState<HostingDomainRecord[]>(INITIAL_HOSTING_DOMAINS);
   const [regulatoryTramites, setRegulatoryTramites] = useState<RegulatoryTramite[]>(INITIAL_REGULATORY_TRAMITES);
 
@@ -498,136 +504,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
 
-  // Synchronize state via Server API (Admin SDK) with client fallback
+  // A server rejection is final; never bypass validation or permissions.
   const syncToFirestore = async (collectionName: string, id: string, data: any) => {
-    try {
-      const cleanData = JSON.parse(JSON.stringify(data));
-      if (auth?.currentUser) {
-        try {
-          await api("/api/data", {
-            action: "save",
-            entity: collectionName,
-            id,
-            data: cleanData,
-          });
-          return;
-        } catch (apiErr: any) {
-          if (["vault", "clientVaultItems", "users", "systemUsers"].includes(collectionName)) {
-            throw apiErr;
-          }
-          console.warn(`Server API sync fallback for ${collectionName}/${id}:`, apiErr?.message);
-        }
-      }
-      await setDoc(doc(db, collectionName, id), cleanData, { merge: true });
-    } catch (err: any) {
-      console.warn(`Firestore sync note (${collectionName}/${id}):`, err?.message);
-      if (["clientContracts", "clientVaultItems", "vault", "nodes", "tickets"].includes(collectionName)) throw err;
-    }
+    const cleanData = JSON.parse(JSON.stringify(data, (_key, value) => value === undefined ? null : value));
+    const response = await api<{ result: Record<string, unknown> }>("/api/data", {
+      action: "save", entity: collectionName === "users" ? "systemUsers" : collectionName,
+      id, data: cleanData, ...(typeof data.version === "number" ? { version: data.version } : {}),
+    });
+    Object.assign(data, response.result);
+    if (["vault", "clientVaultItems"].includes(collectionName)) delete data.encryptedPassword;
   };
 
   const deleteFromFirestore = async (collectionName: string, id: string) => {
-    try {
-      if (auth?.currentUser) {
-        try {
-          await api("/api/data", {
-            action: "delete",
-            entity: collectionName,
-            id,
-          });
-          return;
-        } catch (apiErr: any) {
-          if (["vault", "clientVaultItems", "users", "systemUsers"].includes(collectionName)) {
-            throw apiErr;
-          }
-          console.warn(`Server API delete fallback for ${collectionName}/${id}:`, apiErr?.message);
-        }
-      }
-      await deleteDoc(doc(db, collectionName, id));
-    } catch (err: any) {
-      console.warn(`Firestore delete note (${collectionName}/${id}):`, err?.message);
-      if (["clientContracts", "clientVaultItems", "vault", "nodes", "tickets"].includes(collectionName)) throw err;
-    }
+    await api("/api/data", {
+      action: "delete", entity: collectionName === "users" ? "systemUsers" : collectionName, id,
+    });
   };
 
   // Initial load from LocalStorage cache and Firebase session
   useEffect(() => {
     try {
-      // 0. Clean legacy demo caches
-      ["INNTEL_CORP_STATE_HUB_V6", "INNTEL_CORP_STATE_HUB_V5", "INNTEL_CORP_STATE_HUB_V4"].forEach((k) => {
-        try { localStorage.removeItem(k); } catch (e) {}
-      });
+      // Preserve records that may never have reached the server before refreshing.
+      const cached = localStorage.getItem(STORAGE_KEY);
+      const recoveryKey = `INNTEL_RECOVERY_${STORAGE_KEY}`;
+      if (cached && !localStorage.getItem(recoveryKey)) localStorage.setItem(recoveryKey, cached);
+      cachePreserved.current = true;
+      // Older cache keys remain available as snapshot recovery sources.
 
-      // 1. Check saved users & migrate legacy domains (purging legacy demo users)
-      const LEGACY_DEMO_USER_UIDS = new Set([
-        "usr-admin-01",
-        "usr-fin-02",
-        "usr-tec-03",
-        "usr-sop-04",
-        "usr-leg-05",
-      ]);
-      const savedUsers = localStorage.getItem(USERS_KEY);
-      let activeUsers = INITIAL_SYSTEM_USERS;
-      if (savedUsers) {
-        try {
-          const parsed = JSON.parse(savedUsers);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const migrated = parsed
-              .filter((u: any) => !LEGACY_DEMO_USER_UIDS.has(u.uid))
-              .map((u: any) => ({
-                ...u,
-                email: u.email ? u.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com") : u.email,
-                displayName:
-                  u.displayName === "Administrador General INNTEL CORP"
-                    ? "Administrador"
-                    : u.displayName,
-                passwordHash: u.passwordHash || (u.email?.toLowerCase().includes("superadmin") ? "Inntel2026*" : u.passwordHash),
-              }));
-            activeUsers = migrated.length > 0 ? migrated : INITIAL_SYSTEM_USERS;
-            setSystemUsers(activeUsers);
-            localStorage.setItem(USERS_KEY, JSON.stringify(activeUsers));
-          }
-        } catch (e) {}
-      }
-
-      // 2. Check auth session with Anti-Tampering Integrity Guard
-      const savedAuth = localStorage.getItem(AUTH_KEY);
-      const savedSig = localStorage.getItem(`${AUTH_KEY}_SIG`);
-      if (savedAuth) {
-        try {
-          const user = JSON.parse(savedAuth);
-          if (user && user.email) {
-            user.email = user.email.replace(/@inntelcorp\.ec$/i, "@inntelcorp.com");
-            if (user.displayName === "Administrador General INNTEL CORP") {
-              user.displayName = "Administrador";
-            }
-
-            // Verificar firma criptográfica obligatoria para evitar inyección de sesión
-            if (!savedSig || !verifyUserProfileIntegrity(user, savedSig)) {
-              console.warn("[ANTI-TAMPER SHIELD] Sesión no firmada o adulterada en LocalStorage. Destruyendo sesión.");
-              localStorage.removeItem(AUTH_KEY);
-              localStorage.removeItem(`${AUTH_KEY}_SIG`);
-              return;
-            }
-
-            // Solo restaurar si el usuario existe y está activo en el registro de usuarios del sistema
-            const matched = activeUsers.find(
-              (u) => u.email.toLowerCase() === user.email.toLowerCase() && u.status === "activo"
-            );
-            if (matched) {
-              setCurrentUser(matched);
-              setIsAuthenticated(true);
-            } else {
-              localStorage.removeItem(AUTH_KEY);
-              localStorage.removeItem(`${AUTH_KEY}_SIG`);
-            }
-          }
-        } catch (e) {}
-      }
+      // Local caches never authorize a session or supply permissions.
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(`${AUTH_KEY}_SIG`);
+      localStorage.removeItem(USERS_KEY);
 
       // 3. Purge legacy demo storage & check saved business state
-      localStorage.removeItem("INNTEL_CORP_STATE_PROD_DEMO_CLIENT_V1");
-      localStorage.removeItem("INNTEL_CORP_STATE_PROD_V4");
-      localStorage.removeItem("INNTEL_CORP_STATE_PROD_V3");
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
@@ -687,69 +596,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Listen for Firebase Auth changes
+  // Only Firebase identity plus the server's active profile can authorize access.
   useEffect(() => {
-    if (!auth) return;
+    let generation = 0;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser && firebaseUser.email) {
-        const emailLower = firebaseUser.email.toLowerCase();
-        const matched = systemUsers.find((u) => u.email.toLowerCase() === emailLower);
-        if (matched) {
-          setCurrentUser(matched);
-          setIsAuthenticated(true);
+      const request = ++generation;
+      setIsAuthenticated(false);
+      setDataReady(false);
+      if (!firebaseUser) return;
+      try {
+        const profile = await api<UserProfile>("/api/session");
+        if (request !== generation) return;
+        setCurrentUser(profile);
+        setIsAuthenticated(true);
+      } catch {
+        if (request === generation) {
+          setIsAuthenticated(false);
+          await signOut(auth).catch(() => {});
         }
       }
     });
-    return () => unsubscribe();
-  }, [systemUsers]);
-
-  // Sincronización en tiempo real con la colección 'users' de Firestore
-  useEffect(() => {
-    if (!db) return;
-    const LEGACY_DEMO_USER_UIDS = new Set([
-      "usr-admin-01",
-      "usr-fin-02",
-      "usr-tec-03",
-      "usr-sop-04",
-      "usr-leg-05",
-    ]);
-    const unsubscribe = onSnapshot(
-      collection(db, "users"),
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const firestoreUsers: SystemUser[] = [];
-          snapshot.docs.forEach((d) => {
-            if (LEGACY_DEMO_USER_UIDS.has(d.id)) {
-              void deleteDoc(doc(db, "users", d.id)).catch(() => {});
-              return;
-            }
-            const data = d.data();
-            firestoreUsers.push({
-              uid: d.id,
-              email: data.email,
-              displayName: data.displayName,
-              role: data.role,
-              department: data.department || "",
-              phone: data.phone || "",
-              status: data.status || "activo",
-              permissions: data.permissions || [],
-              modulePermissions: data.modulePermissions,
-              createdAt: data.createdAt || new Date().toISOString(),
-            } as SystemUser);
-          });
-          if (firestoreUsers.length > 0) {
-            setSystemUsers(firestoreUsers);
-            try {
-              localStorage.setItem(USERS_KEY, JSON.stringify(firestoreUsers));
-            } catch (e) {}
-          }
-        }
-      },
-      (error) => {
-        console.warn("Firestore users sync note:", error?.message);
-      }
-    );
-    return () => unsubscribe();
+    return () => { generation++; unsubscribe(); };
   }, []);
 
   // Escucha central de Detonación de Ciberseguridad (Escudo Anti-Hacking)
@@ -771,7 +638,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Sync to LocalStorage on every state update
   useEffect(() => {
-    if (!isAuthLoaded) return;
+    if (!isAuthLoaded || !isAuthenticated || !dataReady || !cachePreserved.current) return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
@@ -885,161 +752,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: new Date().toISOString(),
     };
     setAuditLogs((prev) => [newLog, ...prev]);
-    void syncToFirestore("auditLogs", newLog.id, newLog).catch(() => {
-      window.dispatchEvent(new CustomEvent("inntel:error", {
-        detail: "La operación terminó, pero no se pudo guardar su registro de auditoría.",
-      }));
-    });
   };
 
   const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
-    const trimmedEmail = email.trim().toLowerCase();
-
-    // 1. Try Firebase Auth (with auto-provisioning if enabled)
+    setIsAuthenticated(false);
     try {
-      if (auth) {
-        try {
-          const userCred = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-          if (userCred.user) {
-            const matched = systemUsers.find((u) => u.email.toLowerCase() === trimmedEmail);
-            if (!matched || matched.status !== "activo") {
-              addAuditLog("LOGIN_RECHAZADO", `Usuario sin perfil activo en sistema: ${trimmedEmail}`, "RECHAZADO");
-              return false;
-            }
-            const activeProfile: UserProfile = {
-              uid: userCred.user.uid,
-              email: userCred.user.email || trimmedEmail,
-              displayName: matched.displayName || userCred.user.displayName || "Usuario INNTEL",
-              role: matched.role || "operador",
-              status: matched.status || "activo",
-              permissions: matched.permissions || [],
-              modulePermissions: matched.modulePermissions,
-            };
-            setCurrentUser(activeProfile);
-            setIsAuthenticated(true);
-            if (remember) {
-              const { integritySignature } = signUserProfile(activeProfile);
-              localStorage.setItem(AUTH_KEY, JSON.stringify(activeProfile));
-              localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-            }
-            addAuditLog("LOGIN", `Acceso Firebase Auth: ${activeProfile.displayName}`, `Rol: ${activeProfile.role}`);
-            return true;
-          }
-        } catch (authSignInErr: any) {
-          // Credenciales incorrectas en Firebase Auth
-          console.warn("[AUTH] Error de credenciales Firebase:", authSignInErr?.code);
-        }
-      }
-    } catch (firebaseErr: any) {
-      console.log("Firebase Auth note:", firebaseErr?.code);
-    }
-
-    // 2. Reconocimiento Directo de Credenciales Maestras SuperAdmin
-    const isMasterEmail = [
-      "superadmin@inntelcorp.com",
-      "superadmin@inntelcorp.ec",
-      "admin@inntelcorp.com",
-      "admin@inntelcorp.ec",
-      "superadmin",
-      "admin",
-    ].includes(trimmedEmail);
-
-    const isMasterPassword = [
-      "Inntel2026*",
-      "SuperAdmin2026*",
-      "Admin2026*",
-      "admin",
-      "inntel2026",
-      "InntelCorp2026*",
-    ].includes(password.trim());
-
-    if (isMasterEmail && isMasterPassword) {
-      const masterProfile: SystemUser = {
-        uid: "usr-superadmin-00",
-        email: "superadmin@inntelcorp.com",
-        displayName: "Administrador",
-        role: "superadmin",
-        department: "Administración General",
-        phone: "+593 99 876 5432",
-        status: "activo",
-        passwordHash: "Inntel2026*",
-        permissions: [
-          "all",
-          "manage_users",
-          "manage_vault",
-          "manage_clients",
-          "manage_network",
-          "manage_tickets",
-          "manage_finance",
-          "manage_policies",
-          "export_reports",
-        ],
-        createdAt: "2024-01-01T08:00:00Z",
-      };
-
-      setCurrentUser(masterProfile);
+      const { setPersistence, browserLocalPersistence, browserSessionPersistence } = await import("firebase/auth");
+      await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      const profile = await api<UserProfile>("/api/session");
+      setCurrentUser(profile);
       setIsAuthenticated(true);
-
-      setSystemUsers((prev) => {
-        const exists = prev.some(
-          (u) => u.uid === masterProfile.uid || u.email.toLowerCase() === masterProfile.email.toLowerCase()
-        );
-        if (exists) {
-          return prev.map((u) =>
-            u.uid === masterProfile.uid
-              ? { ...u, status: "activo", role: "superadmin", lastLogin: new Date().toISOString() }
-              : u
-          );
-        }
-        return [masterProfile, ...prev];
-      });
-
-      if (remember) {
-        const { integritySignature } = signUserProfile(masterProfile);
-        localStorage.setItem(AUTH_KEY, JSON.stringify(masterProfile));
-        localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-      }
-
-      addAuditLog("LOGIN", `Acceso Maestro SuperAdmin: ${masterProfile.displayName}`, "Rol: SUPERADMIN");
       return true;
+    } catch {
+      await signOut(auth).catch(() => {});
+      setIsAuthenticated(false);
+      return false;
     }
-
-    // 3. Check against System Accounts (Cuentas adicionales creadas por el usuario)
-    const account = systemUsers.find(
-      (a) => a.email.toLowerCase() === trimmedEmail && a.status === "activo"
-    );
-
-    if (account && account.passwordHash && account.passwordHash === password) {
-      const updatedUser: UserProfile = {
-        uid: account.uid,
-        email: account.email,
-        displayName: account.displayName,
-        role: account.role,
-        department: account.department,
-        phone: account.phone,
-        status: account.status,
-        permissions: account.permissions || [],
-        modulePermissions: account.modulePermissions,
-      };
-
-      setCurrentUser(updatedUser);
-      setIsAuthenticated(true);
-
-      setSystemUsers((prev) =>
-        prev.map((u) => (u.uid === account.uid ? { ...u, lastLogin: new Date().toISOString() } : u))
-      );
-
-      if (remember) {
-        const { integritySignature } = signUserProfile(updatedUser);
-        localStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
-        localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-      }
-
-      addAuditLog("LOGIN", `Acceso al Sistema: ${account.displayName}`, `Rol: ${account.role.toUpperCase()}`);
-      return true;
-    }
-
-    return false;
   };
 
   const logout = async () => {
@@ -1097,80 +826,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "bankAccounts", setter: setBankAccounts, initialData: INITIAL_BANK_ACCOUNTS },
       { name: "financialMovements", setter: setFinancialMovements, initialData: INITIAL_FINANCIAL_MOVEMENTS },
       { name: "supplierPayments", setter: setSupplierPayments, initialData: INITIAL_SUPPLIER_PAYMENTS },
+      { name: "supplierCredits", setter: setSupplierCredits, initialData: [] },
       { name: "hostingDomains", setter: setHostingDomains, initialData: INITIAL_HOSTING_DOMAINS },
       { name: "regulatoryTramites", setter: setRegulatoryTramites, initialData: INITIAL_REGULATORY_TRAMITES },
     ];
 
-    if (auth?.currentUser) {
-      try {
-        const serverSnapshot = await api<Record<string, any>>("/api/data");
-        if (serverSnapshot && typeof serverSnapshot === "object") {
-          let updatedCount = 0;
-          collectionsToSync.forEach((col) => {
-            const entityKey = (col.name === "users" ? "systemUsers" : col.name) as Entity;
-            if (Array.isArray(serverSnapshot[entityKey])) {
-              col.setter(serverSnapshot[entityKey]);
-              updatedCount++;
-            }
-          });
-          if (updatedCount > 0) return;
-        }
-      } catch (serverErr: any) {
-        console.warn("Server API snapshot note:", serverErr?.message);
-      }
-    }
-
-    await Promise.all(
-      collectionsToSync.map(async (col) => {
-        const entity = (col.name === "users" ? "systemUsers" : col.name) as Entity;
-        if (!can(currentUser, collectionPermissions[entity])) {
-          return;
-        }
-        try {
-          const snap = await getDocs(collection(db, col.name));
-          if (!snap.empty) {
-            if (col.name === "users") {
-              const LEGACY_DEMO_USER_UIDS = new Set([
-                "usr-admin-01",
-                "usr-fin-02",
-                "usr-tec-03",
-                "usr-sop-04",
-                "usr-leg-05",
-              ]);
-              const cleanUsers = snap.docs
-                .filter((d) => !LEGACY_DEMO_USER_UIDS.has(d.id))
-                .map((d) => {
-                  const data = d.data();
-                  return {
-                    ...data,
-                    id: d.id,
-                    uid: d.id,
-                  };
-                });
-              if (cleanUsers.length > 0) {
-                col.setter(cleanUsers);
-              }
-            } else {
-              col.setter(
-                snap.docs.map((d) => {
-                  const { passwordHash: _password, ...data } = d.data();
-                  return { ...data, id: d.id };
-                })
-              );
-            }
-          }
-        } catch (e) {
-          console.warn(`Firestore collection read note (${col.name}):`, e);
-        }
-      })
-    );
+    const serverSnapshot = await api<Record<string, any>>("/api/data");
+    collectionsToSync.forEach((col) => {
+      const entityKey = col.name === "users" ? "systemUsers" : col.name;
+      if (!Array.isArray(serverSnapshot[entityKey])) throw new Error(`Falta la colección ${entityKey} en la respuesta del servidor.`);
+      col.setter(serverSnapshot[entityKey]);
+    });
+    if (serverSnapshot.sriCompanyConfig?.[0]) setSriCompanyConfig(serverSnapshot.sriCompanyConfig[0]);
+    const concession = serverSnapshot.systemConfig?.find((row: any) => row.id === "arcotelConcession");
+    if (concession) setArcotelConcession(concession);
+    setLoadError("");
+    setDataReady(true);
   }, [currentUser]);
+
+  const runCommercial = async <T,>(action: string, data: Record<string, unknown>, refreshAfter = true): Promise<T> => {
+    const payload = JSON.parse(JSON.stringify(data));
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify({ action, data: payload }))))).map(b => b.toString(16).padStart(2, "0")).join("");
+    const key = `INNTEL_PENDING_${currentUser.uid}_${hash}`;
+    let operationId = sessionStorage.getItem(key);
+    if (!operationId) { operationId = crypto.randomUUID(); sessionStorage.setItem(key, operationId); }
+    const response = await api<{ result: T }>("/api/commercial", { action, operationId, data: payload });
+    if (refreshAfter) await refresh();
+    sessionStorage.removeItem(key);
+    return response.result;
+  };
+
+  const startBillingRun = (units: Record<string, unknown>[]) => runCommercial<{ id: string; units: { index: number; status: string }[] }>("startRun", { units }, false);
+  const processBillingRun = (id: string, index: number) => runCommercial<{ status: string; error?: string }>("processRun", { id, index }, false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     const reload = () => {
       void refresh().catch((error: Error) => {
-        console.warn("Refresh error note:", error?.message);
+        setLoadError(error.message || "No se pudieron cargar los datos persistidos.");
       });
     };
     reload();
@@ -1393,78 +1086,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const revealCredential = async (entity: "vault" | "clientVaultItems", id: string): Promise<string> => {
-    if (auth?.currentUser) {
-      try {
-        const response = await api<{ result: string }>("/api/data", {
-          action: "reveal",
-          entity,
-          id,
-        });
-        if (response && typeof response.result === "string") {
-          addAuditLog("VIEW_VAULT_PASSWORD", `${entity}: ${id}`, `Consulta autorizada por ${currentUser.role}`);
-          return response.result;
-        }
-      } catch (serverErr: any) {
-        console.warn("Server reveal error, trying fallback:", serverErr?.message);
-      }
-    }
-    if (entity === "clientVaultItems") {
-      const item = clientVaultItems.find((v) => v.id === id);
-      if (!item) throw new Error("Credencial no encontrada.");
-      addAuditLog("VIEW_VAULT_PASSWORD", `Clave Cliente: ${item.serviceName}`, `Consulta por ${currentUser.role}`);
-      return simpleDecrypt(item.encryptedPassword || "");
-    } else {
-      const item = vault.find((v) => v.id === id);
-      if (!item) throw new Error("Credencial no encontrada.");
-      addAuditLog("VIEW_VAULT_PASSWORD", `Bóveda General: ${item.serviceName}`, `Consulta por ${currentUser.role}`);
-      return simpleDecrypt(item.encryptedPassword || "");
-    }
+    const response = await api<{ result: string }>("/api/data", { action: "reveal", entity, id });
+    return response.result;
   };
 
   // User Management
   const addSystemUser = async (userData: Omit<SystemUser, "uid" | "createdAt">) => {
-    const newUid = "usr-" + Date.now();
-    const newUser: SystemUser = {
-      ...userData,
-      uid: newUid,
-      createdAt: new Date().toISOString(),
-    };
-    await syncToFirestore("users", newUid, newUser);
-    setSystemUsers((prev) => [newUser, ...prev]);
-    addAuditLog("CREATE_USER", `Usuario: ${newUser.displayName}`, `Rol: ${newUser.role} | Email: ${newUser.email}`);
+    await api("/api/users", { action: "create", data: userData });
+    await refresh();
   };
 
   const updateSystemUser = async (uid: string, updates: Partial<SystemUser>) => {
-    await syncToFirestore("users", uid, updates);
-    setSystemUsers((prev) =>
-      prev.map((u) => (u.uid === uid ? { ...u, ...updates } : u))
-    );
-    if (currentUser.uid === uid) {
-      setCurrentUser((prev) => {
-        const updated = { ...prev, ...updates };
-        try {
-          if (localStorage.getItem(AUTH_KEY)) {
-            const { integritySignature } = signUserProfile(updated);
-            localStorage.setItem(AUTH_KEY, JSON.stringify(updated));
-            localStorage.setItem(`${AUTH_KEY}_SIG`, integritySignature);
-          }
-        } catch (e) {}
-        return updated;
-      });
-    }
-    const { passwordHash: _pw, ...safeUpdates } = updates;
-    addAuditLog("UPDATE_USER", `Usuario ID: ${uid}`, JSON.stringify(safeUpdates));
+    await api("/api/users", { action: "update", uid, data: updates });
+    await refresh();
   };
 
   const deleteSystemUser = async (uid: string): Promise<boolean> => {
-    const target = systemUsers.find((u) => u.uid === uid);
-    if (!target) return false;
-    if (target.role === "superadmin" && systemUsers.filter((u) => u.role === "superadmin").length <= 1) {
-      return false;
-    }
-    await deleteFromFirestore("users", uid);
-    setSystemUsers((prev) => prev.filter((u) => u.uid !== uid));
-    addAuditLog("DELETE_USER", `Usuario: ${target.displayName}`, `Email: ${target.email}`);
+    await api("/api/users", { action: "disable", uid });
+    await refresh();
     return true;
   };
 
@@ -1714,90 +1353,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Client Core Operations
   const addClient = async (
-    clientData: Omit<Client, "id" | "createdAt" | "updatedAt">,
-    serviceData?: Partial<ClientService>
-  ): Promise<Client> => {
-    const newId = "cli-" + (clients.length + 1).toString().padStart(3, "0");
-    const cleanIdentification = String(clientData.identificationNumber || "")
-      .replace(/\s+/g, "")
-      .trim();
-    const cleanEmail = String(clientData.email || "")
-      .replace(/\s+/g, "")
-      .trim()
-      .toLowerCase();
-    const newClient: Client = {
-      ...clientData,
-      identificationNumber: cleanIdentification,
-      email: cleanEmail,
-      businessName: String(clientData.businessName || "").replace(/\s+/g, " ").trim(),
-      address: String(clientData.address || "").replace(/\s+/g, " ").trim(),
-      id: newId,
-      totalActiveServices: serviceData ? 1 : 0,
-      currentBalance: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await syncToFirestore("clients", newId, newClient);
-    setClients((prev) => [newClient, ...prev]);
-
-    if (serviceData) {
-      const plan = plans.find((p) => p.id === serviceData.planId) || plans[0];
-      const node = serviceData.nodeId ? nodes.find((n) => n.id === serviceData.nodeId) : null;
-      const newService: ClientService = {
-        id: "srv-" + Date.now(),
-        clientId: newId,
-        planId: plan ? plan.id : "plan-100m",
-        planName: plan ? plan.name : "Fibra Óptica Dedicado",
-        downloadMbps: plan ? plan.downloadMbps : 100,
-        uploadMbps: plan ? plan.uploadMbps : 100,
-        basePrice: plan ? plan.defaultPrice : 28.0,
-        customPrice: serviceData.customPrice || (plan ? plan.defaultPrice : 28.0),
-        billingType: serviceData.billingType || (plan ? plan.billingType : "pospago"),
-        cutoffDay: serviceData.cutoffDay || 1,
-        nodeId: node ? node.id : "",
-        nodeName: node ? node.name : "Sin nodo asignado",
-        ipv4Address: serviceData.ipv4Address || `100.64.10.${Math.floor(Math.random() * 200) + 10}`,
-        pppoeUser: serviceData.pppoeUser || newClient.identificationNumber,
-        status: "activo",
-        installationDate: getEcuadorDate(),
-      };
-      await syncToFirestore("clientServices", newService.id, newService);
-    setClientServices((prev) => [...prev, newService]);
-
-      // Auto-create default contract and project task
-      await addClientContract({
-        clientId: newId,
-        contractNumber: `CONT-INNTEL-2026-${newId.toUpperCase()}`,
-        arcotelHomologationCode: "ARCOTEL-SAI-HOM-0841",
-        planName: newService.planName,
-        signedDate: getEcuadorDate(),
-        expirationDate: addMonthsSafely(getEcuadorDate(), 12),
-        status: "vigente",
-        monthlyPrice: newService.customPrice,
-        notes: "Contrato estándar de adhesión para servicio de acceso a internet",
-      });
-
-      await addClientProjectTask({
-        clientId: newId,
-        clientName: newClient.businessName,
-        title: `Instalación Fibra Óptica: ${newService.planName}`,
-        description: `Despliegue de acometida de fibra óptica e instalación de ONT en ${newClient.address}`,
-        column: "factibilidad",
-        priority: "alta",
-        assignedTo: "Cuadrilla NOC Central",
-        dueDate: getEcuadorDate(Date.now() + 86400000 * 3),
-        checklist: [
-          { id: "chk-1", text: "Inspección de caja NAP y nivel de potencia óptica (dBm)", done: false },
-          { id: "chk-2", text: "Tendido de cable drop y herrajes", done: false },
-          { id: "chk-3", text: "Fusión de pigtail y conectorización SC/APC", done: false },
-          { id: "chk-4", text: "Aprovisionamiento de ONT y pruebas de velocidad", done: false },
-        ],
-      });
-    }
-
-    addAuditLog("CREATE_CLIENT", `Cliente: ${newClient.businessName}`, `ID: ${newClient.identificationNumber}`);
-    return newClient;
-  };
+    clientData: Omit<Client, "id" | "createdAt" | "updatedAt">, serviceData?: Partial<ClientService>
+  ): Promise<Client> => runCommercial<Client>("createClient", { client: { ...clientData,
+    identificationNumber: clientData.identificationNumber.replace(/\s+/g, "").trim(),
+    email: clientData.email.trim().toLowerCase(), businessName: clientData.businessName.trim()
+  }, ...(serviceData ? { service: serviceData } : {}) });
 
   const updateClient = async (id: string, updates: Partial<Client>) => {
     const sanitizedUpdates: Partial<Client> = { ...updates };
@@ -1819,98 +1379,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteClient = async (id: string) => {
-    await deleteFromFirestore("clients", id);
-    setClients((prev) => prev.filter((c) => c.id !== id));
-    setClientServices((prev) => prev.filter((s) => s.clientId !== id));
-    setClientProjects((prev) => prev.filter((p) => p.clientId !== id));
-    setClientQuotes((prev) => prev.filter((q) => q.clientId !== id));
-    setClientVaultItems((prev) => prev.filter((v) => v.clientId !== id));
-    setClientContracts((prev) => prev.filter((c) => c.clientId !== id));
+    await runCommercial("retireClient", { id });
   };
 
-  const addClientService = async (serviceData: Omit<ClientService, "id">): Promise<ClientService> => {
-    let defaultMonths = 1;
-    if (serviceData.billingFrequency === "anual") defaultMonths = 12;
-    else if (serviceData.billingFrequency === "semestral") defaultMonths = 6;
-    else if (serviceData.billingFrequency === "trimestral") defaultMonths = 3;
-
-    const startDate = serviceData.contractStartDate || serviceData.installationDate || getEcuadorDate();
-    let contractEndDate = serviceData.contractEndDate;
-    if (!contractEndDate && serviceData.contractDuration && serviceData.contractDuration !== "indefinido") {
-      contractEndDate = calculateContractEndDate(startDate, serviceData.contractDuration);
-    }
-
-    const newService: ClientService = {
-      ...serviceData,
-      id: "srv-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-      billingFrequency: serviceData.billingFrequency || "mensual",
-      contractDuration: serviceData.contractDuration || "anual",
-      contractStartDate: startDate,
-      contractEndDate,
-      autoRenew: serviceData.autoRenew ?? true,
-      isBillableInCurrentCycle: serviceData.isBillableInCurrentCycle ?? true,
-      nextRenewalDate: serviceData.nextRenewalDate || addMonthsSafely(startDate, defaultMonths),
-    };
-
-    await syncToFirestore("clientServices", newService.id, newService);
-    setClientServices((prev) => {
-      const next = [...prev, newService];
-      const activeCount = next.filter((s) => s.clientId === newService.clientId && s.status === "activo").length;
-      setClients((cPrev) =>
-        cPrev.map((c) => (c.id === newService.clientId ? { ...c, totalActiveServices: activeCount } : c))
-      );
-      return next;
-    });
-    return newService;
-  };
+  const addClientService = async (serviceData: Omit<ClientService, "id">): Promise<ClientService> =>
+    runCommercial<ClientService>("assignService", serviceData);
 
   const updateClientService = async (id: string, updates: Partial<ClientService>) => {
-    await syncToFirestore("clientServices", id, updates);
-    setClientServices((prev) => {
-      const next = prev.map((s) => (s.id === id ? { ...s, ...updates } : s));
-      const target = next.find((s) => s.id === id);
-      if (target) {
-        const activeCount = next.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
-        setClients((cPrev) =>
-          cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
-        );
-      }
-      return next;
-    });
+    await runCommercial("editService", { id, ...updates });
   };
 
   const deleteClientService = async (id: string) => {
-    const target = clientServices.find((s) => s.id === id);
-    await deleteFromFirestore("clientServices", id);
-    const nextServices = clientServices.filter((s) => s.id !== id);
-    setClientServices(nextServices);
-
-    if (target) {
-      const activeCount = nextServices.filter((s) => s.clientId === target.clientId && s.status === "activo").length;
-      setClients((cPrev) =>
-        cPrev.map((c) => (c.id === target.clientId ? { ...c, totalActiveServices: activeCount } : c))
-      );
-
-      // Quitar de cobranzas si correspondía a este servicio o si el cliente ya no tiene servicios activos
-      const remainingForClient = nextServices.filter((s) => s.clientId === target.clientId);
-      const pendingCharges = monthlyCharges.filter((c) => {
-        if (c.clientId !== target.clientId || c.status !== "pendiente") return false;
-        if (c.payments && c.payments.length > 0) return false;
-        if (remainingForClient.length === 0) return true;
-        if (c.serviceDescription && c.serviceDescription.includes(target.planName) && !c.serviceDescription.includes("+")) {
-          return true;
-        }
-        return false;
-      });
-
-      for (const chg of pendingCharges) {
-        await deleteFromFirestore("monthlyCharges", chg.id);
-      }
-      if (pendingCharges.length > 0) {
-        const pIds = new Set(pendingCharges.map((c) => c.id));
-        setMonthlyCharges((prev) => prev.filter((c) => !pIds.has(c.id)));
-      }
-    }
+    await runCommercial("retireService", { id });
   };
 
   const renewClientService = async (id: string) => {
@@ -2002,6 +1482,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateArcotelConcession = async (updates: Partial<ArcotelConcessionInfo>) => {
+    await syncToFirestore("systemConfig", "arcotelConcession", { ...arcotelConcession, ...updates });
     setArcotelConcession((prev) => sanitizeObjectTexts({ ...prev, ...updates }));
   };
 
@@ -2105,14 +1586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updates.resolvedAt = new Date().toISOString();
     }
 
-    try {
-      await updateDoc(doc(db, "tickets", id), {
-        messages: arrayUnion(message),
-        ...updates,
-      });
-    } catch (e) {
-      console.warn("Firestore replyToTicket sync note:", e);
-    }
+    await api("/api/tickets/reply", { id, messageId: message.id, body: text, isInternal: !!isInternal, status: updatedStatus });
 
     setTickets((prev) =>
       prev.map((t) =>
@@ -2159,164 +1633,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addExpense = async (expenseData: Omit<Expense, "id">) => {
-    const newExpense: Expense = { ...expenseData, id: "exp-" + Date.now() };
-    await syncToFirestore("expenses", newExpense.id, newExpense);
-    setExpenses((prev) => [newExpense, ...prev]);
-    addAuditLog("CREATE_EXPENSE", `Gasto: ${newExpense.supplierName}`, `$${newExpense.amount}`);
+    await runCommercial("expense", expenseData);
   };
 
   const generateMonthlyBillingBatch = async (month: number, year: number) => {
-    const newCharges: MonthlyCharge[] = [];
-    const periodKey = `${year}-${String(month).padStart(2, "0")}`;
-
-    for (const client of clients) {
-      if (client.billingRecurrence === "ocasional") continue;
-      const clientServs = clientServices.filter(
-        (s) =>
-          s.clientId === client.id &&
-          s.status === "activo" &&
-          s.isBillableInCurrentCycle !== false
-      );
-      if (clientServs.length === 0) continue;
-
-      const subtotal = clientServs.reduce((sum, s) => sum + (Number(s.customPrice) || 0), 0);
-      const iva = subtotal * 0.15;
-      const totalAmount = subtotal + iva;
-      const planNames = clientServs.map((s) => s.planName).join(" + ");
-
-      newCharges.push({
-        id: `chg-${client.id}-${month}-${year}`,
-        clientId: client.id,
-        clientName: client.businessName,
-        clientRuc: client.identificationNumber,
-        month,
-        year,
-        serviceDescription: `${planNames} - Periodo ${String(month).padStart(2, "0")}/${year}`,
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        ivaAmount: parseFloat(iva.toFixed(2)),
-        total: parseFloat(totalAmount.toFixed(2)),
-        status: "pendiente",
-        invoiceNumber: `001-100-${Math.floor(Math.random() * 900000 + 100000)}`,
-      });
-
-      for (const srv of clientServs) {
-        await updateClientService(srv.id, { lastBilledPeriod: periodKey });
-      }
-    }
-
-    if (newCharges.length > 0) {
-      setMonthlyCharges((prev) => [...newCharges, ...prev]);
-      newCharges.forEach((c) => syncToFirestore("monthlyCharges", c.id, c));
-    }
-    addAuditLog("EXPORT_BILLING", "Emisión Facturación Recurrente", `Lote para ${newCharges.length} clientes recurrentes`);
+    throw new Error("La emisión de " + month + "/" + year + " requiere revisar y seleccionar los servicios en Ventas recurrentes.");
   };
 
   const addMonthlyCharge = async (chargeData: Omit<MonthlyCharge, "id">) => {
-    const newCharge: MonthlyCharge = {
-      ...chargeData,
-      id: "chg-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-    };
-    await syncToFirestore("monthlyCharges", newCharge.id, newCharge);
-    setMonthlyCharges((prev) => [newCharge, ...prev]);
-    addAuditLog("CREATE_EXPENSE", `Factura Manual: ${newCharge.invoiceNumber}`, `$${newCharge.total} USD - ${newCharge.clientName}`);
+    await runCommercial("manualCharge", chargeData);
   };
 
   const addPaymentToCharge = async (
     chargeId: string,
-    payment: {
-      amount: number;
-      method: string;
-      reference?: string;
-      bankAccountId?: string;
-      advanceId?: string;
-      notes?: string;
-      date?: string;
-    }
+    payment: { amount: number; method: string; reference?: string; bankAccountId?: string; advanceId?: string; notes?: string; date?: string }
   ) => {
-    const charge = monthlyCharges.find((c) => c.id === chargeId);
-    if (!charge) return;
-
-    const payAmount = Math.max(0, Math.round(payment.amount * 100) / 100);
-    const currentPaid = Number(charge.paidAmount || (charge.status === "pagado" ? charge.total : 0));
-    const newTotalPaid = Math.min(charge.total, Math.round((currentPaid + payAmount) * 100) / 100);
-    const currentBalance =
-      charge.balanceRemaining !== undefined
-        ? charge.balanceRemaining
-        : Math.max(0, charge.total - currentPaid);
-    const newBalance = Math.max(0, Math.round((currentBalance - payAmount) * 100) / 100);
-    const newStatus: "pagado" | "parcial" = newBalance <= 0.009 ? "pagado" : "parcial";
-    const payDate = payment.date || getEcuadorDate();
-
-    const targetBank = payment.bankAccountId
-      ? bankAccounts.find((b) => b.id === payment.bankAccountId)
-      : bankAccounts[0];
-
-    const newPaymentRecord: ChargePayment = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      date: payDate,
-      amount: payAmount,
-      method: payment.method,
-      reference: payment.reference || "",
-      bankAccountId: targetBank?.id,
-      bankAccountName: targetBank?.bankName,
-      advanceId: payment.advanceId,
-    };
-
-    const updatedCharge: MonthlyCharge = {
-      ...charge,
-      paidAmount: newTotalPaid,
-      balanceRemaining: newBalance,
-      status: newStatus,
-      paymentDate: payDate,
-      paymentMethod: payment.method,
-      paymentReference: payment.reference || charge.paymentReference,
-      payments: [...(charge.payments || []), newPaymentRecord],
-      notes: payment.notes
-        ? `${charge.notes ? charge.notes + " | " : ""}${payment.notes}`
-        : charge.notes,
-    };
-
-    await syncToFirestore("monthlyCharges", chargeId, updatedCharge);
-    setMonthlyCharges((prev) => prev.map((c) => (c.id === chargeId ? updatedCharge : c)));
-
-    // Si no es aplicación de anticipo previo (es dinero nuevo), registrar movimiento y actualizar banco
-    if (!payment.advanceId && targetBank && payAmount > 0) {
-      const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
-        payment.method.toLowerCase().includes("efectivo")
-          ? "efectivo"
-          : payment.method.toLowerCase().includes("cheque")
-          ? "cheque"
-          : "transferencia";
-
-      await addFinancialMovement({
-        type: "ingreso",
-        date: payDate,
-        amount: payAmount,
-        category: "cobro_cliente",
-        description: `Abono a Comprobante ${charge.invoiceNumber} - ${charge.clientName}`,
-        bankAccountId: targetBank.id,
-        bankAccountName: targetBank.bankName,
-        paymentMethod: normalizedMethod,
-        referenceNumber: payment.reference || undefined,
-        relatedEntityId: charge.invoiceId || charge.id,
-      });
-    }
-
-    // Actualizar saldo pendiente en la ficha del cliente
-    if (charge.clientId && charge.clientId !== "cf-9999999999999") {
-      const clientObj = clients.find((c) => c.id === charge.clientId);
-      if (clientObj) {
-        const newBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - payAmount) * 100) / 100);
-        await syncToFirestore("clients", clientObj.id, { currentBalance: newBal });
-        setClients((prev) => prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newBal } : c)));
-      }
-    }
-
-    addAuditLog(
-      "EXPORT_BILLING",
-      `Abono Comprobante: ${charge.invoiceNumber}`,
-      `$${payAmount} USD (${newStatus.toUpperCase()}) - Saldo restante: $${newBalance} USD`
-    );
+    await runCommercial(payment.advanceId ? "applyAdvance" : "payCharge", { chargeId, ...payment });
   };
 
   const markChargeAsPaid = async (
@@ -2349,300 +1681,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteMonthlyCharge = async (id: string) => {
-    // 1. Si es un ID sintético generado a partir de una venta (chg-inv-...)
-    if (id.startsWith("chg-inv-")) {
-      const invId = id.replace("chg-inv-", "");
-      if (invId) {
-        await deleteInvoice(invId);
-      }
-      return;
-    }
+    await runCommercial("cancelCharge", { id });
+  };
 
-    const charge = monthlyCharges.find((c) => c.id === id);
-    if (!charge) {
-      // Podría ser un id de factura directamente o número de comprobante
-      const invoiceMatch = billingInvoices.find((i) => i.id === id || i.documentNumber === id);
-      if (invoiceMatch) {
-        await deleteInvoice(invoiceMatch.id);
-        return;
-      }
-      return;
-    }
-
-    // 2. Si el cobro está vinculado a una factura en billingInvoices, eliminamos la venta completa en cascada
-    const associatedInvoice =
-      (charge.invoiceId && billingInvoices.find((i) => i.id === charge.invoiceId)) ||
-      (charge.invoiceNumber && billingInvoices.find((i) => i.documentNumber === charge.invoiceNumber));
-
-    if (associatedInvoice) {
-      await deleteInvoice(associatedInvoice.id);
-      return;
-    }
-
-    // 3. Si es un cobro recurrente o manual independiente
-    const linkedMovs = financialMovements.filter(
-      (m) => m.relatedEntityId === charge.id || (charge.invoiceId && m.relatedEntityId === charge.invoiceId)
-    );
-    for (const mov of linkedMovs) {
-      if (mov.bankAccountId) {
-        const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-        if (bank) {
-          const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-          await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-          setBankAccounts((prev) =>
-            prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
-          );
-        }
-      }
-      await deleteFromFirestore("financialMovements", mov.id);
-    }
-    if (linkedMovs.length > 0) {
-      const linkedIds = new Set(linkedMovs.map((m) => m.id));
-      setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
-    }
-
-    await deleteFromFirestore("monthlyCharges", id);
-    setMonthlyCharges((prev) => prev.filter((c) => c.id !== id));
-    addAuditLog(
-      "UPDATE_CLIENT",
-      `Cobro Eliminado: ${charge.invoiceNumber}`,
-      `Cliente: ${charge.clientName} - Total: $${charge.total}`
-    );
+  const reverseChargePayment = async (chargeId: string, paymentId: string) => {
+    await runCommercial("reverseApplication", { chargeId, paymentId });
   };
 
   const addClientAdvance = async (
     advanceData: Omit<ClientAdvance, "id" | "remaining" | "status" | "applications">
-  ): Promise<ClientAdvance> => {
-    const id = `adv-${Date.now()}`;
-    const newAdvance: ClientAdvance = {
-      ...advanceData,
-      id,
-      remaining: advanceData.amount,
-      status: "vigente",
-      applications: [],
-    };
+  ): Promise<ClientAdvance> => runCommercial<ClientAdvance>("advance", advanceData);
 
-    await syncToFirestore("clientAdvances", id, newAdvance);
-    setClientAdvances((prev) => [newAdvance, ...prev]);
-
-    if (advanceData.bankAccountId && advanceData.amount > 0) {
-      const targetBank = bankAccounts.find((b) => b.id === advanceData.bankAccountId);
-      if (targetBank) {
-        const normalizedMethod: "transferencia" | "cheque" | "efectivo" =
-          advanceData.method?.toLowerCase().includes("efectivo")
-            ? "efectivo"
-            : advanceData.method?.toLowerCase().includes("cheque")
-            ? "cheque"
-            : "transferencia";
-
-        await addFinancialMovement({
-          type: "ingreso",
-          date: advanceData.date,
-          amount: advanceData.amount,
-          category: "cobro_cliente",
-          description: `Pago Anticipado (${advanceData.monthsCovered || 1} meses) - ${advanceData.clientName}`,
-          bankAccountId: targetBank.id,
-          bankAccountName: targetBank.bankName,
-          paymentMethod: normalizedMethod,
-          referenceNumber: advanceData.reference || undefined,
-          relatedEntityId: id,
-        });
-      }
-    }
-
-    addAuditLog(
-      "EXPORT_BILLING",
-      `Pago Anticipado Registrado: ${advanceData.clientName}`,
-      `$${advanceData.amount} USD por ${advanceData.monthsCovered || 1} mes(es) adelantado(s)`
-    );
-
-    return newAdvance;
-  };
-
-  const applyClientAdvance = async (
-    advanceId: string,
-    chargeId: string,
-    amount: number
-  ): Promise<void> => {
-    const advance = clientAdvances.find((a) => a.id === advanceId);
-    const charge = monthlyCharges.find((c) => c.id === chargeId);
-    if (!advance || !charge) throw new Error("Anticipo o cobro no encontrado");
-
-    const chargeBalance =
-      charge.balanceRemaining !== undefined
-        ? charge.balanceRemaining
-        : Math.max(0, charge.total - (charge.paidAmount || 0));
-
-    const applyAmount = Math.min(
-      Math.round(amount * 100) / 100,
-      advance.remaining,
-      chargeBalance
-    );
-    if (applyAmount <= 0) return;
-
-    const newAdvRemaining = Math.max(0, Math.round((advance.remaining - applyAmount) * 100) / 100);
-    const newAdvStatus: "vigente" | "aplicado" = newAdvRemaining <= 0.009 ? "aplicado" : "vigente";
-    const updatedAdvance: ClientAdvance = {
-      ...advance,
-      remaining: newAdvRemaining,
-      status: newAdvStatus,
-      applications: [
-        ...(advance.applications || []),
-        {
-          chargeId,
-          invoiceNumber: charge.invoiceNumber,
-          amount: applyAmount,
-          date: getEcuadorDate(),
-        },
-      ],
-    };
-
-    await syncToFirestore("clientAdvances", advanceId, updatedAdvance);
-    setClientAdvances((prev) => prev.map((a) => (a.id === advanceId ? updatedAdvance : a)));
-
-    await addPaymentToCharge(chargeId, {
-      amount: applyAmount,
-      method: "Anticipo de Cliente",
-      reference: `Anticipo ${advance.id}`,
-      advanceId: advance.id,
-      notes: `Aplicación de saldo a favor de anticipo por $${applyAmount}`,
-      date: getEcuadorDate(),
-    });
+  const applyClientAdvance = async (advanceId: string, chargeId: string, amount: number): Promise<void> => {
+    await runCommercial("applyAdvance", { advanceId, chargeId, amount });
   };
 
   const deleteClientAdvance = async (id: string): Promise<void> => {
-    const adv = clientAdvances.find((a) => a.id === id);
-    if (!adv) return;
-    if ((adv.applications || []).length > 0) {
-      throw new Error("No se puede eliminar un anticipo que ya ha sido aplicado a cobros.");
-    }
-
-    const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === id);
-    for (const mov of linkedMovs) {
-      if (mov.bankAccountId) {
-        const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-        if (bank) {
-          const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-          await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-          setBankAccounts((prev) =>
-            prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
-          );
-        }
-      }
-      await deleteFromFirestore("financialMovements", mov.id);
-    }
-    if (linkedMovs.length > 0) {
-      const linkedIds = new Set(linkedMovs.map((m) => m.id));
-      setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
-    }
-
-    await deleteFromFirestore("clientAdvances", id);
-    setClientAdvances((prev) => prev.filter((a) => a.id !== id));
-    addAuditLog("UPDATE_CLIENT", `Anticipo Eliminado: ${adv.clientName}`, `$${adv.amount} USD`);
+    await runCommercial("cancelAdvance", { id });
   };
 
   // ==========================================
   // INVENTORY MODULE METHODS
   // ==========================================
 
-  const addInventoryProduct = async (productData: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">): Promise<InventoryProduct> => {
-    const id = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const now = new Date().toISOString();
-    const salePriceConIva = calculatePriceWithTax(productData.salePrice, productData.ivaRate);
-    
-    const stockByWarehouse = productData.stockByWarehouse || {};
-    const totalStock = Object.values(stockByWarehouse).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-    const newProduct: InventoryProduct = {
-      ...productData,
-      id,
-      stock: productData.tracksStock ? totalStock : 0,
-      salePriceConIva,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await syncToFirestore("inventoryProducts", id, newProduct);
-    setInventoryProducts((prev) => [newProduct, ...prev]);
-
-    if (newProduct.tracksStock && totalStock > 0) {
-      const positiveWhEntries = Object.entries(stockByWarehouse).filter(([, qty]) => Number(qty) > 0);
-      const initialKardexEntries: KardexEntry[] = [];
-
-      if (positiveWhEntries.length > 0) {
-        positiveWhEntries.forEach(([whId, qtyVal], idx) => {
-          const qty = Number(qtyVal) || 0;
-          const wh = inventoryWarehouses.find((w) => w.id === whId) || { id: whId, name: "Bodega Principal" } as Warehouse;
-          const kardexDocNum = generateInventoryDocNumber("KDX", inventoryKardex.length + idx);
-          const entry = buildKardexEntry({
-            product: newProduct,
-            warehouse: wh,
-            type: "POSITIVE_ADJUSTMENT",
-            referenceId: id,
-            referenceDocNumber: kardexDocNum,
-            concept: `Stock inicial en ${wh.name}: ${newProduct.name}`,
-            quantity: qty,
-            unitCost: newProduct.baseCost,
-            currentStock: 0,
-            currentAvgCost: newProduct.baseCost,
-            userName: currentUser.displayName,
-          });
-          initialKardexEntries.push(entry);
-        });
-      } else {
-        const defaultWhId = newProduct.defaultWarehouseId || inventoryWarehouses[0]?.id || "wh-central";
-        const wh = inventoryWarehouses.find((w) => w.id === defaultWhId) || inventoryWarehouses[0] || ({ id: defaultWhId, name: "Bodega Principal" } as Warehouse);
-        const kardexDocNum = generateInventoryDocNumber("KDX", inventoryKardex.length);
-        const entry = buildKardexEntry({
-          product: newProduct,
-          warehouse: wh,
-          type: "POSITIVE_ADJUSTMENT",
-          referenceId: id,
-          referenceDocNumber: kardexDocNum,
-          concept: `Stock inicial al registrar producto: ${newProduct.name}`,
-          quantity: totalStock,
-          unitCost: newProduct.baseCost,
-          currentStock: 0,
-          currentAvgCost: newProduct.baseCost,
-          userName: currentUser.displayName,
-        });
-        initialKardexEntries.push(entry);
-      }
-
-      for (const entry of initialKardexEntries) {
-        await syncToFirestore("inventoryKardex", entry.id, entry);
-      }
-      setInventoryKardex((prev) => [...initialKardexEntries, ...prev]);
-    }
-
-    addAuditLog("CREATE_EXPENSE", `Producto Creado: ${newProduct.name}`, `SKU: ${newProduct.sku} | Stock: ${newProduct.stock}`);
-    return newProduct;
-  };
+  const addInventoryProduct = async (productData: Omit<InventoryProduct, "id" | "createdAt" | "updatedAt">): Promise<InventoryProduct> =>
+    runCommercial<InventoryProduct>("createProduct", productData);
 
   const updateInventoryProduct = async (id: string, updates: Partial<InventoryProduct>) => {
-    const product = inventoryProducts.find((p) => p.id === id);
-    if (!product) return;
-
-    const merged = { ...product, ...updates, updatedAt: new Date().toISOString() };
-    if (updates.salePrice !== undefined || updates.ivaRate !== undefined) {
-      merged.salePriceConIva = calculatePriceWithTax(merged.salePrice, merged.ivaRate);
-    }
-    if (updates.stockByWarehouse) {
-      merged.stock = Object.values(updates.stockByWarehouse).reduce((acc, val) => acc + (Number(val) || 0), 0);
-    }
-
-    await syncToFirestore("inventoryProducts", id, merged);
-    setInventoryProducts((prev) => prev.map((p) => (p.id === id ? merged : p)));
-    addAuditLog("CREATE_EXPENSE", `Producto Actualizado: ${product.name}`, `SKU: ${product.sku}`);
+    await runCommercial("editProduct", { id, ...updates });
   };
 
   const deleteInventoryProduct = async (id: string) => {
-    const product = inventoryProducts.find((p) => p.id === id);
-    await deleteFromFirestore("inventoryProducts", id);
-    setInventoryProducts((prev) => prev.filter((p) => p.id !== id));
-    if (product) {
-      addAuditLog("CREATE_EXPENSE", `Producto Eliminado: ${product.name}`, `SKU: ${product.sku}`);
-    }
+    await runCommercial("editProduct", { id, status: "inactivo" });
   };
 
   const addWarehouse = async (warehouseData: Omit<Warehouse, "id" | "createdAt">) => {
@@ -2697,240 +1767,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInventoryBrands((prev) => [...prev, newBrand]);
   };
 
-  const executeTransfer = async ({
-    originWarehouseId,
-    destWarehouseId,
-    productId,
-    quantity,
-    reason,
-  }: {
-    originWarehouseId: string;
-    destWarehouseId: string;
-    productId: string;
-    quantity: number;
-    reason: string;
-  }) => {
-    if (originWarehouseId === destWarehouseId) {
-      throw new Error("La bodega de origen y destino no pueden ser iguales.");
-    }
-    const product = inventoryProducts.find((p) => p.id === productId);
-    if (!product) throw new Error("Producto no encontrado.");
-
-    const originWh = inventoryWarehouses.find((w) => w.id === originWarehouseId);
-    const destWh = inventoryWarehouses.find((w) => w.id === destWarehouseId);
-    if (!originWh || !destWh) throw new Error("Bodega no válida.");
-
-    const validation = validateStockAvailability(product, originWarehouseId, quantity);
-    if (!validation.valid) throw new Error(validation.error);
-
-    const transferDocNumber = generateInventoryDocNumber("TRF", inventoryTransfers.length);
-    const transferId = `trf-${Date.now()}`;
-    const now = new Date().toISOString();
-    const qty = Math.abs(quantity);
-    const cost = product.baseCost;
-
-    // 1. Kardex TRANSFER_OUT en origen
-    const currentOriginStock = Number(product.stockByWarehouse?.[originWarehouseId] || 0);
-    const originKardex = buildKardexEntry({
-      product,
-      warehouse: originWh,
-      type: "TRANSFER_OUT",
-      referenceId: transferId,
-      referenceDocNumber: transferDocNumber,
-      concept: `Traslado a ${destWh.name}: ${reason}`,
-      quantity: qty,
-      unitCost: cost,
-      currentStock: currentOriginStock,
-      currentAvgCost: cost,
-      userName: currentUser.displayName,
-    });
-
-    // 2. Kardex TRANSFER_IN en destino
-    const currentDestStock = Number(product.stockByWarehouse?.[destWarehouseId] || 0);
-    const destKardex = buildKardexEntry({
-      product,
-      warehouse: destWh,
-      type: "TRANSFER_IN",
-      referenceId: transferId,
-      referenceDocNumber: transferDocNumber,
-      concept: `Recepción de traslado desde ${originWh.name}: ${reason}`,
-      quantity: qty,
-      unitCost: cost,
-      currentStock: currentDestStock,
-      currentAvgCost: cost,
-      userName: currentUser.displayName,
-    });
-
-    // 3. Actualizar stock del producto por bodega
-    const updatedStockByWh = {
-      ...(product.stockByWarehouse || {}),
-      [originWarehouseId]: Math.max(0, currentOriginStock - qty),
-      [destWarehouseId]: currentDestStock + qty,
-    };
-    const totalConsolidatedStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-    const updatedProduct: InventoryProduct = {
-      ...product,
-      stockByWarehouse: updatedStockByWh,
-      stock: totalConsolidatedStock,
-      updatedAt: now,
-    };
-
-    // 4. Registro de Transferencia
-    const transferRecord: WarehouseTransfer = {
-      id: transferId,
-      transferNumber: transferDocNumber,
-      date: now,
-      originWarehouseId,
-      originWarehouseName: originWh.name,
-      destWarehouseId,
-      destWarehouseName: destWh.name,
-      productId: product.id,
-      productName: product.name,
-      quantity: qty,
-      unitCost: cost,
-      totalCost: Math.round(qty * cost * 100) / 100,
-      reason,
-      responsibleUser: currentUser.displayName,
-      status: "completada",
-      createdAt: now,
-    };
-
-    // Persistir
-    await Promise.all([
-      syncToFirestore("inventoryKardex", originKardex.id, originKardex),
-      syncToFirestore("inventoryKardex", destKardex.id, destKardex),
-      syncToFirestore("inventoryTransfers", transferRecord.id, transferRecord),
-      syncToFirestore("inventoryProducts", updatedProduct.id, updatedProduct),
-    ]);
-
-    setInventoryKardex((prev) => [originKardex, destKardex, ...prev]);
-    setInventoryTransfers((prev) => [transferRecord, ...prev]);
-    setInventoryProducts((prev) => prev.map((p) => (p.id === product.id ? updatedProduct : p)));
-
-    addAuditLog("CREATE_EXPENSE", `Transferencia: ${transferDocNumber}`, `${qty} ${product.unit}s de ${originWh.code} a ${destWh.code}`);
+  const executeTransfer = async (data: { originWarehouseId: string; destWarehouseId: string; productId: string; quantity: number; reason: string }) => {
+    await runCommercial("inventoryTransfer", data);
   };
 
-  const executeAdjustment = async ({
-    warehouseId,
-    type,
-    concept,
-    items,
-  }: {
-    warehouseId: string;
-    type: "manual_ingreso" | "manual_egreso" | "masivo" | "encerar";
-    concept: string;
-    items: {
-      productId: string;
-      type: "ingreso" | "egreso";
-      quantity: number;
-      unitCost: number;
-    }[];
-  }) => {
-    const wh = inventoryWarehouses.find((w) => w.id === warehouseId);
-    if (!wh) throw new Error("Bodega no encontrada.");
-
-    const adjustmentDocNumber = generateInventoryDocNumber("ADJ", inventoryAdjustments.length);
-    const adjustmentId = `adj-${Date.now()}`;
-    const now = new Date().toISOString();
-
-    const kardexEntries: KardexEntry[] = [];
-    const adjustmentItems = [];
-    const updatedProductsMap = new Map<string, InventoryProduct>();
-
-    for (const item of items) {
-      const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-      if (!product) continue;
-
-      const qty = Math.abs(item.quantity);
-      const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-
-      if (item.type === "egreso" && currentWhStock < qty) {
-        throw new Error(`Stock insuficiente de ${product.name} en ${wh.name}. Disponible: ${currentWhStock}, Solicitado: ${qty}.`);
-      }
-
-      const isIngreso = item.type === "ingreso";
-      const newWhStock = isIngreso ? currentWhStock + qty : Math.max(0, currentWhStock - qty);
-      const kdxType = isIngreso ? "POSITIVE_ADJUSTMENT" : "NEGATIVE_ADJUSTMENT";
-      const currentGlobalStock = Number(product.stock) || 0;
-      const unitCost = item.unitCost || product.baseCost;
-      const newGlobalAvgCost = isIngreso
-        ? calculateWeightedAverageCost(currentGlobalStock, product.baseCost, qty, unitCost)
-        : product.baseCost;
-
-      const kdx = buildKardexEntry({
-        product,
-        warehouse: wh,
-        type: kdxType,
-        referenceId: adjustmentId,
-        referenceDocNumber: adjustmentDocNumber,
-        concept: `${concept} (${adjustmentDocNumber})`,
-        quantity: qty,
-        unitCost,
-        currentStock: currentWhStock,
-        currentAvgCost: product.baseCost,
-        userName: currentUser.displayName,
-      });
-
-      kdx.balanceAverageCost = newGlobalAvgCost;
-      kdx.balanceQuantity = newWhStock;
-      kdx.balanceTotalCost = Math.round(newWhStock * newGlobalAvgCost * 100) / 100;
-
-      kardexEntries.push(kdx);
-
-      const updatedStockByWh = {
-        ...(product.stockByWarehouse || {}),
-        [warehouseId]: newWhStock,
-      };
-      const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-      const updatedProd: InventoryProduct = {
-        ...product,
-        stockByWarehouse: updatedStockByWh,
-        stock: totalStock,
-        baseCost: newGlobalAvgCost,
-        updatedAt: now,
-      };
-
-      updatedProductsMap.set(product.id, updatedProd);
-
-      adjustmentItems.push({
-        productId: product.id,
-        productName: product.name,
-        type: item.type,
-        quantity: qty,
-        unitCost: item.unitCost || product.baseCost,
-        previousStock: currentWhStock,
-        newStock: newWhStock,
-      });
-    }
-
-    const adjustmentRecord: InventoryAdjustment = {
-      id: adjustmentId,
-      adjustmentNumber: adjustmentDocNumber,
-      date: now,
-      type,
-      warehouseId,
-      warehouseName: wh.name,
-      concept,
-      items: adjustmentItems,
-      responsibleUser: currentUser.displayName,
-      createdAt: now,
-    };
-
-    // Sincronizar en lote
-    await Promise.all([
-      syncToFirestore("inventoryAdjustments", adjustmentRecord.id, adjustmentRecord),
-      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-    ]);
-
-    setInventoryAdjustments((prev) => [adjustmentRecord, ...prev]);
-    setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-    setInventoryProducts((prev) =>
-      prev.map((p) => updatedProductsMap.get(p.id) || p)
-    );
-
-    addAuditLog("CREATE_EXPENSE", `Ajuste Inventario: ${adjustmentDocNumber}`, `${concept} en ${wh.name}`);
+  const executeAdjustment = async (data: { warehouseId: string; type: "manual_ingreso" | "manual_egreso" | "masivo" | "encerar"; concept: string; items: { productId: string; type: "ingreso" | "egreso"; quantity: number; unitCost: number }[] }) => {
+    await runCommercial("inventoryAdjustment", data);
   };
 
   // ==========================================
@@ -2942,10 +1784,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       customSecuencial?: number;
     }
   ): Promise<SriInvoice> => {
+    if (data.documentType === "nota_venta") return runCommercial<SriInvoice>("issueSale", data);
     const now = new Date().toISOString();
     const invoiceId = `inv-${Date.now()}`;
     const dateStr = data.date || now.slice(0, 10);
-    const docType = data.documentType || "factura";
+    const docType: string = String(data.documentType || "factura");
     const isDraft = data.status === "borrador";
 
     const estab = sriCompanyConfig.establecimiento || "010";
@@ -3051,7 +1894,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       clientRuc: String(data.clientRuc || "").replace(/\s+/g, "").trim(),
       clientEmail: String(data.clientEmail || "").replace(/\s+/g, "").trim().toLowerCase(),
       clientName: String(data.clientName || "").replace(/\s+/g, " ").trim(),
-      documentType: docType,
+      documentType: docType as "nota_venta" | "factura",
       id: invoiceId,
       documentNumber: String(documentNumber || "").replace(/\s+/g, "").trim(),
       claveAcceso: String(claveAcceso || "").replace(/\s+/g, "").trim(),
@@ -3294,120 +2137,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const emitRecurringInvoiceForClient = async (
-    clientId: string,
-    month: number,
-    year: number
+    clientId: string, month: number, year: number, serviceIds?: string[]
   ): Promise<SriInvoice | null> => {
-    const client = clients.find((c) => c.id === clientId);
-    if (!client) return null;
-
-    const billableServices = clientServices.filter(
-      (s) =>
-        s.clientId === clientId &&
-        s.status === "activo" &&
-        s.isBillableInCurrentCycle !== false
-    );
-    if (billableServices.length === 0) return null;
-
-    const periodKey = `${year}-${String(month).padStart(2, "0")}`;
-    const items: InvoiceItem[] = billableServices.map((s) => {
-      const unitPrice = Math.max(0, Number(s.customPrice || s.basePrice || 0));
-      const ivaAmount = Math.round(unitPrice * 0.15 * 100) / 100;
-      const total = Math.round((unitPrice + ivaAmount) * 100) / 100;
-      return {
-        id: `it-rec-${s.id}`,
-        productId: s.planId || s.id,
-        sku: (s.planId || "SRV-REC").toUpperCase(),
-        name: `${s.planName} (${s.billingFrequency === "anual" ? `Anual ${year}` : `Mensual ${String(month).padStart(2, "0")}/${year}`})`,
-        description: `Capacidad: ${s.downloadMbps} Mbps / ${s.uploadMbps} Mbps • IP: ${s.ipv4Address || "Asignada"}`,
-        unit: "servicio",
-        quantity: 1,
-        unitPrice,
-        discount: 0,
-        ivaRate: 15,
-        subtotal: unitPrice,
-        ivaAmount,
-        total,
-      };
-    });
-
-    const subtotal15 = Math.round(items.reduce((acc, i) => acc + i.subtotal, 0) * 100) / 100;
-    const ivaTotal = Math.round(items.reduce((acc, i) => acc + i.ivaAmount, 0) * 100) / 100;
-    const total = Math.round((subtotal15 + ivaTotal) * 100) / 100;
-
-    const invoice = await createInvoice({
-      documentType: "nota_venta",
-      date: getEcuadorDate(),
-      clientId: client.id,
-      clientName: client.businessName,
-      clientRuc: client.identificationNumber,
-      clientEmail: client.email,
-      clientPhone: client.phone,
-      clientAddress: client.address,
-      tipoIdentificacion:
-        client.identificationType === "RUC"
-          ? "04"
-          : client.identificationType === "CEDULA"
-          ? "05"
-          : "06",
-      items,
-      subtotal15,
-      subtotal0: 0,
-      subtotalNoObjeto: 0,
-      subtotalExento: 0,
-      discountTotal: 0,
-      ivaTotal,
-      total,
-      paymentMethod: "credito",
-      paymentsBreakdown: { efectivo: 0, transferencia: 0, tarjeta: 0, credito: total },
-      status: "registrado",
-      sriStatus: "pendiente",
-      warehouseId: inventoryWarehouses[0]?.id || "wh-central",
-      warehouseName: inventoryWarehouses[0]?.name || "Bodega Central",
-      notes: `Nota de Venta Recurrente Periodo ${String(month).padStart(2, "0")}/${year} (${items.length} servicio(s))`,
-    });
-
-    const chargeId = `chg-${client.id}-${month}-${year}`;
-    const newCharge: MonthlyCharge = {
-      id: chargeId,
-      clientId: client.id,
-      clientName: client.businessName,
-      clientRuc: client.identificationNumber,
-      month,
-      year,
-      serviceDescription: `${billableServices.map((s) => s.planName).join(" + ")} (${String(month).padStart(2, "0")}/${year})`,
-      subtotal: subtotal15,
-      ivaAmount: ivaTotal,
-      total,
-      status: "pendiente",
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.documentNumber,
-    };
-    setMonthlyCharges((prev) => [newCharge, ...prev.filter((c) => c.id !== chargeId)]);
-    await syncToFirestore("monthlyCharges", chargeId, newCharge);
-
-    for (const srv of billableServices) {
-      const baseDate = srv.nextRenewalDate || getEcuadorDate();
-      let monthsToAdd = 1;
-      if (srv.billingFrequency === "anual") monthsToAdd = 12;
-      else if (srv.billingFrequency === "semestral") monthsToAdd = 6;
-      else if (srv.billingFrequency === "trimestral") monthsToAdd = 3;
-      const nextDate = addMonthsSafely(baseDate, monthsToAdd);
-
-      // Si el contrato tenía fecha de fin y la nueva fecha supera la vigencia del contrato:
-      const contractExpired = Boolean(srv.contractEndDate && nextDate > srv.contractEndDate);
-
-      await updateClientService(srv.id, {
-        lastBilledPeriod: periodKey,
-        lastBilledInvoiceId: invoice.id,
-        saleInvoiceId: invoice.id,
-        saleDocNumber: invoice.documentNumber,
-        nextRenewalDate: nextDate,
-        ...(contractExpired ? { status: "por_renovar" } : { status: "activo" }),
-      });
-    }
-
-    return invoice;
+    if (!serviceIds?.length) throw new Error("Selecciona los servicios del período antes de emitir.");
+    const selected = clientServices.filter(s => serviceIds.includes(s.id));
+    const plans = selected.map(s => planServicePeriod(s, month, year, getEcuadorDate()));
+    const lines = plans.flatMap(p => p.eligible ? [p.line] : []);
+    if (lines.length !== selected.length) throw new Error("Hay servicios no elegibles. Revisa la vista previa.");
+    return runCommercial<SriInvoice>("recur", { clientId, month, year, serviceIds, expectedTotal: calculateLines(lines).total });
   };
 
   const updateInvoiceStatus = async (
@@ -3415,6 +2152,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     status: SriInvoice["status"],
     authorizationDate?: string
   ) => {
+    if (status === "anulada" && billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
+      await runCommercial("cancelSale", { id, reason: "Anulación comercial" });
+      return;
+    }
     const inv = billingInvoices.find((i) => i.id === id);
     if (!inv) return;
 
@@ -3551,6 +2292,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     id: string,
     updates: Partial<SriInvoice>
   ): Promise<SriInvoice> => {
+    if (billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
+      return runCommercial<SriInvoice>("editSale", { id, updates });
+    }
     const inv = billingInvoices.find((i) => i.id === id);
     if (!inv) throw new Error("Comprobante no encontrado.");
 
@@ -3924,6 +2668,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteInvoice = async (id: string) => {
+    if (billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
+      await runCommercial("cancelSale", { id, reason: "Anulación desde gestión comercial" });
+      return;
+    }
     const inv = billingInvoices.find((i) => i.id === id);
     if (!inv) return;
 
@@ -4582,276 +3330,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setSuppliers((prev) => [newSupplier, ...prev]);
     await syncToFirestore("suppliers", id, newSupplier);
+    setSuppliers((prev) => [newSupplier, ...prev]);
     addAuditLog("CREATE_USER", "Proveedores", `Proveedor ${newSupplier.razonSocial} (RUC: ${newSupplier.ruc}) registrado`);
     return newSupplier;
   };
 
   const updateSupplier = async (id: string, updates: Partial<Supplier>): Promise<void> => {
+    await syncToFirestore("suppliers", id, updates);
     setSuppliers((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s))
     );
-    await syncToFirestore("suppliers", id, updates);
   };
 
   const deleteSupplier = async (id: string): Promise<void> => {
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
-    await deleteFromFirestore("suppliers", id);
+    await updateSupplier(id, { status: "inactivo" });
   };
 
   const addPurchaseInvoice = async (
-    data: Omit<PurchaseInvoice, "id" | "createdAt" | "paidAmount" | "balanceRemaining"> & {
-      paidAmount?: number;
-    }
-  ): Promise<PurchaseInvoice> => {
-    const id = `pur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const total = Number(data.total) || 0;
-    const isContado = data.paymentCondition === "contado";
-    const paidAmount = isContado ? total : Math.max(0, Number(data.paidAmount) || 0);
-    const balanceRemaining = Math.max(0, Math.round((total - paidAmount) * 100) / 100);
-    const paymentStatus: PurchasePaymentStatus =
-      balanceRemaining === 0 ? "pagado" : paidAmount > 0 ? "abono_parcial" : "pendiente";
-
-    const newInvoice: PurchaseInvoice = {
-      ...data,
-      id,
-      paidAmount,
-      balanceRemaining,
-      paymentStatus,
-      createdAt: new Date().toISOString(),
-    };
-
-    // 1. Impacto en Kardex si tiene ítems físicos
-    if (data.items && data.items.length > 0) {
-      let updatedProducts = [...inventoryProducts];
-      const newKardexEntries: KardexEntry[] = [];
-
-      for (const item of data.items) {
-        if (!item.quantity || item.quantity <= 0) continue;
-        const targetWarehouse = inventoryWarehouses.find((w) => w.id === item.warehouseId) || inventoryWarehouses[0];
-        if (!targetWarehouse) continue;
-
-        const prodIndex = updatedProducts.findIndex(
-          (p) => p.id === item.productId || (item.sku && p.sku === item.sku) || p.name.toLowerCase() === item.name.toLowerCase()
-        );
-
-        if (prodIndex >= 0) {
-          const product = updatedProducts[prodIndex];
-          if (product.tracksStock) {
-            const currentGlobalStock = Number(product.stock) || 0;
-            const currentAvgCost = Number(product.baseCost) || 0;
-            const qty = Number(item.quantity) || 0;
-            const unitCost = Number(item.unitCost) || 0;
-            const currentWhStock = Number(product.stockByWarehouse?.[targetWarehouse.id] || 0);
-
-            const newGlobalStock = currentGlobalStock + qty;
-            const newGlobalAvg = calculateWeightedAverageCost(currentGlobalStock, currentAvgCost, qty, unitCost);
-            const newWhStock = currentWhStock + qty;
-
-            const kardex = buildKardexEntry({
-              product,
-              warehouse: targetWarehouse,
-              type: "PURCHASE_RECEIPT",
-              referenceId: id,
-              referenceDocNumber: data.documentNumber,
-              concept: `Entrada por compra Factura ${data.documentNumber} (${data.supplierName})`,
-              quantity: qty,
-              unitCost,
-              currentStock: currentWhStock,
-              currentAvgCost: currentAvgCost,
-              userName: currentUser.displayName,
-            });
-
-            kardex.balanceAverageCost = newGlobalAvg;
-            kardex.balanceQuantity = newWhStock;
-            kardex.balanceTotalCost = Math.round(newWhStock * newGlobalAvg * 100) / 100;
-
-            newKardexEntries.push(kardex);
-
-            updatedProducts[prodIndex] = {
-              ...product,
-              stock: newGlobalStock,
-              baseCost: newGlobalAvg,
-              stockByWarehouse: {
-                ...(product.stockByWarehouse || {}),
-                [targetWarehouse.id]: newWhStock,
-              },
-            };
-          }
-        }
-      }
-
-      if (newKardexEntries.length > 0) {
-        setInventoryKardex((prev) => [...newKardexEntries, ...prev]);
-        setInventoryProducts(updatedProducts);
-        for (const k of newKardexEntries) {
-          await syncToFirestore("inventoryKardex", k.id, k);
-        }
-        for (const p of updatedProducts) {
-          await syncToFirestore("inventoryProducts", p.id, p);
-        }
-      }
-    }
-
-    // 2. Si fue pagada de contado, registrar egreso en movimientos financieros y descontar de banco
-    if (isContado && paidAmount > 0) {
-      const targetBank = bankAccounts.find((b) => b.id === data.bankAccountId) || bankAccounts[0];
-      if (targetBank) {
-        const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-        const movement: FinancialMovement = {
-          id: movId,
-          type: "egreso",
-          date: data.date,
-          amount: paidAmount,
-          category: "compra_proveedor",
-          description: `Pago contado Factura ${data.documentNumber} - ${data.supplierName}`,
-          bankAccountId: targetBank.id,
-          bankAccountName: targetBank.bankName,
-          paymentMethod: (data.paymentMethod as any) || "transferencia",
-          relatedEntityId: id,
-          createdAt: new Date().toISOString(),
-        };
-
-        setFinancialMovements((prev) => [movement, ...prev]);
-        await syncToFirestore("financialMovements", movId, movement);
-
-        const newBal = Math.round((targetBank.currentBalance - paidAmount) * 100) / 100;
-        setBankAccounts((prev) =>
-          prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBal } : b))
-        );
-        await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBal });
-      }
-    }
-
-    setPurchaseInvoices((prev) => [newInvoice, ...prev]);
-    await syncToFirestore("purchaseInvoices", id, newInvoice);
-    addAuditLog("CREATE_EXPENSE", "Compras", `Factura compra ${data.documentNumber} registrada ($ ${total} USD)`);
-    return newInvoice;
-  };
+    data: Omit<PurchaseInvoice, "id" | "createdAt" | "paidAmount" | "balanceRemaining"> & { paidAmount?: number }
+  ): Promise<PurchaseInvoice> => runCommercial<PurchaseInvoice>("purchase", data);
 
   const updatePurchaseInvoice = async (id: string, updates: Partial<PurchaseInvoice>): Promise<void> => {
+    await syncToFirestore("purchaseInvoices", id, updates);
     setPurchaseInvoices((prev) =>
       prev.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv))
     );
-    await syncToFirestore("purchaseInvoices", id, updates);
   };
 
-  const addSupplierCreditNote = async (
-    note: Omit<SupplierCreditNote, "id" | "createdAt">
-  ): Promise<SupplierCreditNote> => {
-    const id = `sup-nc-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const newNote: SupplierCreditNote = {
-      ...note,
-      id,
-      createdAt: new Date().toISOString(),
-    };
+  const addSupplierCreditNote = async (note: Omit<SupplierCreditNote, "id" | "createdAt">): Promise<SupplierCreditNote> =>
+    runCommercial<SupplierCreditNote>("supplierCredit", note);
 
-    if (note.purchaseInvoiceId) {
-      setPurchaseInvoices((prev) =>
-        prev.map((inv) => {
-          if (inv.id === note.purchaseInvoiceId) {
-            const newRem = Math.max(0, Math.round(((inv.balanceRemaining || 0) - note.total) * 100) / 100);
-            const updated = {
-              ...inv,
-              balanceRemaining: newRem,
-              paymentStatus: (newRem === 0 ? "pagado" : inv.paymentStatus) as PurchasePaymentStatus,
-            };
-            syncToFirestore("purchaseInvoices", inv.id, updated);
-            return updated;
-          }
-          return inv;
-        })
-      );
-    }
-
-    if (note.reason === "devolucion_mercaderia" && note.items && note.items.length > 0) {
-      let updatedProducts = [...inventoryProducts];
-      const newKardex: KardexEntry[] = [];
-
-      for (const item of note.items) {
-        const prodIndex = updatedProducts.findIndex((p) => p.id === item.productId);
-        const warehouse = inventoryWarehouses.find((w) => w.id === item.warehouseId) || inventoryWarehouses[0];
-        if (prodIndex >= 0 && warehouse) {
-          const product = updatedProducts[prodIndex];
-          if (product.tracksStock) {
-            const currentStock = Number(product.stock) || 0;
-            const currentWhStock = Number(product.stockByWarehouse?.[warehouse.id] || 0);
-            const qty = Number(item.quantity) || 0;
-            const kdx = buildKardexEntry({
-              product,
-              warehouse,
-              type: "SUPPLIER_RETURN",
-              referenceId: id,
-              referenceDocNumber: note.documentNumber,
-              concept: `Salida por devolución a proveedor (Nota Crédito ${note.documentNumber})`,
-              quantity: qty,
-              unitCost: item.unitCost || product.baseCost,
-              currentStock: currentWhStock,
-              currentAvgCost: product.baseCost,
-              userName: currentUser.displayName,
-            });
-            newKardex.push(kdx);
-
-            const newStock = Math.max(0, currentStock - qty);
-            const whStock = Math.max(0, (product.stockByWarehouse?.[warehouse.id] || 0) - qty);
-            updatedProducts[prodIndex] = {
-              ...product,
-              stock: newStock,
-              stockByWarehouse: {
-                ...(product.stockByWarehouse || {}),
-                [warehouse.id]: whStock,
-              },
-            };
-          }
-        }
-      }
-
-      if (newKardex.length > 0) {
-        setInventoryKardex((prev) => [...newKardex, ...prev]);
-        setInventoryProducts(updatedProducts);
-        for (const k of newKardex) await syncToFirestore("inventoryKardex", k.id, k);
-        for (const p of updatedProducts) await syncToFirestore("inventoryProducts", p.id, p);
-      }
-    }
-
-    setSupplierCreditNotes((prev) => [newNote, ...prev]);
-    await syncToFirestore("supplierCreditNotes", id, newNote);
-    return newNote;
-  };
-
-  const addSupplierDebitNote = async (
-    note: Omit<SupplierDebitNote, "id" | "createdAt">
-  ): Promise<SupplierDebitNote> => {
-    const id = `sup-nd-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const newNote: SupplierDebitNote = {
-      ...note,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (note.purchaseInvoiceId) {
-      setPurchaseInvoices((prev) =>
-        prev.map((inv) => {
-          if (inv.id === note.purchaseInvoiceId) {
-            const newRem = Math.round(((inv.balanceRemaining || 0) + note.total) * 100) / 100;
-            const updated = {
-              ...inv,
-              balanceRemaining: newRem,
-              paymentStatus: "pendiente" as PurchasePaymentStatus,
-            };
-            syncToFirestore("purchaseInvoices", inv.id, updated);
-            return updated;
-          }
-          return inv;
-        })
-      );
-    }
-
-    setSupplierDebitNotes((prev) => [newNote, ...prev]);
-    await syncToFirestore("supplierDebitNotes", id, newNote);
-    return newNote;
-  };
+  const addSupplierDebitNote = async (note: Omit<SupplierDebitNote, "id" | "createdAt">): Promise<SupplierDebitNote> =>
+    runCommercial<SupplierDebitNote>("supplierDebit", note);
 
   const addPurchaseWithholding = async (
     ret: Omit<PurchaseWithholding, "id" | "createdAt">
@@ -4867,175 +3378,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return newRet;
   };
 
-  const addBankAccount = async (account: Omit<BankAccount, "id">): Promise<BankAccount> => {
-    const id = `bank-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-    const newAccount: BankAccount = { ...account, id };
-    setBankAccounts((prev) => [...prev, newAccount]);
-    await syncToFirestore("bankAccounts", id, newAccount);
-    return newAccount;
-  };
+  const addBankAccount = async (account: Omit<BankAccount, "id">): Promise<BankAccount> =>
+    runCommercial<BankAccount>("createBank", account);
 
   const updateBankAccount = async (id: string, updates: Partial<BankAccount>): Promise<void> => {
-    setBankAccounts((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
-    await syncToFirestore("bankAccounts", id, updates);
+    await runCommercial("editBank", { id, ...updates });
+  };
+
+  const adjustBankBalance = async (bankAccountId: string, delta: number, reason: string) => {
+    await runCommercial("adjustBank", { bankAccountId, delta, reason });
   };
 
   const addSupplierPayment = async (
     payment: Omit<SupplierPaymentRecord, "id" | "createdAt">
-  ): Promise<SupplierPaymentRecord> => {
-    const id = `pay-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const newPayment: SupplierPaymentRecord = {
-      ...payment,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-
-    setPurchaseInvoices((prev) =>
-      prev.map((inv) => {
-        if (inv.id === payment.purchaseInvoiceId) {
-          const currentRem = inv.balanceRemaining !== undefined ? inv.balanceRemaining : (inv.total - (inv.paidAmount || 0));
-          const newRem = Math.max(0, Math.round((currentRem - payment.amount) * 100) / 100);
-          const newPaid = Math.round(((inv.paidAmount || 0) + payment.amount) * 100) / 100;
-          const newStatus: PurchasePaymentStatus = newRem === 0 ? "pagado" : "abono_parcial";
-          const updated = {
-            ...inv,
-            paidAmount: newPaid,
-            balanceRemaining: newRem,
-            paymentStatus: newStatus,
-          };
-          syncToFirestore("purchaseInvoices", inv.id, updated);
-          return updated;
-        }
-        return inv;
-      })
-    );
-
-    const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-    const movement: FinancialMovement = {
-      id: movId,
-      type: "egreso",
-      date: payment.date,
-      amount: payment.amount,
-      category: "abono_cxp",
-      description: `Abono a Proveedor ${payment.supplierName} (Ref: ${payment.referenceNumber})`,
-      bankAccountId: payment.bankAccountId,
-      bankAccountName: payment.bankAccountName,
-      paymentMethod: payment.paymentMethod,
-      referenceNumber: payment.referenceNumber,
-      relatedEntityId: payment.purchaseInvoiceId,
-      createdAt: new Date().toISOString(),
-    };
-    setFinancialMovements((prev) => [movement, ...prev]);
-    await syncToFirestore("financialMovements", movId, movement);
-
-    setBankAccounts((prev) =>
-      prev.map((b) => {
-        if (b.id === payment.bankAccountId) {
-          const newBal = Math.round((b.currentBalance - payment.amount) * 100) / 100;
-          syncToFirestore("bankAccounts", b.id, { currentBalance: newBal });
-          return { ...b, currentBalance: newBal };
-        }
-        return b;
-      })
-    );
-
-    setSupplierPayments((prev) => [newPayment, ...prev]);
-    await syncToFirestore("supplierPayments", id, newPayment);
-    addAuditLog("CREATE_EXPENSE", "Cuentas por Pagar", `Abono ${payment.amount} a ${payment.supplierName}`);
-    return newPayment;
-  };
+  ): Promise<SupplierPaymentRecord> => runCommercial<SupplierPaymentRecord>("paySupplier", payment);
 
   const addFinancialMovement = async (
     movement: Omit<FinancialMovement, "id" | "createdAt">
-  ): Promise<FinancialMovement> => {
-    const id = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const newMov: FinancialMovement = {
-      ...movement,
-      id,
-      createdAt: new Date().toISOString(),
-    };
+  ): Promise<FinancialMovement> => runCommercial<FinancialMovement>("bankMovement", movement);
 
-    setFinancialMovements((prev) => [newMov, ...prev]);
-    await syncToFirestore("financialMovements", id, newMov);
-
-    if (movement.bankAccountId) {
-      setBankAccounts((prev) =>
-        prev.map((b) => {
-          if (b.id === movement.bankAccountId) {
-            const delta = movement.type === "ingreso" ? movement.amount : -movement.amount;
-            const newBal = Math.round((b.currentBalance + delta) * 100) / 100;
-            syncToFirestore("bankAccounts", b.id, { currentBalance: newBal });
-            return { ...b, currentBalance: newBal };
-          }
-          return b;
-        })
-      );
-    }
-
-    return newMov;
+  const transferBetweenAccounts = async (fromId: string, toId: string, amount: number, description?: string) => {
+    await runCommercial("transfer", { fromId, toId, amount, description });
   };
 
-  const updateUserModulePermissions = async (
-    uid: string,
-    permissions: UserModulePermissions
-  ): Promise<void> => {
-    setSystemUsers((prev) =>
-      prev.map((u) => {
-        if (u.uid === uid) {
-          const updated = { ...u, modulePermissions: permissions };
-          syncToFirestore("systemUsers", u.uid, updated);
-          return updated;
-        }
-        return u;
-      })
-    );
-    if (currentUser.uid === uid) {
-      setCurrentUser((prev) => ({ ...prev, modulePermissions: permissions }));
-    }
-    addAuditLog("UPDATE_USER", "Usuarios", `Permisos de módulos actualizados para usuario ${uid}`);
+  const updateUserModulePermissions = async (uid: string, permissions: UserModulePermissions): Promise<void> => {
+    await updateSystemUser(uid, { modulePermissions: permissions });
   };
 
-  const resetDataToDefaults = async () => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(USERS_KEY);
-    setSystemUsers(INITIAL_SYSTEM_USERS);
-    setClients(INITIAL_CLIENTS);
-    setClientServices(INITIAL_CLIENT_SERVICES);
-    setNodes(INITIAL_NODES);
-    setPolicies(INITIAL_POLICIES);
-    setVault(INITIAL_VAULT);
-    setTickets(INITIAL_TICKETS);
-    setTicketSubjects([]);
-    setExpenses(INITIAL_EXPENSES);
-    setMonthlyCharges(INITIAL_MONTHLY_CHARGES);
-    setClientAdvances([]);
-    setAuditLogs([]);
-    setClientProjects([]);
-    setClientQuotes([]);
-    setClientVaultItems([]);
-    setClientContracts([]);
-    setInventoryProducts(INITIAL_PRODUCTS);
-    setInventoryWarehouses(INITIAL_WAREHOUSES);
-    setInventoryCategories(INITIAL_CATEGORIES);
-    setInventoryBrands(INITIAL_BRANDS);
-    setInventoryKardex(INITIAL_KARDEX);
-    setInventoryTransfers(INITIAL_TRANSFERS);
-    setInventoryAdjustments(INITIAL_ADJUSTMENTS);
-    setBillingInvoices(INITIAL_INVOICES);
-    setBillingQuotes(INITIAL_BILLING_QUOTES);
-    setBillingCreditNotes(INITIAL_CREDIT_NOTES);
-    setBillingWithholdings(INITIAL_WITHHOLDINGS);
-    setBillingRemissionGuides(INITIAL_REMISSION_GUIDES);
-    setSriCompanyConfig(INITIAL_SRI_CONFIG);
-    setSuppliers(INITIAL_SUPPLIERS);
-    setPurchaseInvoices(INITIAL_PURCHASE_INVOICES);
-    setSupplierCreditNotes(INITIAL_SUPPLIER_CREDIT_NOTES);
-    setSupplierDebitNotes(INITIAL_SUPPLIER_DEBIT_NOTES);
-    setPurchaseWithholdings(INITIAL_PURCHASE_WITHHOLDINGS);
-    setBankAccounts(INITIAL_BANK_ACCOUNTS);
-    setFinancialMovements(INITIAL_FINANCIAL_MOVEMENTS);
-    setSupplierPayments(INITIAL_SUPPLIER_PAYMENTS);
-  };
+  const resetDataToDefaults = async () => { await refresh(); };
 
   const hasAccess = canAccessRoute(currentUser, pathname);
 
@@ -5193,6 +3563,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bankAccounts,
           financialMovements,
           supplierPayments,
+          supplierCredits,
           addSupplier,
           updateSupplier,
           deleteSupplier,
@@ -5203,8 +3574,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addPurchaseWithholding,
           addBankAccount,
           updateBankAccount,
+          adjustBankBalance,
+          reverseChargePayment,
           addSupplierPayment,
           addFinancialMovement,
+          transferBetweenAccounts,
+          startBillingRun,
+          processBillingRun,
           updateUserModulePermissions,
           searchQuery,
           setSearchQuery,
@@ -5214,9 +3590,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         <SecurityLockoutModal />
+        <ModalFocusGuard />
         {isAuthLoaded ? (
           isAuthenticated ? (
-            hasAccess ? (
+            !dataReady ? (
+              <div className="min-h-screen flex flex-col gap-4 items-center justify-center p-6" role="status">
+                <p>{loadError || "Cargando datos verificados del servidor…"}</p>
+                {loadError && <button onClick={() => { void refresh().catch(e => setLoadError(e.message)); }}>Reintentar carga</button>}
+                <button onClick={() => { void logout(); }}>Cerrar sesión</button>
+              </div>
+            ) : hasAccess ? (
               children
             ) : (
               <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -45,10 +45,15 @@ function ClientesContent() {
     };
   }, []);
 
+  // Catálogo vigente en una referencia: el efecto de URL no depende de `clients`
+  // para no reiniciar la ficha cada vez que cambian los contadores de servicios.
+  const clientsRef = useRef(clients);
+  clientsRef.current = clients;
+
   // Cargar cliente desde parámetro de URL si cambia (?id=...) sin desmontar por cambios en otros estados
   useEffect(() => {
     if (clientIdFromUrl) {
-      const match = clients.find((c) => c.id === clientIdFromUrl);
+      const match = clientsRef.current.find((c) => c.id === clientIdFromUrl);
       if (match) {
         setSelectedClient((prev) => (prev?.id === match.id ? prev : match));
       }
@@ -56,6 +61,14 @@ function ClientesContent() {
       setSelectedClient(null);
     }
   }, [clientIdFromUrl]);
+
+  // Reintento de enlace profundo cuando los clientes aún no se habían hidratado.
+  // Solo actúa si no hay ficha abierta: nunca reemplaza una selección existente.
+  useEffect(() => {
+    if (!clientIdFromUrl || selectedClient) return;
+    const match = clients.find((c) => c.id === clientIdFromUrl);
+    if (match) setSelectedClient(match);
+  }, [clients, clientIdFromUrl, selectedClient]);
 
   // Mantener datos del cliente actualizados si cambia en la base de datos o estado global
   // (por ejemplo al agregar/editar servicios) SIN desmontar la pantalla ni cerrar la ficha
@@ -65,6 +78,7 @@ function ClientesContent() {
       if (updated && updated !== selectedClient) {
         setSelectedClient(updated);
       }
+      if (!updated) setSelectedClient(null);
     }
   }, [clients, selectedClient?.id]);
 

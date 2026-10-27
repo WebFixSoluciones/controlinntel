@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
+import { api } from "@/lib/api-client";
+import { getEcuadorDate } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
 import { canUser } from "@/lib/permissions";
@@ -200,7 +202,7 @@ export function NewSaleView({
   const [isConvertSriOpen, setIsConvertSriOpen] = useState(false);
 
   // Panel de correo en Paso 2
-  const [emailStatus, setEmailStatus] = useState<"sent" | "sending" | "idle">("sent");
+  const [emailStatus, setEmailStatus] = useState<"sent" | "sending" | "idle">("idle");
   const [customCopyEmail, setCustomCopyEmail] = useState("");
   const [isSendingCustomEmail, setIsSendingCustomEmail] = useState(false);
 
@@ -213,7 +215,7 @@ export function NewSaleView({
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
   const [documentType, setDocumentType] = useState<"factura" | "nota_venta">("nota_venta");
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [issueDate, setIssueDate] = useState(getEcuadorDate());
   const [selectedEstablecimiento, setSelectedEstablecimiento] = useState(
     sriCompanyConfig?.establecimiento || "010"
   );
@@ -298,7 +300,7 @@ export function NewSaleView({
   const [creditDueDate, setCreditDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().slice(0, 10);
+    return getEcuadorDate(d);
   });
   const [creditNotes, setCreditNotes] = useState("");
   const [showCreditModal, setShowCreditModal] = useState(false);
@@ -1597,25 +1599,25 @@ export function NewSaleView({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const handleResendEmail = (targetEmail?: string) => {
+  const handleResendEmail = async (targetEmail?: string) => {
     if (!emittedInvoice) return;
-    if (targetEmail) {
-      setIsSendingCustomEmail(true);
-      setTimeout(() => {
-        setIsSendingCustomEmail(false);
-        setCustomCopyEmail("");
-        showSuccess("Copia Enviada", `El comprobante fue enviado a ${targetEmail}.`);
-      }, 700);
-    } else {
-      setEmailStatus("sending");
-      setTimeout(() => {
-        setEmailStatus("sent");
-        showSuccess(
-          "Correo Reenviado",
-          `Notificación enviada a ${emittedInvoice.clientEmail || "cliente"}.`
-        );
-      }, 700);
-    }
+    const recipient = targetEmail || emittedInvoice.clientEmail;
+    if (!recipient) { showError("Destinatario requerido", "Indica el correo del destinatario."); return; }
+    const key = `INNTEL_PENDING_EMAIL_${emittedInvoice.id}_${recipient}`;
+    let operationId = sessionStorage.getItem(key);
+    if (!operationId) { operationId = crypto.randomUUID(); sessionStorage.setItem(key, operationId); }
+    setEmailStatus("sending");
+    setIsSendingCustomEmail(!!targetEmail);
+    try {
+      await api("/api/messages/email", { invoiceId: emittedInvoice.id, recipient, operationId });
+      sessionStorage.removeItem(key);
+      setEmailStatus("sent");
+      setCustomCopyEmail("");
+      showSuccess("Aceptado para envío", "El proveedor confirmó la recepción de la solicitud. Esto no confirma la entrega al destinatario.");
+    } catch (error) {
+      setEmailStatus("idle");
+      showError("Envío sin confirmar", error instanceof Error ? error.message : "El proveedor no confirmó el envío.");
+    } finally { setIsSendingCustomEmail(false); }
   };
 
   // ==========================================
@@ -1924,11 +1926,11 @@ export function NewSaleView({
                   <span>
                     Destinatario:{" "}
                     <strong className="text-slate-900">
-                      {emittedInvoice.clientEmail || "consumidor@final.ec"}
+                      {emittedInvoice.clientEmail || "Sin destinatario"}
                     </strong>
                   </span>
                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    ✓ Enviado
+                    {emailStatus === "sent" ? "Aceptado por proveedor" : emailStatus === "sending" ? "Solicitando envío" : "Sin envío confirmado"}
                   </span>
                 </div>
 
@@ -2332,10 +2334,10 @@ export function NewSaleView({
 
                 {/* Fecha Emisión */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-1" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Fecha Emisión *
                   </label>
-                  <input
+                  <input id="new-sale-view-field-1"
                     type="date"
                     value={issueDate}
                     onChange={(e) => setIssueDate(e.target.value)}
@@ -2345,10 +2347,10 @@ export function NewSaleView({
 
                 {/* Establecimiento */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-2" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Establecimiento
                   </label>
-                  <select
+                  <select id="new-sale-view-field-2"
                     value={selectedEstablecimiento}
                     onChange={(e) => setSelectedEstablecimiento(e.target.value)}
                     className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
@@ -2370,10 +2372,10 @@ export function NewSaleView({
 
                 {/* Bodega Despacho */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-3" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Bodega Despacho
                   </label>
-                  <select
+                  <select id="new-sale-view-field-3"
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
                     className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
@@ -2723,10 +2725,10 @@ export function NewSaleView({
               {showAdditionalInfo && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 pb-1 px-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                    <label htmlFor="new-sale-view-field-4" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                       Nro. Pedido / Ref. Externa
                     </label>
-                    <input
+                    <input id="new-sale-view-field-4"
                       type="text"
                       placeholder="Ej. OC-2026-0089"
                       value={orderNumber}
@@ -2735,10 +2737,10 @@ export function NewSaleView({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                    <label htmlFor="new-sale-view-field-5" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                       Notas / Observaciones en RIDE
                     </label>
-                    <input
+                    <input id="new-sale-view-field-5"
                       type="text"
                       placeholder="Garantía, condiciones de entrega..."
                       value={notes}
@@ -2941,10 +2943,10 @@ export function NewSaleView({
                 {activeMethods.transferencia && (
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      <label htmlFor="new-sale-view-field-6" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                         Monto Transferencia ($)
                       </label>
-                      <input
+                      <input id="new-sale-view-field-6"
                         type="number"
                         min="0"
                         step="0.01"
@@ -2961,10 +2963,10 @@ export function NewSaleView({
                     </div>
                     {bankAccounts.length > 0 && (
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                        <label htmlFor="new-sale-view-field-7" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                           Cuenta Bancaria Destino
                         </label>
-                        <select
+                        <select id="new-sale-view-field-7"
                           value={selectedBankAccountId}
                           onChange={(e) => setSelectedBankAccountId(e.target.value)}
                           className="w-full text-[11px] font-semibold py-1.5 px-2 rounded-md border border-slate-300 bg-white"
@@ -2992,10 +2994,10 @@ export function NewSaleView({
                 {activeMethods.tarjeta && (
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      <label htmlFor="new-sale-view-field-8" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                         Monto Tarjeta ($)
                       </label>
-                      <input
+                      <input id="new-sale-view-field-8"
                         type="number"
                         min="0"
                         step="0.01"
@@ -3261,7 +3263,7 @@ export function NewSaleView({
                   Descuento de Ítem
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setEditingDiscountIndex(null)}
                 className="text-slate-400 hover:text-white cursor-pointer"
@@ -3311,12 +3313,12 @@ export function NewSaleView({
 
               {itemModalDiscType !== "no_iva" ? (
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-9" className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                     {itemModalDiscType === "percentage"
                       ? "Porcentaje de Descuento (%)"
                       : "Monto de Descuento ($)"}
                   </label>
-                  <input
+                  <input id="new-sale-view-field-9"
                     type="number"
                     min="0"
                     step="0.01"
@@ -3372,7 +3374,7 @@ export function NewSaleView({
                   Seguimiento de Cuenta por Cobrar
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setShowCreditModal(false)}
                 className="text-slate-400 hover:text-white cursor-pointer"
@@ -3402,17 +3404,17 @@ export function NewSaleView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-10" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Plazo de Crédito (Días)
                   </label>
-                  <select
+                  <select id="new-sale-view-field-10"
                     value={paymentTermDays}
                     onChange={(e) => {
                       const days = Number(e.target.value);
                       setPaymentTermDays(days);
                       const d = new Date();
                       d.setDate(d.getDate() + days);
-                      setCreditDueDate(d.toISOString().slice(0, 10));
+                      setCreditDueDate(getEcuadorDate(d));
                     }}
                     className="w-full text-xs font-bold py-2 px-2.5 rounded-lg border border-slate-300 bg-white"
                   >
@@ -3424,10 +3426,10 @@ export function NewSaleView({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                  <label htmlFor="new-sale-view-field-11" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                     Fecha de Vencimiento
                   </label>
-                  <input
+                  <input id="new-sale-view-field-11"
                     type="date"
                     value={creditDueDate}
                     onChange={(e) => setCreditDueDate(e.target.value)}
@@ -3437,10 +3439,10 @@ export function NewSaleView({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                <label htmlFor="new-sale-view-field-12" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                   Observaciones de Cobranza
                 </label>
-                <input
+                <input id="new-sale-view-field-12"
                   type="text"
                   placeholder="Acuerdo de pago, contacto de tesorería..."
                   value={creditNotes}
@@ -3476,7 +3478,7 @@ export function NewSaleView({
                   Nuevo Cliente (Rápido)
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setShowNewClientModal(false)}
                 className="text-slate-400 hover:text-white cursor-pointer"
@@ -3525,10 +3527,10 @@ export function NewSaleView({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label htmlFor="new-sale-view-field-13" className="block text-[11px] font-bold text-slate-700 mb-1">
                   Razón Social / Nombres Completos *
                 </label>
-                <input
+                <input id="new-sale-view-field-13"
                   type="text"
                   required
                   value={newClientName}
@@ -3552,10 +3554,10 @@ export function NewSaleView({
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-14" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Correo para RIDE
                   </label>
-                  <input
+                  <input id="new-sale-view-field-14"
                     type="email"
                     value={newClientEmail}
                     onChange={(e) => setNewClientEmail(e.target.value.replace(/\s+/g, ""))}
@@ -3564,10 +3566,10 @@ export function NewSaleView({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-15" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Teléfono / Celular
                   </label>
-                  <input
+                  <input id="new-sale-view-field-15"
                     type="text"
                     value={newClientPhone}
                     onChange={(e) => setNewClientPhone(e.target.value)}
@@ -3578,10 +3580,10 @@ export function NewSaleView({
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label htmlFor="new-sale-view-field-16" className="block text-[11px] font-bold text-slate-700 mb-1">
                   Dirección Fiscal
                 </label>
-                <input
+                <input id="new-sale-view-field-16"
                   type="text"
                   value={newClientAddress}
                   onChange={(e) => setNewClientAddress(e.target.value)}
@@ -3622,7 +3624,7 @@ export function NewSaleView({
                   Catálogo de Productos y Servicios
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setShowCatalogModal(false)}
                 className="text-slate-400 hover:text-white cursor-pointer"
@@ -3727,7 +3729,7 @@ export function NewSaleView({
                   Crear Producto / Servicio Rápido
                 </h3>
               </div>
-              <button
+              <button aria-label="Cerrar"
                 type="button"
                 onClick={() => setShowQuickProductModal(false)}
                 className="text-slate-400 hover:text-white cursor-pointer"
@@ -3737,10 +3739,10 @@ export function NewSaleView({
             </div>
             <form onSubmit={handleSaveQuickProduct} className="p-5 space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                <label htmlFor="new-sale-view-field-17" className="block text-[11px] font-bold text-slate-700 mb-1">
                   Nombre del Producto o Servicio *
                 </label>
-                <input
+                <input id="new-sale-view-field-17"
                   type="text"
                   required
                   value={quickProdName}
@@ -3752,10 +3754,10 @@ export function NewSaleView({
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-18" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Código SKU (Opcional)
                   </label>
-                  <input
+                  <input id="new-sale-view-field-18"
                     type="text"
                     value={quickProdSku}
                     onChange={(e) => setQuickProdSku(e.target.value)}
@@ -3764,10 +3766,10 @@ export function NewSaleView({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-19" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Tarifa IVA
                   </label>
-                  <select
+                  <select id="new-sale-view-field-19"
                     value={quickProdIva}
                     onChange={(e) => setQuickProdIva(Number(e.target.value) as 0 | 5 | 15)}
                     className="w-full text-xs font-bold py-2 px-3 rounded-lg border border-slate-300 bg-white"
@@ -3781,10 +3783,10 @@ export function NewSaleView({
 
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-20" className="block text-[11px] font-bold text-slate-700 mb-1">
                     P. Venta (Sin IVA) *
                   </label>
-                  <input
+                  <input id="new-sale-view-field-20"
                     type="number"
                     required
                     min="0.01"
@@ -3796,10 +3798,10 @@ export function NewSaleView({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-21" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Costo Base ($)
                   </label>
-                  <input
+                  <input id="new-sale-view-field-21"
                     type="number"
                     min="0"
                     step="0.01"
@@ -3810,10 +3812,10 @@ export function NewSaleView({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label htmlFor="new-sale-view-field-22" className="block text-[11px] font-bold text-slate-700 mb-1">
                     Stock Inicial
                   </label>
-                  <input
+                  <input id="new-sale-view-field-22"
                     type="number"
                     min="0"
                     disabled={!quickProdTracksStock}

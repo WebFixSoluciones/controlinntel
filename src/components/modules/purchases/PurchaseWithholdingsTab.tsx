@@ -1,4 +1,5 @@
 "use client";
+import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useRef } from "react";
 import { useApp } from "@/lib/state";
@@ -52,7 +53,7 @@ export function PurchaseWithholdingsTab({
     const count = purchaseWithholdings.length + 1;
     return `001-001-${String(count).padStart(9, "0")}`;
   });
-  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(getEcuadorDate());
   const [rentaPercentage, setRentaPercentage] = useState<number>(1.75);
   const [ivaPercentage, setIvaPercentage] = useState<number>(30);
 

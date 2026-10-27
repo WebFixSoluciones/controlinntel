@@ -13,6 +13,8 @@ export type SriDocumentType =
 export type SriEnvironment = "1" | "2"; // 1: Pruebas, 2: Producción
 
 export interface SriCompanyConfig {
+  representanteLegal?: string;
+  website?: string;
   id: string;
   ruc: string;
   razonSocial: string;
@@ -79,6 +81,10 @@ export interface SriConnectionTestResult {
 
 
 export interface InvoiceItem {
+  serviceId?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  zeroPriceReason?: string;
   id: string;
   productId: string;
   sku: string;
@@ -99,6 +105,8 @@ export interface InvoiceItem {
 }
 
 export interface SriInvoice {
+  subtotal?: number;
+  basesByRate?: Record<string, number>;
   id: string;
   documentType?: "factura" | "nota_venta";
   documentNumber: string; // ej. "001-001-000000045"

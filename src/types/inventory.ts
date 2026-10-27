@@ -28,6 +28,7 @@ export type KardexMovementType =
   | "MASSIVE_ZERO";        // Encerado global de inventario
 
 export interface InventoryProduct {
+  serviceCategory?: "internet" | "hosting" | "dominio" | "telefonia" | "mantenimiento" | "licencia" | "otro";
   id: string;
   sku: string;                    // Código interno (ej. ONT-HW-EG8145V5)
   barcode?: string;               // Código de barras / EAN13

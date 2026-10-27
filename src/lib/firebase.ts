@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import type { Analytics } from "firebase/analytics";
 
@@ -23,9 +23,19 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
+if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
+  if (!firebaseConfig.projectId.startsWith("demo-")) throw new Error("El entorno de pruebas requiere un proyecto demo aislado.");
+  const marker = globalThis as typeof globalThis & { __inntelEmulatorsConnected?: boolean };
+  if (!marker.__inntelEmulatorsConnected) {
+    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    marker.__inntelEmulatorsConnected = true;
+  }
+}
+
 // Inicialización segura de Firebase Analytics en Next.js (solo en navegador)
 let analytics: Analytics | null = null;
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true") {
   import("firebase/analytics")
     .then(({ getAnalytics, isSupported }) => {
       isSupported().then((supported) => {

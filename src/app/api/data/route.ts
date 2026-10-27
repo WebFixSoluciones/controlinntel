@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { actor, HttpError } from "@/lib/server/security";
-import { snapshot,save,remove,reveal,billing,pay,createClient } from "@/lib/server/operations";
+import { snapshot,save,remove,reveal } from "@/lib/server/operations";
 import { collectionPermissions, type Entity } from "@/lib/permissions";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -22,7 +22,7 @@ function checkRateLimit(key: string, limit = 120, windowMs = 60000): boolean {
 
 const id=z.string().regex(/^[a-zA-Z0-9_-]{1,150}$/);
 const command=z.object({
-  action:z.enum(["save","delete","reveal","billing","pay","createClient"]),
+  action:z.enum(["save","delete","reveal"]),
   service:z.record(z.unknown()).optional(),
   entity:z.enum(Object.keys(collectionPermissions) as [Entity,...Entity[]]).optional(),
   id:id.optional(),version:z.number().int().positive().optional(),data:z.record(z.unknown()).optional(),
@@ -52,9 +52,6 @@ export async function POST(request:NextRequest) {
     const user=await actor(request),body=command.parse(await request.json());
     let result:unknown;
     switch(body.action) {
-      case "createClient":
-        if(!body.data) throw new HttpError(400,"Datos incompletos.");
-        result=await createClient(user,body.data,body.service);break;
       case "save":
         if(!body.entity||!body.data) throw new HttpError(400,"Datos incompletos.");
         result=await save(user,body.entity,body.data,body.id,body.version);break;
@@ -64,10 +61,6 @@ export async function POST(request:NextRequest) {
       case "reveal":
         if(!body.entity||!body.id) throw new HttpError(400,"Datos incompletos.");
         result=await reveal(user,body.entity,body.id);break;
-      case "billing": result=await billing(user,body.month!,body.year!);break;
-      case "pay":
-        if(!body.id||!body.method) throw new HttpError(400,"Datos incompletos.");
-        await pay(user,body.id,body.method);break;
     }
     return NextResponse.json({result},{headers:{"Cache-Control":"no-store"}});
   } catch(error) {return failure(error);}
