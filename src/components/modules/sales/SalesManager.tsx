@@ -26,6 +26,8 @@ import {
   DollarSign,
   FileText,
   Check,
+  Calendar,
+  X,
 } from "lucide-react";
 
 export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurrentes";
@@ -79,6 +81,8 @@ export function SalesManager() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sriFilter, setSriFilter] = useState<"todos" | "pendientes" | "facturadas">("todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Quotes filters
   const [quoteSearchTerm, setQuoteSearchTerm] = useState("");
@@ -124,9 +128,13 @@ export function SalesManager() {
         (sriFilter === "facturadas" && isFacturada) ||
         (sriFilter === "pendientes" && !isFacturada);
 
-      return matchesSearch && matchesSri;
+      const saleDate = (inv.date || "").split("T")[0];
+      const matchesFrom = !dateFrom || (saleDate && saleDate >= dateFrom);
+      const matchesTo = !dateTo || (saleDate && saleDate <= dateTo);
+
+      return matchesSearch && matchesSri && matchesFrom && matchesTo;
     });
-  }, [salesList, searchTerm, sriFilter]);
+  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo]);
 
   const filteredQuotes = useMemo(() => {
     return billingQuotes.filter((q) => {
@@ -223,7 +231,7 @@ export function SalesManager() {
         <div className="space-y-4">
           {/* Filters Bar Unificada con Botón de Acción */}
           <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
+            <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -235,17 +243,49 @@ export function SalesManager() {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-[#737686] font-medium whitespace-nowrap">Estado SRI:</span>
-                <select
-                  value={sriFilter}
-                  onChange={(e) => setSriFilter(e.target.value as any)}
-                  className="text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
-                >
-                  <option value="todos">Todos los comprobantes</option>
-                  <option value="pendientes">Pendientes de Facturar SRI</option>
-                  <option value="facturadas">Facturadas al SRI</option>
-                </select>
+              <select
+                value={sriFilter}
+                onChange={(e) => setSriFilter(e.target.value as any)}
+                className="text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
+              >
+                <option value="todos">Todos los comprobantes</option>
+                <option value="pendientes">Pendientes de Facturar SRI</option>
+                <option value="facturadas">Facturadas al SRI</option>
+              </select>
+
+              {/* Filtro por Rango de Fechas */}
+              <div className="flex items-center gap-1.5 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#434655]">
+                <Calendar className="w-3.5 h-3.5 text-[#737686] shrink-0" />
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  title="Fecha desde"
+                  aria-label="Fecha desde"
+                  className="text-xs bg-transparent text-[#0b1c30] outline-hidden cursor-pointer"
+                />
+                <span className="text-slate-400 text-xs">—</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  title="Fecha hasta"
+                  aria-label="Fecha hasta"
+                  className="text-xs bg-transparent text-[#0b1c30] outline-hidden cursor-pointer"
+                />
+                {(dateFrom || dateTo) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateFrom("");
+                      setDateTo("");
+                    }}
+                    title="Limpiar fechas"
+                    className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer ml-1"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -257,7 +297,7 @@ export function SalesManager() {
               className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap ml-auto"
             >
               <Plus className="w-4 h-4" />
-              <span>Nueva Nota de Venta</span>
+              <span>Generar Venta</span>
             </button>
           </div>
 

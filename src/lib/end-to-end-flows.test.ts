@@ -1096,7 +1096,7 @@ test("Flujo E2E 20: Simplificación del Módulo de Ventas (Título en Header, Ba
     !salesManagerContent.includes("Total Notas de Venta") &&
       !salesManagerContent.includes("Comprobantes Registrados") &&
       !salesManagerContent.includes("Venta Comercial (Pendiente SRI)") &&
-      salesManagerContent.includes("Nueva Nota de Venta") &&
+      salesManagerContent.includes("Generar Venta") &&
       salesManagerContent.includes("Nueva Cotización"),
     "SalesManager debe unificar la barra de filtros con el botón de acción, sin tarjetas KPI ni redundancias"
   );
@@ -3028,6 +3028,43 @@ test("Flujo E2E 56: Barra Superior del Cliente con Estado Inline, Título y Acce
     "La cinta de navegación inferior debe excluir archivos y dossier al estar disponibles como accesos directos superiores"
   );
 });
+
+test("Flujo E2E 57: Barra de Filtros en Ventas con Botón Generar Venta, Selector Limpio y Rango de Fechas", () => {
+  const rootDir = process.cwd();
+  const salesManagerPath = path.resolve(rootDir, "src/components/modules/sales/SalesManager.tsx");
+  const salesContent = fs.readFileSync(salesManagerPath, "utf8");
+
+  // 1. Botón renombrado a 'Generar Venta'
+  assert.ok(
+    salesContent.includes("<span>Generar Venta</span>"),
+    "El botón principal de acción en notas de venta debe llamarse 'Generar Venta'"
+  );
+
+  // 2. Título/label del selector de estado removido
+  assert.ok(
+    !salesContent.includes(">Estado SRI:<"),
+    "No debe incluir la etiqueta de texto redundante 'Estado SRI:' antes del selector"
+  );
+
+  // 3. Filtro por rango de fechas presente en la barra de filtros
+  assert.ok(
+    salesContent.includes("title=\"Fecha desde\"") &&
+      salesContent.includes("title=\"Fecha hasta\"") &&
+      salesContent.includes("dateFrom") &&
+      salesContent.includes("dateTo"),
+    "Debe incorporar controles de fecha inicial y final para filtrar comprobantes emitidos en el rango"
+  );
+
+  // 4. Lógica de filtrado en filteredSales para rango de fechas
+  assert.ok(
+    salesContent.includes("matchesFrom") &&
+      salesContent.includes("matchesTo") &&
+      salesContent.includes("saleDate >= dateFrom") &&
+      salesContent.includes("saleDate <= dateTo"),
+    "La lógica de filteredSales debe evaluar adecuadamente el rango de fechas"
+  );
+});
+
 
 
 
