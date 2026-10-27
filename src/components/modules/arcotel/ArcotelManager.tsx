@@ -468,13 +468,6 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
       <div className="flex items-center gap-2 shrink-0">
         <button
-          onClick={() => setIsPolicyModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#cbd5e1] hover:bg-[#f8f9ff] text-[#004ac6] rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Registrar Póliza</span>
-        </button>
-        <button
           onClick={() => handleOpenUploadModal("sietel_lopam")}
           className="flex items-center gap-1.5 px-3 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
         >
@@ -535,98 +528,95 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
             </div>
           )}
 
-          {/* Formulario de Parámetros del Título Habilitante */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-6">
-            <form onSubmit={handleSaveConcession} className="space-y-5 text-xs">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#004ac6]" />
-                  Datos del Título Habilitante & Sistemas Concesionarios (INNTEL CORP S.A.)
-                </h3>
+          {/* Formulario de Parámetros del Título Habilitante (Directo sin card envolvente) */}
+          <form onSubmit={handleSaveConcession} className="space-y-5 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+              <h3 className="font-bold text-[#0b1c30] text-sm flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[#004ac6]" />
+                Datos del Título Habilitante & Sistemas Concesionarios
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="font-bold text-slate-700 block mb-1">Nombre del Título Habilitante *</label>
+                <input
+                  type="text"
+                  required
+                  value={concessionForm.titleName}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, titleName: e.target.value })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <label className="font-bold text-[#434655] block mb-1">Nombre del Título Habilitante *</label>
-                  <input
-                    type="text"
-                    required
-                    value={concessionForm.titleName}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, titleName: e.target.value })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Código Concesionario *</label>
-                  <input
-                    type="text"
-                    required
-                    value={concessionForm.concessionaireCode}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, concessionaireCode: e.target.value })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Fecha del Título *</label>
-                  <input
-                    type="date"
-                    required
-                    value={concessionForm.titleDate}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, titleDate: e.target.value })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Fecha Última Póliza *</label>
-                  <input
-                    type="date"
-                    required
-                    value={concessionForm.lastPolicyDate}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, lastPolicyDate: e.target.value })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-[#434655] block mb-1">Recordatorio de Vencimiento (Plazo en días) *</label>
-                  <select
-                    value={concessionForm.reminderDays}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, reminderDays: Number(e.target.value) })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
-                  >
-                    <option value={15}>15 días antes</option>
-                    <option value={30}>30 días antes (Recomendado)</option>
-                    <option value={45}>45 días antes</option>
-                    <option value={60}>60 días antes</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="font-bold text-[#434655] block mb-1">Página Web Institucional *</label>
-                  <input
-                    type="url"
-                    required
-                    value={concessionForm.websiteUrl}
-                    onChange={(e) => setConcessionForm({ ...concessionForm, websiteUrl: e.target.value })}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs text-[#004ac6] font-medium focus:ring-1 focus:ring-[#004ac6]"
-                  />
-                </div>
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Código Concesionario *</label>
+                <input
+                  type="text"
+                  required
+                  value={concessionForm.concessionaireCode}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, concessionaireCode: e.target.value })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+                />
               </div>
 
-              {/* Campos Dinámicos Adicionales (PDF: "debe permitir poder agregar más opciones en caso de requerir") */}
-              <div className="pt-4 flex justify-end border-t border-slate-100">
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#2563eb] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Fecha del Título *</label>
+                <input
+                  type="date"
+                  required
+                  value={concessionForm.titleDate}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, titleDate: e.target.value })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Fecha Última Póliza *</label>
+                <input
+                  type="date"
+                  required
+                  value={concessionForm.lastPolicyDate}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, lastPolicyDate: e.target.value })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-medium text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Recordatorio de Vencimiento *</label>
+                <select
+                  value={concessionForm.reminderDays}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, reminderDays: Number(e.target.value) })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
                 >
-                  Guardar Parámetros de Concesión
-                </button>
+                  <option value={15}>15 días antes</option>
+                  <option value={30}>30 días antes (Recomendado)</option>
+                  <option value={45}>45 días antes</option>
+                  <option value={60}>60 días antes</option>
+                </select>
               </div>
-            </form>
-          </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold text-slate-700 block mb-1">Página Web Institucional *</label>
+                <input
+                  type="url"
+                  required
+                  value={concessionForm.websiteUrl}
+                  onChange={(e) => setConcessionForm({ ...concessionForm, websiteUrl: e.target.value })}
+                  className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs text-[#004ac6] font-medium focus:ring-1 focus:ring-[#004ac6]"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 flex justify-end">
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                Guardar Parámetros de Concesión
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

@@ -2933,6 +2933,30 @@ test("Flujo E2E 53: Selector Independiente de Proyectos y Simplificación Integr
   );
 });
 
+test("Flujo E2E 54: Limpieza de Cabecera y Formulario Directo en Módulo ARCOTEL", () => {
+  const rootDir = process.cwd();
+  const arcotelPath = path.resolve(rootDir, "src/components/modules/arcotel/ArcotelManager.tsx");
+  const arcotelContent = fs.readFileSync(arcotelPath, "utf8");
+
+  // Eliminación del botón superior Registrar Póliza (ya presente en pestaña Pólizas)
+  assert.ok(
+    !arcotelContent.includes("<span>Registrar Póliza</span>"),
+    "ArcotelManager no debe incluir el botón redundante 'Registrar Póliza' en la barra superior"
+  );
+
+  // Formulario directo sin card envolvente en Concesión
+  assert.ok(
+    arcotelContent.includes("handleSaveConcession") &&
+      arcotelContent.includes("{/* Formulario de Parámetros del Título Habilitante (Directo sin card envolvente) */}"),
+    "El formulario de Concesión debe presentarse directo sobre el canvas sin tarjeta envolvente"
+  );
+  assert.ok(
+    arcotelContent.includes("Subir Archivo Regulatorio"),
+    "Debe mantener el botón de Subir Archivo Regulatorio"
+  );
+});
+
+
 
 
 
