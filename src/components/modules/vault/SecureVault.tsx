@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { simpleEncrypt } from "@/lib/crypto-vault";
-import { ClientTabHeader } from "../clients/ClientTabHeader";
 import {
-  KeyRound,
   Eye,
   EyeOff,
   Copy,
@@ -135,16 +133,29 @@ export function SecureVault({ clientId }: { clientId?: string }) {
 
   return (
     <section className="space-y-4">
-      {/* Standard Tab Header */}
-      <ClientTabHeader
-        title="Bóveda"
-        icon={KeyRound}
-        badge={
-          <span className="text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] px-2 py-0.5 rounded-md">
-            {items.length}
-          </span>
-        }
-        actions={
+      {/* Filter Toolbar Card with Action Button aligned to the right */}
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="relative flex-1 min-w-[260px] max-w-md">
+          <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por servicio, usuario o notas..."
+            className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
+              <span>Limpiar</span>
+            </button>
+          )}
+
           <button
             disabled={busy}
             onClick={() => {
@@ -152,13 +163,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               setEditingId(null);
               setError("");
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{editing ? "Cerrar" : "Nueva Credencial"}</span>
           </button>
-        }
-      />
+        </div>
+      </div>
 
       {/* Create / Edit Form Card */}
       {editing && (
@@ -260,29 +271,6 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           </div>
         </form>
       )}
-
-      {/* Filter Toolbar Card */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[280px] max-w-md">
-          <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por servicio, usuario o notas..."
-            className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
-          />
-        </div>
-
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-[#434655] hover:bg-[#f8f9ff] cursor-pointer transition-all"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-[#737686]" />
-            <span>Limpiar</span>
-          </button>
-        )}
-      </div>
 
       {/* Credentials Table Card */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">

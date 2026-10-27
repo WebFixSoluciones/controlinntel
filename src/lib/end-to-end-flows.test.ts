@@ -2652,6 +2652,26 @@ test("Flujo E2E 46: Eliminación de Barras de Título Redundantes en Ficha 360 (
   );
 });
 
+test("Flujo E2E 47: Eliminación de Barra de Título en Bóveda y Reubicación de Botón 'Nueva Credencial' en Barra de Filtros", () => {
+  const rootDir = process.cwd();
+  const vaultPath = path.resolve(rootDir, "src/components/modules/vault/SecureVault.tsx");
+  const vaultContent = fs.readFileSync(vaultPath, "utf8");
+
+  // No debe incluir ClientTabHeader
+  assert.ok(
+    !vaultContent.includes("ClientTabHeader"),
+    "SecureVault no debe incluir la barra de título ClientTabHeader"
+  );
+
+  // Botón 'Nueva Credencial' debe estar ubicado en la barra de herramientas/filtros alineado con el buscador
+  assert.ok(
+    vaultContent.includes("Nueva Credencial") &&
+      vaultContent.includes("Buscar por servicio, usuario o notas...") &&
+      vaultContent.includes("flex flex-wrap items-center justify-between"),
+    "SecureVault debe integrar el botón 'Nueva Credencial' en la barra de búsqueda y filtros"
+  );
+});
+
 
 
 
