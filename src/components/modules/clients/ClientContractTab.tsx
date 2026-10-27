@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Client,
-  ClientDocumentFile,
   SriInvoice,
   ClientService,
   ServiceStatus,
@@ -27,17 +26,11 @@ import {
 import { NewSaleView } from "../billing/NewSaleView";
 import { ProductModal } from "../inventory/ProductModal";
 import { RidePreviewModal } from "../billing/RidePreviewModal";
-import { ClientTabHeader } from "./ClientTabHeader";
 import {
-  Download,
-  FileText,
-  Upload,
   Plus,
   Trash2,
-  FileCheck,
   ShieldCheck,
   X,
-  Receipt,
   Eye,
   CheckCircle2,
   Calendar,
@@ -59,7 +52,6 @@ import {
 export function ClientContractTab({ client }: { client: Client }) {
   const {
     clientServices,
-    clientDocuments,
     billingInvoices,
     inventoryProducts,
     sriCompanyConfig,
@@ -67,9 +59,6 @@ export function ClientContractTab({ client }: { client: Client }) {
     updateClientService,
     deleteClientService,
     renewClientService,
-    emitRecurringInvoiceForClient,
-    addClientDocument,
-    deleteClientDocument,
   } = useApp();
   const { showError, showSuccess, showConfirm } = useToast();
 
@@ -128,21 +117,11 @@ export function ClientContractTab({ client }: { client: Client }) {
     };
   }, []);
 
-  // File upload state
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [docTitle, setDocTitle] = useState("");
-  const [docType, setDocType] = useState<ClientDocumentFile["documentType"]>("contrato_adhesion");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [emittingRecurring, setEmittingRecurring] = useState(false);
-
   // Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [serviceFilter, setServiceFilter] = useState<
     "todos" | "con_venta" | "pendiente_venta" | "facturables" | "por_renovar"
   >("todos");
-
-  const docs = clientDocuments.filter((d) => d.clientId === client.id);
 
   // Available services exclusively from inventory catalog (type === "servicio")
   const availableServices = useMemo(() => {
@@ -797,164 +776,6 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
-  // Emit recurring invoice for active & billable services of this client
-  const handleEmitClientRecurringInvoice = async () => {
-    if (serviceMetrics.billableCount === 0) {
-      showError("Sin servicios facturables", "Activa al menos un servicio como Facturable antes de emitir la factura.");
-      return;
-    }
-    setEmittingRecurring(true);
-    try {
-      const now = new Date();
-      const invoice = await emitRecurringInvoiceForClient(
-        client.id,
-        now.getMonth() + 1,
-        now.getFullYear()
-      );
-      if (invoice) {
-        showSuccess(
-          "Factura Recurrente Emitida",
-          `Se emitió la factura ${invoice.documentNumber} con ${serviceMetrics.billableCount} servicio(s) facturable(s) por $${invoice.total.toFixed(2)}.`
-        );
-      }
-    } catch (err: any) {
-      showError("Error al Facturar", err?.message || "No se pudo generar la factura recurrente.");
-    } finally {
-      setEmittingRecurring(false);
-    }
-  };
-
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!docTitle.trim()) {
-      showError("Título Requerido", "Ingresa un título para el documento.");
-      return;
-    }
-    if (!selectedFile) {
-      showError("Archivo Requerido", "Selecciona un archivo PDF, Word o imagen.");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const fileSizeKb = Math.round(selectedFile.size / 1024);
-      const sizeStr = fileSizeKb > 1024 ? `${(fileSizeKb / 1024).toFixed(1)} MB` : `${fileSizeKb} KB`;
-
-      let fileUrl = "#";
-      try {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("folder", `client-docs/${client.id}`);
-        const uploadRes = await fetch("/api/blob/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          if (uploadData.url) fileUrl = uploadData.url;
-        }
-      } catch (uploadErr) {
-        console.warn("Upload service note:", uploadErr);
-      }
-
-      await addClientDocument({
-        clientId: client.id,
-        title: docTitle.trim(),
-        documentType: docType,
-        fileName: selectedFile.name,
-        fileSize: sizeStr,
-        fileUrl,
-      });
-
-      showSuccess("Archivo Guardado", `Se cargó "${selectedFile.name}" al expediente digital.`);
-      setIsUploadModalOpen(false);
-      setDocTitle("");
-      setSelectedFile(null);
-    } catch (err: any) {
-      showError("Error", err?.message || "No se pudo guardar el archivo.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const triggerRealDownload = (url?: string, filename?: string) => {
-    const name = filename || "documento_cliente";
-    if (!url || url === "#") {
-      const textContent = `CONTROL INNTEL - EXPEDIENTE DIGITAL DEL CLIENTE\nDocumento: ${name}\nFecha: ${new Date().toLocaleString("es-EC")}\nRegistro Verificado`;
-      const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = name.includes(".") ? name : `${name}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-      showSuccess("Descarga Iniciada", `Descargando: ${name}`);
-      return;
-    }
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showSuccess("Descarga Iniciada", `Descargando: ${name}`);
-  };
-
-  const handleDeleteDoc = (docId: string, title: string) => {
-    showConfirm(
-      "¿Eliminar Archivo?",
-      `¿Deseas retirar "${title}" del expediente digital del cliente?`,
-      async () => {
-        try {
-          await deleteClientDocument(docId);
-          showSuccess("Archivo Eliminado", "El documento ha sido retirado.");
-        } catch {
-          showError("Error", "No se pudo eliminar el archivo.");
-        }
-      },
-      "Eliminar Archivo"
-    );
-  };
-
-  const getDocTypeBadge = (type: ClientDocumentFile["documentType"]) => {
-    switch (type) {
-      case "contrato_adhesion":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-            Contrato Firmado
-          </span>
-        );
-      case "proteccion_datos":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Protección Datos
-          </span>
-        );
-      case "cedula_ruc":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
-            Cédula / RUC
-          </span>
-        );
-      case "acta_entrega":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
-            Acta Entrega
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">
-            Comprobante / Archivo
-          </span>
-        );
-    }
-  };
-
   if (isNewSaleOpen) {
     return (
       <div className="animate-in fade-in duration-200">
@@ -1549,35 +1370,11 @@ export function ClientContractTab({ client }: { client: Client }) {
             <button
               type="button"
               onClick={() => setIsAddingService((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{isAddingService ? "Cerrar" : "Nuevo Servicio"}</span>
+              <span>{isAddingService ? "Cerrar" : "Agregar Servicio"}</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSaleInitialItems(undefined);
-                setIsNewSaleOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0b1c30] hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
-            >
-              <Receipt className="w-3.5 h-3.5" />
-              <span>Nueva Venta</span>
-            </button>
-
-            {serviceMetrics.billableCount > 0 && (
-              <button
-                type="button"
-                disabled={emittingRecurring}
-                onClick={handleEmitClientRecurringInvoice}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{emittingRecurring ? "Facturando..." : "Facturar Activos"}</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -1603,7 +1400,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                       No hay servicios registrados con este filtro.
                     </p>
                     <p className="text-xs text-[#64748b] mt-1">
-                      Usa el botón <strong>&quot;Nuevo Servicio&quot;</strong> para asignar servicios del Inventario de Servicios al cliente.
+                      Usa el botón <strong>&quot;Agregar Servicio&quot;</strong> para asignar servicios del Inventario de Servicios al cliente.
                     </p>
                   </td>
                 </tr>
@@ -1836,173 +1633,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         </div>
       </div>
 
-      {/* 2. EXPEDIENTE DIGITAL DEL CLIENTE */}
-      <ClientTabHeader
-        title="Documentos"
-        icon={FileCheck}
-        actions={
-          <button
-            type="button"
-            onClick={() => {
-              setDocTitle("");
-              setSelectedFile(null);
-              setIsUploadModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold transition shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Subir</span>
-          </button>
-        }
-      />
 
-      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[650px] table-fixed">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-              <tr>
-                <th className="py-3 px-5 w-2/12">Tipo</th>
-                <th className="py-3 px-5 w-5/12">Título / Archivo</th>
-                <th className="py-3 px-5 w-3/12">Fecha Carga</th>
-                <th className="py-3 px-5 w-2/12 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
-              {docs.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-xs text-[#737686]">
-                    <Upload className="w-6 h-6 text-[#64748b] mx-auto mb-1.5" />
-                    <span>No hay archivos digitales cargados en el expediente.</span>
-                  </td>
-                </tr>
-              ) : (
-                docs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-[#f8f9ff] transition-colors">
-                    <td className="py-3 px-5">{getDocTypeBadge(doc.documentType)}</td>
-                    <td className="py-3 px-5">
-                      <div className="font-bold text-[#0b1c30] text-xs">{doc.title}</div>
-                      <div className="font-mono text-[10px] text-[#64748b] flex items-center gap-1.5 mt-0.5">
-                        <FileText className="w-3 h-3 text-[#64748b]" />
-                        <span>{doc.fileName}</span>
-                        <span>({doc.fileSize})</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-5 text-[#64748b] text-xs font-mono">
-                      {doc.uploadedAt.split("T")[0]}
-                    </td>
-                    <td className="py-3 px-5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => triggerRealDownload(doc.fileUrl, doc.fileName)}
-                          className="p-1.5 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                          title="Descargar archivo"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteDoc(doc.id, doc.title)}
-                          className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                          title="Eliminar documento"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* MODAL: SUBIR DOCUMENTO AL EXPEDIENTE */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 px-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#004ac6] text-white">
-              <div className="flex items-center gap-2">
-                <Upload className="w-4 h-4 text-white" />
-                <h3 className="font-bold text-white text-xs">Cargar Archivo al Expediente</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsUploadModalOpen(false)}
-                className="p-1 rounded-lg text-white/80 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUploadSubmit} className="p-5 space-y-3.5 text-xs">
-              <div>
-                <label className="font-bold text-[#434655] block mb-1">Tipo de Archivo *</label>
-                <select
-                  value={docType}
-                  onChange={(e) => setDocType(e.target.value as ClientDocumentFile["documentType"])}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] outline-hidden cursor-pointer"
-                >
-                  <option value="contrato_adhesion">Contrato de Adhesión / Servicios Firmado</option>
-                  <option value="proteccion_datos">Autorización de Protección de Datos</option>
-                  <option value="cedula_ruc">Cédula / Nombramiento Legal / RUC</option>
-                  <option value="acta_entrega">Acta de Entrega-Recepción de Equipos</option>
-                  <option value="otro">Comprobante de Pago / Imagen / Otro</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="font-bold text-[#434655] block mb-1">Título del Documento *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Contrato Firmado 2026 / Comprobante de Depósito"
-                  value={docTitle}
-                  onChange={(e) => setDocTitle(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-[#434655] block mb-1">Seleccionar Archivo (PDF, Word, JPG, PNG) *</label>
-                <input
-                  type="file"
-                  required
-                  accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.webp"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedFile(e.target.files[0]);
-                      if (!docTitle) {
-                        setDocTitle(e.target.files[0].name.replace(/\.[^/.]+$/, ""));
-                      }
-                    }
-                  }}
-                  className="w-full bg-[#f8f9ff] border border-dashed border-[#cbd5e1] rounded-lg p-3 text-xs text-[#434655] cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-[#004ac6] file:text-white hover:file:bg-[#003da6]"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#e2e8f0]">
-                <button
-                  type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
-                  className="px-3.5 py-2 text-[#737686] hover:bg-slate-100 rounded-lg text-xs font-bold transition cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>{busy ? "Cargando..." : "Subir Archivo"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL 1: CREAR SERVICIO EN EL INVENTARIO OFICIAL */}
       <ProductModal

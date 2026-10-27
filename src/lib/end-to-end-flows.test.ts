@@ -1336,9 +1336,8 @@ test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas 
     "ClientContractTab debe estructurar la tabla de servicios con layout fijo y columnas balanceadas"
   );
   assert.ok(
-    contractContent.includes("min-w-[650px] table-fixed") &&
-      contractContent.includes("w-5/12"),
-    "ClientContractTab debe estructurar la tabla de documentos con layout fijo"
+    !contractContent.includes('title="Documentos"'),
+    "ClientContractTab no debe incluir la sección de documentos"
   );
   assert.ok(
     !contractContent.includes("rounded-[6px]") && !contractContent.includes("rounded-2xl"),
@@ -2682,14 +2681,12 @@ test("Flujo E2E 48: Eliminación de Barra de Título en Servicios y Reubicación
     "ClientContractTab no debe incluir la barra de título redundante ClientTabHeader para Servicios"
   );
 
-  // Los 3 botones deben estar en la barra de búsqueda y filtros alineados a la derecha
+  // El botón de acción debe estar en la barra de búsqueda y filtros alineado a la derecha
   assert.ok(
-    contractContent.includes("Nuevo Servicio") &&
-      contractContent.includes("Nueva Venta") &&
-      contractContent.includes("Facturar Activos") &&
+    contractContent.includes("Agregar Servicio") &&
       contractContent.includes("Buscar por servicio o SKU...") &&
       contractContent.includes("flex flex-wrap items-center justify-between"),
-    "ClientContractTab debe integrar los 3 botones en la barra de filtros alineados a la derecha"
+    "ClientContractTab debe integrar la barra de filtros con el botón de acción alineado a la derecha"
   );
 });
 
@@ -2955,6 +2952,44 @@ test("Flujo E2E 54: Limpieza de Cabecera y Formulario Directo en Módulo ARCOTEL
     "Debe mantener el botón de Subir Archivo Regulatorio"
   );
 });
+
+test("Flujo E2E 55: Unificación de Botón Agregar Servicio en Azul y Retiro de Subida de Documentos en Ficha de Servicios", () => {
+  const rootDir = process.cwd();
+  const contractTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
+  const contractContent = fs.readFileSync(contractTabPath, "utf8");
+
+  // 1. Botón único 'Agregar Servicio' en color azul (#004ac6) con letras blancas
+  assert.ok(
+    contractContent.includes("Agregar Servicio") &&
+      contractContent.includes("bg-[#004ac6]") &&
+      contractContent.includes("text-white"),
+    "El botón de agregar servicio debe tener el texto 'Agregar Servicio' con fondo azul (#004ac6) y texto blanco"
+  );
+
+  // 2. Retiro de los 2 botones redundantes en la barra superior de servicios
+  assert.ok(
+    !contractContent.includes("<span>Nueva Venta</span>") &&
+      !contractContent.includes("<span>Facturar Activos</span>"),
+    "ClientContractTab no debe incluir los botones 'Nueva Venta' ni 'Facturar Activos' en la barra de servicios"
+  );
+
+  // 3. Retiro completo de la sección inferior de subida de documentos y su cabecera
+  assert.ok(
+    !contractContent.includes('title="Documentos"') &&
+      !contractContent.includes("Cargar Archivo al Expediente") &&
+      !contractContent.includes("EXPEDIENTE DIGITAL DEL CLIENTE"),
+    "ClientContractTab no debe incluir la sección de documentos ni modal de subida de archivos"
+  );
+
+  // 4. Mantiene la tabla de servicios con acciones individuales operativas
+  assert.ok(
+    contractContent.includes("filteredServices") &&
+      contractContent.includes("handleRenewService") &&
+      contractContent.includes("handleToggleBillable"),
+    "ClientContractTab debe mantener todas las capacidades operativas de gestión y renovación de servicios"
+  );
+});
+
 
 
 
