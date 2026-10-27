@@ -2129,10 +2129,9 @@ test("Flujo E2E 35: Permanencia en la Ficha de Cliente y Pestaña de Servicios a
   );
 
   assert.ok(
-    profile360Content.includes("Volver") &&
-      profile360Content.includes("ArrowLeft") &&
-      profile360Content.includes("onClick={onClose}"),
-    "ClientProfile360 debe incluir botón 'Volver' con ArrowLeft para regresar explícitamente al listado"
+    !profile360Content.includes("Volver") &&
+      !profile360Content.includes("ArrowLeft"),
+    "ClientProfile360 no debe incluir botón 'Volver' ni ArrowLeft ya que la navegación por sidebar/menú se encarga de salir de la pantalla"
   );
 
   // 3. Verificación en ClientContractTab.tsx
@@ -2539,6 +2538,61 @@ test("Flujo E2E 43: Botones Específicos por Pantalla (Registrar Gasto, Registra
   assert.ok(
     headerContent.includes('case "anticipos":') && headerContent.includes('return "Anticipos";'),
     "Header debe desplegar 'Anticipos' como título dinámico"
+  );
+});
+
+test("Flujo E2E 44: Ficha 360 Minimalista (Eliminación de Volver, Estado Badge a la Derecha, Icono Nube y Sin Métricas en Archivos)", () => {
+  const rootDir = process.cwd();
+
+  // 1. Verificación de ClientProfile360.tsx
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+
+  // No debe existir el botón 'Volver' ni el icono ArrowLeft
+  assert.ok(
+    !profile360Content.includes("Volver") && !profile360Content.includes("ArrowLeft"),
+    "ClientProfile360 no debe incluir botón Volver ni ArrowLeft en cabecera"
+  );
+
+  // La pestaña 'archivos' debe usar el icono Cloud
+  assert.ok(
+    profile360Content.includes('{ id: "archivos", label: "Archivos", icon: Cloud, permission: "manage_clients" }'),
+    "La pestaña 'archivos' en ClientProfile360 debe usar el icono Cloud en lugar de FolderArchive"
+  );
+
+  // El badge de estado debe ser minimalista y ubicarse en la sección derecha de acciones
+  assert.ok(
+    profile360Content.includes('client.status === "activo"') &&
+      profile360Content.includes("rounded-full") &&
+      profile360Content.includes("bg-emerald-500"),
+    "ClientProfile360 debe incluir badge minimalista de estado con punto de color en las acciones derechas"
+  );
+
+  // 2. Verificación de ClientFilesTab.tsx
+  const filesTabPath = path.resolve(rootDir, "src/components/modules/clients/ClientFilesTab.tsx");
+  const filesTabContent = fs.readFileSync(filesTabPath, "utf8");
+
+  // ClientTabHeader con icono Cloud
+  assert.ok(
+    filesTabContent.includes("icon={Cloud}"),
+    "ClientFilesTab debe pasar icon={Cloud} al ClientTabHeader"
+  );
+
+  // Estado vacío y modal con icono Cloud
+  assert.ok(
+    filesTabContent.includes('<Cloud className="w-10 h-10 text-slate-300 mx-auto" />') &&
+      filesTabContent.includes("Sin archivos en la nube") &&
+      filesTabContent.includes("Subir Archivo a la Nube"),
+    "ClientFilesTab debe usar icono Cloud y textos de nube en estado vacío y modal de subida"
+  );
+
+  // No debe contener tarjetas de métricas eliminadas
+  assert.ok(
+    !filesTabContent.includes("Total Archivos") &&
+      !filesTabContent.includes("Contratos & Actas") &&
+      !filesTabContent.includes("Cédula & RUC") &&
+      !filesTabContent.includes("HardDrive"),
+    "ClientFilesTab no debe incluir tarjetas de métricas eliminadas ni HardDrive"
   );
 });
 

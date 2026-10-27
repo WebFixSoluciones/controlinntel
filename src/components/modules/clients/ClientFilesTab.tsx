@@ -6,7 +6,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { ClientTabHeader } from "./ClientTabHeader";
 import {
-  FolderArchive,
+  Cloud,
   Upload,
   Search,
   FileText,
@@ -20,9 +20,7 @@ import {
   LayoutGrid,
   List,
   X,
-  FileCheck,
   ShieldCheck,
-  HardDrive,
   Calendar,
   Sparkles,
 } from "lucide-react";
@@ -99,8 +97,6 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
   });
 
   const totalFiles = docs.length;
-  const contractsCount = docs.filter((d) => d.documentType === "contrato_adhesion").length;
-  const identityCount = docs.filter((d) => d.documentType === "cedula_ruc").length;
 
   const handleOpenUploadModal = (preselectedCategory?: ClientDocumentFile["documentType"]) => {
     setUploadTitle("");
@@ -220,7 +216,7 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
       {/* Header Estándar de Pestaña */}
       <ClientTabHeader
         title="Archivos del Cliente"
-        icon={FolderArchive}
+        icon={Cloud}
         badge={
           <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
             {totalFiles} {totalFiles === 1 ? "archivo" : "archivos"}
@@ -237,45 +233,6 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
           </button>
         }
       />
-
-      {/* Mini Tarjetas Métricas del Mini Drive */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white p-3.5 rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Total Archivos
-            </span>
-            <span className="text-xl font-bold font-mono text-slate-900">{totalFiles}</span>
-          </div>
-          <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#004ac6] border border-blue-200 flex items-center justify-center">
-            <HardDrive className="w-4 h-4" />
-          </div>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Contratos & Actas
-            </span>
-            <span className="text-xl font-bold font-mono text-slate-900">{contractsCount}</span>
-          </div>
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
-            <FileCheck className="w-4 h-4" />
-          </div>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-[#e2e8f0] shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-              Cédula & RUC
-            </span>
-            <span className="text-xl font-bold font-mono text-slate-900">{identityCount}</span>
-          </div>
-          <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-        </div>
-      </div>
 
       {/* Barra de Filtros, Búsqueda y Alternador de Vistas */}
       <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
@@ -364,8 +321,8 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
       {/* Visualización de Archivos: Cuadrícula (Mini Drive) o Tabla */}
       {filteredDocs.length === 0 ? (
         <div className="bg-white p-8 rounded-xl border border-[#e2e8f0] text-center space-y-2">
-          <FolderArchive className="w-10 h-10 text-slate-300 mx-auto" />
-          <h4 className="text-xs font-bold text-slate-700">Sin archivos encontrados</h4>
+          <Cloud className="w-10 h-10 text-slate-300 mx-auto" />
+          <h4 className="text-xs font-bold text-slate-700">Sin archivos en la nube</h4>
           <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
             {searchQuery || categoryFilter !== "all"
               ? "No hay documentos que coincidan con los filtros de búsqueda."
@@ -522,8 +479,8 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-5 py-3.5 bg-[#004ac6] text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FolderArchive className="w-4 h-4" />
-                <h3 className="text-sm font-bold">Subir Archivo al Mini Drive</h3>
+                <Cloud className="w-4 h-4" />
+                <h3 className="text-sm font-bold">Subir Archivo a la Nube</h3>
               </div>
               <button
                 type="button"

@@ -22,7 +22,7 @@ import {
   Radio,
   KeyRound,
   ShieldCheck,
-  FolderArchive,
+  Cloud,
   FileSpreadsheet,
   DollarSign,
   Ticket as TicketIcon,
@@ -44,7 +44,6 @@ import {
   Trash2,
   UserPlus,
   Users,
-  ArrowLeft,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -167,7 +166,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
     { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
-    { id: "archivos", label: "Archivos", icon: FolderArchive, permission: "manage_clients" },
+    { id: "archivos", label: "Archivos", icon: Cloud, permission: "manage_clients" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
@@ -213,15 +212,6 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         {/* Hub Header Elegante y Limpio */}
         <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] border border-slate-200 rounded-lg transition-colors cursor-pointer mr-1"
-              title="Volver al Listado de Clientes"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Volver</span>
-            </button>
             <h1 className="text-base font-semibold text-slate-800 tracking-normal">
               {client.businessName}
             </h1>
@@ -229,13 +219,30 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             <span className="font-mono text-xs font-medium text-slate-600">
               RUC / CI: {client.identificationNumber}
             </span>
-            <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-              {client.status}
-            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                client.status === "activo"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                  : client.status === "suspendido"
+                  ? "bg-amber-50 text-amber-700 border-amber-200/80"
+                  : "bg-slate-100 text-slate-600 border-slate-200"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  client.status === "activo"
+                    ? "bg-emerald-500"
+                    : client.status === "suspendido"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
+                }`}
+              />
+              <span className="capitalize">{client.status}</span>
+            </span>
+
             {(currentUser.role === "admin" ||
               currentUser.role === "superadmin" ||
               currentUser.permissions?.includes("all") ||
