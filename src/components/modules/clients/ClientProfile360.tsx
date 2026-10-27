@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Client, ClientContactPerson } from "@/types";
+import { Client, ClientContactPerson, MonthlyCharge } from "@/types";
 import { can, tabPermissions } from "@/lib/permissions";
+import { printHtmlElement } from "@/lib/print-service";
 import { ClientTasksTab } from "./ClientTasksTab";
 import { ClientQuotesManager } from "./ClientQuotesManager";
 import { ClientVaultTab } from "./ClientVaultTab";
@@ -44,6 +45,8 @@ import {
   Trash2,
   UserPlus,
   Users,
+  Search,
+  X,
 } from "lucide-react";
 
 interface ClientProfile360Props {
@@ -82,6 +85,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     currentUser,
     markChargeAsPaid,
     deleteClient,
+    sriCompanyConfig,
+    bankAccounts,
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
@@ -113,6 +118,120 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   const clientId = client?.id || "";
   const services = clientServices.filter((s) => s.clientId === clientId);
   const charges = monthlyCharges.filter((c) => c.clientId === clientId);
+
+  // Cobros & Finanzas state
+  const [cobrosSearch, setCobrosSearch] = useState("");
+  const [cobrosStatusFilter, setCobrosStatusFilter] = useState<"todos" | "pendiente" | "pagado">("todos");
+  const [isAccountStatementOpen, setIsAccountStatementOpen] = useState(false);
+  const [receiptCharge, setReceiptCharge] = useState<MonthlyCharge | null>(null);
+
+  const accountStatementPrintRef = useRef<HTMLDivElement>(null);
+  const receiptPrintRef = useRef<HTMLDivElement>(null);
+
+  const filteredCharges = useMemo(() => {
+    return charges.filter((c) => {
+      const q = cobrosSearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        (c.invoiceNumber && c.invoiceNumber.toLowerCase().includes(q)) ||
+        (c.serviceDescription && c.serviceDescription.toLowerCase().includes(q)) ||
+        `${c.month}/${c.year}`.includes(q);
+
+      const matchStatus =
+        cobrosStatusFilter === "todos" || c.status === cobrosStatusFilter;
+
+      return matchSearch && matchStatus;
+    });
+  }, [charges, cobrosSearch, cobrosStatusFilter]);
+
+  const cobrosCounts = useMemo(() => {
+    return {
+      todos: charges.length,
+      pendiente: charges.filter((c) => c.status === "pendiente").length,
+      pagado: charges.filter((c) => c.status === "pagado").length,
+      totalPending: charges
+        .filter((c) => c.status === "pendiente")
+        .reduce((sum, c) => sum + (c.balanceRemaining ?? c.total), 0),
+      totalPaid: charges
+        .filter((c) => c.status === "pagado")
+        .reduce((sum, c) => sum + (c.paidAmount ?? c.total), 0),
+      grandTotal: charges.reduce((sum, c) => sum + c.total, 0),
+    };
+  }, [charges]);
+
+  const handlePrintAccountStatement = () => {
+    if (accountStatementPrintRef.current) {
+      printHtmlElement(
+        accountStatementPrintRef.current,
+        `EstadoDeCuenta-${client?.identificationNumber || client?.id || "Cliente"}`,
+        "a4"
+      );
+    } else {
+      window.print();
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    if (receiptPrintRef.current) {
+      printHtmlElement(
+        receiptPrintRef.current,
+        `Recibo-${receiptCharge?.invoiceNumber || "Cobro"}`,
+        "ticket"
+      );
+    } else {
+      window.print();
+    }
+  };
+
+  const handleExportCobranzaCsv = () => {
+    if (!client || charges.length === 0) {
+      showError("Sin datos", "No existen registros de cobro para exportar.");
+      return;
+    }
+
+    const headers = [
+      "Comprobante",
+      "Periodo",
+      "Descripcion",
+      "Subtotal",
+      "IVA",
+      "Total",
+      "Estado",
+      "Fecha Pago",
+      "Metodo Pago",
+      "Referencia",
+    ];
+
+    const rows = charges.map((c) => [
+      `"${c.invoiceNumber || ""}"`,
+      `"${c.month}/${c.year}"`,
+      `"${(c.serviceDescription || "").replace(/"/g, '""')}"`,
+      c.subtotal ?? 0,
+      c.ivaAmount ?? 0,
+      c.total ?? 0,
+      `"${c.status}"`,
+      `"${c.paymentDate || ""}"`,
+      `"${c.paymentMethod || ""}"`,
+      `"${c.paymentReference || ""}"`,
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `Cobranzas_${client.identificationNumber || client.id}_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSuccess("Informe Exportado", "Archivo CSV de cobranzas descargado exitosamente.");
+  };
   const clientTickets = tickets.filter((t) => t.clientId === clientId);
   const projects = clientProjects.filter((p) => p.clientId === clientId);
   const quotes = clientQuotes.filter((q) => q.clientId === clientId);
@@ -552,59 +671,183 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
           {currentTabAllowed && activeTab === "finanzas" && (
             <div className="space-y-4">
               <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-                <table className="table-fixed w-full text-left text-xs border-collapse">
-                  <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                    <tr>
-                      <th className="py-3 px-4 w-[18%]">Comprobante</th>
-                      <th className="py-3 px-4 w-[14%]">Periodo</th>
-                      <th className="py-3 px-4 w-[36%]">Descripción</th>
-                      <th className="py-3 px-4 w-[12%]">Total</th>
-                      <th className="py-3 px-4 w-[10%] text-center">Estado</th>
-                      <th className="py-3 px-4 w-[10%] text-right">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                    {charges.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400 italic">
-                          Sin cobros registrados para este cliente.
-                        </td>
-                      </tr>
-                    ) : (
-                      charges.map((c) => (
-                        <tr key={c.id} className="hover:bg-slate-50/70">
-                          <td className="py-3 px-4 font-mono font-bold text-slate-900 truncate">{c.invoiceNumber}</td>
-                          <td className="py-3 px-4 font-semibold">
-                            {c.month}/{c.year}
-                          </td>
-                          <td className="py-3 px-4 text-slate-600 truncate">{c.serviceDescription}</td>
-                          <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
-                          <td className="py-3 px-4 text-center">
-                            <span
-                              className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${
-                                c.status === "pagado"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
-                              }`}
-                            >
-                              {c.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            {c.status === "pendiente" && (
-                              <button
-                                onClick={() => handlePayCharge(c.id)}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer"
-                              >
-                                Cobrar
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                {/* Barra de Búsqueda, Filtros de Estado y Botones de Acción / Informes */}
+                <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
+                  <div className="relative flex-1 min-w-[200px] max-w-xs">
+                    <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por comprobante o descripción..."
+                      value={cobrosSearch}
+                      onChange={(e) => setCobrosSearch(e.target.value)}
+                      className="w-full text-xs pl-8 pr-8 py-1.5 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#64748b] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-colors"
+                    />
+                    {cobrosSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setCobrosSearch("")}
+                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title="Limpiar búsqueda"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      {[
+                        { id: "todos", label: "Todos", count: cobrosCounts.todos },
+                        {
+                          id: "pendiente",
+                          label: "Pendientes",
+                          count: cobrosCounts.pendiente,
+                          isWarning: cobrosCounts.pendiente > 0,
+                        },
+                        { id: "pagado", label: "Pagados", count: cobrosCounts.pagado },
+                      ].map((tab) => {
+                        const isActive = cobrosStatusFilter === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setCobrosStatusFilter(tab.id as any)}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                              isActive
+                                ? tab.isWarning
+                                  ? "bg-amber-600 text-white shadow-xs"
+                                  : "bg-[#004ac6] text-white shadow-2xs"
+                                : tab.isWarning
+                                ? "bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100"
+                                : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                            }`}
+                          >
+                            <span>{tab.label}</span>
+                            {tab.count > 0 && (
+                              <span
+                                className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                                  isActive
+                                    ? "bg-white/20 text-white"
+                                    : tab.isWarning
+                                    ? "bg-amber-200 text-amber-900"
+                                    : "bg-slate-200 text-slate-700"
+                                }`}
+                              >
+                                {tab.count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
+
+                    {/* Botones de Acción e Informes */}
+                    <button
+                      type="button"
+                      onClick={() => setIsAccountStatementOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                      title="Ver e Imprimir Estado de Cuenta Oficial del Cliente"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Estado de Cuenta</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCobranzaCsv}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-[#0b1c30] border border-[#cbd5e1] rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+                      title="Exportar informe de comprobantes a formato CSV/Excel"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Informe Cobranzas</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabla o Estado Vacío */}
+                {filteredCharges.length === 0 ? (
+                  <div className="py-12 text-center bg-white">
+                    <DollarSign className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-bold text-slate-700 text-xs">
+                      {charges.length === 0
+                        ? "Sin cobros registrados para este cliente."
+                        : "No se encontraron cobros con los filtros aplicados."}
+                    </p>
+                    {charges.length > 0 && (cobrosSearch || cobrosStatusFilter !== "todos") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCobrosSearch("");
+                          setCobrosStatusFilter("todos");
+                        }}
+                        className="mt-3 inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-[#004ac6] hover:underline cursor-pointer"
+                      >
+                        Restablecer filtros
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="table-fixed w-full text-left text-xs border-collapse">
+                      <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+                        <tr>
+                          <th className="py-3 px-4 w-[18%]">Comprobante</th>
+                          <th className="py-3 px-4 w-[14%]">Periodo</th>
+                          <th className="py-3 px-4 w-[36%]">Descripción</th>
+                          <th className="py-3 px-4 w-[12%]">Total</th>
+                          <th className="py-3 px-4 w-[10%] text-center">Estado</th>
+                          <th className="py-3 px-4 w-[10%] text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                        {filteredCharges.map((c) => (
+                          <tr key={c.id} className="hover:bg-slate-50/70">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-900 truncate">{c.invoiceNumber}</td>
+                            <td className="py-3 px-4 font-semibold">
+                              {c.month}/{c.year}
+                            </td>
+                            <td className="py-3 px-4 text-slate-600 truncate">{c.serviceDescription}</td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${
+                                  c.status === "pagado"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                    : "bg-amber-50 text-amber-700 border-amber-200"
+                                }`}
+                              >
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {c.status === "pendiente" ? (
+                                  <button
+                                    onClick={() => handlePayCharge(c.id)}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow-2xs"
+                                  >
+                                    Cobrar
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setReceiptCharge(c)}
+                                    className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                                    title="Imprimir Comprobante de Cobro"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -693,6 +936,320 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
           onClose={() => setIsContactsModalOpen(false)}
           client={client}
         />
+      )}
+
+      {/* Modal: Estado de Cuenta Oficial Imprimible A4 */}
+      {isAccountStatementOpen && client && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 px-6 bg-[#0b1c30] text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <Printer className="w-4 h-4 text-[#eff4ff]" />
+                <div>
+                  <h3 className="font-bold text-sm text-white">Estado de Cuenta Oficial</h3>
+                  <p className="text-[11px] text-slate-300">
+                    {client.businessName} • {client.identificationNumber}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePrintAccountStatement}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir A4 / PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAccountStatementOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Printable Body */}
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
+              <div
+                ref={accountStatementPrintRef}
+                className="bg-white p-8 rounded-xl border border-slate-200 shadow-2xs space-y-6 print:border-none print:shadow-none print:p-0"
+              >
+                {/* Header con Membrete */}
+                <div className="flex items-center justify-between pb-5 border-b border-slate-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-16 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                      <img
+                        src="/logo-inntel.webp"
+                        alt={sriCompanyConfig?.razonSocial || "INNTEL CORP S.A."}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-black text-slate-900">
+                        {sriCompanyConfig?.nombreComercial || sriCompanyConfig?.razonSocial || "INNTEL CORP S.A."}
+                      </h2>
+                      <p className="text-xs font-bold text-[#004ac6] uppercase tracking-wider">
+                        Estado de Cuenta Financiero del Cliente
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        RUC: {sriCompanyConfig?.ruc || "0993392437001"} • {sriCompanyConfig?.direccionMatriz || "Guayaquil, Ecuador"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right text-xs">
+                    <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                      Fecha: {new Date().toLocaleDateString("es-EC")}
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1">Corte contable al día</p>
+                  </div>
+                </div>
+
+                {/* Información del Cliente */}
+                <div className="p-4 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[11px] text-slate-500 block uppercase font-bold">Cliente / Razón Social</span>
+                    <span className="font-bold text-slate-900 text-sm block">{client.businessName}</span>
+                    <span className="text-[11px] text-slate-600 block mt-0.5">
+                      {client.identificationType}: <strong className="font-mono">{client.identificationNumber}</strong>
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div>
+                      <span className="text-[11px] text-slate-500 uppercase font-bold">Contacto: </span>
+                      <span className="font-medium text-slate-800">{client.email || "No registrado"} • {client.phone || "No registrado"}</span>
+                    </div>
+                    {client.address && (
+                      <div>
+                        <span className="text-[11px] text-slate-500 uppercase font-bold">Dirección: </span>
+                        <span className="font-medium text-slate-800">{client.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tarjetas de Resumen Financiero */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-left">
+                    <span className="text-[11px] text-slate-500 uppercase font-bold block">Total Facturado</span>
+                    <span className="text-lg font-mono font-black text-slate-900 mt-1 block">
+                      ${cobrosCounts.grandTotal.toFixed(2)} USD
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{charges.length} comprobante(s)</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 text-left">
+                    <span className="text-[11px] text-emerald-800 uppercase font-bold block">Total Cobrado</span>
+                    <span className="text-lg font-mono font-black text-emerald-700 mt-1 block">
+                      ${cobrosCounts.totalPaid.toFixed(2)} USD
+                    </span>
+                    <span className="text-[10px] text-emerald-600 mt-0.5 block">{cobrosCounts.pagado} pagado(s)</span>
+                  </div>
+
+                  <div className={`p-4 rounded-xl text-left border ${
+                    cobrosCounts.totalPending > 0
+                      ? "bg-amber-50/80 border-amber-300"
+                      : "bg-emerald-50/40 border-emerald-200"
+                  }`}>
+                    <span className={`text-[11px] uppercase font-bold block ${
+                      cobrosCounts.totalPending > 0 ? "text-amber-900" : "text-emerald-800"
+                    }`}>
+                      Saldo Pendiente
+                    </span>
+                    <span className={`text-lg font-mono font-black mt-1 block ${
+                      cobrosCounts.totalPending > 0 ? "text-amber-800" : "text-emerald-700"
+                    }`}>
+                      ${cobrosCounts.totalPending.toFixed(2)} USD
+                    </span>
+                    <span className="text-[10px] text-slate-500 mt-0.5 block">
+                      {cobrosCounts.totalPending > 0 ? `${cobrosCounts.pendiente} comprobante(s) por cobrar` : "Cuenta al día"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tabla de Comprobantes */}
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Comprobante</th>
+                        <th className="py-2.5 px-3">Periodo</th>
+                        <th className="py-2.5 px-3">Descripción</th>
+                        <th className="py-2.5 px-3 text-right">Total</th>
+                        <th className="py-2.5 px-3 text-center">Estado</th>
+                        <th className="py-2.5 px-3 text-right">Saldo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {charges.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-slate-400 italic">
+                            Sin cobros registrados en el historial de este cliente.
+                          </td>
+                        </tr>
+                      ) : (
+                        charges.map((c) => {
+                          const balance = c.status === "pagado" ? 0 : (c.balanceRemaining ?? c.total);
+                          return (
+                            <tr key={c.id}>
+                              <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                                {c.invoiceNumber}
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-600">
+                                {c.month}/{c.year}
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-700 max-w-xs truncate">
+                                {c.serviceDescription}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                                ${c.total.toFixed(2)}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                    c.status === "pagado"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-amber-100 text-amber-900"
+                                  }`}
+                                >
+                                  {c.status}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                                ${balance.toFixed(2)}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Cuentas Bancarias para Depósito */}
+                {bankAccounts && bankAccounts.length > 0 && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <span className="font-bold text-slate-800 block uppercase tracking-wider mb-2 text-[11px]">
+                      Cuentas Bancarias Autorizadas para Pagos / Transferencias
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {bankAccounts.map((b) => (
+                        <div key={b.id} className="p-2.5 bg-white rounded-lg border border-slate-200">
+                          <span className="font-bold text-[#004ac6] block text-xs">{b.bankName}</span>
+                          <span className="text-[11px] text-slate-600 block">Tipo: {b.accountType}</span>
+                          <span className="font-mono font-bold text-slate-800 block text-xs">N° {b.accountNumber}</span>
+                          <span className="text-[10px] text-slate-500 block truncate">Beneficiario: {sriCompanyConfig?.razonSocial || "INNTEL CORP S.A."}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Nota al Pie */}
+                <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400">
+                  <span>Control Inntel • Sistema Integral ISP & Telecomunicaciones</span>
+                  <span>Documento generado con fines informativos y de cobranza comercial</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Recibo de Pago Individual Imprimible */}
+      {receiptCharge && client && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 px-5 bg-[#0b1c30] text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Printer className="w-4 h-4 text-[#eff4ff]" />
+                <h3 className="font-bold text-xs text-white">Recibo de Cobro Oficial</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePrintReceipt}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Imprimir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReceiptCharge(null)}
+                  className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-50/50">
+              <div
+                ref={receiptPrintRef}
+                className="bg-white p-6 rounded-xl border border-slate-200 space-y-4 text-xs font-mono"
+              >
+                <div className="text-center pb-3 border-b border-dashed border-slate-300 space-y-1">
+                  <h4 className="font-black text-sm text-slate-900">{sriCompanyConfig?.razonSocial || "INNTEL CORP S.A."}</h4>
+                  <p className="text-[10px] text-slate-500">RUC: {sriCompanyConfig?.ruc || "0993392437001"}</p>
+                  <p className="text-[10px] font-bold text-[#004ac6]">COMPROBANTE DE PAGO REGISTRADO</p>
+                </div>
+
+                <div className="space-y-1.5 text-[11px] text-slate-700">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Comprobante:</span>
+                    <span className="font-bold text-slate-900">{receiptCharge.invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Cliente:</span>
+                    <span className="font-bold text-slate-900 text-right">{client.businessName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">RUC/CI:</span>
+                    <span>{client.identificationNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Periodo:</span>
+                    <span>{receiptCharge.month}/{receiptCharge.year}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Fecha Pago:</span>
+                    <span>{receiptCharge.paymentDate || new Date().toISOString().slice(0, 10)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Método:</span>
+                    <span className="uppercase">{receiptCharge.paymentMethod || "Transferencia"}</span>
+                  </div>
+                  {receiptCharge.paymentReference && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Referencia:</span>
+                      <span>{receiptCharge.paymentReference}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-dashed border-slate-300 space-y-1 text-slate-800">
+                  <div className="flex justify-between">
+                    <span>Concepto:</span>
+                    <span className="text-right truncate max-w-[200px]">{receiptCharge.serviceDescription}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-black text-slate-900 pt-1">
+                    <span>TOTAL PAGADO:</span>
+                    <span>${receiptCharge.total.toFixed(2)} USD</span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 text-center text-[10px] text-emerald-700 font-bold">
+                  ✓ ESTADO: PAGADO / CONCILIADO
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -2725,6 +2725,43 @@ test("Flujo E2E 49: Eliminación de Barra de Título en Cotizaciones y Barra de 
   );
 });
 
+test("Flujo E2E 50: Barra de Filtros, Impresión de Estado de Cuenta e Informes en Cobros de Clientes", () => {
+  const rootDir = process.cwd();
+  const profile360Path = path.resolve(rootDir, "src/components/modules/clients/ClientProfile360.tsx");
+  const profile360Content = fs.readFileSync(profile360Path, "utf8");
+
+  // No debe incluir barra de título redundante para Cobros
+  assert.ok(
+    !profile360Content.includes('title="Cobros"'),
+    "ClientProfile360 no debe incluir barra de título redundante para Cobros"
+  );
+
+  // Debe implementar barra de filtros en la pestaña finanzas (Cobros)
+  assert.ok(
+    profile360Content.includes("cobrosSearch") &&
+      profile360Content.includes("cobrosStatusFilter") &&
+      profile360Content.includes("filteredCharges") &&
+      profile360Content.includes("Buscar por comprobante o descripción..."),
+    "ClientProfile360 debe incluir buscador reactivo y filtros de estado para cobros"
+  );
+
+  // Debe incluir botones de acción para Estado de Cuenta e Informe de Cobranzas
+  assert.ok(
+    profile360Content.includes("Estado de Cuenta") &&
+      profile360Content.includes("Informe Cobranzas") &&
+      profile360Content.includes("handlePrintAccountStatement") &&
+      profile360Content.includes("isAccountStatementOpen"),
+    "ClientProfile360 debe incluir botón de Estado de Cuenta con visor imprimible oficial"
+  );
+
+  // Debe contar con soporte de impresión de recibo individual y exportación
+  assert.ok(
+    profile360Content.includes("receiptCharge") &&
+      profile360Content.includes("handleExportCobranzaCsv"),
+    "ClientProfile360 debe incluir recibo individual imprimible y exportación a CSV"
+  );
+});
+
 
 
 
