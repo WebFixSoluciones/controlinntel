@@ -24,6 +24,7 @@ firestore-debug.log
 firebase-debug.log
 ui-debug.log
 .next-qa/
+.next-login/
 
 # debug & logs
 npm-debug.log*

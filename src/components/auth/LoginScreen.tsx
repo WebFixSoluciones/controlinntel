@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -10,8 +10,8 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
 } from "lucide-react";
+import styles from "./LoginScreen.module.css";
 import {
   detectSecurityThreat,
   recordFailedAttempt,
@@ -110,40 +110,29 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Subtle Background Glows */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#2563eb]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#712ae2]/10 rounded-full blur-3xl pointer-events-none" />
+    <main className={styles.screen} aria-label="Acceso a INNTEL">
+      <div className={styles.liquid} aria-hidden="true">
+        <div className={`${styles.blob} ${styles.blue}`} />
+        <div className={`${styles.blob} ${styles.purple}`} />
+        <div className={`${styles.blob} ${styles.indigo}`} />
+        <div className={`${styles.blob} ${styles.highlight}`} />
+      </div>
 
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header Branding */}
-        <div className="p-8 pb-6 bg-[#f8f9ff] border-b border-[#e2e8f0] text-center relative">
-          <div className="inline-flex items-center justify-center p-3.5 bg-white rounded-xl shadow-xs border border-[#e2e8f0] mb-3">
+      <div className={styles.panel}>
+        <div className={styles.brand}>
             <Image
               src="/logo-inntel.webp"
               alt="INNTEL CORP"
-              width={68}
-              height={68}
-              className="object-contain"
+              width={112}
+              height={96}
+              className={styles.logo}
               priority
             />
-          </div>
-
-          <h1 className="text-xl font-bold text-[#0b1c30] tracking-tight">
-            INNTEL CORP
-          </h1>
-          <p className="text-xs text-[#737686] mt-1 font-medium">Sistema de Control IPS</p>
-
-          <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[11px] font-semibold text-emerald-700">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Capa de Ciberseguridad Activa</span>
-          </div>
         </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="p-8 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-[#434655] mb-1.5">
+            <label htmlFor="login-email" className="block text-xs font-bold text-[#434655] mb-1.5">
               Correo Electrónico / Usuario Corporativo
             </label>
             <div className="relative">
@@ -151,18 +140,23 @@ export function LoginScreen() {
                 <Mail className="w-4 h-4" />
               </div>
               <input
-                type="text"
+                id="login-email"
+                name="email"
+                type="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="superadmin@inntelcorp.com"
+                placeholder="tu@correo.com"
                 className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30] placeholder:text-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#434655] mb-1.5">
+            <label htmlFor="login-password" className="block text-xs font-bold text-[#434655] mb-1.5">
               Contraseña de Acceso
             </label>
             <div className="relative">
@@ -170,6 +164,9 @@ export function LoginScreen() {
                 <Lock className="w-4 h-4" />
               </div>
               <input
+                id="login-password"
+                name="password"
+                autoComplete="current-password"
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
@@ -180,6 +177,9 @@ export function LoginScreen() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                aria-pressed={showPassword}
+                aria-controls="login-password"
                 className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#737686] hover:text-[#0b1c30] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -202,13 +202,17 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={isLoading}
+            aria-busy={isLoading}
             className="w-full py-2.5 px-4 bg-[#004ac6] hover:bg-[#2563eb] text-white font-bold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
           >
             {isLoading ? (
-              <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <>
+                <span aria-hidden="true" className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Ingresando…</span>
+              </>
             ) : (
               <>
-                <span>Iniciar Sesión Segura</span>
+                <span>Iniciar sesión</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -216,25 +220,6 @@ export function LoginScreen() {
         </form>
       </div>
 
-      {/* Footer System Disclaimer */}
-      <div className="mt-6 text-center space-y-1">
-        <p className="text-[11px] text-[#737686] font-medium">
-          INNTEL CORP S.A. — Sistema Homologado para Operadores de Telecomunicaciones SAI
-        </p>
-        <p className="text-[10px] text-[#737686]">
-          Supervisión ARCOTEL • Conexión Cifrada MikroTik RouterOS API • Órdenes de Pedido & Cobranzas
-        </p>
-        <div className="pt-1">
-          <a
-            href="https://www.inntelcorp.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold text-[#004ac6] hover:underline"
-          >
-            Portal Corporativo Oficial: www.inntelcorp.com
-          </a>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }

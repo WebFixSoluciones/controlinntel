@@ -1,0 +1,119 @@
+.screen {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  padding: 32px 20px;
+  background: #e7e8ff;
+}
+
+.liquid {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(135deg, #c0dbff 0%, #e8e2ff 48%, #c9b3fa 100%);
+}
+
+.blob {
+  position: absolute;
+  width: max(65vw, 650px);
+  height: max(65vw, 650px);
+  border-radius: 42% 58% 64% 36% / 46% 38% 62% 54%;
+  filter: blur(64px);
+  will-change: transform;
+  animation: liquid-flow 22s ease-in-out infinite alternate;
+}
+
+.blue {
+  top: -50%;
+  left: -22%;
+  background: radial-gradient(ellipse at 45% 50%, #0862eb 5%, #388cfa 42%, #6ba4ff00 72%);
+}
+
+.purple {
+  right: -23%;
+  bottom: -55%;
+  background: radial-gradient(ellipse at 50% 45%, #7929d9 4%, #a353f0 40%, #b879ff00 72%);
+  animation-name: liquid-counterflow;
+  animation-duration: 26s;
+  animation-delay: -9s;
+}
+
+.indigo {
+  top: 8%;
+  left: 24%;
+  width: max(60vw, 550px);
+  height: max(60vw, 550px);
+  opacity: 0.7;
+  background: radial-gradient(ellipse, #6561ed 0%, #8185f2 36%, #aaa4ff00 70%);
+  animation-duration: 30s;
+  animation-delay: -14s;
+}
+
+.highlight {
+  top: 25%;
+  left: -20%;
+  width: max(55vw, 500px);
+  height: max(45vw, 450px);
+  opacity: 0.8;
+  background: radial-gradient(ellipse, #bde8ff 5%, #d9eeff 30%, #e5edff00 68%);
+  animation-name: liquid-counterflow;
+  animation-duration: 24s;
+  animation-delay: -16s;
+}
+
+.panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 36px 38px;
+  border-radius: 24px;
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 24px 80px -24px rgb(36 32 102 / 28%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  display: block;
+  width: 112px;
+  height: auto;
+  object-fit: contain;
+}
+
+.panel :is(input, button):focus-visible {
+  outline: 2px solid #5850d5;
+  outline-offset: 3px;
+}
+
+@keyframes liquid-flow {
+  0% { transform: translate3d(-6%, -4%, 0) rotate(-18deg) scale(1); }
+  45% { transform: translate3d(26%, 18%, 0) rotate(26deg) scale(1.12, 0.88); }
+  100% { transform: translate3d(12%, 42%, 0) rotate(65deg) scale(0.92, 1.12); }
+}
+
+@keyframes liquid-counterflow {
+  0% { transform: translate3d(8%, 4%, 0) rotate(14deg) scale(1.1, 0.92); }
+  50% { transform: translate3d(-24%, -18%, 0) rotate(-28deg) scale(0.94, 1.12); }
+  100% { transform: translate3d(-10%, -38%, 0) rotate(-58deg) scale(1.08); }
+}
+
+@media (max-width: 480px) {
+  .screen { padding: 24px 20px; }
+  .panel { padding: 30px 24px 32px; border-radius: 20px; }
+  .blob { filter: blur(48px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob { animation: none; will-change: auto; }
+}
