@@ -218,9 +218,14 @@ export interface NodeSystemService {
   id: string;
   systemName: string;
   linkOrIp: string;
+  /** Campo heredado; ya no se escribe ni se devuelve desde el servidor. */
   credentials?: string;
   username?: string;
+  /** Solo llega al cliente si el usuario puede revelar credenciales de router. */
   password?: string;
+  /** Indica que el nodo tiene una contraseña sellada, sin exponerla. */
+  hasPassword?: boolean;
+  secretUnreadable?: boolean;
   notes?: string;
 }
 

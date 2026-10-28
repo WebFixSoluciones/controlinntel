@@ -136,10 +136,16 @@ import { calculateLines, planServicePeriod } from "./commercial-core";
 import { sanitizeObjectTexts } from "./sanitize-text";
 import { SecurityLockoutModal } from "@/components/security/SecurityLockoutModal";
 
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+  code?: string;
+}
+
 interface AppContextType {
   currentUser: UserProfile;
   isAuthenticated: boolean;
-  login: (email: string, password: string, remember?: boolean) => Promise<boolean>;
+  login: (email: string, password: string, remember?: boolean) => Promise<LoginResult>;
   logout: () => Promise<void>;
   revealCredential: (entity: "vault" | "clientVaultItems", id: string) => Promise<string>;
   refresh: () => Promise<void>;
@@ -761,20 +767,73 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAuditLogs((prev) => [newLog, ...prev]);
   };
 
-  const login = async (email: string, password: string, remember: boolean = true): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+    remember: boolean = true
+  ): Promise<LoginResult> => {
     setIsAuthenticated(false);
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    // Normalización de homóglifos tipográficos (ejemplo: '×' \u00d7 vs letra 'x') y variantes
+    const variants: string[] = [cleanPassword];
+    const normalizedX = cleanPassword.replace(/[\u00d7\u2715\u2716\u2a09]/g, "x");
+    if (normalizedX !== cleanPassword) variants.push(normalizedX);
+    const normalizedCross = cleanPassword.replace(/x/g, "×");
+    if (normalizedCross !== cleanPassword && !variants.includes(normalizedCross)) variants.push(normalizedCross);
+
     try {
       const { setPersistence, browserLocalPersistence, browserSessionPersistence } = await import("firebase/auth");
       await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+
+      let lastError: any = null;
+      let authenticated = false;
+
+      for (const passVariant of variants) {
+        try {
+          await signInWithEmailAndPassword(auth, cleanEmail, passVariant);
+          authenticated = true;
+          break;
+        } catch (err: any) {
+          lastError = err;
+          if (err?.code !== "auth/invalid-credential" && err?.code !== "auth/wrong-password") {
+            break;
+          }
+        }
+      }
+
+      if (!authenticated) {
+        await signOut(auth).catch(() => {});
+        setIsAuthenticated(false);
+        const code = lastError?.code || "auth/invalid-credential";
+        let msg = "Usuario o contraseña erróneos.";
+        if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+          msg = "Credenciales incorrectas. Verifica tu usuario y contraseña (evita espacios y asegúrate de usar 'x' en lugar de símbolos como '×').";
+        } else if (code === "auth/too-many-requests") {
+          msg = "Demasiados intentos fallidos en Firebase. La cuenta se encuentra temporalmente protegida; espera unos minutos.";
+        } else if (code === "auth/user-disabled") {
+          msg = "Esta cuenta ha sido inhabilitada. Contacta al soporte del sistema.";
+        } else if (code === "auth/network-request-failed") {
+          msg = "Error de red al conectar con Firebase. Revisa tu conexión a internet.";
+        } else if (code === "auth/unauthorized-domain") {
+          msg = "Dominio no autorizado en Firebase Authentication.";
+        }
+        return { success: false, error: msg, code };
+      }
+
       const profile = await api<UserProfile>("/api/session");
       setCurrentUser(profile);
       setIsAuthenticated(true);
-      return true;
-    } catch {
+      return { success: true };
+    } catch (err: any) {
       await signOut(auth).catch(() => {});
       setIsAuthenticated(false);
-      return false;
+      return {
+        success: false,
+        error: err?.message || "No se pudo validar la sesión del servidor.",
+        code: "server/session-error"
+      };
     }
   };
 

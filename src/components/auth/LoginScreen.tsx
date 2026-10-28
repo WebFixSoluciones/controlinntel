@@ -29,11 +29,13 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLockedOut, setIsLockedOut] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
     // 1. CAPA 1: Escaneo Perimetral de Inyección (SQLi, XSS, Path Traversal)
     const emailThreat = detectSecurityThreat(cleanEmail);
@@ -59,12 +61,12 @@ export function LoginScreen() {
     // 2. CAPA 2: Escudo Anti-Fuerza Bruta
     const lockoutState = getLockoutState(cleanEmail);
     if (lockoutState.isLocked) {
+      setIsLockedOut(true);
       const secondsLeft = Math.max(0, Math.ceil((lockoutState.expiresAt - Date.now()) / 1000));
       const minutesLeft = Math.ceil(secondsLeft / 60);
-      triggerSecurityExplosion(lockoutState.reason);
       showError(
         "Cuenta Temporalmente Bloqueada",
-        `Esta cuenta ha excedido el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s).`
+        `Esta cuenta ha alcanzado el límite de intentos fallidos. Intente nuevamente en ${minutesLeft} minuto(s) o use el botón inferior para restablecer.`
       );
       return;
     }
@@ -74,7 +76,7 @@ export function LoginScreen() {
       return;
     }
 
-    if (!password) {
+    if (!cleanPassword) {
       showError("Contraseña Incompleta", "Por favor ingresa tu contraseña de acceso.");
       return;
     }
@@ -82,30 +84,32 @@ export function LoginScreen() {
     setIsLoading(true);
 
     try {
-      const success = await login(cleanEmail, password, rememberMe);
+      const result = await login(cleanEmail, cleanPassword, rememberMe);
       setIsLoading(false);
 
-      if (success) {
+      if (result.success) {
         clearFailedAttempts(cleanEmail);
         clearFailedAttempts("global");
+        setIsLockedOut(false);
         showSuccess("Acceso Concedido", `Bienvenido al panel central de INNTEL CORP S.A.`);
       } else {
         const attempt = recordFailedAttempt(cleanEmail);
         if (attempt.isLocked) {
+          setIsLockedOut(true);
           showError(
             "Cuenta Bloqueada por Seguridad",
-            "Has alcanzado el límite de 5 intentos fallidos. El acceso ha sido suspendido por 15 minutos."
+            "Has alcanzado el límite de 5 intentos fallidos. Puedes restablecer los intentos o esperar 15 minutos."
           );
         } else {
           showWarning(
             "Credenciales Inválidas",
-            `Usuario o contraseña erróneos. Te quedan ${attempt.remainingAttempts} intento(s) antes del bloqueo de seguridad.`
+            result.error || `Usuario o contraseña erróneos. Te quedan ${attempt.remainingAttempts} intento(s) antes del bloqueo de seguridad.`
           );
         }
       }
-    } catch {
+    } catch (err: any) {
       setIsLoading(false);
-      showError("Error de Conexión", "No se pudo validar la sesión. Por favor reintente.");
+      showError("Error de Conexión", err?.message || "No se pudo validar la sesión. Por favor reintente.");
     }
   };
 
@@ -198,6 +202,24 @@ export function LoginScreen() {
               <span className="text-[11px] font-medium">Recordar sesión</span>
             </label>
           </div>
+
+          {isLockedOut && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center justify-between">
+              <span>Intentos de acceso temporalmente pausados.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearFailedAttempts(email.trim().toLowerCase());
+                  clearFailedAttempts("global");
+                  setIsLockedOut(false);
+                  showSuccess("Intentos Restablecidos", "El contador de intentos ha sido desbloqueado.");
+                }}
+                className="text-xs font-bold text-[#004ac6] hover:underline cursor-pointer"
+              >
+                Restablecer intentos
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"

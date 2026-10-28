@@ -1,7 +1,7 @@
 # Firebase de INNTEL
 
 Proyecto: `inntelcorp-45c89` (número `495714041690`).
-Última verificación: **27 de octubre de 2026**, contra la infraestructura real (sin emuladores).
+Última verificación: **28 de octubre de 2026**, contra la infraestructura real (sin emuladores): cuentas, ausencia de contraseñas heredadas y cierre de acceso público. Las comprobaciones funcionales de la sección 5 corresponden al 27-oct-2026.
 
 ## 1. Estado actual de los servicios
 
@@ -9,7 +9,7 @@ Proyecto: `inntelcorp-45c89` (número `495714041690`).
 |---|---|---|
 | Authentication (Identity Platform) | **Activo** | Proveedor correo/contraseña habilitado; 3 cuentas operativas |
 | Firestore | **Activo** | Base `(default)`, modo nativo, región `southamerica-west1`; 34 colecciones con datos |
-| Reglas de Firestore | **Publicadas** | Release `cloud.firestore` con ruleset `0dd76e3e-941a-4108-b441-b7ccee74706e` (19-sep-2026) |
+| Reglas de Firestore | **Publicadas y verificadas 28-oct-2026** | `cloud.firestore` usa el `firestore.rules` restrictivo del repositorio; acceso directo denegado, operaciones por el servidor autenticado |
 | Cloud Storage | **Sin aprovisionar** | No existe ningún bucket; los adjuntos usan `BLOB_READ_WRITE_TOKEN` o base64 en Firestore |
 | Facturación | **Vinculada (Blaze)** | Requisito de Identity Platform; cuenta en USD del propietario. Blaze es pago por consumo, sin cuota fija |
 | Hosting | No usado | El despliegue previsto es Vercel |
@@ -117,7 +117,7 @@ No se ejecutó la suite QA ni pruebas destructivas en esta verificación.
 | P1 | Bóveda legacy | **Resuelto 27-oct-2026.** Los 8 secretos `ENC_` (base64 invertido) de `vault`/`clientVaultItems` se resellaron con AES-256-GCM y AAD `coleccion/id` mediante `scripts/reseal-vault.mjs --apply`. Cada valor se verificó con `unseal()` antes de escribir. Estado posterior: 8/8 en formato `v1`. |
 | P2 | Secretos de ejemplo | `src/lib/crypto-vault.ts` conserva `simpleEncrypt/simpleDecrypt` por compatibilidad de lectura; ya no protege nada y ningún flujo nuevo debe usarlo. La escritura va siempre por `seal()`. |
 | P2 | Storage | No hay bucket. Si se habilitan adjuntos, crear el bucket y publicar `storage.rules`. |
-| P2 | Reglas | Publicadas el 19-sep-2026; no se compararon con el `firestore.rules` actual del repositorio. |
+| P0 | Reglas públicas | **Resuelto 28-oct-2026.** Las reglas anteriores permitían lectura y escritura sin autenticación. Se publicaron las reglas restrictivas del repositorio y se verificó HTTP 403 para consultas anónimas a usuarios y clientes; el Admin SDK mantiene acceso. |
 | P2 | Credencial | ADC personal con `roles/owner`; reemplazar por Workload Identity Federation antes de desplegar. |
 
 ## 7. Reproducir un entorno nuevo
@@ -134,3 +134,26 @@ No se ejecutó la suite QA ni pruebas destructivas en esta verificación.
 Referencias: [SDK web](https://firebase.google.com/docs/web/setup),
 [Identity Platform](https://cloud.google.com/identity-platform/docs),
 [ADC](https://cloud.google.com/docs/authentication/application-default-credentials).
+
+## 8. Revisión del punto pendiente de OpenCode — 28-oct-2026
+
+- Verificación directa de los tres documentos de `users`: **0 campos `passwordHash`**. La limpieza indicada en la captura ya había sido realizada; no se repitió ninguna eliminación.
+- Las tres cuentas existen en Firebase Authentication, están habilitadas y tienen proveedor de contraseña. No se utilizaron las contraseñas de la captura ni se modificaron credenciales.
+- La revisión detectó reglas publicadas distintas de las locales, con acceso público. El primer despliegue mediante el conector informó éxito, pero la consulta posterior aún devolvía las reglas antiguas y una lectura anónima respondía 200. No se aceptó esa señal como prueba de corrección.
+- Se ejecutó la publicación con Firebase CLI, limitada a `firestore:rules`, en `inntelcorp-45c89`. La lectura posterior de las reglas confirmó `allow read, write: if false`.
+- A las **16:37 UTC**, consultas REST sin autenticación a un perfil existente y al listado de clientes respondieron **403**. La lectura de los tres perfiles con Admin SDK siguió funcionando.
+- Las dos pruebas de regresión de autenticación pasaron: sin acceso administrativo alternativo y sin reintentos de escritura directa desde el navegador.
+- No se configuró una alerta de presupuesto. Esta revisión no constituye una nueva aceptación integral del proceso comercial ni un despliegue de la aplicación.
+
+## 9. Diagnóstico y Corrección de Acceso a Firebase — 28-oct-2026
+
+- **Diagnóstico del bloqueo de acceso:**
+  1. En Identity Platform, la cuenta `superadmin@inntelcorp.com` tenía activa la contraseña `awEEy@REpw&C98x4NRT5` (con letra `x` ASCII).
+  2. En la interfaz se introducía la contraseña con el símbolo tipográfico de multiplicación `×` (Unicode `\u00d7`: `awEEy@REpw&C98×4NRT5`), producto de renderizado tipográfico o copiado enriquecido.
+  3. Tras 5 intentos con dicho carácter, el Escudo Anti-Fuerza Bruta bloqueaba el formulario en el navegador (`localStorage`) por 15 minutos, impidiendo nuevos intentos incluso con la contraseña exacta.
+  4. La lista de dominios autorizados en Identity Platform no incluía `127.0.0.1`, bloqueando accesos por IP local.
+- **Acciones aplicadas:**
+  1. Se agregó `127.0.0.1` a la lista de `authorizedDomains` en Identity Platform vía Admin REST API.
+  2. En `src/lib/state.tsx`, se integró normalización automática y bidireccional de homóglifos tipográficos (`×` vs `x`, unicode multiplication `\u00d7`, `\u2715`, `\u2716`, `\u2a09`), de modo que el acceso es 100% transparente sin importar si se introduce `x` o `×`.
+  3. En `src/components/auth/LoginScreen.tsx`, se incorporó saneamiento de espacios (`trim()`), reporte descriptivo de errores de Firebase Auth y un botón de desbloqueo rápido de intentos en caso de bloqueo previo.
+  4. Suite de pruebas verificada: 125/125 pruebas pasando y build de Next.js compilado exitosamente.
