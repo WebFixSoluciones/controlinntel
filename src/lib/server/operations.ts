@@ -21,11 +21,15 @@ export async function snapshot(user: UserProfile) {
     const name = storageName(entity as Entity);
     const query = db.collection(name).orderBy("__name__").limit(500);
     const documents = [];
-    let page = await query.get();
-    while (!page.empty) {
-      documents.push(...page.docs);
-      if (page.size < 500) break;
-      page = await query.startAfter(page.docs[page.docs.length - 1]).get();
+    try {
+      let page = await query.get();
+      while (!page.empty) {
+        documents.push(...page.docs);
+        if (page.size < 500) break;
+        page = await query.startAfter(page.docs[page.docs.length - 1]).get();
+      }
+    } catch (queryErr: any) {
+      console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
     }
     result[entity] = documents.filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
