@@ -32,6 +32,24 @@ export async function snapshot(user: UserProfile) {
       delete value.passwordHash; delete value.secret; delete value.totpSecret; delete value.pppoePassword;
       if (entity==="systemUsers") value.uid=d.id;
       if (entity==="vault" || entity==="clientVaultItems") delete value.encryptedPassword;
+      if (entity==="nodes" && Array.isArray(value.services)) {
+        // El secreto está sellado en el documento. Solo se descifra para quien puede
+        // revelar credenciales de router; para el resto se enmascara por completo.
+        const canReveal = canUser(user,"red","canEditRouterCredentials");
+        value.services = value.services.map((service:DocumentData, index:number) => {
+          const { passwordSealed, password, credentials, ...rest } = service;
+          const sealed = passwordSealed;
+          if (!canReveal) return { ...rest, hasPassword: Boolean(sealed) };
+          if (typeof sealed!=="string" || !sealed) return { ...rest, hasPassword: false };
+          try {
+            rest.password = unseal(sealed, `nodes/${d.id}/${rest.id ?? index}`);
+          } catch {
+            // Secreto ilegible: se informa sin filtrar el contenido.
+            return { ...rest, hasPassword: false, secretUnreadable: true };
+          }
+          return { ...rest, hasPassword: true };
+        });
+      }
       if (entity==="inventoryProducts"&&!canUser(user,"inventarios","canViewCosts")) delete value.baseCost;
       if (entity==="clientProjects"&&!can(user,"manage_finance")) {delete value.estimatedBudget;delete value.executedCost;}
       if (entity==="policies") {
@@ -98,6 +116,26 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       if (incoming) data.secret=seal(incoming,entity+"/"+reference.id);
       if (!data.secret) throw new HttpError(400,"Contraseña requerida.");
       delete data.encryptedPassword; delete data.password;
+    }
+    if (entity==="nodes" && Array.isArray(data.services)) {
+      // Las credenciales de los equipos se sellan aquí: nunca vuelven a viajar en claro
+      // al navegador ni quedan legibles en Firestore. El AAD las ata al nodo y al servicio.
+      // Al editar, si el formulario no trae contraseña nueva se conserva la sellada previa.
+      const previousServices:DocumentData[] = old.data()?.services || [];
+      data.services = data.services.map((service:DocumentData, index:number) => {
+        const { password, credentials, passwordSealed, ...rest } = service;
+        const plain = typeof password==="string" && password
+          ? password
+          : typeof credentials==="string" && credentials.includes("/")
+          ? credentials.split("/").slice(1).join("/").trim()
+          : "";
+        const context = `nodes/${reference.id}/${rest.id ?? index}`;
+        const previous = previousServices.find((item)=>String(item.id)===String(rest.id));
+        if (plain) rest.passwordSealed = seal(plain, context);
+        else if (typeof passwordSealed==="string" && passwordSealed) rest.passwordSealed = passwordSealed;
+        else if (previous?.passwordSealed) rest.passwordSealed = previous.passwordSealed;
+        return rest;
+      });
     }
     if (entity==="clientQuotes") {
       data.items=data.items.map((item:DocumentData)=>({...item,total:Math.round(item.quantity*item.unitPrice*100)/100}));
@@ -172,3 +210,4 @@ export async function reveal(user:UserProfile,entity:string,id:string) {
   await db.collection("auditLogs").doc(log.id).create(log);
   return value;
 }
+
