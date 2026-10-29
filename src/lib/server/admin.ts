@@ -19,15 +19,20 @@ export function adminServices() {
         if (parsed.private_key) {
           options.credential = cert(parsed);
         } else if (parsed.type === "authorized_user" || parsed.refresh_token) {
+          // Se reescribe siempre: en serverless /tmp sobrevive entre invocaciones y una
+          // credencial vieja dejaría la aplicación sin datos de forma silenciosa.
           const tmpPath = path.join(os.tmpdir(), "gcp-adc-credentials.json");
-          if (!fs.existsSync(tmpPath)) {
-            fs.writeFileSync(tmpPath, typeof json === "string" ? json : JSON.stringify(json), "utf8");
-          }
+          fs.writeFileSync(tmpPath, JSON.stringify(parsed), "utf8");
           process.env.GOOGLE_APPLICATION_CREDENTIALS = tmpPath;
           options.credential = applicationDefault();
+        } else {
+          throw new Error("El JSON de credenciales no es de tipo service account ni authorized_user.");
         }
       } catch (e) {
+        // Una credencial presente pero inválida debe fallar de forma visible:
+        // caer a applicationDefault() aquí solo produce lecturas vacías sin aviso.
         console.error("Error al configurar credenciales de Firebase en el servidor:", e);
+        throw e;
       }
     } else if (!process.env.FIRESTORE_EMULATOR_HOST) {
       try {

@@ -21,6 +21,7 @@ export async function POST(request:NextRequest) {
     const command=schema.parse(JSON.parse(raw));
     return NextResponse.json({result:await executeCommercial(user,command)},{headers:{"Cache-Control":"no-store"}});
   } catch(error) {
+    if(!(error instanceof HttpError||error instanceof CommercialValidationError||error instanceof ZodError)) console.error("[api/commercial] fallo no controlado:",error);
     return NextResponse.json({error:error instanceof HttpError||error instanceof CommercialValidationError?error.message:error instanceof ZodError?"Datos inválidos.":"No se pudo confirmar la operación. Reintenta para consultar su resultado."},{status:error instanceof HttpError?error.status:error instanceof ZodError||error instanceof CommercialValidationError?400:503,headers:{"Cache-Control":"no-store"}});
   }
 }
