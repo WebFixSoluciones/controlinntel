@@ -29,5 +29,5 @@ export function recordOperation(tx: Transaction, db: Firestore, user: UserProfil
 export function redact(value: any): any {
   if (Array.isArray(value)) return value.map(redact);
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.entries(value).filter(([key]) => !["passwordHash", "secret", "encryptedPassword", "totpSecret", "pppoePassword", "password"].includes(key)).map(([key, item]) => [key, redact(item)]));
+  return Object.fromEntries(Object.entries(value).filter(([key]) => !["passwordHash", "secret", "encryptedPassword", "totpSecret", "pppoePassword", "password", "certificadoBase64", "certificadoClave", "pkcs12Base64", "pkcs12Password", "emailPassword", "smtpPassword", "emailPass"].includes(key)).map(([key, item]) => [key, redact(item)]));
 }

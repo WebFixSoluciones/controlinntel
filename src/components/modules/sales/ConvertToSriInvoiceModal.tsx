@@ -57,6 +57,9 @@ export function ConvertToSriInvoiceModal({
 
   const estab = sriCompanyConfig.establecimiento || "010";
   const pto = sriCompanyConfig.puntoEmision || "001";
+  const linkedInvoice = sale.sriInvoiceId
+    ? billingInvoices.find((inv) => inv.id === sale.sriInvoiceId)
+    : undefined;
   const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
   const maxSec = billingInvoices
     .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
@@ -66,7 +69,8 @@ export function ConvertToSriInvoiceModal({
       return !isNaN(num) && num > max ? num : max;
     }, 0);
   const nextSecuencial = Math.max(maxSec, startFromFactura) + 1;
-  const estimatedDocNumber = formatearSecuencialSRI(nextSecuencial, estab, pto);
+  const estimatedDocNumber =
+    linkedInvoice?.documentNumber || formatearSecuencialSRI(nextSecuencial, estab, pto);
 
   const handleSelectRegisteredClient = (cid: string) => {
     setSelectedClientId(cid);
@@ -120,9 +124,29 @@ export function ConvertToSriInvoiceModal({
         clientAddress: clientAddress.trim() || "Ecuador",
         tipoIdentificacion,
       });
+
+      const autorizada =
+        newInvoice.status === "autorizada" && newInvoice.estadoSRI === "AUTORIZADO";
+
+      if (!autorizada) {
+        const detalle = (newInvoice.mensajesSRI || [])
+          .slice(0, 4)
+          .map(
+            (mensaje) =>
+              `• ${mensaje.mensaje}${mensaje.informacionAdicional ? ` — ${mensaje.informacionAdicional}` : ""}`
+          )
+          .join("\n");
+        setErrorMsg(
+          `El SRI no autorizó el comprobante ${newInvoice.documentNumber} (estado: ${newInvoice.estadoSRI || "sin respuesta"}).` +
+            (detalle ? `\n${detalle}` : "") +
+            "\nEl comprobante quedó registrado como pendiente: corrige el problema y vuelve a intentarlo sobre el mismo número."
+        );
+        return;
+      }
+
       showSuccess(
-        "Factura Electrónica Emitida",
-        `La venta ${sale.documentNumber} fue promovida exitosamente a Factura SRI ${newInvoice.documentNumber}.`
+        "Factura Electrónica Autorizada",
+        `La venta ${sale.documentNumber} fue emitida como Factura SRI ${newInvoice.documentNumber} y autorizada por el SRI.`
       );
       if (onSuccess) onSuccess(newInvoice);
       onClose();
@@ -159,9 +183,9 @@ export function ConvertToSriInvoiceModal({
 
         {/* Error message */}
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{errorMsg}</span>
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+            <span className="whitespace-pre-line leading-relaxed">{errorMsg}</span>
           </div>
         )}
 

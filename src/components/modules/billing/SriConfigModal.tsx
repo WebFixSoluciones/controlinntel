@@ -1,21 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Settings,
-  Building2,
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
-  Server,
   Key,
-  Upload,
-  RefreshCw,
-  Trash2,
-  FileCode2,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -30,7 +22,6 @@ interface SriConfigModalProps {
 export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
   const { sriCompanyConfig, updateSriConfig } = useApp();
   const { showSuccess, showError } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<SriCompanyConfig>({
     id: "sri-config-inntel",
@@ -49,9 +40,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
     certificadoNombre: "",
     certificadoVencimiento: "",
     certificadoEmisor: "Security Data S.A. / Banco Central del Ecuador",
-    certificadoClave: "",
     certificadoCargado: false,
-    certificadoBase64: "",
     secuencialFactura: 1,
     secuencialNotaCredito: 1,
     secuencialNotaDebito: 1,
@@ -62,7 +51,6 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
-  const [showCertPassword, setShowCertPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen && sriCompanyConfig) {
@@ -79,51 +67,7 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext !== "p12" && ext !== "pfx") {
-      showError("Formato No Soportado", "Selecciona un archivo con extensión .p12 o .pfx.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      const base64Data = loadEvent.target?.result as string;
-      setForm((prev) => ({
-        ...prev,
-        certificadoNombre: file.name,
-        certificadoCargado: true,
-        certificadoBase64: base64Data,
-        certificadoTamano: file.size,
-        certificadoFechaCarga: new Date().toISOString(),
-      }));
-      showSuccess(
-        "Firma Cargada",
-        `Archivo "${file.name}" cargado (${(file.size / 1024).toFixed(1)} KB). Ingresa la contraseña de la firma.`
-      );
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveCertificate = () => {
-    setForm((prev) => ({
-      ...prev,
-      certificadoNombre: "",
-      certificadoCargado: false,
-      certificadoBase64: "",
-      certificadoTamano: undefined,
-      certificadoFechaCarga: undefined,
-      certificadoClave: "",
-      certificadoVencimiento: "",
-    }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    showSuccess("Firma Retirada", "El archivo de firma electrónica ha sido removido.");
-  };
+  const firmaActiva = Boolean(form.certificadoCargado && form.certificadoNombre);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +87,10 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
         secuencialGuiaRemision: Math.max(1, Number(form.secuencialGuiaRemision) || 1),
         secuencialCotizacion: Math.max(1, Number(form.secuencialCotizacion) || 1),
       };
+
+      // Los secretos de firma se gestionan en Ajustes → Facturación Electrónica.
+      delete payload.certificadoBase64;
+      delete payload.certificadoClave;
 
       await updateSriConfig(payload);
       setSuccessMsg(true);
@@ -192,23 +140,14 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
             </div>
           )}
 
-          {/* Hidden File Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".p12,.pfx"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-
-          {/* 1. SECCIÓN DE FIRMA ELECTRÓNICA */}
-          <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-3">
+          {/* 1. ESTADO DE LA FIRMA ELECTRÓNICA */}
+          <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-2.5">
             <div className="flex items-center justify-between pb-2 border-b border-[#e2e8f0]">
               <div className="flex items-center gap-2 font-bold text-slate-800">
                 <Key className="w-4 h-4 text-[#004ac6]" />
                 <span>Certificado de Firma Electrónica (.p12 / .pfx)</span>
               </div>
-              {form.certificadoCargado && form.certificadoNombre ? (
+              {firmaActiva ? (
                 <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                   FIRMA VINCULADA
                 </span>
@@ -219,82 +158,34 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
               )}
             </div>
 
-            {!form.certificadoCargado || !form.certificadoNombre ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="p-6 border-2 border-dashed border-[#bfdbfe] hover:border-[#004ac6] bg-white rounded-lg text-center cursor-pointer transition-all space-y-2"
-              >
-                <Upload className="w-6 h-6 text-[#004ac6] mx-auto" />
-                <p className="font-bold text-slate-800">
-                  Haz clic para seleccionar tu archivo de firma electrónica (.p12 o .pfx)
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  Emitido por Security Data, Banco Central, ANFAC, etc.
-                </p>
+            {firmaActiva ? (
+              <div className="flex items-start gap-2 text-[11px] text-slate-600">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-mono font-bold text-slate-800">{form.certificadoNombre}</p>
+                  <p>
+                    Vence:{" "}
+                    <span className="font-mono font-semibold">
+                      {form.certificadoVencimiento || "No registrado"}
+                    </span>
+                  </p>
+                  {form.certificadoEmisor && <p>Emisor: {form.certificadoEmisor}</p>}
+                </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-[#e2e8f0]">
-                  <div className="flex items-center gap-2 font-mono text-slate-800">
-                    <FileCode2 className="w-4 h-4 text-emerald-600" />
-                    <span className="font-bold">{form.certificadoNombre}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-md text-[11px] font-bold text-slate-700 transition cursor-pointer"
-                    >
-                      Reemplazar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRemoveCertificate}
-                      className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 rounded-md text-[11px] font-bold text-rose-700 transition cursor-pointer"
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Contraseña de la Firma *:
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showCertPassword ? "text" : "password"}
-                        required
-                        value={form.certificadoClave || ""}
-                        onChange={(e) => setForm({ ...form, certificadoClave: e.target.value })}
-                        className="w-full rounded-lg border border-[#e2e8f0] p-2 pr-8 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
-                        placeholder="Contraseña del P12"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowCertPassword(!showCertPassword)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
-                      >
-                        {showCertPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Fecha de Vencimiento:
-                    </label>
-                    <input
-                      type="date"
-                      value={form.certificadoVencimiento || ""}
-                      onChange={(e) => setForm({ ...form, certificadoVencimiento: e.target.value })}
-                      className="w-full rounded-lg border border-[#e2e8f0] p-2 bg-white font-mono font-semibold focus:outline-hidden focus:border-[#004ac6]"
-                    />
-                  </div>
-                </div>
+              <div className="flex items-start gap-2 text-[11px] text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p>
+                  No hay certificado cargado: las facturas no podrán firmarse ni enviarse al SRI.
+                </p>
               </div>
             )}
+
+            <p className="text-[10px] text-slate-500">
+              El archivo .p12 y su contraseña se cargan en{" "}
+              <strong>Ajustes → Facturación Electrónica</strong>. Se almacenan únicamente en el servidor
+              y nunca viajan al navegador.
+            </p>
           </div>
 
           {/* 2. SUCURSAL, PUNTO DE EMISIÓN & SERIE */}

@@ -41,6 +41,20 @@ export interface SriCompanyConfig {
   emailNotificaciones?: string;
   telefonoContacto?: string;
   logoUrl?: string;
+
+  // Entrega de documentos electrónicos por correo (la contraseña SMTP se
+  // guarda en el servidor, en sriSecrets/email, y nunca viaja al navegador).
+  emailEnabled?: boolean;
+  emailHost?: string;
+  emailPort?: number;
+  emailSecure?: boolean;
+  emailUser?: string;
+  emailFromName?: string;
+  emailFrom?: string;
+  emailReplyTo?: string;
+  emailCopyTo?: string;
+  emailNotifyClient?: boolean;
+  emailNotifyCompany?: boolean;
   // Certificado digital de firma electrónica PKCS#12 (.p12 / .pfx)
   certificadoNombre?: string;
   certificadoVencimiento?: string;
@@ -163,6 +177,17 @@ export interface SriInvoice {
 
   status: "borrador" | "emitida" | "autorizada" | "anulada" | "registrado";
   authorizationDate?: string;
+  /** Último estado reportado por el SRI para este comprobante. */
+  estadoSRI?: "AUTORIZADO" | "NO AUTORIZADO" | "EN PROCESO" | "DEVUELTA" | "ERROR_CONEXION";
+  numeroAutorizacion?: string;
+  xmlFirmado?: string;
+  mensajesSRI?: Array<{
+    identificador?: string;
+    mensaje: string;
+    informacionAdicional?: string;
+    tipo?: string;
+  }>;
+  ultimoEnvioSRI?: string;
 
   warehouseId: string;
   warehouseName: string;

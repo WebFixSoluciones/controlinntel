@@ -3089,81 +3089,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ): Promise<SriInvoice> => {
     const sale = billingInvoices.find((i) => i.id === saleId);
     if (!sale) throw new Error("Venta comercial no encontrada.");
-
-    if (sale.sriInvoiceId) {
-      const existing = billingInvoices.find((i) => i.id === sale.sriInvoiceId);
-      if (existing) return existing;
+    if (sale.status === "anulada") {
+      throw new Error("La nota de venta está anulada: no puede convertirse en factura electrónica.");
     }
 
+    // Si ya existe una factura vinculada se reutiliza el mismo comprobante.
+    // El SRI identifica cada documento por su clave de acceso, por lo que un
+    // reintento no debe generar un secuencial nuevo.
+    let invoice: SriInvoice | null = null;
+    if (sale.sriInvoiceId) {
+      const existing = billingInvoices.find((i) => i.id === sale.sriInvoiceId);
+      if (existing) {
+        if (existing.status === "anulada") {
+          throw new Error(
+            `La factura ${existing.documentNumber} está anulada. Emite una nueva nota de venta para volver a facturar.`
+          );
+        }
+        if (existing.status === "autorizada" && existing.estadoSRI === "AUTORIZADO") {
+          return existing;
+        }
+        invoice = existing;
+      }
+    }
+
+    const { customSecuencial, ...overrides } = customData || {};
     const now = new Date().toISOString();
-    const dateStr = customData?.date || sale.date || now.slice(0, 10);
-    const invoiceId = `inv-${Date.now()}`;
-    const estab = sriCompanyConfig.establecimiento || "010";
-    const pto = sriCompanyConfig.puntoEmision || "001";
 
-    const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-    const maxSec = billingInvoices
-      .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
-      .reduce((max, inv) => {
-        const parts = (inv.documentNumber || "").split("-");
-        const num = parseInt(parts[2] || "0", 10);
-        return !isNaN(num) && num > max ? num : max;
-      }, 0);
-    const secuencial = customData?.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
-    const documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
+    if (!invoice) {
+      const dateStr = overrides.date || sale.date || now.slice(0, 10);
+      const estab = sriCompanyConfig.establecimiento || "010";
+      const pto = sriCompanyConfig.puntoEmision || "001";
 
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "01",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: estab,
-      puntoEmision: pto,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-    });
+      const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
+      const maxSec = billingInvoices
+        .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
+        .reduce((max, inv) => {
+          const parts = (inv.documentNumber || "").split("-");
+          const num = parseInt(parts[2] || "0", 10);
+          return !isNaN(num) && num > max ? num : max;
+        }, 0);
+      const secuencial = customSecuencial || Math.max(maxSec, startFromFactura) + 1;
+      const documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
 
-    const newInvoice: SriInvoice = {
-      ...sale,
-      ...customData,
-      id: invoiceId,
-      documentType: "factura",
-      documentNumber,
-      claveAcceso,
-      date: dateStr,
-      time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
-      status: "autorizada",
-      authorizationDate: now,
-      relatedSaleId: sale.id,
-      kardexRegistered: false, // El stock ya fue descontado en la Nota de Venta comercial
-      notes: `Factura Electrónica emitida a partir de Nota de Venta ${sale.documentNumber}. ${sale.notes || ""}`,
-      createdAt: now,
-    };
+      const claveAcceso = generarClaveAccesoSRI({
+        fechaEmision: dateStr,
+        tipoComprobante: "01",
+        ruc: sriCompanyConfig.ruc,
+        ambiente: sriCompanyConfig.ambiente,
+        establecimiento: estab,
+        puntoEmision: pto,
+        secuencial,
+        codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+      });
 
-    const updatedSale: SriInvoice = {
-      ...sale,
-      sriStatus: "facturada",
-      sriInvoiceId: newInvoice.id,
-      sriDocumentNumber: newInvoice.documentNumber,
-    };
+      invoice = {
+        ...sale,
+        ...overrides,
+        id: `inv-${Date.now()}`,
+        documentType: "factura",
+        documentNumber,
+        claveAcceso,
+        date: dateStr,
+        time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
+        status: "emitida",
+        relatedSaleId: sale.id,
+        kardexRegistered: false, // El stock ya fue descontado en la Nota de Venta comercial
+        notes: `Factura Electrónica emitida a partir de Nota de Venta ${sale.documentNumber}. ${sale.notes || ""}`,
+        createdAt: now,
+      };
+    } else {
+      // Reintento: se conserva número, clave y fecha originales, y solo se
+      // actualizan los datos fiscales del receptor.
+      invoice = {
+        ...invoice,
+        ...overrides,
+        id: invoice.id,
+        documentType: "factura",
+        documentNumber: invoice.documentNumber,
+        claveAcceso: invoice.claveAcceso,
+        date: invoice.date,
+        status: "emitida",
+        relatedSaleId: sale.id,
+      };
+    }
 
-    await Promise.all([
-      syncToFirestore("billingInvoices", newInvoice.id, newInvoice),
-      syncToFirestore("billingInvoices", sale.id, updatedSale),
-    ]);
+    // La firma, el envío al SRI y la persistencia se ejecutan en el servidor.
+    const result = await api<{
+      invoice: SriInvoice;
+      autorizado: boolean;
+      estadoSRI?: SriInvoice["estadoSRI"];
+      mensajesSRI?: SriInvoice["mensajesSRI"];
+      alreadyAuthorized?: boolean;
+    }>("/api/sri/emitir", { invoice, enviarCorreo: true });
 
-    setBillingInvoices((prev) => [
-      newInvoice,
-      ...prev.map((i) => (i.id === sale.id ? updatedSale : i)),
-    ]);
+    await refresh();
 
     addAuditLog(
       "UPDATE_CLIENT",
-      `Pase de Venta a Factura SRI: ${sale.documentNumber} -> ${newInvoice.documentNumber}`,
-      `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`
+      `Factura Electrónica SRI: ${sale.documentNumber} -> ${result.invoice.documentNumber}`,
+      `Estado SRI: ${result.estadoSRI || (result.autorizado ? "AUTORIZADO" : "SIN RESPUESTA")} - Total: $${(result.invoice.total || 0).toFixed(2)} - Cliente: ${result.invoice.clientName}`
     );
 
-    return newInvoice;
+    return result.invoice;
   };
 
   const createCreditNote = async (

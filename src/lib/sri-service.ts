@@ -484,6 +484,25 @@ export function normalizarPagosFactura(
 }
 
 /**
+ * Código de porcentaje de IVA según Tabla 17 del SRI.
+ *  15% → 4 | 5% → 5 | 0% → 0 | No objeto → 6 | Exento → 7
+ */
+export function codigoPorcentajeIva(rate: number): string {
+  const r = Number(rate) || 0;
+  if (r === 15) return "4";
+  if (r === 5) return "5";
+  if (r < 0) return r === -2 ? "7" : "6";
+  return "0";
+}
+
+/** Formatea un decimal con hasta `max` decimales, sin ceros sobrantes. */
+function decimalSri(valor: number, max = 6): string {
+  const n = Number.isFinite(Number(valor)) ? Number(valor) : 0;
+  const fixed = n.toFixed(max);
+  return fixed.includes(".") ? fixed.replace(/0+$/, "").replace(/\.$/, "") : fixed;
+}
+
+/**
  * Genera el XML formal de Factura electrónica bajo estándar XSD v1.1.0 del SRI.
  */
 export function generarFacturaXml(
@@ -514,41 +533,130 @@ export function generarFacturaXml(
     ? `\n    <contribuyenteEspecial>${escaparXml(limpiarTextoSri(emisor.contribuyenteEspecial))}</contribuyenteEspecial>`
     : "";
 
-  const xmlItems = invoice.items
-    .map(
-      (item) => `
+  const round2 = (n: number) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const detalleItems = Array.isArray(invoice.items) ? invoice.items : [];
+
+  const xmlItems = detalleItems
+    .map((item) => {
+      const codigoPorcentaje = codigoPorcentajeIva(item.ivaRate);
+      const tarifa = Number(item.ivaRate) > 0 ? Number(item.ivaRate) : 0;
+      const base = round2(item.subtotal);
+      const valorIva = round2(item.ivaAmount);
+      return `
     <detalle>
       <codigoPrincipal>${escaparXml(limpiarIdentificacion(item.sku || "PROD"))}</codigoPrincipal>
       <descripcion>${escaparXml(limpiarTextoSri(item.description ? `${item.name} - ${item.description}` : item.name))}</descripcion>
-      <cantidad>${item.quantity.toFixed(2)}</cantidad>
-      <precioUnitario>${item.unitPrice.toFixed(4)}</precioUnitario>
-      <descuento>${(item.discount || 0).toFixed(2)}</descuento>
-      <precioTotalSinImpuesto>${item.subtotal.toFixed(2)}</precioTotalSinImpuesto>
+      <cantidad>${decimalSri(item.quantity)}</cantidad>
+      <precioUnitario>${decimalSri(item.unitPrice)}</precioUnitario>
+      <descuento>${round2(item.discount || 0).toFixed(2)}</descuento>
+      <precioTotalSinImpuesto>${base.toFixed(2)}</precioTotalSinImpuesto>
       <impuestos>
         <impuesto>
           <codigo>2</codigo>
-          <codigoPorcentaje>${item.ivaRate === 15 ? "4" : item.ivaRate === 5 ? "5" : "0"}</codigoPorcentaje>
-          <tarifa>${item.ivaRate}</tarifa>
-          <baseImponible>${item.subtotal.toFixed(2)}</baseImponible>
-          <valor>${item.ivaAmount.toFixed(2)}</valor>
+          <codigoPorcentaje>${codigoPorcentaje}</codigoPorcentaje>
+          <tarifa>${decimalSri(tarifa)}</tarifa>
+          <baseImponible>${base.toFixed(2)}</baseImponible>
+          <valor>${valorIva.toFixed(2)}</valor>
         </impuesto>
       </impuestos>
-    </detalle>`
+    </detalle>`;
+    })
+    .join("");
+
+  // Agrupación de bases por tarifa de IVA (Tabla 17 SRI): 0%, 5%, 15%, no objeto y exento.
+  const gruposIva = new Map<
+    string,
+    { codigoPorcentaje: string; tarifa: number; base: number; valor: number }
+  >();
+  const acumularGrupo = (rate: number, base: number, valor: number) => {
+    if (!Number.isFinite(base) || base <= 0) return;
+    const codigoPorcentaje = codigoPorcentajeIva(rate);
+    const tarifa = Number(rate) > 0 ? Number(rate) : 0;
+    const actual =
+      gruposIva.get(codigoPorcentaje) || { codigoPorcentaje, tarifa, base: 0, valor: 0 };
+    actual.base = round2(actual.base + base);
+    actual.valor = round2(actual.valor + valor);
+    gruposIva.set(codigoPorcentaje, actual);
+  };
+
+  if (detalleItems.length > 0) {
+    for (const item of detalleItems) acumularGrupo(item.ivaRate, item.subtotal, item.ivaAmount);
+  } else {
+    acumularGrupo(15, invoice.subtotal15 || 0, invoice.ivaTotal || 0);
+    acumularGrupo(0, invoice.subtotal0 || 0, 0);
+  }
+  acumularGrupo(-1, invoice.subtotalNoObjeto || 0, 0);
+  acumularGrupo(-2, invoice.subtotalExento || 0, 0);
+
+  const totalBaseImponible = round2(
+    [...gruposIva.values()].reduce((acc, grupo) => acc + grupo.base, 0)
+  );
+
+  if (gruposIva.size === 0) {
+    gruposIva.set("0", {
+      codigoPorcentaje: "0",
+      tarifa: 0,
+      base: totalBaseImponible,
+      valor: 0,
+    });
+  }
+
+  const xmlTotalImpuestos = [...gruposIva.values()]
+    .map(
+      (grupo) => `
+      <totalImpuesto>
+        <codigo>2</codigo>
+        <codigoPorcentaje>${grupo.codigoPorcentaje}</codigoPorcentaje>
+        <baseImponible>${grupo.base.toFixed(2)}</baseImponible>
+        <tarifa>${decimalSri(grupo.tarifa)}</tarifa>
+        <valor>${grupo.valor.toFixed(2)}</valor>
+      </totalImpuesto>`
     )
     .join("");
 
   const pagosNorm = normalizarPagosFactura(invoice, invoice.total);
   const xmlPagos = pagosNorm
-    .map(
-      (p) => `
+    .map((p) => {
+      const formaPago = mapearFormaPagoSRI(p.metodo);
+      // El SRI exige plazo/unidadTiempo cuando la forma de pago es 20
+      // (otros con utilización del sistema financiero: crédito o transferencia).
+      const plazoTag =
+        formaPago === "20"
+          ? `
+        <plazo>${Math.max(0, Number(invoice.paymentTermDays) || 0)}</plazo>
+        <unidadTiempo>dias</unidadTiempo>`
+          : "";
+      return `
       <pago>
-        <formaPago>${mapearFormaPagoSRI(p.metodo)}</formaPago>
-        <total>${p.monto.toFixed(2)}</total>
-        <plazo>${invoice.paymentTermDays || 0}</plazo>
-        <unidadTiempo>dias</unidadTiempo>
-      </pago>`
-    )
+        <formaPago>${formaPago}</formaPago>
+        <total>${round2(p.monto).toFixed(2)}</total>${plazoTag}
+      </pago>`;
+    })
     .join("");
+
+  const camposAdicionales = [
+    cleanClientEmail
+      ? `<campoAdicional nombre="Email">${escaparXml(cleanClientEmail)}</campoAdicional>`
+      : "",
+    cleanClientPhone
+      ? `<campoAdicional nombre="Telefono">${escaparXml(cleanClientPhone)}</campoAdicional>`
+      : "",
+    invoice.warehouseName
+      ? `<campoAdicional nombre="BodegaDespacho">${escaparXml(limpiarTextoSri(invoice.warehouseName))}</campoAdicional>`
+      : "",
+    invoice.notes
+      ? `<campoAdicional nombre="Observaciones">${escaparXml(limpiarTextoSri(invoice.notes))}</campoAdicional>`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n    ");
+
+  const infoAdicionalXml = camposAdicionales
+    ? `
+  <infoAdicional>
+    ${camposAdicionales}
+  </infoAdicional>`
+    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <factura id="comprobante" version="1.1.0">
@@ -563,58 +671,28 @@ export function generarFacturaXml(
     <estab>${limpiarIdentificacion(estab || emisor.establecimiento)}</estab>
     <ptoEmi>${limpiarIdentificacion(pto || emisor.puntoEmision)}</ptoEmi>
     <secuencial>${limpiarIdentificacion(sec)}</secuencial>
-    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>${regimenTag}${agenteTag}${especialTag}
+    <dirMatriz>${escaparXml(limpiarTextoSri(emisor.direccionMatriz))}</dirMatriz>${agenteTag}${regimenTag}
   </infoTributaria>
   <infoFactura>
     <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
-    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>
+    <dirEstablecimiento>${escaparXml(limpiarTextoSri(emisor.direccionEstablecimiento || emisor.direccionMatriz))}</dirEstablecimiento>${especialTag}
     <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
     <tipoIdentificacionComprador>${cleanTipoId}</tipoIdentificacionComprador>
     <razonSocialComprador>${escaparXml(cleanClientName)}</razonSocialComprador>
     <identificacionComprador>${escaparXml(cleanClientRuc)}</identificacionComprador>
     <direccionComprador>${escaparXml(cleanClientAddress)}</direccionComprador>
-    <totalSinImpuestos>${(invoice.subtotal15 + invoice.subtotal0 + invoice.subtotalNoObjeto).toFixed(2)}</totalSinImpuestos>
-    <totalDescuento>${invoice.discountTotal.toFixed(2)}</totalDescuento>
-    <totalConImpuestos>
-      ${
-        invoice.subtotal15 > 0
-          ? `
-      <totalImpuesto>
-        <codigo>2</codigo>
-        <codigoPorcentaje>4</codigoPorcentaje>
-        <baseImponible>${invoice.subtotal15.toFixed(2)}</baseImponible>
-        <tarifa>15</tarifa>
-        <valor>${invoice.ivaTotal.toFixed(2)}</valor>
-      </totalImpuesto>`
-          : ""
-      }
-      ${
-        invoice.subtotal0 > 0
-          ? `
-      <totalImpuesto>
-        <codigo>2</codigo>
-        <codigoPorcentaje>0</codigoPorcentaje>
-        <baseImponible>${invoice.subtotal0.toFixed(2)}</baseImponible>
-        <tarifa>0</tarifa>
-        <valor>0.00</valor>
-      </totalImpuesto>`
-          : ""
-      }
+    <totalSinImpuestos>${totalBaseImponible.toFixed(2)}</totalSinImpuestos>
+    <totalDescuento>${round2(invoice.discountTotal || 0).toFixed(2)}</totalDescuento>
+    <totalConImpuestos>${xmlTotalImpuestos}
     </totalConImpuestos>
     <propina>0.00</propina>
-    <importeTotal>${invoice.total.toFixed(2)}</importeTotal>
+    <importeTotal>${round2(invoice.total).toFixed(2)}</importeTotal>
     <moneda>DOLAR</moneda>
     <pagos>${xmlPagos}
     </pagos>
   </infoFactura>
   <detalles>${xmlItems}
-  </detalles>
-  <infoAdicional>
-    ${cleanClientEmail ? `<campoAdicional nombre="Email">${escaparXml(cleanClientEmail)}</campoAdicional>` : ""}
-    ${cleanClientPhone ? `<campoAdicional nombre="Telefono">${escaparXml(cleanClientPhone)}</campoAdicional>` : ""}
-    <campoAdicional nombre="BodegaDespacho">${escaparXml(limpiarTextoSri(invoice.warehouseName))}</campoAdicional>
-    ${invoice.notes ? `<campoAdicional nombre="Observaciones">${escaparXml(limpiarTextoSri(invoice.notes))}</campoAdicional>` : ""}
-  </infoAdicional>
+  </detalles>${infoAdicionalXml}
 </factura>`;
 }
 
