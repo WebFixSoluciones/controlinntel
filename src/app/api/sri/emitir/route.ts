@@ -3,7 +3,7 @@ import { z, ZodError } from "zod";
 import { actor, HttpError, requirePermission } from "@/lib/server/security";
 import { save } from "@/lib/server/operations";
 import { adminServices } from "@/lib/server/admin";
-import { generarFacturaXml } from "@/lib/sri-service";
+import { generarFacturaXml, validarClaveAccesoSRI } from "@/lib/sri-service";
 import { materialFromStored, signSriXml } from "@/lib/server/sri-signer";
 import { enviarComprobante, type SriEmissionResult } from "@/lib/server/sri-client";
 import { sendInvoiceEmail, type InvoiceEmailResult } from "@/lib/server/email-delivery";
@@ -95,16 +95,22 @@ export async function POST(request: NextRequest) {
     if (!config.ruc || !config.razonSocial) {
       throw new HttpError(400, "Configura el RUC y la razón social del emisor antes de emitir.");
     }
-    if (invoice.claveAcceso.slice(8, 9) !== "01") {
+    // La clave tiene 49 dígitos: fecha (8), tipo (2), RUC (13), ambiente (1),
+    // serie (6), secuencial (9), código (8), tipo de emisión (1) y dígito verificador.
+    const clave = validarClaveAccesoSRI(invoice.claveAcceso);
+    if (!clave.isValid || !clave.detalles) {
+      throw new HttpError(400, clave.error || "La clave de acceso de la factura no es válida.");
+    }
+    if (clave.detalles.tipoComprobante !== "01") {
       throw new HttpError(400, "La clave de acceso no corresponde a una factura (tipo 01).");
     }
-    if (config.ruc.replace(/\D/g, "") !== invoice.claveAcceso.slice(9, 22)) {
+    if (config.ruc.replace(/\D/g, "") !== clave.detalles.ruc) {
       throw new HttpError(
         400,
         "La clave de acceso no corresponde al RUC del emisor configurado en Facturación Electrónica."
       );
     }
-    if (String(config.ambiente || "1") !== invoice.claveAcceso.slice(22, 23)) {
+    if (String(config.ambiente || "1") !== clave.detalles.ambiente) {
       throw new HttpError(
         400,
         "La clave de acceso se generó con un ambiente distinto al configurado. Actualiza la configuración y reintenta."
