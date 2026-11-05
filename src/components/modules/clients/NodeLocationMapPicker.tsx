@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import "leaflet/dist/leaflet.css";
+import { streetTiles, satelliteTiles } from "@/lib/map-tiles";
 import {
   MapPin,
   Search,
@@ -84,8 +85,8 @@ export default function NodeLocationMapPicker({
   const [hasAppliedAddress, setHasAppliedAddress] = useState(false);
 
   // Inputs manuales de latitud y longitud
-  const [latInput, setLatInput] = useState(coordinates?.lat ? coordinates.lat.toFixed(6) : "");
-  const [lngInput, setLngInput] = useState(coordinates?.lng ? coordinates.lng.toFixed(6) : "");
+  const [latInput, setLatInput] = useState(typeof coordinates?.lat === "number" ? coordinates.lat.toFixed(6) : "");
+  const [lngInput, setLngInput] = useState(typeof coordinates?.lng === "number" ? coordinates.lng.toFixed(6) : "");
 
   // Crear icono SVG personalizado para Leaflet
   const createCustomIcon = useCallback((L: any) => {
@@ -191,7 +192,7 @@ export default function NodeLocationMapPicker({
       let initialLng = -78.467838;
       let initialZoom = 13;
 
-      if (coordinates?.lat && coordinates?.lng) {
+      if (typeof coordinates?.lat === "number" && typeof coordinates?.lng === "number") {
         initialLat = coordinates.lat;
         initialLng = coordinates.lng;
         initialZoom = 16;
@@ -206,18 +207,14 @@ export default function NodeLocationMapPicker({
         center: [initialLat, initialLng],
         zoom: initialZoom,
         zoomControl: false,
-        attributionControl: false,
+        attributionControl: true,
       });
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
       // Capa base
       const streetLayer = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          maxZoom: 19,
-          subdomains: "abcd",
-        }
+        streetTiles.url, streetTiles.options
       );
 
       streetLayer.addTo(map);
@@ -253,7 +250,7 @@ export default function NodeLocationMapPicker({
       });
 
       // Si había coordenadas previas, hacer geocodificación inversa inicial
-      if (coordinates?.lat && coordinates?.lng) {
+      if (typeof coordinates?.lat === "number" && typeof coordinates?.lng === "number") {
         performReverseGeocode(coordinates.lat, coordinates.lng);
       }
 
@@ -285,13 +282,11 @@ export default function NodeLocationMapPicker({
 
       if (mapType === "satellite") {
         tileLayerRef.current = L.tileLayer(
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-          { maxZoom: 19 }
+          satelliteTiles.url, satelliteTiles.options
         ).addTo(mapInstanceRef.current);
       } else {
         tileLayerRef.current = L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-          { maxZoom: 19, subdomains: "abcd" }
+          streetTiles.url, streetTiles.options
         ).addTo(mapInstanceRef.current);
       }
     });
@@ -299,7 +294,7 @@ export default function NodeLocationMapPicker({
 
   // Si cambian las coordenadas externas (y difieren de las actuales), mover el marcador
   useEffect(() => {
-    if (!coordinates?.lat || !coordinates?.lng || !markerRef.current || !mapInstanceRef.current) return;
+    if (typeof coordinates?.lat !== "number" || typeof coordinates?.lng !== "number" || !markerRef.current || !mapInstanceRef.current) return;
     const current = markerRef.current.getLatLng();
     if (Math.abs(current.lat - coordinates.lat) > 0.00001 || Math.abs(current.lng - coordinates.lng) > 0.00001) {
       markerRef.current.setLatLng([coordinates.lat, coordinates.lng]);
@@ -311,7 +306,7 @@ export default function NodeLocationMapPicker({
 
   // Si el usuario cambia la provincia y aún no tiene coordenadas fijadas, reubicar el mapa en la provincia
   useEffect(() => {
-    if (!coordinates?.lat && province && ECUADOR_PROVINCE_COORDINATES[province] && mapInstanceRef.current && markerRef.current) {
+    if (typeof coordinates?.lat !== "number" && province && ECUADOR_PROVINCE_COORDINATES[province] && mapInstanceRef.current && markerRef.current) {
       const p = ECUADOR_PROVINCE_COORDINATES[province];
       mapInstanceRef.current.flyTo([p.lat, p.lng], p.zoom);
       markerRef.current.setLatLng([p.lat, p.lng]);

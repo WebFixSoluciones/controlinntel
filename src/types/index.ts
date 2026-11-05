@@ -192,6 +192,7 @@ export interface ArcotelPolicy {
 
 export interface VaultCredential {
   id: string;
+  version?: number;
   serviceName: string;
   serviceType: "sietel" | "fodetel" | "quipux" | "bdh" | "mikrotik" | "arcotel_portal" | "otro";
   portalUrl?: string;
@@ -260,6 +261,7 @@ export type EcuadorProvince = (typeof ECUADOR_PROVINCES)[number];
 
 export interface NodeLocation {
   id: string;
+  version?: number;
   clientId?: string;
   clientName?: string;
   clientIds?: string[];
@@ -665,6 +667,7 @@ export interface ClientQuoteOrder {
 
 export interface ClientVaultItem {
   id: string;
+  version?: number;
   clientId: string;
   serviceName: string;
   category: "ont_router" | "wifi" | "pppoe" | "cctv_camaras" | "vpn_remoto" | "otro";

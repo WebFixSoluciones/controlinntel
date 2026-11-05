@@ -116,6 +116,7 @@ import {
 } from "./mock-data";
 import { auth } from "./firebase";
 import { observeVerifiedSession } from "./session-restoration";
+import { vaultMetadata } from "./vault-metadata";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { usePathname } from "next/navigation";
 import { can, canAccessRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
@@ -526,8 +527,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       action: "save", entity: collectionName === "users" ? "systemUsers" : collectionName,
       id, data: cleanData, ...(typeof data.version === "number" ? { version: data.version } : {}),
     });
-    Object.assign(data, response.result);
-    if (["vault", "clientVaultItems"].includes(collectionName)) delete data.encryptedPassword;
+    if (["vault", "clientVaultItems"].includes(collectionName)) {
+      // Object.assign alone leaves the submitted password on the original object.
+      Object.keys(data).forEach(key => { delete data[key]; });
+      Object.assign(data, vaultMetadata(response.result));
+    } else Object.assign(data, response.result);
   };
 
   const deleteFromFirestore = async (collectionName: string, id: string) => {
@@ -562,7 +566,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.nodes)) setNodes(p.nodes);
           if (Array.isArray(p.ipPools)) setIpPools(p.ipPools);
           if (Array.isArray(p.policies)) setPolicies(p.policies);
-          if (Array.isArray(p.vault)) setVault(p.vault);
+          if (Array.isArray(p.vault)) setVault(p.vault.filter(Boolean).map(vaultMetadata));
           if (Array.isArray(p.tickets)) setTickets(p.tickets);
           if (Array.isArray(p.ticketSubjects)) setTicketSubjects(p.ticketSubjects);
           if (Array.isArray(p.expenses)) setExpenses(p.expenses);
@@ -572,7 +576,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.projects)) setProjects(p.projects);
           if (Array.isArray(p.clientProjects)) setClientProjects(p.clientProjects);
           if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
-          if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems);
+          if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems.filter(Boolean).map(vaultMetadata));
           if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
           if (p.arcotelConcession) setArcotelConcession(sanitizeObjectTexts(p.arcotelConcession));
           if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
@@ -1318,7 +1322,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addClientVaultItem = async (itemData: Omit<ClientVaultItem, "id" | "updatedAt">) => {
     const newItem: ClientVaultItem = {
       ...itemData,
-      id: "clv-" + Date.now(),
+      id: "clv-" + crypto.randomUUID(),
       updatedAt: new Date().toISOString(),
     };
     await syncToFirestore("clientVaultItems", newItem.id, newItem);
@@ -1330,7 +1334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
     await syncToFirestore("clientVaultItems", id, updated);
     setClientVaultItems((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, ...updated } : v))
+      prev.map((v) => vaultMetadata(v.id === id ? { ...v, ...updated } : v))
     );
   };
 
@@ -1520,7 +1524,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addVaultCredential = async (cred: Omit<VaultCredential, "id" | "updatedAt">) => {
     const newCred: VaultCredential = {
       ...cred,
-      id: "vlt-" + Date.now(),
+      id: "vlt-" + crypto.randomUUID(),
       updatedAt: new Date().toISOString(),
     };
     await syncToFirestore("vault", newCred.id, newCred);
@@ -1531,7 +1535,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateVaultCredential = async (id: string, updates: Partial<VaultCredential>) => {
     const updated = { ...updates, updatedAt: new Date().toISOString() };
     await syncToFirestore("vault", id, updated);
-    setVault((prev) => prev.map((v) => (v.id === id ? { ...v, ...updated } : v)));
+    setVault((prev) => prev.map((v) => vaultMetadata(v.id === id ? { ...v, ...updated } : v)));
   };
 
   const logVaultAccess = async (credentialId: string, serviceName: string) => {

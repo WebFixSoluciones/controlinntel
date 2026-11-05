@@ -3,6 +3,8 @@ import { z, ZodError } from "zod";
 import { actor, HttpError } from "@/lib/server/security";
 import { snapshot,save,remove,reveal } from "@/lib/server/operations";
 import { collectionPermissions, type Entity } from "@/lib/permissions";
+import { VaultConfigurationError } from "@/lib/server/vault-key";
+import { validationIssues } from "@/lib/validation-issues";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 
@@ -30,7 +32,8 @@ const command=z.object({
 });
 function failure(error:unknown) {
   const status=error instanceof HttpError?error.status:error instanceof ZodError?400:503;
-  return NextResponse.json({error:error instanceof HttpError?error.message:error instanceof ZodError?"Datos inválidos. Revisa los campos.":"Servicio temporalmente no disponible. Comprueba la configuración del servidor."},{status,headers:{"Cache-Control":"no-store"}});
+  if (error instanceof VaultConfigurationError) console.error("Vault unavailable", { code: error.code });
+  return NextResponse.json({error:error instanceof HttpError || error instanceof VaultConfigurationError?error.message:error instanceof ZodError?"Revisa los campos indicados antes de guardar.":"Servicio temporalmente no disponible. Comprueba la configuración del servidor.",...(error instanceof ZodError ? { fieldErrors: validationIssues(error.issues) } : {})},{status,headers:{"Cache-Control":"no-store"}});
 }
 export async function GET(request:NextRequest) {
   try {

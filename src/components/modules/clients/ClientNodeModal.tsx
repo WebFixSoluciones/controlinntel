@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { nodeSchema, nodeField } from "@/lib/node-schema";
+import { validationIssues, type FieldError } from "@/lib/validation-issues";
+import { ApiError } from "@/lib/api-error";
 import {
   Client,
   NodeLocation,
@@ -58,6 +61,11 @@ export function ClientNodeModal({
 }: ClientNodeModalProps) {
   const { addNode, updateNode } = useApp();
   const { showSuccess, showError } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+  const [saveError, setSaveError] = useState("");
+  const errorSummary = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (saveError) errorSummary.current?.focus(); }, [saveError, fieldErrors]);
 
   const [activeTab, setActiveTab] = useState<"general" | "portadores" | "servicios">("general");
 
@@ -132,6 +140,7 @@ export function ClientNodeModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    setFieldErrors([]); setSaveError(""); setSaving(false);
 
     if (nodeToEdit) {
       setName(nodeToEdit.name || "");
@@ -342,12 +351,15 @@ export function ClientNodeModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim()) {
-      showError("Campo Obligatorio", "Por favor ingresa el nombre de la sede o nodo.");
-      setActiveTab("general");
+    if (saving) return;
+    setFieldErrors([]); setSaveError("");
+    if (newProvName.trim() || newSysName.trim()) {
+      setActiveTab(newProvName.trim() ? "portadores" : "servicios");
+      setSaveError(newProvName.trim() ? "Agrega el proveedor que estás editando antes de guardar el nodo." : "Agrega el sistema que estás editando antes de guardar el nodo.");
       return;
     }
 
+    setSaving(true);
     try {
       const fullAddressParts = [detailedAddress.trim(), parish.trim(), canton.trim(), province].filter(Boolean);
       const fullAddress = fullAddressParts.join(", ");
@@ -372,7 +384,16 @@ export function ClientNodeModal({
         notes: notes.trim(),
         providers,
         services,
+        ...(nodeToEdit?.version ? { version: nodeToEdit.version } : {}),
       };
+
+      const validation = nodeSchema.safeParse(nodePayload);
+      if (!validation.success) {
+        const issues = validationIssues(validation.error.issues);
+        setFieldErrors(issues); setSaveError("Revisa los campos indicados antes de guardar el nodo.");
+        setActiveTab(nodeField(issues[0]).tab);
+        return;
+      }
 
       if (nodeToEdit) {
         await updateNode(nodeToEdit.id, nodePayload);
@@ -383,8 +404,11 @@ export function ClientNodeModal({
       }
       onClose();
     } catch (err) {
-      showError("Error al Guardar", err instanceof Error ? err.message : "No se pudo procesar la solicitud.");
-    }
+      const issues = err instanceof ApiError ? err.fieldErrors : [];
+      setFieldErrors(issues);
+      if (issues.length) setActiveTab(nodeField(issues[0]).tab);
+      setSaveError(err instanceof Error ? err.message : "No se pudo guardar el nodo. Intenta nuevamente.");
+    } finally { setSaving(false); }
   };
 
   return (
@@ -408,6 +432,8 @@ export function ClientNodeModal({
           </div>
           <button
             onClick={onClose}
+            disabled={saving}
+            aria-label="Cerrar formulario de nodo"
             className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -457,7 +483,15 @@ export function ClientNodeModal({
         </div>
 
         {/* Formulario */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+        <form noValidate onSubmit={handleSubmit} aria-busy={saving} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {saveError && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+            <p className="font-bold">{saveError}</p>
+            {fieldErrors.length > 0 && <ul className="mt-2 space-y-1">{fieldErrors.map((issue, index) => {
+              const field = nodeField(issue);
+              return <li key={`${issue.path}-${index}`}><button type="button" className="text-left underline underline-offset-2" onClick={() => setActiveTab(field.tab)}>{field.label}: {field.message}</button></li>;
+            })}</ul>}
+          </div>}
+          <fieldset disabled={saving} className="contents">
           {/* TAB 1: DATOS & LOCALIZACIÓN */}
           {activeTab === "general" && (
             <div className="space-y-4">
@@ -472,6 +506,8 @@ export function ClientNodeModal({
                     required
                     placeholder="Ej: Sede Principal, Sucursal Norte, Nodo POP Central..."
                     value={name}
+                    aria-label="Nombre de la sede o nodo"
+                    aria-invalid={fieldErrors.some(issue => issue.path === "name")}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-semibold"
                   />
@@ -483,6 +519,8 @@ export function ClientNodeModal({
                   </label>
                   <select
                     value={status}
+                    aria-label="Estado del nodo"
+                    aria-invalid={fieldErrors.some(issue => issue.path === "status")}
                     onChange={(e) => setStatus(e.target.value as "activo" | "suspendido" | "retirado")}
                     className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] font-bold"
                   >
@@ -1041,12 +1079,14 @@ export function ClientNodeModal({
             </button>
             <button
               type="submit"
+              disabled={saving}
               className="px-5 py-2 text-xs font-bold bg-[#004ac6] hover:bg-[#003ca0] text-white rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Radio className="w-4 h-4" />
-              <span>{nodeToEdit ? "Guardar Cambios" : "Registrar Sede / Nodo"}</span>
+              <span>{saving ? "Guardando…" : nodeToEdit ? "Guardar Cambios" : "Registrar Sede / Nodo"}</span>
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </div>

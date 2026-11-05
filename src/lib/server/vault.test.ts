@@ -1,6 +1,11 @@
-import test from "node:test";
+import test, { before, after } from "node:test";
+import { randomBytes } from "node:crypto";
 import assert from "node:assert/strict";
 import { seal, unseal } from "./vault.ts";
+
+const configuredKey = process.env.VAULT_KEY_BASE64;
+before(() => { process.env.VAULT_KEY_BASE64 = randomBytes(32).toString("base64"); });
+after(() => { if (configuredKey === undefined) delete process.env.VAULT_KEY_BASE64; else process.env.VAULT_KEY_BASE64 = configuredKey; });
 
 test("Server Vault - AES-256-GCM seal and unseal", () => {
   const secret = "SuperSecretRouterKey2026!#$";

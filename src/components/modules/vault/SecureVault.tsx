@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { can, canUser } from "@/lib/permissions";
 import {
   Eye,
   EyeOff,
@@ -22,7 +23,10 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   const app = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
   const [visible, setVisible] = useState<Record<string, string>>({});
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const formId = useId();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,6 +34,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   const [error, setError] = useState("");
 
   const entity = clientId ? "clientVaultItems" : "vault";
+  const scope = `${entity}:${clientId || "system"}:${app.currentUser.uid}`;
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const canView = canUser(app.currentUser, "boveda", clientId ? "canViewClientVault" : "canViewInternalVault");
+  const canManage = canView && can(app.currentUser, "manage_vault") && app.currentUser.role !== "consulta";
+  const canReveal = canManage && canUser(app.currentUser, "boveda", "canRevealPasswords");
+  const canDelete = canManage && canUser(app.currentUser, "boveda", "canDeleteCredentials");
   const rawItems = clientId
     ? (app?.clientVaultItems || []).filter((v) => v && v.clientId === clientId)
     : (app?.vault || []);
@@ -40,10 +51,16 @@ export function SecureVault({ clientId }: { clientId?: string }) {
     v && `${v.serviceName || ""} ${v.username || ""} ${v.notes || ""}`.toLowerCase().includes(query.trim().toLowerCase())
   );
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    const activeTimers = timers.current;
+    setVisible({}); setPending({}); setEditing(false); setEditingId(null); setError(""); setBusy(false);
+    return () => { activeTimers.forEach(clearTimeout); activeTimers.clear(); };
+  }, [scope]);
 
   async function show(id: string, copy = false) {
+    if (!canReveal || pending[id]) return;
     if (!copy && visible[id] !== undefined) {
+      clearTimeout(timers.current.get(id)); timers.current.delete(id);
       setVisible((v) => {
         const next = { ...v };
         delete next[id];
@@ -51,43 +68,54 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       });
       return;
     }
+    setPending(values => ({ ...values, [id]: true }));
     try {
       const secret = await app.revealCredential(entity, id);
+      if (scopeRef.current !== scope) return;
       if (copy) {
+        if (!navigator.clipboard?.writeText) throw new Error("Tu navegador no permite copiar automáticamente. Usa Ver para consultar la contraseña.");
         await navigator.clipboard.writeText(secret);
-        showSuccess("Copiado", "Contraseña copiada al portapapeles de manera segura.");
+        showSuccess("Copiado", "Contraseña copiada al portapapeles.");
         return;
       }
       setVisible((v) => ({ ...v, [id]: secret }));
-      timers.current.push(
+      clearTimeout(timers.current.get(id));
+      timers.current.set(id,
         setTimeout(() => {
           setVisible((v) => {
             const next = { ...v };
             delete next[id];
             return next;
           });
+          timers.current.delete(id);
         }, 10000)
       );
     } catch (e) {
-      showError("Acceso no disponible", e instanceof Error ? e.message : "No se pudo revelar la credencial.");
+      if (scopeRef.current === scope) showError("Acceso no disponible", e instanceof Error ? e.message : "No se pudo revelar la credencial.");
+    } finally {
+      if (scopeRef.current === scope) setPending(values => ({ ...values, [id]: false }));
     }
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || !canManage) return;
     setBusy(true);
     const form = event.currentTarget;
     const values = new FormData(form);
     const rawPass = String(values.get("password") || "");
     const data = {
-      serviceName: String(values.get("service")),
-      username: String(values.get("username")),
+      serviceName: String(values.get("service") || "").trim(),
+      username: String(values.get("username") || "").trim(),
+      ...(editingId && edited?.version ? { version: edited.version } : {}),
       // La contraseña viaja en claro por HTTPS y el servidor la sella con AES-256-GCM.
       // El cifrado en el navegador era reversible y no aportaba protección real.
       ...(!editingId || rawPass ? { password: rawPass } : {}),
       notes: String(values.get("notes") || ""),
     };
+    if (!data.serviceName || !data.username) {
+      setError("Ingresa el servicio y el usuario de la credencial."); setBusy(false); return;
+    }
     try {
       if (editingId) {
         if (clientId) await app.updateClientVaultItem(editingId, data);
@@ -102,35 +130,43 @@ export function SecureVault({ clientId }: { clientId?: string }) {
       } else {
         await app.addVaultCredential({ ...data, serviceType: "otro", allowedRoles: [app?.currentUser?.role || "superadmin"] });
       }
+      if (scopeRef.current !== scope) return;
       form.reset();
       setEditing(false);
       setEditingId(null);
       setError("");
       showSuccess("Guardado Exitoso", "Credencial almacenada en la bóveda protegida.");
     } catch (e) {
+      if (scopeRef.current !== scope) return;
       setError(e instanceof Error ? e.message : "No se pudo guardar la credencial.");
       showError("Error", e instanceof Error ? e.message : "Comprueba la configuración de cifrado.");
     } finally {
-      setBusy(false);
+      if (scopeRef.current === scope) setBusy(false);
     }
   }
 
   async function handleDelete(id: string, name: string) {
+    if (!canDelete || deletingId) return;
     showConfirm(
       "Eliminar Credencial",
       `¿Confirmas la eliminación definitiva del acceso de ${name}?`,
       async () => {
+        setDeletingId(id);
         try {
           if (clientId) await app.deleteClientVaultItem(id);
           else await app.deleteRecord("vault", id);
+          clearTimeout(timers.current.get(id)); timers.current.delete(id);
+          setVisible(values => { const next = { ...values }; delete next[id]; return next; });
           showSuccess("Credencial Eliminada", "El registro ha sido removido de la bóveda.");
         } catch (e) {
-          showError("Error", "No se pudo eliminar la credencial.");
-        }
+          showError("Error", e instanceof Error ? e.message : "No se pudo eliminar la credencial.");
+        } finally { setDeletingId(null); }
       },
       "Eliminar"
     );
   }
+
+  if (!canView) return <p className="p-4 text-sm text-slate-600" role="status">No tienes permiso para consultar esta bóveda.</p>;
 
   return (
     <section className="space-y-4">
@@ -141,6 +177,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label="Buscar credenciales"
             placeholder="Buscar por servicio, usuario o notas..."
             className="w-full bg-white text-xs text-[#0b1c30] rounded-lg pl-9 pr-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6]"
           />
@@ -157,7 +194,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
             </button>
           )}
 
-          <button
+          {canManage && <button
             disabled={busy}
             onClick={() => {
               setEditing(!editing);
@@ -168,12 +205,12 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{editing ? "Cerrar" : "Nueva Credencial"}</span>
-          </button>
+          </button>}
         </div>
       </div>
 
       {/* Create / Edit Form Card */}
-      {editing && (
+      {editing && canManage && (
         <form
           key={editingId || "new"}
           onSubmit={submit}
@@ -186,6 +223,8 @@ export function SecureVault({ clientId }: { clientId?: string }) {
             </h3>
             <button
               type="button"
+              aria-label="Cerrar formulario de credencial"
+              disabled={busy}
               onClick={() => setEditing(false)}
               className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer"
             >
@@ -195,9 +234,11 @@ export function SecureVault({ clientId }: { clientId?: string }) {
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-bold text-[#434655] block mb-1">Servicio / Destino *</label>
+              <label htmlFor={`${formId}-service`} className="text-xs font-bold text-[#434655] block mb-1">Servicio / Destino *</label>
               <input
                 name="service"
+                id={`${formId}-service`}
+                disabled={busy}
                 defaultValue={edited?.serviceName || ""}
                 required
                 maxLength={200}
@@ -206,9 +247,11 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-[#434655] block mb-1">Usuario / Identificador *</label>
+              <label htmlFor={`${formId}-username`} className="text-xs font-bold text-[#434655] block mb-1">Usuario / Identificador *</label>
               <input
                 name="username"
+                id={`${formId}-username`}
+                disabled={busy}
                 defaultValue={edited?.username || ""}
                 required
                 maxLength={200}
@@ -220,11 +263,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#434655] block mb-1">
+            <label htmlFor={`${formId}-password`} className="text-xs font-bold text-[#434655] block mb-1">
               Contraseña {editingId ? "(dejar vacía para conservar la actual)" : "*"}
             </label>
             <input
               name="password"
+              id={`${formId}-password`}
+              disabled={busy}
               required={!editingId}
               type="password"
               maxLength={4096}
@@ -235,9 +280,11 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-[#434655] block mb-1">Notas / Referencia Técnica</label>
+            <label htmlFor={`${formId}-notes`} className="text-xs font-bold text-[#434655] block mb-1">Notas / Referencia Técnica</label>
             <textarea
               name="notes"
+              id={`${formId}-notes`}
+              disabled={busy}
               defaultValue={edited?.notes || ""}
               maxLength={2000}
               placeholder="Detalles de puerto, IP privada, reglas de firewall..."
@@ -247,7 +294,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700 flex items-center gap-2">
+            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -267,7 +314,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               type="submit"
               className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
-              {busy ? "Cifrando..." : "Cifrar & Guardar"}
+              {busy ? "Guardando…" : "Guardar credencial"}
             </button>
           </div>
         </form>
@@ -282,7 +329,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
               <tr>
                 <th scope="col" className="py-3 px-4 w-3/12">Servicio / Destino</th>
                 <th scope="col" className="py-3 px-4 w-2/12">Usuario / Identificador</th>
-                <th scope="col" className="py-3 px-4 w-3/12">Contraseña Cifrada</th>
+                <th scope="col" className="py-3 px-4 w-3/12">Contraseña</th>
                 <th scope="col" className="py-3 px-4 w-2/12">Notas / Referencia</th>
                 <th scope="col" className="py-3 px-4 text-right w-2/12">Acciones</th>
               </tr>
@@ -309,7 +356,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                   </td>
                   <td className="py-4 px-5">
                     <div className="font-mono font-bold text-[#004ac6] bg-blue-50/50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">
-                      {visible[item.id] ? (
+                      {canReveal && visible[item.id] !== undefined ? (
                         <span className="text-emerald-700 font-bold">{visible[item.id]}</span>
                       ) : (
                         <span className="tracking-widest text-slate-400">••••••••••••••••</span>
@@ -322,6 +369,8 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                   <td className="py-4 px-5">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                       <button
+                        disabled={!canReveal || pending[item.id]}
+                        aria-label={visible[item.id] !== undefined ? `Ocultar contraseña de ${item.serviceName}` : `Ver contraseña de ${item.serviceName}`}
                         onClick={() => void show(item.id)}
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
                           visible[item.id]
@@ -335,6 +384,8 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                       </button>
 
                       <button
+                        disabled={!canReveal || pending[item.id]}
+                        aria-label={`Copiar contraseña de ${item.serviceName}`}
                         onClick={() => void show(item.id, true)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                         title="Copiar contraseña al portapapeles"
@@ -343,7 +394,7 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                         <span>Copiar</span>
                       </button>
 
-                      <button
+                      {canManage && <button
                         disabled={busy}
                         onClick={() => {
                           setEditingId(item.id);
@@ -354,15 +405,16 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                         title="Editar credencial"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      </button>}
 
-                      <button
+                      {canDelete && <button
+                        disabled={deletingId === item.id}
                         onClick={() => void handleDelete(item.id, item.serviceName)}
                         className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Eliminar credencial"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>

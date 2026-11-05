@@ -1,22 +1,33 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { adminServices } from "./admin.ts";
+import { VaultConfigurationError, VaultKeyProvider } from "./vault-key.ts";
 
-const DEV_FALLBACK_KEY_BASE64 = "aW5udGVsY29ycDIwMjZzZWN2YXVsdGtleTMyYnl0ZXM="; // 32-byte key for local development
-
-function getKey(): Buffer {
-  const envKey = process.env.VAULT_KEY_BASE64;
-  if (!envKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("FATAL DE SEGURIDAD: La variable VAULT_KEY_BASE64 es obligatoria en producción para el cifrado AES-256-GCM.");
-    }
-    return Buffer.from(DEV_FALLBACK_KEY_BASE64, "base64");
+async function loadManagedKey(): Promise<string> {
+  const { app } = adminServices();
+  const project = app.options.projectId;
+  if (!project || process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    throw new VaultConfigurationError("VAULT_KEY_NOT_CONFIGURED");
   }
-
-  const bytes = Buffer.from(envKey, "base64");
-  if (bytes.length !== 32) {
-    throw new Error("Configuración inválida: VAULT_KEY_BASE64 debe ser una cadena base64 de exactamente 32 bytes (256 bits).");
+  // Pin the version: publishing a new secret version must never silently rotate the key.
+  const resource = process.env.VAULT_KEY_SECRET_VERSION || `projects/${project}/secrets/inntel-vault-key/versions/1`;
+  if (!/^projects\/[a-zA-Z0-9-]+\/secrets\/[a-zA-Z0-9_-]+\/versions\/[1-9]\d*$/.test(resource)) {
+    throw new VaultConfigurationError("VAULT_KEY_RESOURCE_INVALID");
   }
-  return bytes;
+  const token = await app.options.credential?.getAccessToken();
+  if (!token) throw new VaultConfigurationError("VAULT_KEY_ACCESS_UNAVAILABLE");
+  const response = await fetch(`https://secretmanager.googleapis.com/v1/${resource}:access`, {
+    headers: { Authorization: `Bearer ${token.access_token}` },
+    cache: "no-store", signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new VaultConfigurationError("VAULT_KEY_ACCESS_DENIED");
+  const result = await response.json();
+  if (typeof result.payload?.data !== "string") throw new VaultConfigurationError("VAULT_KEY_INVALID");
+  return Buffer.from(result.payload.data, "base64").toString("utf8");
 }
+
+const provider = new VaultKeyProvider(() => process.env.VAULT_KEY_BASE64, loadManagedKey);
+export const initializeVaultKey = () => provider.ready();
+const getKey = () => provider.get();
 
 export function seal(value: string, context: string): string {
   const iv = randomBytes(12); // Standard 96-bit nonce for AES-GCM

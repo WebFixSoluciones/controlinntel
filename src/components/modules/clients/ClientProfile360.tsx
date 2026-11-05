@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
+import { clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientContactPerson, MonthlyCharge } from "@/types";
 import { can, tabPermissions } from "@/lib/permissions";
@@ -349,6 +350,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase">
               {client.businessName}
             </h1>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{clientStatusLabel(client.status)}</span>
             <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
             <span className="font-mono text-xs font-medium text-slate-600">
               RUC / CI: {client.identificationNumber}

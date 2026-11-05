@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import "leaflet/dist/leaflet.css";
+import { streetTiles, satelliteTiles } from "@/lib/map-tiles";
 import { NodeLocation } from "@/types";
 import {
   MapPin,
@@ -119,18 +120,14 @@ export default function ClientNodesOverviewMap({
         center: [-1.831239, -78.183406],
         zoom: 7,
         zoomControl: false,
-        attributionControl: false,
+        attributionControl: true,
       });
 
       L.control.zoom({ position: "bottomright" }).addTo(map);
 
       // Capa base
       const streetLayer = L.tileLayer(
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-        {
-          maxZoom: 19,
-          subdomains: "abcd",
-        }
+        streetTiles.url, streetTiles.options
       );
 
       streetLayer.addTo(map);
@@ -195,13 +192,11 @@ export default function ClientNodesOverviewMap({
 
       if (mapType === "satellite") {
         tileLayerRef.current = L.tileLayer(
-          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-          { maxZoom: 19 }
+          satelliteTiles.url, satelliteTiles.options
         ).addTo(mapInstanceRef.current);
       } else {
         tileLayerRef.current = L.tileLayer(
-          "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-          { maxZoom: 19, subdomains: "abcd" }
+          streetTiles.url, streetTiles.options
         ).addTo(mapInstanceRef.current);
       }
     });

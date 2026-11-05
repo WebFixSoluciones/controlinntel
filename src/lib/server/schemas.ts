@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { validateIdentification } from "../validation-engine.ts";
 import { validDate } from "../commercial-core.ts";
+import { nodeSchema } from "../node-schema.ts";
 
 const text = z.string().trim().min(1).max(500);
 const optionalText = z.string().trim().max(500).optional();
@@ -105,15 +106,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     .passthrough(),
 
   // Red & Telecomunicaciones
-  nodes: z
-    .object({
-      name: text,
-      address: text,
-      totalCapacityMbps: money,
-      usedCapacityMbps: money,
-      status: z.enum(["online", "offline", "warning"]),
-    })
-    .passthrough(),
+  nodes: nodeSchema,
   ipPools: z
     .object({
       name: text,

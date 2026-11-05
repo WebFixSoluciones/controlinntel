@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useApp } from "@/lib/state";
+import { matchesClientStatus, clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
 import { Client } from "@/types";
 import { limpiarIdentificacion } from "@/lib/sri-service";
@@ -36,7 +37,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
   const { showSuccess, showError } = useToast();
 
   const [filter, setFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("todos");
+  const [statusFilter, setStatusFilter] = useState("vigentes");
   const [recurrenceFilter, setRecurrenceFilter] = useState<"todos" | "recurrentes" | "mensual" | "anual" | "ocasional">("todos");
   const [balanceFilter, setBalanceFilter] = useState<"todos" | "con_saldo" | "al_dia">("todos");
   const [currentPage, setCurrentPage] = useState(1);
@@ -149,7 +150,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
         cleanId.includes(qNoSpaces) ||
         c.email.toLowerCase().includes(qNoSpaces);
 
-      const matchesStatus = statusFilter === "todos" || c.status === statusFilter;
+      const matchesStatus = matchesClientStatus(c, statusFilter);
 
       const pendingBal = getClientPendingBalance(c);
       const matchesBalance =
@@ -251,7 +252,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
             <button
               onClick={() => {
                 setFilter("");
-                setStatusFilter("todos");
+                setStatusFilter("vigentes");
                 setRecurrenceFilter("todos");
                 setBalanceFilter("todos");
               }}
@@ -280,7 +281,8 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-[#f8f9ff] text-xs font-medium text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:outline-hidden focus:bg-white cursor-pointer"
             >
-              <option value="todos">Estado</option>
+              <option value="vigentes">No retirados</option>
+              <option value="todos">Todos los estados</option>
               <option value="activo">Activo</option>
               <option value="suspendido">Suspendido</option>
               <option value="retirado">Retirado</option>
@@ -340,6 +342,9 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                       <td className="py-3.5 px-5">
                         <span className="text-xs font-semibold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors">
                           {client.businessName}
+                        </span>
+                        <span className={`block w-fit mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+                          {clientStatusLabel(client.status)}
                         </span>
                       </td>
 

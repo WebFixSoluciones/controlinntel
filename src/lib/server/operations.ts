@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { adminServices } from "./admin";
-import { audit, HttpError, requirePermission } from "./security";
-import { can, canAccessModule, canUser, collectionPermissions, type Entity } from "../permissions";
-import { schemas } from "./schemas";
-import { seal, unseal } from "./vault";
+import { adminServices } from "./admin.ts";
+import { audit, HttpError, requirePermission } from "./security.ts";
+import { can, canAccessModule, canUser, collectionPermissions, type Entity } from "../permissions.ts";
+import { schemas } from "./schemas.ts";
+import { seal, unseal, initializeVaultKey } from "./vault.ts";
+import { requireVaultAccess } from "./vault-access.ts";
 import type { UserProfile } from "@/types";
-import type { DocumentData } from "firebase-admin/firestore";
-import { recordOperation, redact, digest } from "./operation-log";
-import { simpleDecrypt } from "../crypto-vault";
+import type { DocumentData, Firestore } from "firebase-admin/firestore";
+import { recordOperation, redact, digest } from "./operation-log.ts";
+import { simpleDecrypt } from "../crypto-vault.ts";
 import { canReadCollection,storageName } from "../persistence-contracts.ts";
 
 const now = () => new Date().toISOString();
@@ -30,6 +31,9 @@ export async function snapshot(user: UserProfile) {
       }
     } catch (queryErr: any) {
       console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
+    }
+    if (entity === "nodes" && canUser(user, "red", "canEditRouterCredentials") && documents.some(d => d.data().services?.some((service: DocumentData) => service.passwordSealed))) {
+      await initializeVaultKey().catch(() => {});
     }
     result[entity] = documents.filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
@@ -65,14 +69,15 @@ export async function snapshot(user: UserProfile) {
   }));
   return result;
 }
-export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number) {
+export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number, database?: Firestore) {
   const permission=collectionPermissions[entity];
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
   requirePermission(user,permission);
+  if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "save");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   if(entity==="systemUsers")throw new HttpError(400,"Utiliza la administración de cuentas autenticadas.");
   if(entity==="auditLogs")throw new HttpError(400,"La auditoría es generada por el servidor.");
-  const {db}=adminServices();
+  const db = database || adminServices().db;
   const reference=db.collection(entity).doc(id || randomUUID());
   return db.runTransaction(async tx=>{
     const old=await tx.get(reference);
@@ -111,6 +116,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       }
     }
     if (entity==="vault" || entity==="clientVaultItems") {
+      if (old.exists && entity === "clientVaultItems" && data.clientId !== old.data()?.clientId) throw new HttpError(400, "La credencial debe permanecer vinculada a su cliente.");
       data.secret=old.data()?.secret;
       if (entity==="vault" && old.exists && user.role!=="superadmin" && !old.data()?.allowedRoles?.includes(user.role)) throw new HttpError(403,"Credencial restringida.");
       // La contraseña llega en claro por HTTPS y se sella aquí. `encryptedPassword` se
@@ -120,7 +126,11 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
         : typeof input.encryptedPassword==="string" && input.encryptedPassword
         ? simpleDecrypt(input.encryptedPassword)
         : "";
-      if (incoming) data.secret=seal(incoming,entity+"/"+reference.id);
+      if (incoming.length > 4096) throw new HttpError(400, "La contraseña supera el tamaño permitido.");
+      if (incoming) {
+        await initializeVaultKey();
+        data.secret=seal(incoming,entity+"/"+reference.id);
+      }
       if (!data.secret) throw new HttpError(400,"Contraseña requerida.");
       delete data.encryptedPassword; delete data.password;
     }
@@ -129,6 +139,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       // al navegador ni quedan legibles en Firestore. El AAD las ata al nodo y al servicio.
       // Al editar, si el formulario no trae contraseña nueva se conserva la sellada previa.
       const previousServices:DocumentData[] = old.data()?.services || [];
+      if (data.services.some((service: DocumentData) => service.password || service.credentials?.includes("/"))) await initializeVaultKey();
       data.services = data.services.map((service:DocumentData, index:number) => {
         const { password, credentials, passwordSealed, ...rest } = service;
         const plain = typeof password==="string" && password
@@ -141,6 +152,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
         if (plain) rest.passwordSealed = seal(plain, context);
         else if (typeof passwordSealed==="string" && passwordSealed) rest.passwordSealed = passwordSealed;
         else if (previous?.passwordSealed) rest.passwordSealed = previous.passwordSealed;
+        rest.hasPassword = Boolean(rest.passwordSealed);
         return rest;
       });
     }
@@ -186,13 +198,14 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     return redact(updated);
   });
 }
-export async function remove(user:UserProfile,entity:Entity,id:string,version?:number) {
+export async function remove(user:UserProfile,entity:Entity,id:string,version?:number,database?: Firestore) {
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
   requirePermission(user,collectionPermissions[entity]);
+  if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "delete");
   if(user.role==="consulta")throw new HttpError(403,"Perfil de consulta.");
   if(entity==="systemUsers")throw new HttpError(400,"Desactiva la cuenta desde administración de usuarios.");
   if(["monthlyCharges","clientServices","billingInvoices","purchaseInvoices","clientAdvances","bankAccounts","financialMovements","inventoryProducts","inventoryKardex","inventoryTransfers","inventoryAdjustments","supplierPayments"].includes(entity))throw new HttpError(400,"Conserva el historial mediante retiro, ajuste o anulación comercial.");
-  const {db}=adminServices();
+  const db = database || adminServices().db;
   await db.runTransaction(async tx=>{
     const ref=db.collection(entity).doc(id),record=await tx.get(ref);
     if (!record.exists) throw new HttpError(404,"Registro inexistente.");
@@ -205,14 +218,16 @@ export async function remove(user:UserProfile,entity:Entity,id:string,version?:n
     recordOperation(tx,db,user,"DELETE",[{collection:entity,id,beforeVersion:record.data()?.version ?? null,after:null}]);
   });
 }
-export async function reveal(user:UserProfile,entity:string,id:string) {
-  requirePermission(user,"manage_vault");
-  if (!["vault","clientVaultItems"].includes(entity)) throw new HttpError(400,"Bóveda inválida.");
-  const {db}=adminServices();
+export async function reveal(user:UserProfile,entity:string,id:string,database?: Firestore) {
+  requireVaultAccess(user, entity, "reveal");
+  const db = database || adminServices().db;
   const doc=await db.collection(entity).doc(id).get(),data=doc.data();
   if (!data) throw new HttpError(404,"Credencial inexistente.");
   if (entity==="vault" && user.role!=="superadmin" && !data.allowedRoles?.includes(user.role)) throw new HttpError(403,"Credencial restringida.");
-  const value=unseal(data.secret,entity+"/"+id);
+  await initializeVaultKey();
+  let value: string;
+  try { value=unseal(data.secret,entity+"/"+id); }
+  catch { throw new HttpError(409, "No se pudo abrir esta credencial con la clave configurada. Revisa su recuperación antes de reemplazarla."); }
   const log=audit(user,"VIEW_VAULT_PASSWORD",entity+"/"+id);
   await db.collection("auditLogs").doc(log.id).create(log);
   return value;

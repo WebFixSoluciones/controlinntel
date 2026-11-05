@@ -3,7 +3,7 @@ import { HttpError } from "./security";
 import { digest, recordOperation } from "./operation-log";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
 import { schemas } from "./schemas";
-import { seal } from "./vault";
+import { seal, initializeVaultKey } from "./vault";
 import { simpleDecrypt } from "../crypto-vault";
 import type { UserProfile } from "@/types";
 
@@ -29,6 +29,7 @@ export async function recoverSnapshot(user:UserProfile, payload:Record<string,an
     const selection:Record<string,any[]>={}; selected.forEach(i=>(selection[i.collection]??=[]).push(i.data));
     const scoped=planSnapshotRecovery(selection,current);
     if(scoped.some(i=>i.state!=="missing")) throw new HttpError(409,"La selección no incluye las dependencias necesarias.");
+    if (selected.some(item => ["vault", "clientVaultItems"].includes(item.collection))) await initializeVaultKey();
     const effects=selected.map(item=>{
       const data:Record<string,any>={...item.data,id:item.id,version:1,_recovery:{sourceName:String(payload.sourceName),snapshotDigest:hash,importedBy:user.uid}};
       if(["vault","clientVaultItems"].includes(item.collection)) {
