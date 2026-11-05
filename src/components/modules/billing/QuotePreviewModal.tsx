@@ -220,6 +220,7 @@ export function QuotePreviewModal({
             <div
               id="quote-print-area"
               ref={printAreaRef}
+              style={{ fontFamily: "var(--font-inter, Inter), sans-serif" }}
               className="max-w-[850px] mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xs border border-slate-200 space-y-5 text-[11px] leading-relaxed text-slate-800 print:shadow-none print:border-none print:p-0 print:max-w-none print:w-full print:text-black"
             >
               {/* =========================================================
@@ -229,7 +230,7 @@ export function QuotePreviewModal({
                 {/* Columna Izquierda: Logo Oficial y Datos del Emisor */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-20 h-16 rounded-md bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0">
+                    <div className="w-16 h-16 flex items-center justify-center shrink-0">
                       <img
                         src="/logo-inntel.webp"
                         alt={emisor.razonSocial}
@@ -237,7 +238,7 @@ export function QuotePreviewModal({
                       />
                     </div>
                     <div>
-                      <h1 className="text-base font-black text-slate-900 tracking-tight leading-tight">
+                      <h1 className="text-[14px] font-semibold whitespace-nowrap text-slate-900 tracking-tight leading-tight">
                         {emisor.razonSocial || "INNTEL CORP S.A."}
                       </h1>
                       <p className="text-[11px] font-semibold text-[#004ac6]">
@@ -282,7 +283,7 @@ export function QuotePreviewModal({
                     <h3 className="text-sm font-bold text-[#004ac6] tracking-tight uppercase mt-0.5">
                       COTIZACIÓN / PROFORMA
                     </h3>
-                    <p className="text-xs font-mono font-bold text-slate-900">
+                    <p className="text-[16px] font-semibold text-slate-900">
                       No. {quote.quoteNumber}
                     </p>
                   </div>
@@ -311,7 +312,7 @@ export function QuotePreviewModal({
                   </p>
                   <p>
                     <span className="font-bold text-slate-900">Identificación (RUC / C.I.):</span>{" "}
-                    <span className="font-mono font-bold text-slate-900">
+                    <span className="font-bold text-slate-900">
                       {quote.clientRuc || "N/A"}
                     </span>
                   </p>
@@ -332,10 +333,6 @@ export function QuotePreviewModal({
                     <span className="font-medium text-slate-800">
                       {quote.clientEmail || "N/A"}
                     </span>
-                  </p>
-                  <p>
-                    <span className="font-bold text-slate-900">Fecha Emisión:</span>{" "}
-                    <span className="font-medium text-slate-800">{fechaEmision}</span>
                   </p>
                 </div>
               </div>
@@ -376,7 +373,7 @@ export function QuotePreviewModal({
                             <td className="py-2 px-2.5 text-center font-medium text-slate-500">
                               {idx + 1}
                             </td>
-                            <td className="py-2 px-3 font-mono font-semibold text-slate-700">
+                            <td className="py-2 px-3 font-semibold text-slate-700">
                               {skuCode}
                             </td>
                             <td className="py-2 px-2 text-center font-bold text-slate-900">
@@ -392,18 +389,18 @@ export function QuotePreviewModal({
                                 </span>
                               )}
                               {it.serialNumbers && it.serialNumbers.length > 0 && (
-                                <span className="text-[9.5px] font-mono text-[#004ac6] block mt-0.5">
+                                <span className="text-[9.5px] text-[#004ac6] block mt-0.5">
                                   S/N: {it.serialNumbers.join(", ")}
                                 </span>
                               )}
                             </td>
-                            <td className="py-2 px-3 text-right font-mono text-slate-800">
+                            <td className="py-2 px-3 text-right text-slate-800">
                               ${safeNumber(it.unitPrice)}
                             </td>
-                            <td className="py-2 px-3 text-right font-mono text-slate-600">
+                            <td className="py-2 px-3 text-right text-slate-600">
                               ${safeNumber(it.discount)}
                             </td>
-                            <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                            <td className="py-2 px-3 text-right font-bold text-slate-900">
                               ${safeNumber(lineSubtotal)}
                             </td>
                           </tr>
@@ -465,10 +462,10 @@ export function QuotePreviewModal({
 
                 {/* Columna Derecha: Cuadro Oficial de Totales Estilo Contífico */}
                 <div className="md:col-span-5 print:col-span-5">
-                  <div className="rounded-md border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
+                  <div className="rounded-md border border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
-                      <span className="font-mono font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900">
                         ${safeNumber(subtotal15)}
                       </span>
                     </div>
@@ -476,7 +473,7 @@ export function QuotePreviewModal({
                     {subtotal5 > 0 && (
                       <div className="flex justify-between px-3 py-1.5">
                         <span className="font-bold text-slate-700">SUBTOTAL 5%:</span>
-                        <span className="font-mono font-semibold text-slate-900">
+                        <span className="font-semibold text-slate-900">
                           ${safeNumber(subtotal5)}
                         </span>
                       </div>
@@ -484,38 +481,38 @@ export function QuotePreviewModal({
 
                     <div className="flex justify-between px-3 py-1.5">
                       <span className="font-bold text-slate-700">SUBTOTAL 0%:</span>
-                      <span className="font-mono font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900">
                         ${safeNumber(subtotal0)}
                       </span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-slate-700">SUBTOTAL NO OBJETO DE IVA:</span>
-                      <span className="font-mono font-semibold text-slate-900">$0.00</span>
+                      <span className="font-semibold text-slate-900">$0.00</span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5">
                       <span className="font-bold text-slate-700">SUBTOTAL EXENTO DE IVA:</span>
-                      <span className="font-mono font-semibold text-slate-900">$0.00</span>
+                      <span className="font-semibold text-slate-900">$0.00</span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50 font-bold">
                       <span className="text-slate-900">SUBTOTAL SIN IMPUESTOS:</span>
-                      <span className="font-mono text-slate-900">
+                      <span className="text-slate-900">
                         ${safeNumber(subtotalSinImpuestos)}
                       </span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5">
                       <span className="font-bold text-slate-700">TOTAL DESCUENTO:</span>
-                      <span className="font-mono font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900">
                         ${safeNumber(descuento)}
                       </span>
                     </div>
 
                     <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                       <span className="font-bold text-[#004ac6]">IVA 15%:</span>
-                      <span className="font-mono font-bold text-[#004ac6]">
+                      <span className="font-bold text-[#004ac6]">
                         ${safeNumber(iva15)}
                       </span>
                     </div>
@@ -523,15 +520,15 @@ export function QuotePreviewModal({
                     {iva5 > 0 && (
                       <div className="flex justify-between px-3 py-1.5 bg-slate-50">
                         <span className="font-bold text-[#004ac6]">IVA 5%:</span>
-                        <span className="font-mono font-bold text-[#004ac6]">
+                        <span className="font-bold text-[#004ac6]">
                           ${safeNumber(iva5)}
                         </span>
                       </div>
                     )}
 
-                    <div className="flex justify-between px-3.5 py-2 bg-slate-900 text-white font-black text-xs">
+                    <div className="flex justify-between px-3.5 py-2 bg-slate-900 text-white font-semibold text-[12px]">
                       <span>VALOR TOTAL:</span>
-                      <span className="font-mono text-sm tracking-wide text-white">
+                      <span className="text-[14px] tracking-wide text-white">
                         ${safeNumber(total)}
                       </span>
                     </div>
@@ -544,7 +541,7 @@ export function QuotePreviewModal({
                   ========================================================= */}
               <div className="space-y-4 pt-1 print-avoid-break">
                 <div className="p-2.5 rounded-md bg-slate-50 border border-slate-300 text-center">
-                  <p className="font-mono font-bold text-[11px] text-slate-900 uppercase">
+                  <p className="font-bold text-[11px] text-slate-900 uppercase">
                     {totalEnLetras}
                   </p>
                 </div>

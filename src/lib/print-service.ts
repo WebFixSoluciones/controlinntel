@@ -173,9 +173,28 @@ export function printHtmlElement(
   `);
   iframeDoc.close();
 
+  // next/font defines its family on the parent root. Preserve it in the print
+  // document so quotation text does not fall back to a different typeface.
+  const interFamily = window.getComputedStyle(document.documentElement).getPropertyValue("--font-inter").trim();
+  if (interFamily) iframeDoc.documentElement.style.setProperty("--font-inter", interFamily);
+  const stylesReady = Promise.all(Array.from(iframeDoc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).map(link => {
+    if (link.sheet) return Promise.resolve();
+    return new Promise<void>(resolve => {
+      link.addEventListener("load", () => resolve(), { once: true });
+      link.addEventListener("error", () => resolve(), { once: true });
+    });
+  }));
+
   // Esperar a que carguen imágenes (logo, etc.) y estilos antes de abrir el diálogo de impresión
-  const triggerPrint = () => {
+  let printStarted = false;
+  const triggerPrint = async () => {
+    if (printStarted) return;
+    printStarted = true;
     try {
+      await Promise.race([
+        stylesReady.then(() => iframeDoc.fonts.ready),
+        new Promise<void>(resolve => setTimeout(resolve, 3000)),
+      ]);
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     } catch (err) {

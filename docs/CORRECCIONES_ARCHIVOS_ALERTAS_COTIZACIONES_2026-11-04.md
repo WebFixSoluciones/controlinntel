@@ -26,6 +26,12 @@
 
 ## Límites y seguimiento
 
+### Ajuste visual posterior de cotizaciones
+
+Se retiró el borde del logo y la fecha de emisión duplicada en los datos del cliente. Se aplica Inter a todo el documento, incluyendo sus cifras. El nombre del emisor queda en una línea y peso 600; el número de cotización aumenta a 16 px y peso 600. El valor total usa peso 600 y el cuadro de totales un borde de 1 px. Estos tamaños se mantienen en la impresión, que ahora hereda la familia Inter y espera las hojas de estilo y las fuentes antes de imprimir; también se evita iniciar dos impresiones por temporizadores simultáneos.
+
+Verificado en navegador con el nombre completo proporcionado: una sola línea sin desbordamiento, logo sin borde, una sola fecha de emisión, tamaños y pesos correctos en vista previa e impresión A4. Se simuló una hoja de estilo con carga demorada para comprobar que la impresión espera su llegada. La suite de 162 pruebas y la compilación de producción completaron correctamente.
+
 - Los originales que nunca se almacenaron no pueden reconstruirse desde su nombre: requieren nueva carga. No se fabricaron ni eliminaron documentos reales para ocultar el problema.
 - La advertencia al cerrar o recargar la pestaña la administra el navegador; la interfaz no puede personalizarla. Las confirmaciones dentro de la aplicación usan el diálogo corporativo.
 - Compartir expedientes mediante enlace público es un flujo diferente y no forma parte de estas pruebas de descarga autenticada.
