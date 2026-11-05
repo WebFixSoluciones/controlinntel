@@ -1,4 +1,5 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
@@ -11,29 +12,7 @@ import {
   TicketDepartment,
   TicketMessage,
 } from "@/types";
-import {
-  ArrowLeft,
-  Send,
-  Lock,
-  MessageSquare,
-  User,
-  ShieldAlert,
-  Building2,
-  Phone,
-  Mail,
-  MapPin,
-  Wifi,
-  ExternalLink,
-  CheckCircle2,
-  Clock,
-  RotateCcw,
-  Sparkles,
-  Layers,
-  Calendar,
-  AlertTriangle,
-  Radio,
-  Share2,
-} from "lucide-react";
+import { Send, Lock, MessageSquare, User, ShieldAlert, Building2, Phone, Mail, MapPin, Wifi, ExternalLink, CheckCircle2, Clock, RotateCcw, Sparkles, Layers, Calendar, AlertTriangle, Radio, Share2 } from "lucide-react";
 
 interface TicketDetailProps {
   id: string;
@@ -112,12 +91,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         <p className="text-xs text-[#737686] mt-1 mb-4">
           La incidencia solicitada no existe o fue retirada del sistema.
         </p>
-        <button
-          onClick={onBack}
-          className="px-4 py-2 bg-[#004ac6] text-white rounded-lg text-xs font-bold cursor-pointer"
-        >
-          Volver a Tickets
-        </button>
+        <BackButton onClick={onBack} label="Volver a Tickets" />
       </div>
     );
   }
@@ -231,13 +205,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
       {/* 1. Header Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-start md:items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] hover:bg-[#eff4ff] text-[#004ac6] transition-colors cursor-pointer"
-            title="Volver a la lista de tickets"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+          <BackButton onClick={onBack} title="Volver a la lista de tickets" label="Volver a la lista de tickets" />
 
           <div>
             <div className="flex flex-wrap items-center gap-2">

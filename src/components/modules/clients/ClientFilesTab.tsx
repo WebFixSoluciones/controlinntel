@@ -1,4 +1,6 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
+
 import { uploadStoredFile } from "@/lib/stored-file-upload";
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
@@ -8,32 +10,7 @@ import { useToast } from "@/lib/toast-context";
 import { planUpload, compressImageFile, formatBytes } from "@/lib/file-upload";
 import { openStoredFile } from "@/lib/file-download";
 import { ClientTabHeader } from "./ClientTabHeader";
-import {
-  HardDrive,
-  Upload,
-  Search,
-  FileText,
-  FileSpreadsheet,
-  Image as ImageIcon,
-  File,
-  Download,
-  Trash2,
-  LayoutGrid,
-  List,
-  X,
-  Sparkles,
-  Folder,
-  FolderPlus,
-  Share2,
-  Link2,
-  Check,
-  MessageCircle,
-  Copy,
-  Lock,
-  ShieldCheck,
-  ArrowLeft,
-  ChevronRight,
-} from "lucide-react";
+import { HardDrive, Upload, Search, FileText, FileSpreadsheet, Image as ImageIcon, File, Download, Trash2, LayoutGrid, List, X, Sparkles, Folder, FolderPlus, Share2, Link2, Check, MessageCircle, Copy, Lock, ShieldCheck, ChevronRight } from "lucide-react";
 
 interface ClientFilesTabProps {
   client: Client;
@@ -402,14 +379,7 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
             </h4>
           </div>
           {selectedFolder !== "all" && (
-            <button
-              type="button"
-              onClick={() => setSelectedFolder("all")}
-              className="text-xs font-bold text-[#004ac6] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Ver todas las carpetas</span>
-            </button>
+            <BackButton type="button" onClick={() => setSelectedFolder("all")} label="Volver a todas las carpetas" />
           )}
         </div>
 

@@ -1,4 +1,5 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -8,47 +9,7 @@ import { getEcuadorDate } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
 import { canUser } from "@/lib/permissions";
-import {
-  ArrowLeft,
-  Plus,
-  Trash2,
-  Search,
-  UserPlus,
-  CheckCircle2,
-  Zap,
-  Building2,
-  CreditCard,
-  Banknote,
-  Landmark,
-  Clock,
-  FileCode2,
-  Terminal,
-  ShieldCheck,
-  FolderArchive,
-  Package,
-  AlertCircle,
-  X,
-  UserCheck,
-  Sparkles,
-  Loader2,
-  Receipt,
-  Printer,
-  Download,
-  Copy,
-  Check,
-  Share2,
-  Mail,
-  Send,
-  ChevronDown,
-  ChevronUp,
-  Save,
-  Ban,
-  Percent,
-  DollarSign,
-  Calendar,
-  Tag,
-  ExternalLink,
-} from "lucide-react";
+import { Plus, Trash2, Search, UserPlus, CheckCircle2, Zap, Building2, CreditCard, Banknote, Landmark, Clock, FileCode2, Terminal, ShieldCheck, FolderArchive, Package, AlertCircle, X, UserCheck, Sparkles, Loader2, Receipt, Printer, Download, Copy, Check, Share2, Mail, Send, ChevronDown, ChevronUp, Save, Ban, Percent, DollarSign, Calendar, Tag, ExternalLink } from "lucide-react";
 import {
   generarFacturaXml,
   generarXmlFirmado,
@@ -157,6 +118,8 @@ export function NewSaleView({
 
   const canEditPrices = canUser(currentUser, "facturacion", "canEditPrices");
   const canApplyDiscounts = canUser(currentUser, "facturacion", "canApplyDiscounts");
+  const canCreateQuickProduct = canUser(currentUser, "inventarios", "canCreateProduct");
+  const canCreateQuickService = canUser(currentUser, "inventarios", "canCreateService");
 
   const clientSearchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
@@ -523,14 +486,27 @@ export function NewSaleView({
 
   // Crear Producto Rápido
   const [showQuickProductModal, setShowQuickProductModal] = useState(false);
+  const [quickProdType, setQuickProdType] = useState<"producto" | "servicio">(canCreateQuickProduct ? "producto" : "servicio");
+  const [quickProdCategoryId, setQuickProdCategoryId] = useState("");
   const [quickProdName, setQuickProdName] = useState("");
   const [quickProdSku, setQuickProdSku] = useState("");
   const [quickProdPrice, setQuickProdPrice] = useState("");
   const [quickProdCost, setQuickProdCost] = useState("");
-  const [quickProdStock, setQuickProdStock] = useState("10");
+  const [quickProdStock, setQuickProdStock] = useState("0");
   const [quickProdIva, setQuickProdIva] = useState<0 | 5 | 15>(15);
-  const [quickProdTracksStock, setQuickProdTracksStock] = useState(true);
+  const [quickProdTracksStock, setQuickProdTracksStock] = useState(canCreateQuickProduct);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const quickProductPending = useRef(false);
+  const quickProductCategories = inventoryCategories.filter(category => category.itemType === "ambos" || category.itemType === quickProdType);
+
+  const changeQuickProductType = (type: "producto" | "servicio") => {
+    setQuickProdType(type);
+    setQuickProdTracksStock(type === "producto");
+    setQuickProdStock("0");
+    if (!inventoryCategories.some(category => category.id === quickProdCategoryId && (category.itemType === "ambos" || category.itemType === type))) {
+      setQuickProdCategoryId("");
+    }
+  };
 
   // Diálogo de Validación
   const [validationDialog, setValidationDialog] = useState<{
@@ -1048,39 +1024,57 @@ export function NewSaleView({
 
   const handleSaveQuickProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (quickProductPending.current) return;
+    if (!(quickProdType === "producto" ? canCreateQuickProduct : canCreateQuickService)) {
+      showError("Acceso restringido", "No tienes permiso para crear este tipo de artículo.");
+      return;
+    }
     if (!quickProdName.trim() || !quickProdPrice) {
       showError("Datos incompletos", "Ingresa el nombre y el precio unitario del producto.");
       return;
     }
+    const category = quickProductCategories.find(category => category.id === quickProdCategoryId);
+    if (quickProdCategoryId && !category) {
+      showError("Categoría incompatible", "Selecciona una categoría correspondiente al tipo de artículo.");
+      return;
+    }
+    const tracksStock = quickProdType === "producto" && quickProdTracksStock;
+    const priceNum = Number(quickProdPrice);
+    const costNum = quickProdCost.trim() ? Number(quickProdCost) : 0;
+    const stockNum = tracksStock ? Number(quickProdStock) : 0;
+    if (!Number.isFinite(priceNum) || priceNum <= 0 || !Number.isFinite(costNum) || costNum < 0 || !Number.isInteger(stockNum) || stockNum < 0) {
+      showError("Valores inválidos", "Ingresa un precio mayor que cero, un costo no negativo y existencias en unidades enteras.");
+      return;
+    }
+    if (tracksStock && stockNum > 0 && !inventoryWarehouses.some(warehouse => warehouse.id === warehouseId && warehouse.status === "activo")) {
+      showError("Bodega requerida", "Selecciona una bodega activa para registrar el stock inicial.");
+      return;
+    }
+    quickProductPending.current = true;
     setIsCreatingProduct(true);
     try {
-      const priceNum = Math.max(0, parseFloat(quickProdPrice) || 0);
-      const costNum = Math.max(0, parseFloat(quickProdCost) || priceNum * 0.7);
-      const stockNum = Math.max(0, parseInt(quickProdStock, 10) || 0);
       const skuCode =
         quickProdSku.trim().toUpperCase() ||
-        `PRD-${Math.floor(1000 + Math.random() * 9000)}`;
+        `${quickProdType === "servicio" ? "SRV" : "PRD"}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
       const createdProd = await addInventoryProduct({
         sku: skuCode,
         name: quickProdName.trim(),
-        description: "Creado desde Punto de Venta",
-        categoryId: inventoryCategories[0]?.id || "cat-equipos",
-        categoryName: inventoryCategories[0]?.name || "Equipos",
-        brandId: "brd-generic",
-        brandName: "Genérico",
-        type: quickProdTracksStock ? "producto" : "servicio",
-        unit: "unidad",
+        description: "Creado desde Venta Administrativa",
+        categoryId: category?.id || "",
+        categoryName: category?.name || "",
+        type: quickProdType,
+        unit: quickProdType === "servicio" ? "servicio" : "unidad",
         baseCost: costNum,
         salePrice: priceNum,
         salePriceConIva: priceNum * (1 + quickProdIva / 100),
         taxMode: "EXCLUIDO",
         ivaRate: quickProdIva,
-        minStock: 2,
-        tracksStock: quickProdTracksStock,
-        stock: quickProdTracksStock ? stockNum : 0,
-        stockByWarehouse: quickProdTracksStock ? { [warehouseId]: stockNum } : {},
-        defaultWarehouseId: warehouseId,
+        minStock: tracksStock ? 2 : 0,
+        tracksStock,
+        stock: stockNum,
+        stockByWarehouse: tracksStock && stockNum > 0 ? { [warehouseId]: stockNum } : {},
+        ...(tracksStock && warehouseId ? { defaultWarehouseId: warehouseId } : {}),
         status: "activo",
       });
 
@@ -1090,11 +1084,16 @@ export function NewSaleView({
       setQuickProdSku("");
       setQuickProdPrice("");
       setQuickProdCost("");
-      setQuickProdStock("10");
-      showSuccess("Producto Creado y Añadido", `${createdProd.name} se agregó al carrito.`);
+      setQuickProdStock("0");
+      setQuickProdCategoryId("");
+      setQuickProdType(canCreateQuickProduct ? "producto" : "servicio");
+      setQuickProdTracksStock(canCreateQuickProduct);
+      setQuickProdIva(15);
+      showSuccess(quickProdType === "servicio" ? "Servicio creado y añadido" : "Producto creado y añadido", `${createdProd.name} se guardó en el catálogo y se agregó al carrito.`);
     } catch (err: any) {
-      showError("Error al Crear Producto", err?.message || "No se pudo crear el producto.");
+      showError("No se pudo crear el artículo", err?.message || "No se pudo crear el producto o servicio.");
     } finally {
+      quickProductPending.current = false;
       setIsCreatingProduct(false);
     }
   };
@@ -1734,14 +1733,7 @@ export function NewSaleView({
                 <span>Nueva Nota de Venta</span>
               </button>
 
-              <button
-                type="button"
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Historial</span>
-              </button>
+              <BackButton type="button" onClick={onBack} label="Volver al historial de ventas" />
             </div>
           </div>
         </div>
@@ -2058,21 +2050,11 @@ export function NewSaleView({
       {/* Barra Superior Compacta */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition cursor-pointer"
-            title="Volver al historial de ventas"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+          <BackButton type="button" onClick={onBack} title="Volver al historial de ventas" label="Volver al historial de ventas" />
           <div>
             <h1 className="text-base font-black text-slate-900 tracking-tight">
               Nueva Nota de Venta
             </h1>
-            <p className="text-[11px] text-slate-500">
-              Proceso comercial de ventas, despacho de inventario y registro en finanzas (fuera de Facturación Electrónica)
-            </p>
           </div>
         </div>
 
@@ -2224,11 +2206,11 @@ export function NewSaleView({
 
                       <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-blue-200/60">
                         <a
-                          href={`/clientes?id=${selectedClient.id}&tab=finanzas`}
+                          href={`/clientes?id=${encodeURIComponent(selectedClient.id)}&tab=facturacion`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white text-[#004ac6] border border-blue-200 hover:bg-blue-100/60 shadow-2xs transition cursor-pointer"
-                          title="Abrir historial de facturación y cobros de este cliente en una nueva pestaña"
+                          title="Ver facturas y notas de venta emitidas a este cliente en una nueva pestaña"
                         >
                           <DollarSign className="w-3 h-3 text-[#004ac6] shrink-0" />
                           <span>Historial de Facturación</span>
@@ -2426,6 +2408,7 @@ export function NewSaleView({
                             No se encontraron coincidencias. Usa el botón{" "}
                             <button
                               type="button"
+                              disabled={!canCreateQuickProduct && !canCreateQuickService}
                               onClick={() => {
                                 setShowProductDropdown(false);
                                 setQuickProdName(productSearch);
@@ -2495,7 +2478,8 @@ export function NewSaleView({
                   <button
                     type="button"
                     onClick={() => setShowQuickProductModal(true)}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0"
+                    disabled={!canCreateQuickProduct && !canCreateQuickService}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Package className="w-3.5 h-3.5 text-[#004ac6]" />
                     <span>Crear</span>
@@ -3725,7 +3709,7 @@ export function NewSaleView({
          ======================================================= */}
       {showQuickProductModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-400" />
@@ -3735,6 +3719,7 @@ export function NewSaleView({
               </div>
               <button aria-label="Cerrar"
                 type="button"
+                disabled={isCreatingProduct}
                 onClick={() => setShowQuickProductModal(false)}
                 className="text-slate-400 hover:text-white cursor-pointer"
               >
@@ -3742,6 +3727,24 @@ export function NewSaleView({
               </button>
             </div>
             <form onSubmit={handleSaveQuickProduct} className="p-5 space-y-3">
+              <fieldset disabled={isCreatingProduct} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="quick-product-type" className="block text-[11px] font-bold text-slate-700 mb-1">Tipo de artículo *</label>
+                  <select id="quick-product-type" required value={quickProdType} onChange={e => changeQuickProductType(e.target.value as "producto" | "servicio")} className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300 bg-white">
+                    {canCreateQuickProduct && <option value="producto">Producto</option>}
+                    {canCreateQuickService && <option value="servicio">Servicio</option>}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="quick-product-category" className="block text-[11px] font-bold text-slate-700 mb-1">Categoría</label>
+                  <select id="quick-product-category" value={quickProdCategoryId} onChange={e => setQuickProdCategoryId(e.target.value)} className="w-full text-xs py-2 px-3 rounded-lg border border-slate-300 bg-white">
+                    <option value="">Sin categoría</option>
+                    {quickProductCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {quickProductCategories.length === 0 && <p className="text-[11px] text-slate-500">No hay categorías para este tipo de artículo. Puedes crearlas en Inventarios → Categorías.</p>}
               <div>
                 <label htmlFor="new-sale-view-field-17" className="block text-[11px] font-bold text-slate-700 mb-1">
                   Nombre del Producto o Servicio *
@@ -3822,7 +3825,7 @@ export function NewSaleView({
                   <input id="new-sale-view-field-22"
                     type="number"
                     min="0"
-                    disabled={!quickProdTracksStock}
+                    disabled={quickProdType === "servicio" || !quickProdTracksStock}
                     value={quickProdStock}
                     onChange={(e) => setQuickProdStock(e.target.value)}
                     className="w-full text-xs font-mono py-2 px-2.5 rounded-lg border border-slate-300 disabled:bg-slate-100"
@@ -3833,12 +3836,14 @@ export function NewSaleView({
               <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer pt-1">
                 <input
                   type="checkbox"
+                  disabled={quickProdType === "servicio"}
                   checked={quickProdTracksStock}
-                  onChange={(e) => setQuickProdTracksStock(e.target.checked)}
+                  onChange={(e) => { setQuickProdTracksStock(e.target.checked); if (!e.target.checked) setQuickProdStock("0"); }}
                   className="rounded border-slate-300"
                 />
-                <span>Controlar stock en Kardex (desmarcar si es un servicio)</span>
+                <span>Controlar stock en Kardex</span>
               </label>
+              {quickProdType === "servicio" && <p className="text-[11px] text-slate-500">Los servicios se guardan sin existencias ni movimientos de Kardex.</p>}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
@@ -3856,6 +3861,7 @@ export function NewSaleView({
                   {isCreatingProduct ? "Creando..." : "Crear y Añadir"}
                 </button>
               </div>
+              </fieldset>
             </form>
           </div>
         </div>

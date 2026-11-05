@@ -1,10 +1,11 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Warehouse } from "@/types";
-import { X, Building2, CheckCircle, ArrowLeft } from "lucide-react";
+import { X, Building2, CheckCircle } from "lucide-react";
 
 interface WarehouseModalProps {
   isOpen: boolean;
@@ -92,14 +93,7 @@ export function WarehouseModal({
 
   const headerNode = embedded ? (
     <div className="px-5 py-3.5 border-b border-[#e2e8f0] flex items-center gap-3 bg-white">
-      <button
-        type="button"
-        onClick={onClose}
-        className="px-3 py-1.5 rounded-xl border border-[#e2e8f0] text-xs font-bold text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6] transition-all flex items-center gap-1.5 cursor-pointer"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Volver</span>
-      </button>
+      <BackButton type="button" onClick={onClose} label="Volver" />
       <div className="h-5 w-px bg-slate-200" />
       <div className="flex items-center gap-2">
         <div className="p-2 rounded-xl bg-[#eff4ff] text-[#004ac6]">

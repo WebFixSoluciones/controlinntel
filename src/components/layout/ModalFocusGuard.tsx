@@ -50,7 +50,7 @@ export function ModalFocusGuard() {
       const button = event.target instanceof Element ? event.target.closest("button") : null;
       if (!active || !button || !active.contains(button) || !modified.has(active)) return;
       const label = button.getAttribute("aria-label") || button.getAttribute("title") || button.textContent?.trim();
-      if (!["Cerrar", "Cancelar"].includes(label || "")) return;
+      if (!["Cerrar", "Cancelar"].includes(label || "") && !button.hasAttribute("data-back-button")) return;
       event.preventDefault(); event.stopPropagation();
       if (pendingClose) return;
       pendingClose = true;

@@ -32,6 +32,38 @@ const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificatio
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
 
+test("catalog creation persists the chosen category, product type and initial stock atomically", async () => {
+  const db = new Database({ ...initial(), inventoryCategories: [
+    { id: "equipment", name: "Equipos QA", itemType: "producto" }, { id: "technical", name: "Servicios QA", itemType: "servicio" },
+  ], inventoryWarehouses: [{ id: "warehouse", name: "Bodega QA", status: "activo" }] });
+  const product = await run(db, "createProduct", { name: "Producto QA", sku: "PRD-QA", type: "producto", categoryId: "equipment", categoryName: "Nombre no canónico",
+    unit: "unidad", salePrice: 50, baseCost: 0, ivaRate: 15, tracksStock: true, stockByWarehouse: { warehouse: 3 }, status: "activo" });
+  const saved = db.row("inventoryProducts", product.id);
+  assert.equal(saved.type, "producto"); assert.equal(saved.categoryId, "equipment"); assert.equal(saved.categoryName, "Equipos QA");
+  assert.equal(saved.stock, 3); assert.equal(saved.stockByWarehouse.warehouse, 3); assert.equal(saved.baseCost, 0);
+  assert.equal(db.list("inventoryKardex").length, 1); assert.equal(db.list("inventoryKardex")[0].entryQuantity, 3);
+  assert.equal(db.list("operationLog").length, 1);
+});
+
+test("service and untracked product preserve distinct types without creating stock movements", async () => {
+  const db = new Database({ ...initial(), inventoryCategories: [{ id: "technical", name: "Servicios QA", itemType: "servicio" }, { id: "both", name: "General QA", itemType: "ambos" }] });
+  const service = await run(db, "createProduct", { name: "Servicio QA nuevo", sku: "SRV-NEW", type: "servicio", categoryId: "technical", unit: "servicio",
+    salePrice: 20, baseCost: 0, ivaRate: 0, tracksStock: false, stockByWarehouse: {}, status: "activo" });
+  const product = await run(db, "createProduct", { name: "Producto sin control", sku: "PRD-UNTRACKED", type: "producto", categoryId: "both", unit: "unidad",
+    salePrice: 30, baseCost: 0, ivaRate: 0, tracksStock: false, stockByWarehouse: {}, status: "activo" });
+  assert.equal(db.row("inventoryProducts", service.id).type, "servicio"); assert.equal(db.row("inventoryProducts", service.id).categoryId, "technical");
+  assert.equal(db.row("inventoryProducts", service.id).stock, 0); assert.equal(db.row("inventoryProducts", service.id).unit, "servicio");
+  assert.equal(db.row("inventoryProducts", product.id).type, "producto"); assert.equal(db.row("inventoryProducts", product.id).categoryId, "both");
+  assert.equal(db.list("inventoryKardex").length, 0);
+});
+
+test("incompatible category fails without catalog records, stock or operation log writes", async () => {
+  const db = new Database({ ...initial(), inventoryCategories: [{ id: "equipment", name: "Equipos QA", itemType: "producto" }] });
+  const before = JSON.stringify([...db.rows]);
+  await assert.rejects(run(db, "createProduct", { name: "Servicio incompatible", sku: "SRV-INVALID", type: "servicio", categoryId: "equipment", salePrice: 20, baseCost: 0, ivaRate: 0, tracksStock: false }), /Categoría incompatible/);
+  assert.equal(JSON.stringify([...db.rows]), before);
+});
+
 test("R03: every registered operational collection has a persistence schema; operationLog is read-only",()=>{
   const names=Object.keys(collectionPermissions);assert.ok(names.length>=47);
   for(const name of names.filter(n=>n!=="operationLog"))assert.ok(schemas[name],`Missing schema: ${name}`);

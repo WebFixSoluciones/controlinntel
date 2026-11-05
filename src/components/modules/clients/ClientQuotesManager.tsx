@@ -1,24 +1,11 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, InvoiceItem, ClientQuote } from "@/types";
-import {
-  FileSpreadsheet,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  Printer,
-  ArrowRightLeft,
-  ShoppingCart,
-  X,
-  ArrowLeft,
-  Receipt,
-  Eye,
-  Edit2,
-  Search,
-} from "lucide-react";
+import { FileSpreadsheet, Plus, Trash2, CheckCircle2, Printer, ArrowRightLeft, ShoppingCart, X, Receipt, Eye, Edit2, Search } from "lucide-react";
 import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";
@@ -342,14 +329,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
       <div className="bg-white rounded-xl p-2 sm:p-4 border border-[#e2e8f0] shadow-xs animate-in fade-in">
         <div className="mb-4 flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setConvertingQuote(null)}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition cursor-pointer"
-              title="Volver a Cotizaciones"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+            <BackButton type="button" onClick={() => setConvertingQuote(null)} title="Volver a Cotizaciones" label="Volver a Cotizaciones" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">

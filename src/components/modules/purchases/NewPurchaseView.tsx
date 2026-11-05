@@ -1,26 +1,13 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
+
 import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { parseSupplierSriXml } from "@/lib/purchases-service";
-import {
-  ArrowLeft,
-  UploadCloud,
-  FileText,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  Building2,
-  Boxes,
-  CreditCard,
-  Calendar,
-  Save,
-  FileUp,
-  Receipt,
-  AlertCircle,
-} from "lucide-react";
+import { UploadCloud, FileText, Plus, Trash2, CheckCircle2, Building2, Boxes, CreditCard, Calendar, Save, FileUp, Receipt, AlertCircle } from "lucide-react";
 import { PurchaseItem, PurchasePaymentCondition } from "@/types";
 
 interface NewPurchaseViewProps {
@@ -316,14 +303,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-            title="Volver al Historial"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          <BackButton type="button" onClick={onBack} title="Volver al Historial" label="Volver al Historial" />
           <div>
             <h2 className="text-sm font-bold text-slate-900">
               Nueva Compra
@@ -813,13 +793,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
 
       {/* Bottom Action Footer */}
       <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-        >
-          Cancelar y Volver
-        </button>
+        <BackButton type="button" onClick={onBack} label="Cancelar y Volver" />
 
         <button
           type="submit"

@@ -428,6 +428,7 @@ export const tabPermissions: Record<string, string> = {
   boveda: "manage_vault",
   contratos: "manage_policies", // Arcotel
   cotizaciones: "manage_finance",
+  facturacion: "manage_finance",
   finanzas: "manage_finance",   // Cobros
   tickets: "manage_tickets",
   proyectos: "manage_network",

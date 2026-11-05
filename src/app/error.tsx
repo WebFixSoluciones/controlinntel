@@ -2,8 +2,8 @@
 
 import React, { useEffect } from "react";
 import Image from "next/image";
-import { AlertTriangle, RotateCcw, LayoutDashboard } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle, RotateCcw } from "lucide-react";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function GlobalError({
   error,
@@ -46,13 +46,7 @@ export default function GlobalError({
             <span>Reintentar Operación</span>
           </button>
 
-          <Link
-            href="/"
-            className="w-full py-2.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Regresar al Inicio</span>
-          </Link>
+          <BackButton href="/" label="Regresar al Inicio" />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React from "react";
-import Link from "next/link";
+import { BackButton } from "@/components/ui/BackButton";
 import Image from "next/image";
-import { LayoutDashboard, ArrowLeft, ShieldAlert } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -33,13 +33,7 @@ export default function NotFound() {
         </div>
 
         <div className="pt-2">
-          <Link
-            href="/"
-            className="w-full py-2.5 px-5 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Volver al Dashboard Principal</span>
-          </Link>
+          <BackButton href="/" label="Volver al Dashboard Principal" />
         </div>
       </div>
 

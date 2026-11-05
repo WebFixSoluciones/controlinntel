@@ -1,17 +1,10 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { SecureVault } from "./SecureVault";
-import {
-  KeyRound,
-  ShieldCheck,
-  Search,
-  Users,
-  Lock,
-  ArrowLeft,
-  RotateCcw,
-} from "lucide-react";
+import { KeyRound, ShieldCheck, Search, Users, Lock, RotateCcw } from "lucide-react";
 
 export function VaultManager() {
   const { clients = [], clientVaultItems = [] } = useApp() || {};
@@ -92,13 +85,7 @@ export function VaultManager() {
               {/* Breadcrumb Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 px-6 rounded-xl border border-[#e2e8f0] shadow-2xs">
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedClientId(null)}
-                    className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Volver</span>
-                  </button>
+                  <BackButton onClick={() => setSelectedClientId(null)} label="Volver" />
                   <div className="h-5 w-px bg-slate-200" />
                   <span className="text-xs font-bold text-[#0b1c30]">{selectedClient.businessName}</span>
                   <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded border text-slate-600">

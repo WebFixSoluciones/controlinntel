@@ -1,33 +1,8 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState } from "react";
-import {
-  ArrowLeft,
-  Save,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  Lock,
-  Eye,
-  EyeOff,
-  Boxes,
-  Receipt,
-  Users,
-  ShoppingBag,
-  DollarSign,
-  Network,
-  Kanban,
-  Ticket,
-  FileText,
-  Radio,
-  Settings,
-  ChevronDown,
-  ChevronUp,
-  Check,
-  RotateCcw,
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { Save, Shield, ShieldAlert, ShieldCheck, Lock, Eye, EyeOff, Boxes, Receipt, Users, ShoppingBag, DollarSign, Network, Kanban, Ticket, FileText, Radio, Settings, ChevronDown, ChevronUp, Check, RotateCcw, AlertCircle, Loader2 } from "lucide-react";
 import { SystemUser, UserRole, UserModulePermissions } from "@/types";
 import {
   DEFAULT_MODULE_PERMISSIONS_BY_ROLE,
@@ -227,15 +202,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       {/* Top Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 px-6 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#f8f9ff] hover:bg-[#e2e8f0] text-[#434655] border border-[#e2e8f0] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#737686]" />
-            <span>Volver</span>
-          </button>
+          <BackButton type="button" onClick={onCancel} disabled={isSaving} label="Volver" />
           <div className="h-5 w-px bg-[#e2e8f0]" />
           <h2 className="text-sm font-bold text-[#0b1c30]">
             {user ? user.displayName : "Nuevo Usuario"}

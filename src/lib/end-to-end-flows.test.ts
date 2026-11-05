@@ -2007,14 +2007,14 @@ test("Flujo E2E 33: Autoguardado Continuo de Borrador en Ventas y Apertura de Hi
 
   // 2. Acceso directo a Historial de Facturación en Nueva Pestaña
   assert.ok(
-    newSaleContent.includes('href={`/clientes?id=${selectedClient.id}&tab=finanzas`}') &&
+    newSaleContent.includes('href={`/clientes?id=${encodeURIComponent(selectedClient.id)}&tab=facturacion`}') &&
       newSaleContent.includes('target="_blank"') &&
       newSaleContent.includes('rel="noopener noreferrer"') &&
       newSaleContent.includes("Historial de Facturación"),
     "NewSaleView debe incluir enlace para abrir el historial de facturación del cliente en una nueva pestaña"
   );
 
-  // 3. Clientes: soporte de parámetro ?id=...&tab=finanzas para aterrizar directo en la pestaña
+  // 3. Clientes: soporte de parámetro ?id=...&tab=facturacion para aterrizar directo en la pestaña
   const clientPagePath = path.resolve(rootDir, "src/app/clientes/page.tsx");
   const clientPageContent = fs.readFileSync(clientPagePath, "utf8");
   assert.ok(

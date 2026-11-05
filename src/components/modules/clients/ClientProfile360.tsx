@@ -18,6 +18,8 @@ import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
 import { ClientContactsModal } from "./ClientContactsModal";
 import { ClientFilesTab } from "./ClientFilesTab";
+import { ClientInvoicesTab } from "./ClientInvoicesTab";
+import { canReadCollection } from "@/lib/persistence-contracts";
 import {
   User,
   Radio,
@@ -67,6 +69,7 @@ type ProfileTab =
   | "contratos"
   | "archivos"
   | "cotizaciones"
+  | "facturacion"
   | "finanzas"
   | "tickets"
   | "proyectos"
@@ -290,6 +293,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
     { id: "archivos", label: "Archivos", icon: HardDrive, permission: "manage_clients" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
+    { id: "facturacion", label: "Facturación", icon: FileText, permission: "manage_finance" },
     { id: "finanzas", label: "Cobros", icon: DollarSign, permission: "manage_finance" },
     { id: "tickets", label: "Tickets", icon: TicketIcon, permission: "manage_tickets" },
     { id: "proyectos", label: "Tareas", icon: ListTodo, permission: "manage_network" },
@@ -299,19 +303,19 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   ];
 
   // Regla de Negocio: Si el cliente NO tiene servicios contratados, solo se habilitan
-  // "Identificación", "Servicios" y "Archivos" (para poder adjuntar contratos previos o cédula/RUC).
+  // "Identificación", "Servicios", "Archivos" y el historial de facturación.
   // Una vez que el cliente tome un servicio, se desbloquean automáticamente todas las pestañas.
   const hasServices = services.some((s) => s.status !== "retirado");
 
   const eligibleTabs = allTabs.filter((t) => {
     if (!hasServices) {
-      return t.id === "fiscal" || t.id === "contratos" || t.id === "archivos";
+      return t.id === "fiscal" || t.id === "contratos" || t.id === "archivos" || t.id === "facturacion";
     }
     return true;
   });
 
   // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
-  const authorizedTabs = eligibleTabs.filter((t) => can(currentUser, t.permission));
+  const authorizedTabs = eligibleTabs.filter((t) => t.id === "facturacion" ? canReadCollection(currentUser, "billingInvoices") : can(currentUser, t.permission));
   const currentTabAllowed = authorizedTabs.some((t) => t.id === activeTab);
 
   // Asegurar que si la pestaña activa queda fuera de las permitidas, vuelva a Identificación o Servicios
@@ -697,6 +701,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
 
           {/* TAB 5: COTIZACIONES & ORDENES */}
           {currentTabAllowed && activeTab === "cotizaciones" && <ClientQuotesManager client={client} />}
+
+          {currentTabAllowed && activeTab === "facturacion" && <ClientInvoicesTab key={client.id} client={client} />}
 
           {/* TAB 6: FINANZAS & COBROS */}
           {currentTabAllowed && activeTab === "finanzas" && (

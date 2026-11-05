@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { ToastProvider } from "./toast-context";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { ModalFocusGuard } from "@/components/layout/ModalFocusGuard";
+import { BackButton } from "@/components/ui/BackButton";
 import { normalizeConcession } from "./arcotel-concession";
 import {
   Client,
@@ -3717,12 +3718,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   <p className="text-xs text-slate-500">
                     Tu rol ({currentUser.role}) no tiene asignado el permiso para acceder a esta sección.
                   </p>
-                  <a
-                    href="/"
-                    className="inline-block px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
-                  >
-                    Volver al Dashboard
-                  </a>
+                  <BackButton href="/" label="Volver al Dashboard" />
                 </div>
               </div>
             )

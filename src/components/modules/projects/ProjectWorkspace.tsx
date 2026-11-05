@@ -1,4 +1,5 @@
 "use client";
+import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -11,34 +12,7 @@ import {
 } from "@/types";
 import { ProjectTaskModal } from "./ProjectTaskModal";
 import { ProjectGanttModal } from "./ProjectGanttModal";
-import {
-  ArrowLeft,
-  Kanban,
-  ListTodo,
-  Calendar,
-  TrendingUp,
-  Plus,
-  Search,
-  Filter,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Building2,
-  Radio,
-  User,
-  DollarSign,
-  CheckSquare,
-  MessageSquare,
-  Edit2,
-  Trash2,
-  X,
-  ChevronDown,
-  Layers,
-  Settings2,
-  Briefcase,
-  ExternalLink,
-  FileText,
-} from "lucide-react";
+import { Kanban, ListTodo, Calendar, TrendingUp, Plus, Search, Filter, CheckCircle2, Clock, AlertTriangle, Building2, Radio, User, DollarSign, CheckSquare, MessageSquare, Edit2, Trash2, X, ChevronDown, Layers, Settings2, Briefcase, ExternalLink, FileText } from "lucide-react";
 
 export const COLUMN_COLORS: Record<
   string,
@@ -331,13 +305,7 @@ export function ProjectWorkspace({
       <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
         {/* Navigation Breadcrumb Bar */}
         <div className="px-6 py-3.5 bg-slate-50/80 border-b border-slate-200/70 flex flex-wrap items-center justify-between gap-3">
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#004ac6] transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Volver a la Tabla de Proyectos</span>
-          </button>
+          <BackButton onClick={onBack} label="Volver a la Tabla de Proyectos" />
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-slate-500">ID: {project.id}</span>
