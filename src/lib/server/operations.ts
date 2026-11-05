@@ -10,6 +10,7 @@ import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { recordOperation, redact, digest } from "./operation-log.ts";
 import { simpleDecrypt } from "../crypto-vault.ts";
 import { canReadCollection,storageName } from "../persistence-contracts.ts";
+import { quoteCompanyDetails } from "../quote-company.ts";
 
 const now = () => new Date().toISOString();
 export async function snapshot(user: UserProfile) {
@@ -18,7 +19,8 @@ export async function snapshot(user: UserProfile) {
   await Promise.all(Object.entries(collectionPermissions).map(async ([entity,permission]) => {
     if(entity==="operationLog") {result[entity]=[];return;}
     const readable=canReadCollection(user,entity as Entity);
-    if (!readable) { result[entity]=[]; return; }
+    const commercialIssuer = entity === "sriCompanyConfig" && !readable && (canAccessModule(user, "ventas") || canAccessModule(user, "abonados"));
+    if (!readable && !commercialIssuer) { result[entity]=[]; return; }
     const name = storageName(entity as Entity);
     const query = db.collection(name).orderBy("__name__").limit(500);
     const documents = [];
@@ -37,6 +39,7 @@ export async function snapshot(user: UserProfile) {
     }
     result[entity] = documents.filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
+      if (commercialIssuer) return redact(quoteCompanyDetails(value));
       delete value.passwordHash; delete value.secret; delete value.totpSecret; delete value.pppoePassword;
       if (entity==="systemUsers") value.uid=d.id;
       if (entity==="vault" || entity==="clientVaultItems") delete value.encryptedPassword;
@@ -81,6 +84,9 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   const reference=db.collection(entity).doc(id || randomUUID());
   return db.runTransaction(async tx=>{
     const old=await tx.get(reference);
+    if (entity === "arcotelFiles" && !old.exists && (!input.fileUrl || input.fileUrl === "#")) {
+      throw new HttpError(400, "Carga el archivo original antes de registrar el documento regulatorio.");
+    }
     if (["clientServices","inventoryProducts","inventoryKardex","inventoryTransfers","inventoryAdjustments","bankAccounts","financialMovements","clientAdvances","supplierPayments","supplierCreditNotes","supplierDebitNotes","supplierCredits","expenses"].includes(entity)) throw new HttpError(400,"Utiliza la operación comercial para preservar sus relaciones e historial.");
     if(entity==="clients"&&!old.exists)throw new HttpError(400,"Utiliza el alta de cliente con reserva de identificación.");
     if(entity==="billingInvoices"&&input.documentType==="nota_venta"&&!old.exists)throw new HttpError(400,"Utiliza la emisión comercial.");

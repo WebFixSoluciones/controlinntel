@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { uploadStoredFile } from "@/lib/stored-file-upload";
+import { openStoredFile } from "@/lib/file-download";
 import {
   FileText,
   Download,
@@ -49,44 +51,7 @@ interface CustomTemplate {
 
 const STORAGE_TEMPLATES_KEY = "inntel_custom_templates_v1";
 
-const INITIAL_CUSTOM_TEMPLATES: CustomTemplate[] = [
-  {
-    id: "tmpl-1",
-    name: "Acta de Entrega - Recepción de Equipos ONT",
-    description: "Formulario de firma de conformidad de entrega de módem óptico y credenciales WiFi.",
-    category: "Técnico / Red",
-    fileName: "Acta_Entrega_Equipos_ONT_2026.docx",
-    fileSize: "84 KB",
-    fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    uploadedAt: "2026-02-15",
-    uploadedBy: "Ing. Diego Cárdenas",
-    version: 1,
-  },
-  {
-    id: "tmpl-2",
-    name: "Formulario de Solicitud de Traspaso de Línea",
-    description: "Documento de cesión de derechos contractuales y traspaso de acometida.",
-    category: "Contratos",
-    fileName: "Solicitud_Traspaso_Cesion_Derechos.pdf",
-    fileSize: "128 KB",
-    fileType: "application/pdf",
-    uploadedAt: "2026-03-01",
-    uploadedBy: "Lic. Elena Andrade",
-    version: 1,
-  },
-  {
-    id: "tmpl-3",
-    name: "Checklist de Mantenimiento Preventivo OLT / FTTx",
-    description: "Guía de campo para calibración de puertos PON y limpieza de conectores SC/APC.",
-    category: "Técnico / Red",
-    fileName: "Checklist_NOC_Preventivo_OLT.xlsx",
-    fileSize: "62 KB",
-    fileType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    uploadedAt: "2026-03-10",
-    uploadedBy: "Tec. Roberto Valarezo",
-    version: 1,
-  },
-];
+const INITIAL_CUSTOM_TEMPLATES: CustomTemplate[] = [];
 
 export function TemplateGenerator() {
   const { clients, clientServices, nodes, policies, monthlyCharges, currentUser } = useApp();
@@ -127,17 +92,9 @@ export function TemplateGenerator() {
   }, []);
 
   const saveCustomTemplates = (updated: CustomTemplate[]) => {
+    try { localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(updated)); }
+    catch { throw new Error("No se pudieron guardar las referencias. Libera espacio del navegador y vuelve a intentar; no se eliminó el archivo anterior."); }
     setCustomTemplates(updated);
-    try {
-      localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(updated));
-    } catch (e) {
-      try {
-        const light = updated.map((t) => ({ ...t, fileData: undefined }));
-        localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(light));
-      } catch (err) {
-        console.warn("Storage quota exceeded", err);
-      }
-    }
   };
 
   const handleDownloadContract = async () => {
@@ -211,20 +168,7 @@ export function TemplateGenerator() {
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("folder", "templates");
-
-      const res = await fetch("/api/blob/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error("Error en el servidor al subir el archivo.");
-      }
-
-      const data = await res.json();
+      const data = await uploadStoredFile(selectedFile, "templates");
       const sizeKb = Math.round(selectedFile.size / 1024);
 
       const newTmpl: CustomTemplate = {
@@ -235,7 +179,7 @@ export function TemplateGenerator() {
         fileName: selectedFile.name,
         fileSize: sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`,
         fileType: selectedFile.type || "application/octet-stream",
-        fileData: data.url || data.downloadUrl,
+        fileData: data.url,
         uploadedAt: new Date().toISOString().split("T")[0],
         uploadedBy: currentUser.displayName || "Administrador",
         version: 1,
@@ -280,37 +224,17 @@ export function TemplateGenerator() {
 
       // Si el usuario subió una actualización del archivo (Word, Excel, etc.)
       if (editReplacementFile) {
-        const formData = new FormData();
-        formData.append("file", editReplacementFile);
-        formData.append("folder", "templates");
-
-        const res = await fetch("/api/blob/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          throw new Error("Error en el servidor al subir la actualización del archivo.");
-        }
-
-        const data = await res.json();
+        const data = await uploadStoredFile(editReplacementFile, "templates");
         const sizeKb = Math.round(editReplacementFile.size / 1024);
 
         updatedFileName = editReplacementFile.name;
         updatedFileSize = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
         updatedFileType = editReplacementFile.type || "application/octet-stream";
-        updatedFileData = data.url || data.downloadUrl;
+        updatedFileData = data.url;
         didReplaceFile = true;
 
-        // Limpiar archivo anterior de blob si era remoto
-        if (
-          editingTemplate.fileData?.startsWith("https://") &&
-          editingTemplate.fileData.includes(".blob.vercel-storage.com")
-        ) {
-          fetch(`/api/blob/upload?url=${encodeURIComponent(editingTemplate.fileData)}`, {
-            method: "DELETE",
-          }).catch(() => null);
-        }
+        // Keep the previous original: other browser references may still use it.
+
       }
 
       const todayStr = new Date().toISOString().split("T")[0];
@@ -349,43 +273,23 @@ export function TemplateGenerator() {
     }
   };
 
-  const handleDownloadCustom = (tmpl: CustomTemplate) => {
-    if (tmpl.fileData) {
-      if (tmpl.fileData.startsWith("http")) {
-        const link = document.createElement("a");
-        link.href = tmpl.fileData;
-        link.download = tmpl.fileName;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        const link = document.createElement("a");
-        link.href = tmpl.fileData;
-        link.download = tmpl.fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+  const handleDownloadCustom = async (tmpl: CustomTemplate) => {
+    try {
+      await openStoredFile(tmpl.fileData, tmpl.fileName);
       showSuccess("Descargando", `Se ha iniciado la descarga de ${tmpl.fileName}.`);
-    } else {
-      const blob = new Blob([`Contenido de plantilla: ${tmpl.name}\nINNTEL CORP S.A.`], { type: "text/plain" });
-      triggerBrowserDownload(blob, tmpl.fileName);
-      showSuccess("Descargando", `Descargando archivo institucional ${tmpl.fileName}.`);
+    } catch (error) {
+      showError("Original no disponible", error instanceof Error ? error.message : "Vuelve a cargar el archivo original.");
     }
   };
 
   const handleDeleteCustom = async (id: string, name: string) => {
-    const tmplToDelete = customTemplates.find((t) => t.id === id);
-    if (tmplToDelete?.fileData?.startsWith("https://")) {
-      fetch(`/api/blob/upload?url=${encodeURIComponent(tmplToDelete.fileData)}`, {
-        method: "DELETE",
-      }).catch(() => null);
+    try {
+      // Remove the local reference only after persisting the updated list.
+      saveCustomTemplates(customTemplates.filter(t => t.id !== id));
+      showSuccess("Plantilla retirada", `Se retiró "${name}" del listado de este navegador.`);
+    } catch (error) {
+      showError("No se pudo retirar", error instanceof Error ? error.message : "Intenta nuevamente.");
     }
-    const updated = customTemplates.filter((t) => t.id !== id);
-    saveCustomTemplates(updated);
-    showSuccess("Archivo Eliminado", `Se ha removido "${name}" del repositorio.`);
   };
 
   const SYSTEM_TEMPLATES = useMemo(

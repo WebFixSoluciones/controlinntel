@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { ToastProvider } from "./toast-context";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { ModalFocusGuard } from "@/components/layout/ModalFocusGuard";
+import { normalizeConcession } from "./arcotel-concession";
 import {
   Client,
   ClientService,
@@ -578,7 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
           if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems.filter(Boolean).map(vaultMetadata));
           if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
-          if (p.arcotelConcession) setArcotelConcession(sanitizeObjectTexts(p.arcotelConcession));
+          setArcotelConcession(normalizeConcession(sanitizeObjectTexts(p.arcotelConcession)));
           if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
           if (Array.isArray(p.clientDocuments)) setClientDocuments(p.clientDocuments);
           if (Array.isArray(p.inventoryProducts)) setInventoryProducts(p.inventoryProducts);
@@ -920,7 +921,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     if (serverSnapshot.sriCompanyConfig?.[0]) setSriCompanyConfig(serverSnapshot.sriCompanyConfig[0]);
     const concession = serverSnapshot.systemConfig?.find((row: any) => row.id === "arcotelConcession");
-    if (concession) setArcotelConcession(concession);
+    setArcotelConcession(normalizeConcession(concession));
     setLoadError("");
     setDataReady(true);
   }, []);
@@ -1570,7 +1571,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addArcotelFile = async (fileData: Omit<ArcotelPeriodicFile, "id" | "uploadedAt">) => {
     const newFile: ArcotelPeriodicFile = {
       ...fileData,
-      id: "arc-" + Date.now(),
+      id: "arc-" + crypto.randomUUID(),
       uploadedAt: new Date().toISOString(),
     };
     await syncToFirestore("arcotelFiles", newFile.id, newFile);

@@ -170,7 +170,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <p className="text-xs text-blue-100">Registro de soporte técnico e incidencias de clientes</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">
+          <button type="button" aria-label="Cerrar" onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

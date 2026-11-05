@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useToast } from "@/lib/toast-context";
 import { useApp } from "@/lib/state";
+import { bankTransferDetailsSchema, emptyBankTransferDetails } from "@/lib/bank-transfer-details";
 import {
   Building2,
   Globe,
@@ -18,7 +19,9 @@ import {
 
 export function GeneralSettingsView() {
   const { showSuccess, showError } = useToast();
-  const { sriCompanyConfig, updateSriConfig } = useApp();
+  const { sriCompanyConfig, updateSriConfig, bankAccounts } = useApp();
+  const [bankDetails, setBankDetails] = useState(() => ({ ...emptyBankTransferDetails(), ...sriCompanyConfig.bankTransferDetails }));
+  const [selectedBankId, setSelectedBankId] = useState("");
 
   const [companyName, setCompanyName] = useState(sriCompanyConfig?.razonSocial || "INNTEL CORP S.A.");
   const [tradeName, setTradeName] = useState(sriCompanyConfig?.nombreComercial || "INNTEL CORP - SOLUCIONES INTEGRALES");
@@ -34,6 +37,12 @@ export function GeneralSettingsView() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    const banking = bankTransferDetailsSchema.safeParse(bankDetails);
+    if (!banking.success) {
+      showError("Revisa los datos bancarios", banking.error.issues[0]?.message || "Completa los campos requeridos.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       await updateSriConfig({
@@ -45,6 +54,7 @@ export function GeneralSettingsView() {
         telefonoContacto: phone,
         representanteLegal: representative.trim(),
         website: website.trim(),
+        bankTransferDetails: banking.data,
       });
       showSuccess(
         "Configuración Guardada",
@@ -209,6 +219,45 @@ export function GeneralSettingsView() {
             </div>
           </div>
         </div>
+
+        <section className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4 lg:col-span-2">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+            <Building2 className="w-4 h-4 text-[#004ac6]" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">Datos bancarios para transferencias</h2>
+          </div>
+          <p className="text-xs text-slate-500">Estos datos se imprimen en las cotizaciones. Puedes copiar una cuenta de Finanzas → Bancos o ingresarlos manualmente.</p>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <input type="checkbox" checked={bankDetails.enabled} onChange={e => setBankDetails(prev => ({ ...prev, enabled: e.target.checked }))} />
+            Mostrar datos bancarios en las cotizaciones
+          </label>
+          <div>
+            <label htmlFor="quote-bank-source" className="block text-xs font-semibold text-slate-700 mb-1">Copiar una cuenta registrada (opcional)</label>
+            <select id="quote-bank-source" value={selectedBankId} className="w-full text-xs rounded-lg border border-slate-300 p-2.5" onChange={e => {
+              setSelectedBankId(e.target.value);
+              const account = bankAccounts.find(bank => bank.id === e.target.value);
+              if (account && account.accountType !== "caja_efectivo") setBankDetails(prev => ({ ...prev, bankName: account.bankName, accountType: account.accountType as "corriente" | "ahorros", accountNumber: account.accountNumber }));
+            }}>
+              <option value="">Ingresar manualmente</option>
+              {bankAccounts.filter(bank => bank.status === "activa" && bank.accountType !== "caja_efectivo").map(bank => <option key={bank.id} value={bank.id}>{bank.bankName} · {bank.accountType} · {bank.accountNumber}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {([
+              ["bankName", "Banco", "text"], ["accountNumber", "Número de cuenta", "text"],
+              ["holderName", "Titular de la cuenta", "text"], ["holderIdentification", "Identificación del titular (RUC / CI)", "text"],
+              ["confirmationEmail", "Correo para confirmar transferencias (opcional)", "email"],
+            ] as const).map(([key, label, type]) => <div key={key}>
+              <label htmlFor={`transfer-${key}`} className="block text-xs font-semibold text-slate-700 mb-1">{label}{bankDetails.enabled && key !== "confirmationEmail" ? " *" : ""}</label>
+              <input id={`transfer-${key}`} type={type} value={bankDetails[key]} required={bankDetails.enabled && key !== "confirmationEmail"} maxLength={key === "confirmationEmail" ? 254 : key === "accountNumber" ? 60 : key === "holderIdentification" ? 30 : 150} onChange={e => { setSelectedBankId(""); setBankDetails(prev => ({ ...prev, [key]: e.target.value })); }} className="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:ring-2 focus:ring-[#004ac6] outline-hidden" />
+            </div>)}
+            <div>
+              <label htmlFor="transfer-account-type" className="block text-xs font-semibold text-slate-700 mb-1">Tipo de cuenta{bankDetails.enabled ? " *" : ""}</label>
+              <select id="transfer-account-type" value={bankDetails.accountType} required={bankDetails.enabled} onChange={e => { setSelectedBankId(""); setBankDetails(prev => ({ ...prev, accountType: e.target.value as typeof prev.accountType })); }} className="w-full text-xs rounded-lg border border-slate-300 p-2.5">
+                <option value="">Seleccionar tipo de cuenta</option><option value="corriente">Corriente</option><option value="ahorros">Ahorros</option>
+              </select>
+            </div>
+          </div>
+        </section>
 
         {/* Preferencias del Sistema */}
         <div className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-4 lg:col-span-2">

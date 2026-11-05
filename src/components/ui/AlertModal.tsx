@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, XCircle, Info, Loader2 } from "lucide-react";
 
 export interface AlertModalState {
@@ -21,11 +22,32 @@ interface AlertModalProps {
 
 export function AlertModal({ modal, onClose }: AlertModalProps) {
   const [loading, setLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const executing = useRef(false);
+  const titleId = useId();
+  const messageId = useId();
+
+  useEffect(() => { setActionError(""); }, [modal]);
+  useEffect(() => {
+    if (!modal.isOpen) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (executing.current) return;
+      modal.onCancel?.();
+      onClose();
+    };
+    document.addEventListener("keydown", escape, true);
+    return () => document.removeEventListener("keydown", escape, true);
+  }, [modal, onClose]);
 
   if (!modal.isOpen) return null;
 
   const handleConfirm = async () => {
-    if (loading) return;
+    if (executing.current) return;
+    executing.current = true;
+    setActionError("");
     if (modal.onConfirm) {
       try {
         setLoading(true);
@@ -35,23 +57,25 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
         }
         onClose();
       } catch (err) {
-        console.error("Error executing modal confirm action:", err);
+        setActionError(err instanceof Error ? err.message : "No se pudo completar la acción. Intenta nuevamente.");
       } finally {
         setLoading(false);
+        executing.current = false;
       }
     } else {
       onClose();
+      executing.current = false;
     }
   };
 
   const handleCancel = () => {
-    if (loading) return;
+    if (executing.current) return;
     if (modal.onCancel) modal.onCancel();
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+  return createPortal(
+    <div role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={messageId} aria-busy={loading} className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lumina-dropdown border border-[#e2e8f0] overflow-hidden transform animate-in zoom-in-95 duration-150">
         <div className="p-6 text-center space-y-3">
           {/* Icon Badge */}
@@ -83,14 +107,17 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
             )}
           </div>
 
-          <h3 className="text-base font-bold text-[#0b1c30] tracking-tight">{modal.title}</h3>
-          <p className="text-xs text-[#434655] leading-relaxed font-medium">{modal.message}</p>
+          <h3 id={titleId} className="text-base font-bold text-[#0b1c30] tracking-tight">{modal.title}</h3>
+          <p id={messageId} className="text-xs text-[#434655] leading-relaxed font-medium whitespace-pre-line">{modal.message}</p>
+          {actionError && <p role="alert" className="text-xs text-rose-700">{actionError}</p>}
         </div>
 
         {/* Buttons Footer */}
         <div className="p-4 bg-[#f8f9ff] border-t border-[#e2e8f0] flex items-center justify-end gap-2.5">
           {(modal.type === "confirm" || modal.cancelText) && (
             <button
+              type="button"
+              data-dialog-autofocus
               onClick={handleCancel}
               disabled={loading}
               className="px-4 py-2 rounded-lg text-xs font-bold text-[#737686] hover:bg-[#e5eeff] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -100,6 +127,8 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
           )}
 
           <button
+            type="button"
+            data-dialog-autofocus={modal.type !== "confirm" && !modal.cancelText ? "" : undefined}
             onClick={handleConfirm}
             disabled={loading}
             className={`px-5 py-2.5 rounded-lg text-xs font-bold text-white shadow-xs transition-all cursor-pointer flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
@@ -115,6 +144,6 @@ export function AlertModal({ modal, onClose }: AlertModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>, document.body,
   );
 }

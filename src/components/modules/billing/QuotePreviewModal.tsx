@@ -22,6 +22,7 @@ import {
   numeroALetrasDolares,
 } from "@/lib/sri-service";
 import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
+import { printableBankTransferDetails } from "@/lib/bank-transfer-details";
 
 interface QuotePreviewModalProps {
   isOpen?: boolean;
@@ -145,6 +146,7 @@ export function QuotePreviewModal({
   }
 
   const emisor = companyConfig || DEFAULT_INNTEL_SRI_CONFIG;
+  const transferDetails = printableBankTransferDetails(emisor.bankTransferDetails);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150 print:p-0 print:bg-white print:static print:overflow-visible print:block">
@@ -267,36 +269,17 @@ export function QuotePreviewModal({
                       <span className="font-bold text-slate-900">Correo Electrónico:</span>{" "}
                       {emisor.emailNotificaciones || "facturacion@inntelcorp.com"}
                     </p>
-                    <p>
-                      <span className="font-bold text-slate-900">OBLIGADO A LLEVAR CONTABILIDAD:</span>{" "}
-                      <span className="font-bold text-slate-900">
-                        {emisor.obligadoContabilidad ? "SI" : "NO"}
-                      </span>
-                    </p>
-                    {emisor.tipoContribuyente && (
-                      <p>
-                        <span className="font-bold text-slate-900">Contribuyente Régimen:</span>{" "}
-                        <span className="font-semibold uppercase">
-                          {emisor.tipoContribuyente.replace("_", " ")}
-                        </span>
-                      </p>
-                    )}
-                    {emisor.resolucionAgenteRetencion && (
-                      <p>
-                        <span className="font-bold text-slate-900">Agente de Retención Resolución No.:</span>{" "}
-                        {emisor.resolucionAgenteRetencion}
-                      </p>
-                    )}
+                    <p className="pt-2 text-[10px] font-semibold tracking-wide text-slate-500">DOCUMENTO SIN VALIDEZ TRIBUTARIA</p>
                   </div>
                 </div>
 
                 {/* Columna Derecha: Recuadro Oficial Contífico */}
-                <div className="p-4 rounded-lg border-2 border-slate-900 space-y-2.5 bg-white text-slate-900">
+                <div className="p-4 rounded-lg border border-slate-300 space-y-2 bg-white text-slate-900">
                   <div className="border-b border-slate-200 pb-2">
-                    <p className="text-xs font-black tracking-wider text-slate-900">
+                    <p className="text-xs font-semibold tracking-wide text-slate-700">
                       R.U.C.: {emisor.ruc || "1792458921001"}
                     </p>
-                    <h3 className="text-base font-black text-[#004ac6] tracking-tight uppercase mt-0.5">
+                    <h3 className="text-sm font-bold text-[#004ac6] tracking-tight uppercase mt-0.5">
                       COTIZACIÓN / PROFORMA
                     </h3>
                     <p className="text-xs font-mono font-bold text-slate-900">
@@ -313,20 +296,6 @@ export function QuotePreviewModal({
                       <span className="font-bold text-slate-900">FECHA DE VIGENCIA:</span>
                       <span className="font-semibold text-slate-900">{fechaVigencia}</span>
                     </p>
-                    <p className="flex justify-between">
-                      <span className="font-bold text-slate-900">VALIDEZ DE LA OFERTA:</span>
-                      <span className="font-bold text-slate-900">30 DÍAS CALENDARIO</span>
-                    </p>
-                    <p className="flex justify-between">
-                      <span className="font-bold text-slate-900">TIPO DE DOCUMENTO:</span>
-                      <span className="font-medium text-slate-600">PROFORMA COMERCIAL</span>
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200 text-center">
-                    <span className="text-[10px] text-slate-500 font-medium italic block">
-                      Documento comercial sin validez tributaria ante el SRI
-                    </span>
                   </div>
                 </div>
               </div>
@@ -485,20 +454,12 @@ export function QuotePreviewModal({
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-200 space-y-0.5 text-[10px] text-slate-600">
-                      <p className="font-bold text-slate-800 uppercase">
-                        Datos Bancarios para Transferencias:
-                      </p>
-                      <p>
-                        <strong>Banco:</strong> Banco Pichincha | <strong>Cta. Corriente:</strong> 2100234567
-                      </p>
-                      <p>
-                        <strong>Titular:</strong> INNTEL CORP S.A. | <strong>RUC:</strong> 1792458921001
-                      </p>
-                      <p>
-                        <strong>Confirmaciones:</strong> pagos@inntelcorp.com
-                      </p>
-                    </div>
+                    {transferDetails && <div className="pt-2 border-t border-slate-200 space-y-0.5 text-[10px] text-slate-600">
+                      <p className="font-bold text-slate-800 uppercase">Datos bancarios para transferencias:</p>
+                      <p><strong>Banco:</strong> {transferDetails.bankName} | <strong>Cuenta {transferDetails.accountType === "ahorros" ? "de ahorros" : "corriente"}:</strong> {transferDetails.accountNumber}</p>
+                      <p><strong>Titular:</strong> {transferDetails.holderName} | <strong>RUC / CI:</strong> {transferDetails.holderIdentification}</p>
+                      {transferDetails.confirmationEmail && <p><strong>Confirmaciones:</strong> {transferDetails.confirmationEmail}</p>}
+                    </div>}
                   </div>
                 </div>
 

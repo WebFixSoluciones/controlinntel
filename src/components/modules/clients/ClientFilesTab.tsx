@@ -1,4 +1,5 @@
 "use client";
+import { uploadStoredFile } from "@/lib/stored-file-upload";
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Client, ClientDocumentFile } from "@/types";
@@ -266,24 +267,8 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
         }
       }
 
-      let fileUrl = "";
-
-      const formData = new FormData();
-      formData.append("file", fileToUpload);
-      formData.append("folder", `clients/${client.id}/documents`);
-
-      const res = await fetch("/api/blob/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "No se pudo almacenar el archivo en el servidor.");
-      }
-      const data = await res.json();
-      fileUrl = data.url || data.downloadUrl || "";
-      if (!fileUrl) throw new Error("El servidor no devolvió la ubicación del archivo.");
+      const data = await uploadStoredFile(fileToUpload, `clients/${client.id}/documents`);
+      const fileUrl = data.url;
 
       // Mapeo retrocompatible para documentType (contrato_adhesion, cedula_ruc, acta_entrega, etc.)
       const lowerFolder = uploadFolder.toLowerCase();

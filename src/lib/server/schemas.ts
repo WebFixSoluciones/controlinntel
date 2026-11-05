@@ -2,6 +2,7 @@ import { z } from "zod";
 import { validateIdentification } from "../validation-engine.ts";
 import { validDate } from "../commercial-core.ts";
 import { nodeSchema } from "../node-schema.ts";
+import { bankTransferDetailsSchema } from "../bank-transfer-details.ts";
 
 const text = z.string().trim().min(1).max(500);
 const optionalText = z.string().trim().max(500).optional();
@@ -211,6 +212,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
     .object({
       ruc: text,
       razonSocial: text,
+      bankTransferDetails: bankTransferDetailsSchema.optional(),
     })
     .passthrough(),
 

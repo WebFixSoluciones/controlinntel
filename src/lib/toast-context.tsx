@@ -99,7 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
       <ToastNotificationContainer toasts={toasts} onDismiss={dismissToast} />
-      <AlertModal modal={modal} onClose={() => setModal((prev) => ({ ...prev, isOpen: false }))} />
+      <AlertModal modal={modal} onClose={() => setModal((prev) => prev === modal ? { ...prev, isOpen: false } : prev)} />
     </ToastContext.Provider>
   );
 }

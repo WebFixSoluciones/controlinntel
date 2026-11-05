@@ -1180,10 +1180,9 @@ test("Flujo E2E 21: Limpieza de Ficha de Servicios/Documentos y Eliminación de 
       !mockDataContent.includes("Permiso Ãšnico") &&
       !mockDataContent.includes("NÃºmero de TrÃ¡mite") &&
       !mockDataContent.includes("ResoluciÃ³n ARCOTEL") &&
-      mockDataContent.includes("Permiso Único para Prestación de Servicios del Régimen General de Telecomunicaciones") &&
-      mockDataContent.includes("Número de Trámite Quipux") &&
-      mockDataContent.includes("Resolución ARCOTEL Matriz"),
-    "mock-data.ts debe contener caracteres limpios en español sin mojibake"
+      !mockDataContent.includes("CON-SVA-2024-089") &&
+      !mockDataContent.includes("ARCOTEL-CZT4-2026-0422-M"),
+    "mock-data.ts debe conservar textos limpios y no precargar una concesión ficticia"
   );
 
   // 10. ARCOTEL: Título superior y contador eliminados para subir directamente las pestañas
@@ -2056,7 +2055,7 @@ test("Flujo E2E 34: Pestaña 'Archivos' (Mini Drive) en Perfil del Cliente para 
   );
 
   assert.ok(
-    filesTabContent.includes("/api/blob/upload") &&
+    filesTabContent.includes("uploadStoredFile") &&
       filesTabContent.includes("table-fixed") &&
       filesTabContent.includes("bg-[#004ac6] text-white"),
     "ClientFilesTab debe implementar subida a blob, Master Modal corporativo y tabla fija"

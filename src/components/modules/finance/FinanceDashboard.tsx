@@ -884,16 +884,14 @@ export function FinanceDashboard({
                               <button
                                 type="button"
                                 title="Devolver saldo disponible del anticipo"
-                                onClick={async () => {
-                                  if (confirm(`¿Devolver $${adv.remaining} disponibles de ${adv.clientName} a través de su cuenta de origen? Se registrará un egreso y se conservará el historial.`)) {
+                                onClick={() => showConfirm("Devolver saldo del anticipo", `¿Devolver $${adv.remaining.toFixed(2)} disponibles de ${adv.clientName} a través de su cuenta de origen? Se registrará un egreso y se conservará el historial.`, async () => {
                                     try {
                                       await deleteClientAdvance(adv.id);
                                       showSuccess("Devolución registrada", "Se devolvió el saldo disponible y se conservó su historial.");
                                     } catch (err) {
                                       showError("Error", err instanceof Error ? err.message : "No se pudo eliminar.");
                                     }
-                                  }
-                                }}
+                                }, "Registrar devolución")}
                                 className="p-1 text-rose-500 hover:text-rose-700 rounded transition cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

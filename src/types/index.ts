@@ -308,6 +308,9 @@ export type ArcotelSubsystem =
 
 export interface ArcotelPeriodicFile {
   id: string;
+  clientId?: string;
+  byteSize?: number;
+  sha256?: string;
   subsystem: ArcotelSubsystem;
   fileName: string;
   fileSize: string;

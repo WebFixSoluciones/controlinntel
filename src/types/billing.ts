@@ -20,7 +20,18 @@ export type SriEnvironment = "1" | "2"; // 1: Pruebas, 2: Producción
  */
 export type SaleChannel = "mostrador" | "servicio";
 
+export interface BankTransferDetails {
+  enabled: boolean;
+  bankName: string;
+  accountType: "" | "corriente" | "ahorros";
+  accountNumber: string;
+  holderName: string;
+  holderIdentification: string;
+  confirmationEmail: string;
+}
+
 export interface SriCompanyConfig {
+  bankTransferDetails?: BankTransferDetails;
   representanteLegal?: string;
   website?: string;
   id: string;

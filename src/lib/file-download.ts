@@ -1,43 +1,34 @@
 import { auth } from "./firebase";
 
-/**
- * Abre o descarga un archivo del expediente.
- *
- * Los documentos de cliente viven en blobs privados y se sirven por
- * /api/blob/download, que exige un ID token. Por eso no se puede usar un <a href>
- * directo: se descarga con cabecera Authorization y se abre el objeto resultante.
- */
+/** Download the real bytes, never generate substitute content with an Office extension. */
 export async function openStoredFile(url: string | undefined, fallbackName = "documento") {
-  if (!url) throw new Error("El registro no tiene archivo asociado.");
-
-  const isPrivateEndpoint = url.startsWith("/api/blob/download");
-  if (!isPrivateEndpoint) {
-    const opened = window.open(url, "_blank", "noopener,noreferrer");
-    if (!opened) throw new Error("El navegador bloqueó la ventana emergente.");
-    return;
+  if (!url || url === "#") throw new Error("El registro no tiene el archivo original. Vuelve a cargarlo.");
+  const resolved = new URL(url, window.location.origin);
+  const privateEndpoint = resolved.origin === window.location.origin && resolved.pathname === "/api/blob/download";
+  if (!privateEndpoint && resolved.protocol !== "https:" && resolved.protocol !== "data:") throw new Error("Referencia de archivo no permitida.");
+  const headers: Record<string, string> = {};
+  if (privateEndpoint) {
+    const user = auth.currentUser;
+    if (!user) throw new Error("Inicia sesión para descargar el archivo.");
+    headers.Authorization = "Bearer " + await user.getIdToken();
   }
-
-  const user = auth.currentUser;
-  if (!user) throw new Error("Inicia sesión para descargar el archivo.");
-
-  const response = await fetch(url, {
-    headers: { Authorization: "Bearer " + (await user.getIdToken()) },
-    cache: "no-store",
-  });
+  const response = await fetch(resolved.href, { headers, cache: "no-store" });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload?.error || "No se pudo descargar el archivo.");
+    throw new Error(payload?.error || "No se pudo descargar el archivo original.");
   }
-
-  const blob = await response.blob();
+  const bytes = await response.arrayBuffer();
+  if (!bytes.byteLength) throw new Error("El archivo almacenado está vacío. Vuelve a cargar el original.");
+  const expectedHash = privateEndpoint ? response.headers.get("X-Content-SHA256") : null;
+  if (expectedHash) {
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))).map(value => value.toString(16).padStart(2, "0")).join("");
+    if (hash !== expectedHash) throw new Error("La descarga no está completa. Intenta nuevamente.");
+  }
+  const blob = new Blob([bytes], { type: response.headers.get("Content-Type") || "application/octet-stream" });
   const objectUrl = URL.createObjectURL(blob);
-  const disposition = response.headers.get("Content-Disposition") || "";
-  const match = disposition.match(/filename="([^"]+)"/);
   const link = document.createElement("a");
   link.href = objectUrl;
-  link.download = match?.[1] || fallbackName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  link.download = fallbackName;
+  document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
 }

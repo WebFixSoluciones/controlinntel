@@ -7,6 +7,8 @@ import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem, Client } from "@/
 import { cleanMojibake, sanitizeObjectTexts } from "@/lib/sanitize-text";
 import { PoliciesList } from "./PoliciesList";
 import { PolicyModal } from "./PolicyModal";
+import { uploadStoredFile } from "@/lib/stored-file-upload";
+import { openStoredFile } from "@/lib/file-download";
 import {
   ShieldCheck,
   FileSpreadsheet,
@@ -80,31 +82,16 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   const [uploadNotes, setUploadNotes] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
-  const triggerRealDownload = (url?: string, filename?: string) => {
+  const triggerRealDownload = async (url?: string, filename?: string) => {
     const name = filename || "documento_arcotel";
     if (!url || url === "#") {
-      const textContent = `CONTROL INNTEL - EXPEDIENTE REGULATORIO ARCOTEL\nDocumento: ${name}\nFecha: ${new Date().toLocaleString("es-EC")}\nCertificación de Archivo Institucional`;
-      const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = name.includes(".") ? name : `${name}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-      showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+      showError("Original no disponible", "Este registro antiguo solo contiene el nombre del archivo. Vuelve a cargar el original para poder descargarlo.");
       return;
     }
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = name;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+    try {
+      await openStoredFile(url, name);
+      showSuccess("Descarga Iniciada", `Descargando: ${name}`);
+    } catch (error) { showError("No se pudo descargar", error instanceof Error ? error.message : "Revisa el archivo original."); }
   };
   const [busy, setBusy] = useState(false);
 
@@ -136,6 +123,10 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
   const handleSaveConcession = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (![15, 30, 45, 60].includes(concessionForm.reminderDays)) {
+      showError("Recordatorio requerido", "Selecciona con cuántos días de anticipación deseas recibir el recordatorio.");
+      return;
+    }
     try {
       await updateArcotelConcession(sanitizeObjectTexts(concessionForm));
       showSuccess("Concesión Actualizada", "Datos del título habilitante ARCOTEL guardados.");
@@ -184,11 +175,11 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
     if (subsystem === "sietel_lopam") {
       setUploadPeriod(`Semana ${Math.ceil(new Date().getDate() / 7)} - ${new Date().getFullYear()}`);
     } else if (subsystem === "fodetel") {
-      setUploadPeriod(`Trimestre III - ${new Date().getFullYear()}`);
+      setUploadPeriod(`Trimestre ${Math.floor(new Date().getMonth() / 3) + 1} - ${new Date().getFullYear()}`);
     } else if (subsystem === "contingencia") {
       setUploadPeriod(`Vigencia Anual ${new Date().getFullYear()}`);
     } else {
-      setUploadPeriod(`Septiembre ${new Date().getFullYear()}`);
+      setUploadPeriod(new Date().toLocaleDateString("es-EC", { month: "long", year: "numeric" }));
     }
 
     setIsFileModalOpen(true);
@@ -196,6 +187,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
 
   const handleFileUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!uploadFile) {
       showError("Archivo Requerido", "Selecciona un documento para cargar.");
       return;
@@ -207,14 +199,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
       const sizeKb = Math.round(uploadFile.size / 1024);
       const sizeStr = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
 
-      // Si es LOPAM, el PDF especifica: "esta solo basta con el último archivo"
-      if (targetSubsystem === "sietel_lopam") {
-        const oldLopam = arcotelFiles.filter((f) => f.subsystem === "sietel_lopam");
-        for (const old of oldLopam) {
-          await deleteArcotelFile(old.id);
-        }
-      }
-
+      const stored = await uploadStoredFile(uploadFile, `arcotel/${client?.id || "global"}/${targetSubsystem}`);
       await addArcotelFile({
         subsystem: targetSubsystem,
         fileName: uploadFile.name,
@@ -223,6 +208,10 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
         uploadedBy: currentUser.displayName,
         fileType: ext as any,
         status: "vigente",
+        fileUrl: stored.url,
+        byteSize: stored.size,
+        sha256: stored.sha256,
+        ...(client ? { clientId: client.id } : {}),
         notes: uploadNotes.trim() || undefined,
       });
 
@@ -353,11 +342,18 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   };
 
   const getSubsystemFiles = (sub: ArcotelSubsystem) => {
-    return arcotelFiles.filter((f) => f.subsystem === sub);
+    const files = arcotelFiles.filter(f => f.subsystem === sub && f.clientId === client?.id && f.fileUrl && f.fileUrl !== "#")
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt) || b.id.localeCompare(a.id));
+    return sub === "sietel_lopam" ? files.slice(0, 1) : files;
   };
 
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-150">
+      {arcotelFiles.some(f => f.clientId === client?.id && (!f.fileUrl || f.fileUrl === "#")) && (
+        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+          Hay registros antiguos sin archivo original almacenado. Se conservaron sus referencias, pero debes volver a cargar los originales para descargarlos. No se mostrarán como documentos disponibles.
+        </div>
+      )}
       {/* Pestañas de Navegación Regulatoria y Acciones Directas */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e8f0] pb-2.5">
         <div className="flex items-center gap-2 overflow-x-auto">
@@ -589,6 +585,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                   onChange={(e) => setConcessionForm({ ...concessionForm, reminderDays: Number(e.target.value) })}
                   className="w-full bg-white border border-[#cbd5e1] rounded-xl px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:ring-1 focus:ring-[#004ac6]"
                 >
+                  <option value={0} disabled>Seleccionar recordatorio</option>
                   <option value={15}>15 días antes</option>
                   <option value={30}>30 días antes (Recomendado)</option>
                   <option value={45}>45 días antes</option>

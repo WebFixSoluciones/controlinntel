@@ -1092,16 +1092,8 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
 ];
 
 export const INITIAL_CONCESSION_INFO: ArcotelConcessionInfo = {
-  titleName: "Permiso Único para Prestación de Servicios del Régimen General de Telecomunicaciones",
-  titleDate: "2020-08-15",
-  concessionaireCode: "CON-SVA-2024-089",
-  lastPolicyDate: "2026-06-15",
-  reminderDays: 30,
-  websiteUrl: "https://www.inntelcorp.com",
-  additionalFields: [
-    { id: "f-1", label: "Número de Trámite Quipux", value: "ARCOTEL-CZT4-2026-0422-M" },
-    { id: "f-2", label: "Resolución ARCOTEL Matriz", value: "ARCOTEL-2020-0582-R" },
-  ],
+  titleName: "", titleDate: "", concessionaireCode: "", lastPolicyDate: "",
+  reminderDays: 0, websiteUrl: "", additionalFields: [],
 };
 
 export const INITIAL_ARCOTEL_FILES: ArcotelPeriodicFile[] = [];
