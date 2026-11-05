@@ -2422,9 +2422,9 @@ test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutiva
 
   // 1. Tarjetas KPI Ejecutivas Visibles
   assert.ok(
-    reportsContent.includes("Ingresos Totales") &&
-      reportsContent.includes("Gastos OPEX") &&
-      reportsContent.includes("Flujo Neto") &&
+    reportsContent.includes("Cobros de ventas vigentes") &&
+      reportsContent.includes("Egresos de caja") &&
+      reportsContent.includes("Flujo neto de caja") &&
       reportsContent.includes("Por Cobrar (CxC)") &&
       reportsContent.includes("Por Pagar (CxP)") &&
       reportsContent.includes("Bancos & Cajas"),
@@ -2435,7 +2435,7 @@ test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutiva
   assert.ok(
     reportsContent.includes("ResponsiveContainer") &&
       reportsContent.includes("ComposedChart") &&
-      reportsContent.includes("Distribución de Gastos OPEX por Categoría") &&
+      reportsContent.includes("Distribución de egresos por categoría") &&
       reportsContent.includes("Efectividad y Recuperación de Cartera"),
     "FinancialReportsTab debe incluir gráficas visuales y barras de distribución analítica"
   );

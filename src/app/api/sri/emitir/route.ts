@@ -90,6 +90,13 @@ export async function POST(request: NextRequest) {
 
     const body = bodySchema.parse(await request.json());
     const invoice = asInvoice(body.invoice as Record<string, unknown>);
+    const { db } = adminServices();
+    if (invoice.clientId && invoice.clientId !== "cf-9999999999999") {
+      const client = await db.collection("clients").doc(invoice.clientId).get();
+      if (!client.exists || client.data()?.status === "retirado") {
+        throw new HttpError(409, "El cliente está retirado o no existe y no puede facturar.");
+      }
+    }
 
     const config: SriCompanyConfig = await readSriCompanyConfig();
     if (!config.ruc || !config.razonSocial) {
@@ -131,8 +138,6 @@ export async function POST(request: NextRequest) {
     if (material.expired) {
       throw new HttpError(400, "El certificado de firma electrónica está vencido. Carga uno vigente.");
     }
-
-    const { db } = adminServices();
 
     // Si la factura ya fue autorizada, no se reenvía: se devuelve tal cual.
     const existingSnap = await db.collection("billingInvoices").doc(invoice.id).get();

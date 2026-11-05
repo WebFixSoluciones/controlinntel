@@ -12,6 +12,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
+import { canTradeWithClient } from "@/lib/sales-policy";
 import { useToast } from "@/lib/toast-context";
 import { SriInvoice } from "@/types";
 import { formatearSecuencialSRI } from "@/lib/sri-service";
@@ -75,7 +76,7 @@ export function ConvertToSriInvoiceModal({
   const handleSelectRegisteredClient = (cid: string) => {
     setSelectedClientId(cid);
     if (!cid) return;
-    const found = clients.find((c) => c.id === cid);
+    const found = clients.find((c) => c.id === cid && canTradeWithClient(c));
     if (found) {
       setClientName(found.businessName || found.legalRepresentative || "");
       setClientRuc(found.identificationNumber || "");
@@ -91,6 +92,11 @@ export function ConvertToSriInvoiceModal({
 
   const handleConvert = async () => {
     setErrorMsg("");
+    const receiver = clients.find(client => client.id === (selectedClientId || sale.clientId));
+    if (receiver && !canTradeWithClient(receiver)) {
+      setErrorMsg("El cliente está retirado y no puede facturar.");
+      return;
+    }
 
     if (!clientName.trim() || !cleanRuc) {
       setErrorMsg("Debe ingresar la Razón Social y el RUC/Cédula del receptor de la factura.");
@@ -215,7 +221,7 @@ export function ConvertToSriInvoiceModal({
                 className="text-[11px] bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-700 focus:outline-hidden focus:border-[#004ac6]"
               >
                 <option value="">-- Cargar cliente registrado --</option>
-                {clients.map((c) => (
+                {clients.filter(canTradeWithClient).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.businessName} ({c.identificationNumber})
                   </option>

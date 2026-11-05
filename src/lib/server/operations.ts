@@ -106,6 +106,9 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     if (data.clientId) {
       const parent=await tx.get(db.collection("clients").doc(data.clientId));
       if (!parent.exists && data.clientId !== "cf-9999999999999") throw new HttpError(400,"Cliente inexistente.");
+      if (["billingQuotes", "clientQuotes", "billingInvoices"].includes(entity) && parent.data()?.status === "retirado") {
+        throw new HttpError(409, "El cliente está retirado y no puede cotizar ni facturar.");
+      }
     }
     if (entity==="vault" || entity==="clientVaultItems") {
       data.secret=old.data()?.secret;

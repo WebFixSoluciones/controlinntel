@@ -6,6 +6,7 @@ import { schemas } from "./schemas.ts";
 import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
 import { planServicePeriod, calculateLines } from "../commercial-core.ts";
+import { summarizeReceivables, summarizeCash } from "../financial-summary.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 
@@ -63,11 +64,81 @@ test("R12: overpayment fails without changing debt, bank, or operationLog",async
   await assert.rejects(run(db,"payCharge",{chargeId:`chg-inv-${invoice.id}`,amount:200,bankAccountId:"bank"}),/excede/);
   assert.equal(JSON.stringify([...db.rows]),before);
 });
+
+test("the server rejects sales for retired customers without recording debt or advancing the sequence", async () => {
+  const seed = initial(); seed.clients[0].status = "retirado";
+  const db = new Database(seed), before = JSON.stringify([...db.rows]);
+  await assert.rejects(run(db, "issueSale", sale()), /Cliente retirado/);
+  assert.equal(JSON.stringify([...db.rows]), before);
+});
 test("R13: an advance is received once, applied once, and cannot cross clients",async()=>{
   const db=new Database(initial()),invoice=await run(db,"issueSale",sale()), advance=await run(db,"advance",{clientId:"a",amount:300,bankAccountId:"bank",method:"efectivo"});
   await run(db,"applyAdvance",{advanceId:advance.id,chargeId:`chg-inv-${invoice.id}`,amount:115});
   assert.equal(db.row("bankAccounts","bank").currentBalance,1300);assert.equal(db.row("clientAdvances",advance.id).remaining,185);assert.equal(db.list("financialMovements").length,1);
   const other=await run(db,"issueSale",sale("b"));await assert.rejects(run(db,"applyAdvance",{advanceId:advance.id,chargeId:`chg-inv-${other.id}`,amount:100}),/otro cliente/);
+});
+
+test("advance reversal restores debt and available credit atomically without receiving cash twice", async () => {
+  const db = new Database(initial());
+  const invoice = await run(db, "issueSale", sale("a", { items: [{ productId: "srv", name: "Servicio QA", quantity: 1, unitPrice: 150, ivaRate: 0 }] }));
+  const chargeId = `chg-inv-${invoice.id}`;
+  const advance = await run(db, "advance", { clientId: "a", amount: 575, bankAccountId: "bank", method: "transferencia" });
+  const payment = await run(db, "applyAdvance", { advanceId: advance.id, chargeId, amount: 100 });
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 475);
+  assert.equal(db.row("monthlyCharges", chargeId).balanceRemaining, 50);
+  const before = JSON.stringify([...db.rows]);
+  db.failCommit = true;
+  await assert.rejects(run(db, "reverseApplication", { chargeId, paymentId: payment.id }), /Injected/);
+  assert.equal(JSON.stringify([...db.rows]), before);
+  db.failCommit = false;
+  await run(db, "reverseApplication", { chargeId, paymentId: payment.id });
+  assert.equal(db.row("monthlyCharges", chargeId).paidAmount, 0);
+  assert.equal(db.row("monthlyCharges", chargeId).balanceRemaining, 150);
+  assert.equal(db.row("monthlyCharges", chargeId).status, "pendiente");
+  assert.equal(db.row("clients", "a").currentBalance, 150);
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 575);
+  assert.equal(db.row("clientAdvances", advance.id).status, "vigente");
+  assert.equal(db.row("paymentApplications", payment.id).status, "reversed");
+  await run(db, "reverseApplication", { chargeId, paymentId: payment.id });
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 575);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1575);
+  assert.equal(db.list("financialMovements").length, 1);
+});
+
+test("refunding unused advance preserves its already applied payment and can be retried safely", async () => {
+  const db = new Database(initial()), invoice = await run(db, "issueSale", sale());
+  const advance = await run(db, "advance", { clientId: "a", amount: 575, bankAccountId: "bank", method: "transferencia" });
+  await run(db, "applyAdvance", { advanceId: advance.id, chargeId: `chg-inv-${invoice.id}`, amount: 100 });
+  const operation = randomUUID();
+  await run(db, "cancelAdvance", { id: advance.id }, operation);
+  await run(db, "cancelAdvance", { id: advance.id }, operation);
+  assert.equal(db.row("clientAdvances", advance.id).refundedAmount, 475);
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 0);
+  assert.equal(db.row("monthlyCharges", `chg-inv-${invoice.id}`).paidAmount, 100);
+  assert.equal(db.row("clients", "a").currentBalance, 15);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1100);
+});
+
+test("reports remove a cancelled paid sale from collections, retain its credit, and reflect the subsequent refund", async () => {
+  const db = new Database(initial());
+  const first = await run(db, "issueSale", sale("a", { items: [{ productId: "srv", name: "Servicio QA", quantity: 1, unitPrice: 500, ivaRate: 15 }] }));
+  await run(db, "payCharge", { chargeId: `chg-inv-${first.id}`, amount: 575, bankAccountId: "bank" });
+  const second = await run(db, "issueSale", sale("a", { items: [{ productId: "srv", name: "Servicio QA", quantity: 1, unitPrice: 150, ivaRate: 0 }] }));
+  await run(db, "payCharge", { chargeId: `chg-inv-${second.id}`, amount: 100, bankAccountId: "bank" });
+  assert.equal(summarizeReceivables(db.list("monthlyCharges")).totalRecaudado, 675);
+  await run(db, "cancelSale", { id: first.id });
+  const report = summarizeReceivables(db.list("monthlyCharges"));
+  assert.equal(report.totalRecaudado, 100); assert.equal(report.totalFacturado, 150);
+  assert.equal(report.totalPendiente, 50); assert.equal(report.pendientesCount, 1);
+  assert.equal(report.pagadosCount, 0); assert.equal(report.anuladosCount, 1);
+  assert.equal(summarizeCash(db.list("financialMovements")).saldoNeto, 675);
+  const credit = db.list("clientAdvances")[0];
+  assert.equal(credit.remaining, 575);
+  await run(db, "cancelAdvance", { id: credit.id });
+  assert.equal(db.row("clientAdvances", credit.id).status, "anulado");
+  assert.deepEqual(summarizeCash(db.list("financialMovements")), { totalIngresos: 675, totalEgresos: 575, devoluciones: 575, saldoNeto: 100 });
+  assert.equal(summarizeReceivables(db.list("monthlyCharges")).totalRecaudado, 100);
+  assert.equal(db.row("monthlyCharges", `chg-inv-${second.id}`).paidAmount, 100);
 });
 test("R17: transfer commits both legs, and an injected commit failure commits neither",async()=>{
   const db=new Database(initial());db.failCommit=true;await assert.rejects(run(db,"transfer",{fromId:"bank",toId:"bank2",amount:100}),/Injected/);

@@ -3,6 +3,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
+import { activeCommercialDocuments } from "@/lib/sales-policy";
+import { summarizeReceivables } from "@/lib/financial-summary";
 import { useToast } from "@/lib/toast-context";
 import { SriInvoice, ClientQuote } from "@/types";
 import { NewSaleView } from "../billing/NewSaleView";
@@ -35,6 +37,7 @@ export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurre
 export function SalesManager() {
   const {
     billingInvoices,
+    monthlyCharges,
     billingQuotes,
     sriCompanyConfig,
     deleteInvoice,
@@ -110,7 +113,7 @@ export function SalesManager() {
 
   // Commercial sales (Notas de Venta)
   const salesList = useMemo(() => {
-    return billingInvoices.filter((inv) => inv.documentType === "nota_venta");
+    return activeCommercialDocuments(billingInvoices.filter((inv) => inv.documentType === "nota_venta"));
   }, [billingInvoices]);
 
   const filteredSales = useMemo(() => {
@@ -161,9 +164,10 @@ export function SalesManager() {
 
   // Actions
   const handleDeleteSale = (sale: SriInvoice) => {
+    const credit = summarizeReceivables(monthlyCharges.filter(charge => charge.invoiceId === sale.id && charge.clientId === sale.clientId)).totalRecaudado;
     showConfirm(
       "¿Eliminar Nota de Venta?",
-      `¿Confirmas la eliminación definitiva del comprobante comercial ${sale.documentNumber} (${sale.clientName})? ${
+      `¿Eliminar ${sale.documentNumber} (${sale.clientName}) del listado? ${credit > 0 ? `Los $${credit.toFixed(2)} cobrados quedarán como saldo disponible en Finanzas → Anticipos para aplicarlos a otro cobro o devolverlos al cliente.` : "Se retirará su deuda de cobranzas."} ${
         sale.kardexRegistered
           ? "El stock de los productos se devolverá automáticamente a bodega."
           : ""
@@ -171,7 +175,7 @@ export function SalesManager() {
       async () => {
         try {
           await deleteInvoice(sale.id);
-          showSuccess("Venta Eliminada", `La nota de venta ${sale.documentNumber} fue eliminada exitosamente.`);
+          showSuccess("Venta eliminada", `La nota ${sale.documentNumber} ya no aparece en el listado.${credit > 0 ? ` Saldo a favor: $${credit.toFixed(2)} en Finanzas → Anticipos.` : ""}`);
         } catch (err: any) {
           showError("Error al Eliminar", err?.message || "No se pudo eliminar la venta.");
         }

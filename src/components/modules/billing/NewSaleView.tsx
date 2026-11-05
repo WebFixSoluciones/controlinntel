@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
+import { canTradeWithClient } from "@/lib/sales-policy";
 import { api } from "@/lib/api-client";
 import { getEcuadorDate } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
@@ -573,14 +574,15 @@ export function NewSaleView({
         updatedAt: "",
       };
     }
-    return clients.find((c) => c.id === selectedClientId) || null;
+    return clients.find((c) => c.id === selectedClientId && canTradeWithClient(c)) || null;
   }, [clients, selectedClientId, isConsumidorFinal]);
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
     const qNoSpaces = q.replace(/\s+/g, "");
-    if (!q) return clients.slice(0, 8);
-    return clients
+    const eligible = clients.filter(canTradeWithClient);
+    if (!q) return eligible.slice(0, 8);
+    return eligible
       .filter(
         (c) =>
           c.businessName.toLowerCase().includes(q) ||

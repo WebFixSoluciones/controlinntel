@@ -115,6 +115,7 @@ import {
   INITIAL_REGULATORY_TRAMITES,
 } from "./mock-data";
 import { auth } from "./firebase";
+import { observeVerifiedSession } from "./session-restoration";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { usePathname } from "next/navigation";
 import { can, canAccessRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
@@ -456,6 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dataReady, setDataReady] = useState(false);
   const [loadError, setLoadError] = useState("");
   const cachePreserved = useRef(false);
+  const snapshotGeneration = useRef(0);
   const [systemUsers, setSystemUsers] = useState<SystemUser[]>(INITIAL_SYSTEM_USERS);
 
   const [clients, setClients] = useState<Client[]>(INITIAL_CLIENTS);
@@ -604,32 +606,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (e) {
       console.warn("Error loading local state:", e);
-    } finally {
-      setIsAuthLoaded(true);
     }
   }, []);
 
   // Only Firebase identity plus the server's active profile can authorize access.
   useEffect(() => {
-    let generation = 0;
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      const request = ++generation;
-      setIsAuthenticated(false);
-      setDataReady(false);
-      if (!firebaseUser) return;
-      try {
-        const profile = await api<UserProfile>("/api/session");
-        if (request !== generation) return;
+    const invalidateSnapshot = () => { snapshotGeneration.current++; };
+    const unsubscribe = observeVerifiedSession({
+      subscribe: (listener) => onAuthStateChanged(auth, listener),
+      loadProfile: () => api<UserProfile>("/api/session"),
+      pending: () => {
+        invalidateSnapshot();
+        setIsAuthLoaded(false);
+        setIsAuthenticated(false);
+        setDataReady(false);
+      },
+      authenticated: (profile) => {
         setCurrentUser(profile);
         setIsAuthenticated(true);
-      } catch {
-        if (request === generation) {
-          setIsAuthenticated(false);
-          await signOut(auth).catch(() => {});
-        }
-      }
+        setIsAuthLoaded(true);
+      },
+      guest: () => {
+        setCurrentUser(INITIAL_USER);
+        setIsAuthLoaded(true);
+      },
+      failed: () => {
+        setIsAuthenticated(false);
+        setIsAuthLoaded(true);
+        void signOut(auth).catch(() => {});
+      },
     });
-    return () => { generation++; unsubscribe(); };
+    return () => { invalidateSnapshot(); unsubscribe(); };
   }, []);
 
   // Escucha central de Detonación de Ciberseguridad (Escudo Anti-Hacking)
@@ -850,6 +857,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refresh = useCallback(async () => {
+    const request = ++snapshotGeneration.current;
+    const uid = auth.currentUser?.uid;
     const collectionsToSync: { name: string; setter: (data: any[]) => void; initialData?: any[] }[] = [
       { name: "clients", setter: setClients, initialData: INITIAL_CLIENTS },
       { name: "clientServices", setter: setClientServices, initialData: INITIAL_CLIENT_SERVICES },
@@ -898,6 +907,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ];
 
     const serverSnapshot = await api<Record<string, any>>("/api/data");
+    // A slow earlier read must not overwrite balances loaded after a payment/reversal.
+    if (request !== snapshotGeneration.current || uid !== auth.currentUser?.uid) return;
     collectionsToSync.forEach((col) => {
       const entityKey = col.name === "users" ? "systemUsers" : col.name;
       if (!Array.isArray(serverSnapshot[entityKey])) throw new Error(`Falta la colección ${entityKey} en la respuesta del servidor.`);
@@ -908,7 +919,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (concession) setArcotelConcession(concession);
     setLoadError("");
     setDataReady(true);
-  }, [currentUser]);
+  }, []);
 
   const runCommercial = async <T,>(action: string, data: Record<string, unknown>, refreshAfter = true): Promise<T> => {
     const payload = JSON.parse(JSON.stringify(data));
@@ -3714,8 +3725,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             <LoginScreen />
           )
         ) : (
-          <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+          <div className="min-h-screen bg-[#f8f9ff] flex flex-col gap-4 items-center justify-center" role="status" aria-live="polite">
+            <div aria-hidden="true" className="w-8 h-8 border-2 border-[#004ac6] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-slate-600">Restaurando sesión…</p>
           </div>
         )}
       </AppContext.Provider>

@@ -22,6 +22,7 @@ import {
 import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";
+import { canTradeWithClient } from "@/lib/sales-policy";
 
 interface ClientQuotesManagerProps {
   client: Client;
@@ -469,6 +470,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             <button
               type="button"
               onClick={handleOpenModal}
+              disabled={!canTradeWithClient(client)}
+              title={!canTradeWithClient(client) ? "El cliente está retirado y no puede cotizar." : "Nueva cotización"}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />

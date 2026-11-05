@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { canTradeWithClient } from "@/lib/sales-policy";
 import {
   X,
   Plus,
@@ -39,6 +40,7 @@ export function NewSaleModal({
     createInvoice,
     sriCompanyConfig,
   } = useApp();
+  const eligibleClients = useMemo(() => clients.filter(canTradeWithClient), [clients]);
 
   const [clientMode, setClientMode] = useState<"registered" | "final" | "custom">("registered");
   const [selectedClientId, setSelectedClientId] = useState<string>("");
@@ -87,15 +89,15 @@ export function NewSaleModal({
   // Initialize defaults
   useEffect(() => {
     if (isOpen) {
-      if (clients.length > 0 && !selectedClientId) {
-        setSelectedClientId(clients[0].id);
+      if (selectedClientId && !eligibleClients.some(client => client.id === selectedClientId)) {
+        setSelectedClientId("");
       }
       if (inventoryWarehouses.length > 0 && !warehouseId) {
         setWarehouseId(inventoryWarehouses[0].id);
       }
       setErrorMsg("");
     }
-  }, [isOpen, clients, inventoryWarehouses, selectedClientId, warehouseId]);
+  }, [isOpen, eligibleClients, inventoryWarehouses, selectedClientId, warehouseId]);
 
   if (!isOpen) return null;
 
@@ -110,7 +112,7 @@ export function NewSaleModal({
   let tipoIdentificacion = "04";
 
   if (clientMode === "registered") {
-    const cl = clients.find((c) => c.id === selectedClientId);
+    const cl = eligibleClients.find((c) => c.id === selectedClientId);
     if (cl) {
       clientName = cl.businessName || cl.legalRepresentative || "Cliente";
       clientRuc = cl.identificationNumber || "";
@@ -440,7 +442,8 @@ export function NewSaleModal({
                     onChange={(e) => setSelectedClientId(e.target.value)}
                     className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
                   >
-                    {clients.map((c) => (
+                    <option value="">Seleccionar cliente</option>
+                    {eligibleClients.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.businessName} - {c.identificationNumber}
                       </option>

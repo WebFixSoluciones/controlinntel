@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   X,
   FileText,
@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
+import { canTradeWithClient } from "@/lib/sales-policy";
 import { ClientQuote, InvoiceItem } from "@/types";
 
 interface BillingQuoteModalProps {
@@ -32,6 +33,7 @@ export function BillingQuoteModal({
   initialClientId,
 }: BillingQuoteModalProps) {
   const { clients, inventoryProducts, createBillingQuote, updateBillingQuote } = useApp();
+  const eligibleClients = useMemo(() => clients.filter(canTradeWithClient), [clients]);
 
   const [clientId, setClientId] = useState("");
   const [date, setDate] = useState("");
@@ -85,18 +87,18 @@ export function BillingQuoteModal({
           .slice(0, 10);
         setDate(today);
         setValidUntil(thirtyDaysLater);
-        setClientId(initialClientId || clients[0]?.id || "");
+        setClientId(initialClientId ? eligibleClients.find(client => client.id === initialClientId)?.id || "" : eligibleClients[0]?.id || "");
         setItems([]);
         setNotes("Validez de la oferta: 30 días calendario. Precios no incluyen impuestos adicionales no descritos.");
         setStatus("enviada");
       }
       setErrorMsg("");
     }
-  }, [isOpen, quoteToEdit, clients, initialClientId]);
+  }, [isOpen, quoteToEdit, eligibleClients, initialClientId]);
 
   if (!isOpen) return null;
 
-  const selectedClient = clients.find((c) => c.id === clientId) || clients[0];
+  const selectedClient = eligibleClients.find((c) => c.id === clientId);
 
   const handleAddItem = (product: (typeof inventoryProducts)[0]) => {
     const existing = items.find((it) => it.productId === product.id);
@@ -306,7 +308,8 @@ export function BillingQuoteModal({
                 onChange={(e) => setClientId(e.target.value)}
                 className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2 bg-white text-slate-900"
               >
-                {clients.map((c) => (
+                <option value="">Seleccionar cliente</option>
+                {eligibleClients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.businessName} • {c.identificationNumber}
                   </option>

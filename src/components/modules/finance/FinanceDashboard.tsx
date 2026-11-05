@@ -4,6 +4,7 @@ import { getEcuadorDate } from "@/lib/date-utils";
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
+import { activeCommercialDocuments } from "@/lib/sales-policy";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
@@ -156,7 +157,7 @@ export function FinanceDashboard({
   const [manualDueDate, setManualDueDate] = useState(getEcuadorDate());
 
   // Debts are persisted projections, never synthesized from a sale in the browser.
-  const unifiedCharges = useMemo(() => monthlyCharges || [], [monthlyCharges]);
+  const unifiedCharges = useMemo(() => activeCommercialDocuments(monthlyCharges || []), [monthlyCharges]);
 
   // Filtrado de Cobros
   const filteredCharges = useMemo(() => {
@@ -198,6 +199,7 @@ export function FinanceDashboard({
   // KPI Totales
   const totalBilled = filteredCharges.filter(c => c.status !== "anulado").reduce((sum, c) => sum + (safeFloat(c.total) || 0), 0);
   const totalPaid = filteredCharges
+    .filter((c) => c.status !== "anulado")
     .filter((c) => c.status === "pagado" || safeFloat(c.paidAmount) > 0)
     .reduce((sum, c) => sum + (safeFloat(c.paidAmount) || (c.status === "pagado" ? safeFloat(c.total) : 0)), 0);
   const totalPending = Math.max(0, totalBilled - totalPaid);
@@ -593,6 +595,7 @@ export function FinanceDashboard({
                   </tr>
                 ) : (
                   filteredCharges.map((charge) => {
+                    const isCancelled = charge.status === "anulado";
                     const isPaid = charge.status === "pagado";
                     const isPartial = charge.status === "parcial";
                     const balance =
@@ -611,7 +614,7 @@ export function FinanceDashboard({
 
                     // Verificar tipo de comprobante en billingInvoices
                     const invMatch = (billingInvoices || []).find(
-                      (i) => i.id === charge.invoiceId || i.documentNumber === charge.invoiceNumber
+                      (i) => i.clientId === charge.clientId && (charge.invoiceId ? i.id === charge.invoiceId : i.documentNumber === charge.invoiceNumber)
                     );
                     const isNotaVenta = invMatch ? invMatch.documentType === "nota_venta" : charge.invoiceNumber.startsWith("001-001");
 
@@ -657,7 +660,7 @@ export function FinanceDashboard({
                           <span className="text-[11px] font-mono text-slate-500">
                             {charge.clientRuc || "Consumidor Final"}
                           </span>
-                          {clientAdvanceSum > 0 && !isPaid && (
+                          {clientAdvanceSum > 0 && !isPaid && !isCancelled && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded mt-0.5">
                               <Sparkles className="w-2.5 h-2.5" />
                               Favor: ${safeNumber(clientAdvanceSum)}
@@ -686,21 +689,23 @@ export function FinanceDashboard({
                         <td className="py-3 px-3 text-center">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                              isPaid
+                              isCancelled
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : isPaid
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : isPartial
                                 ? "bg-blue-50 text-blue-700 border-blue-200"
                                 : "bg-amber-50 text-amber-700 border-amber-200"
                             }`}
                           >
-                            {isPaid ? "Pagado" : isPartial ? "Parcial" : "Pendiente"}
+                            {isCancelled ? "Anulado" : isPaid ? "Pagado" : isPartial ? "Parcial" : "Pendiente"}
                           </span>
                         </td>
 
                         {/* Acciones */}
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {!isPaid && (
+                            {!isPaid && !isCancelled && (
                               <button
                                 type="button"
                                 title="Registrar Cobro / Abono"
@@ -725,6 +730,7 @@ export function FinanceDashboard({
                             <button
                               type="button"
                               title="Editar Cobro"
+                              disabled={isCancelled}
                               onClick={() => {
                                 setEditingCharge(charge);
                                 setEditDueDate(charge.maxPaymentDate || "");
@@ -738,6 +744,7 @@ export function FinanceDashboard({
                             <button
                               type="button"
                               title="Revisar anulación comercial"
+                              disabled={isCancelled}
                               onClick={() => setDeletingCharge(charge)}
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md transition cursor-pointer"
                             >
@@ -808,6 +815,11 @@ export function FinanceDashboard({
                 ) : (
                   (filteredAdvances || []).map((adv) => {
                     const isAvailable = adv.status === "vigente" && adv.remaining > 0;
+                    const isCancelled = adv.status === "anulado";
+                    const wasRefunded = safeFloat(adv.refundedAmount) > 0;
+                    const advanceLabel = isCancelled
+                      ? wasRefunded ? "Devuelto" : "Anulado"
+                      : isAvailable ? "Disponible" : wasRefunded ? "Aplicado / devuelto" : "Aplicado";
                     return (
                       <tr key={adv.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-3 px-4 font-mono text-slate-600">{adv.date}</td>
@@ -817,7 +829,7 @@ export function FinanceDashboard({
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            {adv.monthsCovered} mes(es)
+                            {adv.monthsCovered ? `${adv.monthsCovered} mes(es)` : "—"}
                           </span>
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-semibold text-slate-700">
@@ -827,6 +839,7 @@ export function FinanceDashboard({
                           <span className={adv.remaining > 0 ? "text-emerald-700" : "text-slate-400"}>
                             ${safeNumber(adv.remaining)}
                           </span>
+                          {wasRefunded && <span className="block text-[10px] font-normal text-rose-700 mt-1">Devuelto: ${safeNumber(adv.refundedAmount)}</span>}
                         </td>
                         <td className="py-3 px-3">
                           <span className="text-slate-800 block truncate">{adv.method}</span>
@@ -840,12 +853,14 @@ export function FinanceDashboard({
                         <td className="py-3 px-3 text-center">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                              isAvailable
+                              isCancelled
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : isAvailable
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : "bg-slate-100 text-slate-600 border-slate-200"
                             }`}
                           >
-                            {isAvailable ? "Disponible" : "Aplicado"}
+                            {advanceLabel}
                           </span>
                         </td>
                         <td className="py-3 px-3 text-right">
@@ -865,7 +880,7 @@ export function FinanceDashboard({
                               </button>
                             )}
 
-                            {adv.remaining > 0 && (
+                            {!isCancelled && adv.remaining > 0 && (
                               <button
                                 type="button"
                                 title="Devolver saldo disponible del anticipo"

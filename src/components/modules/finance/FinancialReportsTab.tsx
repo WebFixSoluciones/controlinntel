@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { externalCash } from "@/lib/commercial-core";
+import { summarizeReceivables, summarizeCash } from "@/lib/financial-summary";
 import { getEcuadorDate, addMonthsSafely } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { safeFloat, safeNumber } from "@/lib/print-service";
@@ -63,32 +64,7 @@ export function FinancialReportsTab() {
   }, []);
 
   // 1. CÁLCULO DE COBRANZAS (Monthly Charges)
-  const cobranzasMetrics = useMemo(() => {
-    const activeCharges = monthlyCharges.filter(c => c.status !== "anulado");
-    const totalFacturado = activeCharges.reduce((sum, c) => sum + safeFloat(c.total), 0);
-    const totalRecaudado = activeCharges.reduce((sum, c) => {
-      if (c.status === "pagado") return sum + safeFloat(c.total);
-      if (c.paidAmount !== undefined) return sum + safeFloat(c.paidAmount);
-      return sum;
-    }, 0);
-    const totalPendiente = activeCharges.reduce((sum, c) => {
-      if (c.status === "pagado") return sum;
-      if (c.balanceRemaining !== undefined) return sum + safeFloat(c.balanceRemaining);
-      return sum + safeFloat(c.total);
-    }, 0);
-    const tasaEfectividad = totalFacturado > 0 ? (totalRecaudado / totalFacturado) * 100 : 0;
-    const pagadosCount = monthlyCharges.filter((c) => c.status === "pagado").length;
-    const pendientesCount = monthlyCharges.filter((c) => c.status !== "pagado").length;
-
-    return {
-      totalFacturado,
-      totalRecaudado,
-      totalPendiente,
-      tasaEfectividad,
-      pagadosCount,
-      pendientesCount,
-    };
-  }, [monthlyCharges]);
+  const cobranzasMetrics = useMemo(() => summarizeReceivables(monthlyCharges), [monthlyCharges]);
 
   // Cash flow has one source: confirmed external financial movements.
   const cashMovements = useMemo(() => externalCash(financialMovements), [financialMovements]);
@@ -100,12 +76,7 @@ export function FinancialReportsTab() {
     return { totalOpex: expenses.reduce((sum,e) => sum + safeFloat(e.amount),0), movEgresos: totalEgresos, totalEgresos, byCategory };
   }, [expenses, cashMovements]);
 
-  const flujoMetrics = useMemo(() => {
-    const totalIngresos = cashMovements.filter(m => m.type === "ingreso").reduce((sum,m) => sum + safeFloat(m.amount),0);
-    const totalEgresos = gastosMetrics.totalEgresos;
-    return { movIngresos: totalIngresos, totalIngresos, totalEgresos, saldoNeto: totalIngresos-totalEgresos,
-      margenNeto: totalIngresos ? (totalIngresos-totalEgresos)/totalIngresos*100 : 0 };
-  }, [cashMovements, gastosMetrics]);
+  const flujoMetrics = useMemo(() => summarizeCash(financialMovements), [financialMovements]);
 
   // 4. CÁLCULO DE CUENTAS POR COBRAR (CxC)
   const cxcList = useMemo(() => {
@@ -197,14 +168,14 @@ export function FinancialReportsTab() {
 
     if (activeTab === "cobranzas") {
       headers = ["Comprobante", "Fecha Venta", "Cliente", "RUC", "Total Venta", "Abonado", "Saldo Pendiente", "Estado"];
-      rows = monthlyCharges.map((c) => [
+      rows = monthlyCharges.filter(c => c.status !== "anulado").map((c) => [
         c.invoiceNumber || "S/N",
         c.saleDate || `${c.year}-${c.month}-01`,
         `"${c.clientName.replace(/"/g, '""')}"`,
         c.clientRuc || "Consumidor Final",
         safeNumber(c.total),
-        safeNumber(c.paidAmount || (c.status === "pagado" ? c.total : 0)),
-        safeNumber(c.balanceRemaining !== undefined ? c.balanceRemaining : c.status === "pagado" ? 0 : c.total),
+        safeNumber(c.status === "anulado" ? 0 : c.paidAmount ?? (c.status === "pagado" ? c.total : 0)),
+        safeNumber(c.status === "anulado" ? 0 : c.balanceRemaining ?? (c.status === "pagado" ? 0 : c.total - (c.paidAmount || 0))),
         c.status,
       ]);
     } else if (activeTab === "gastos") {
@@ -252,12 +223,13 @@ export function FinancialReportsTab() {
       // Resumen Consolidado General
       headers = ["Metrica", "Monto USD / Detalle"];
       rows = [
-        ["Ingresos Totales Recaudados", safeNumber(flujoMetrics.totalIngresos)],
-        ["Cobranzas Clientes", safeNumber(cobranzasMetrics.totalRecaudado)],
-        ["Movimientos Bancarios Ingreso", safeNumber(flujoMetrics.movIngresos)],
-        ["Gastos Totales OPEX & Egresos", safeNumber(flujoMetrics.totalEgresos)],
+        ["Cobros aplicados a ventas vigentes", safeNumber(cobranzasMetrics.totalRecaudado)],
+        ["Entradas de caja (incluye anticipos)", safeNumber(flujoMetrics.totalIngresos)],
+        ["Anticipos disponibles", safeNumber(clientAdvances.filter(a => a.status === "vigente").reduce((sum, a) => sum + safeFloat(a.remaining), 0))],
+        ["Egresos de caja", safeNumber(flujoMetrics.totalEgresos)],
+        ["Devoluciones de anticipos", safeNumber(flujoMetrics.devoluciones)],
         ["Flujo de Caja Neto", safeNumber(flujoMetrics.saldoNeto)],
-        ["Margen Operativo", `${flujoMetrics.margenNeto.toFixed(1)}%`],
+        ["Comprobantes anulados (excluidos de cobranzas)", cobranzasMetrics.anuladosCount],
         ["Cuentas por Cobrar (Cartera Abierta)", safeNumber(totalCxCPendiente)],
         ["Cuentas por Pagar (Proveedores)", safeNumber(totalCxPPendiente)],
         ["Disponibilidad Liquidez en Bancos", safeNumber(bancosMetrics.totalLiquidez)],
@@ -342,23 +314,23 @@ export function FinancialReportsTab() {
         {/* Ingresos Totales */}
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs hover:border-emerald-300 transition">
           <div className="flex items-center justify-between text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            <span>Ingresos Totales</span>
+            <span>Cobros de ventas vigentes</span>
             <div className="p-1.5 rounded-md bg-emerald-50 text-emerald-600">
               <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
           <div className="mt-2 text-xl font-black font-mono text-emerald-700">
-            ${safeNumber(flujoMetrics.totalIngresos)}
+            ${safeNumber(cobranzasMetrics.totalRecaudado)}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">
-            Cobranzas + depósitos
+            Entradas de caja: ${safeNumber(flujoMetrics.totalIngresos)} (incluye anticipos)
           </div>
         </div>
 
         {/* Gastos Totales OPEX */}
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs hover:border-rose-300 transition">
           <div className="flex items-center justify-between text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            <span>Gastos OPEX</span>
+            <span>Egresos de caja</span>
             <div className="p-1.5 rounded-md bg-rose-50 text-rose-600">
               <TrendingDown className="w-3.5 h-3.5" />
             </div>
@@ -367,14 +339,14 @@ export function FinancialReportsTab() {
             ${safeNumber(flujoMetrics.totalEgresos)}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">
-            Costos de red y egresos
+            Devoluciones de anticipos: ${safeNumber(flujoMetrics.devoluciones)}
           </div>
         </div>
 
         {/* Flujo Neto */}
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs hover:border-blue-300 transition">
           <div className="flex items-center justify-between text-[11px] font-bold text-[#737686] uppercase tracking-wider">
-            <span>Flujo Neto</span>
+            <span>Flujo neto de caja</span>
             <div className="p-1.5 rounded-md bg-blue-50 text-[#004ac6]">
               <DollarSign className="w-3.5 h-3.5" />
             </div>
@@ -383,7 +355,7 @@ export function FinancialReportsTab() {
             {flujoMetrics.saldoNeto >= 0 ? "+" : "-"}${safeNumber(Math.abs(flujoMetrics.saldoNeto))}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">
-            Margen: {flujoMetrics.margenNeto.toFixed(1)}%
+            Entradas menos salidas de dinero
           </div>
         </div>
 
@@ -461,7 +433,7 @@ export function FinancialReportsTab() {
           }`}
         >
           <TrendingUp className="w-3.5 h-3.5" />
-          <span>Reporte Cobranzas ({monthlyCharges.length})</span>
+          <span>Reporte Cobranzas ({monthlyCharges.filter(c => c.status !== "anulado").length})</span>
         </button>
 
         <button
@@ -590,7 +562,7 @@ export function FinancialReportsTab() {
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
                     <PieChart className="w-4 h-4 text-purple-600" />
-                    Distribución de Gastos OPEX por Categoría
+                    Distribución de egresos por categoría
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
                     Inversión en conectividad, infraestructura y mantenimiento
@@ -797,6 +769,7 @@ export function FinancialReportsTab() {
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
                 {monthlyCharges
+                  .filter((c) => c.status !== "anulado")
                   .filter((c) => {
                     const q = searchQuery.toLowerCase();
                     const matchesQuery =
@@ -808,8 +781,9 @@ export function FinancialReportsTab() {
                   })
                   .map((c) => {
                     const isPaid = c.status === "pagado";
-                    const paid = c.paidAmount !== undefined ? c.paidAmount : isPaid ? c.total : 0;
-                    const bal = c.balanceRemaining !== undefined ? c.balanceRemaining : isPaid ? 0 : c.total;
+                    const isCancelled = c.status === "anulado";
+                    const paid = isCancelled ? 0 : c.paidAmount ?? (isPaid ? c.total : 0);
+                    const bal = isCancelled ? 0 : c.balanceRemaining ?? (isPaid ? 0 : c.total - paid);
 
                     return (
                       <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
@@ -837,7 +811,9 @@ export function FinancialReportsTab() {
                         <td className="py-3 px-3 text-center">
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                              isPaid
+                              isCancelled
+                                ? "bg-rose-50 text-rose-700 border-rose-200"
+                                : isPaid
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : c.status === "parcial"
                                 ? "bg-blue-50 text-blue-700 border-blue-200"
