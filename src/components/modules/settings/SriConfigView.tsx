@@ -95,6 +95,7 @@ export function SriConfigView() {
     telefonoContacto: sriCompanyConfig?.telefonoContacto || "+593 2 394 5000",
     resolucionAgenteRetencion: sriCompanyConfig?.resolucionAgenteRetencion || "",
     contribuyenteEspecial: sriCompanyConfig?.contribuyenteEspecial || "",
+    rucProveedorFacturacion: sriCompanyConfig?.rucProveedorFacturacion || "",
     certificadoNombre: sriCompanyConfig?.certificadoNombre || "",
     certificadoVencimiento: sriCompanyConfig?.certificadoVencimiento || "",
     certificadoEmisor: sriCompanyConfig?.certificadoEmisor || "Security Data S.A. / Banco Central del Ecuador",
@@ -187,8 +188,8 @@ export function SriConfigView() {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      showError("Archivo Demasiado Grande", "El certificado de firma no debe exceder los 2 MB.");
+    if (file.size > 512 * 1024) {
+      showError("Archivo Demasiado Grande", "El certificado de firma no debe exceder los 512 KiB.");
       return;
     }
 
@@ -1092,6 +1093,13 @@ export function SriConfigView() {
                   placeholder="Opcional"
                 />
               </div>
+              <label className="block text-xs font-semibold text-slate-700">
+                RUC del proveedor de facturación, si aplica
+                <input type="text" inputMode="numeric" pattern="[0-9]{13}" maxLength={13}
+                  value={form.rucProveedorFacturacion || ""}
+                  onChange={event => setForm({ ...form, rucProveedorFacturacion: event.target.value.replace(/\D/g, "") })}
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+              </label>
             </div>
           </div>
         </div>

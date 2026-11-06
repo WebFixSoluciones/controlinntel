@@ -22,13 +22,13 @@ export function ClientTabHeader({
 }: ClientTabHeaderProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 px-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs mb-4">
-      <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
         {Icon && (
-          <div className="w-7 h-7 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center border border-[#dce9ff]">
+          <div className="w-7 h-7 shrink-0 rounded-lg bg-[#eff4ff] text-[#004ac6] flex items-center justify-center border border-[#dce9ff]">
             <Icon className="w-4 h-4" />
           </div>
         )}
-        <h3 className="font-bold text-sm text-[#0b1c30] tracking-tight">
+        <h3 className="break-words font-bold text-sm text-[#0b1c30] tracking-tight">
           {title}
         </h3>
         {badge && <div className="ml-1">{badge}</div>}

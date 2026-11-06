@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ToastProvider } from "./toast-context";
 import type { ExpenseCategory } from "./expense-categories";
 import { LoginScreen } from "@/components/auth/LoginScreen";
@@ -121,23 +121,16 @@ import { auth } from "./firebase";
 import { observeVerifiedSession } from "./session-restoration";
 import { vaultMetadata } from "./vault-metadata";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { usePathname } from "next/navigation";
-import { can, canAccessRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
-import {
-  calculateWeightedAverageCost,
-  calculatePriceWithTax,
-  validateStockAvailability,
-  generateInventoryDocNumber,
-  buildKardexEntry,
-} from "./inventory-service";
-import {
-  generarClaveAccesoSRI,
-  formatearSecuencialSRI,
-  DEFAULT_INNTEL_SRI_CONFIG,
-} from "./sri-service";
+import { usePathname, useRouter } from "next/navigation";
+import { can, canAccessRoute, firstAccessibleRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
+import { DEFAULT_INNTEL_SRI_CONFIG } from "./sri-service";
 import { api } from "./api-client";
+import type { SriRequest, SriSubmission, FiscalKind } from "./server/sri-documents";
+import type { SriFiscalEvidence } from "@/types";
 import { getEcuadorDate, addMonthsSafely, calculateContractEndDate, calculateNextRenewalDate } from "./date-utils";
 import { calculateLines, planServicePeriod } from "./commercial-core";
+import { resolveTicketDepartments } from "./ticket-departments";
+import type { TicketDepartmentRecord, UserRoleTemplate } from "@/types";
 import { sanitizeObjectTexts } from "./sanitize-text";
 import { SecurityLockoutModal } from "@/components/security/SecurityLockoutModal";
 
@@ -175,6 +168,9 @@ interface AppContextType {
   vault: VaultCredential[];
   tickets: Ticket[];
   ticketSubjects: TicketSubject[];
+  ticketDepartments: TicketDepartmentRecord[];
+  ticketAssignees: Pick<UserProfile, "uid" | "displayName" | "role">[];
+  userRoleTemplates: UserRoleTemplate[];
   addTicketSubject: (subject: Omit<TicketSubject, "id">) => Promise<void>;
   updateTicketSubject: (id: string, updates: Partial<TicketSubject>) => Promise<void>;
   deleteTicketSubject: (id: string) => Promise<void>;
@@ -219,12 +215,7 @@ interface AppContextType {
   deleteClient: (id: string) => Promise<void>;
   addClientService: (
     service: Omit<ClientService, "id">
-  ) => Promise<
-    ClientService & {
-      invoice?: { id: string; documentNumber: string; date: string; total: number };
-      firstInvoiceSkipped?: string;
-    }
-  >;
+  ) => Promise<ClientService>;
   updateClientService: (id: string, updates: Partial<ClientService>) => Promise<void>;
   deleteClientService: (id: string) => Promise<void>;
   renewClientService: (id: string) => Promise<void>;
@@ -372,20 +363,21 @@ interface AppContextType {
   ) => Promise<SriInvoice>;
   convertSaleToSriInvoice: (
     saleId: string,
-    customData?: Partial<SriInvoice> & { customSecuencial?: number }
+    customData?: Partial<SriInvoice>, correctionId?: string
   ) => Promise<SriInvoice>;
   createCreditNote: (
-    data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
+    data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">, correctionId?: string
   ) => Promise<CreditNote>;
   createDebitNote: (
-    data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+    data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">, correctionId?: string
   ) => Promise<DebitNote>;
   createWithholding: (
-    data: Omit<WithholdingReceipt, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+    data: Omit<Extract<SriRequest, { kind: "retencion" }>, "kind">, correctionId?: string
   ) => Promise<WithholdingReceipt>;
   createRemissionGuide: (
-    data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt">
+    data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt"> & { invoiceId?: string }, correctionId?: string
   ) => Promise<RemissionGuide>;
+  consultFiscalDocument: (kind: FiscalKind, id: string, retry?: boolean) => Promise<SriFiscalEvidence>;
   updateSriConfig: (updates: Partial<SriCompanyConfig>) => Promise<void>;
 
   // Compras & Proveedores & Finanzas Bancarias
@@ -416,10 +408,6 @@ interface AppContextType {
   addSupplierDebitNote: (
     note: Omit<SupplierDebitNote, "id" | "createdAt">
   ) => Promise<SupplierDebitNote>;
-  addPurchaseWithholding: (
-    ret: Omit<PurchaseWithholding, "id" | "createdAt">
-  ) => Promise<PurchaseWithholding>;
-
   addBankAccount: (account: Omit<BankAccount, "id">) => Promise<BankAccount>;
   updateBankAccount: (id: string, updates: Partial<BankAccount>) => Promise<void>;
   adjustBankBalance: (bankAccountId: string, delta: number, reason: string) => Promise<void>;
@@ -446,6 +434,8 @@ interface AppContextType {
   setSearchQuery: (query: string) => void;
   isSearchOpen: boolean;
   setIsSearchOpen: (open: boolean) => void;
+  isNavigationOpen: boolean;
+  setIsNavigationOpen: (open: boolean) => void;
 
   resetDataToDefaults: () => Promise<void>;
 }
@@ -456,12 +446,12 @@ const USERS_KEY = "INNTEL_SYSTEM_USERS_PROD_V1";
 const AUTH_KEY = "INNTEL_AUTH_USER_PROD_V1";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthLoaded, setIsAuthLoaded] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_USER);
   const [dataReady, setDataReady] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const cachePreserved = useRef(false);
   const snapshotGeneration = useRef(0);
   const [systemUsers, setSystemUsers] = useState<SystemUser[]>(INITIAL_SYSTEM_USERS);
 
@@ -474,6 +464,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [vault, setVault] = useState<VaultCredential[]>(INITIAL_VAULT);
   const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
   const [ticketSubjects, setTicketSubjects] = useState<TicketSubject[]>([]);
+  const [ticketDepartmentRecords, setTicketDepartmentRecords] = useState<TicketDepartmentRecord[]>([]);
+  const [ticketAssignees, setTicketAssignees] = useState<Pick<UserProfile, "uid" | "displayName" | "role">[]>([]);
+  const [userRoleTemplates, setUserRoleTemplates] = useState<UserRoleTemplate[]>([]);
+  const ticketDepartments = useMemo(() => resolveTicketDepartments(ticketDepartmentRecords), [ticketDepartmentRecords]);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
@@ -545,14 +539,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Initial load from LocalStorage cache and Firebase session
+  // Initial load preserves historical recovery data without hydrating the session.
   useEffect(() => {
     try {
       // Preserve records that may never have reached the server before refreshing.
       const cached = localStorage.getItem(STORAGE_KEY);
       const recoveryKey = `INNTEL_RECOVERY_${STORAGE_KEY}`;
       if (cached && !localStorage.getItem(recoveryKey)) localStorage.setItem(recoveryKey, cached);
-      cachePreserved.current = true;
       // Older cache keys remain available as snapshot recovery sources.
 
       // Local caches never authorize a session or supply permissions.
@@ -560,59 +553,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(`${AUTH_KEY}_SIG`);
       localStorage.removeItem(USERS_KEY);
 
-      // 3. Purge legacy demo storage & check saved business state
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const p = JSON.parse(saved);
-          if (Array.isArray(p.clients)) setClients(p.clients);
-          if (Array.isArray(p.clientServices)) setClientServices(p.clientServices);
-          if (Array.isArray(p.plans) && p.plans.length > 0) setPlans(p.plans);
-          if (Array.isArray(p.nodes)) setNodes(p.nodes);
-          if (Array.isArray(p.ipPools)) setIpPools(p.ipPools);
-          if (Array.isArray(p.policies)) setPolicies(p.policies);
-          if (Array.isArray(p.vault)) setVault(p.vault.filter(Boolean).map(vaultMetadata));
-          if (Array.isArray(p.tickets)) setTickets(p.tickets);
-          if (Array.isArray(p.ticketSubjects)) setTicketSubjects(p.ticketSubjects);
-          if (Array.isArray(p.expenses)) setExpenses(p.expenses);
-          if (Array.isArray(p.monthlyCharges)) setMonthlyCharges(p.monthlyCharges);
-          if (Array.isArray(p.clientAdvances)) setClientAdvances(p.clientAdvances);
-          if (Array.isArray(p.auditLogs)) setAuditLogs(p.auditLogs);
-          if (Array.isArray(p.projects)) setProjects(p.projects);
-          if (Array.isArray(p.clientProjects)) setClientProjects(p.clientProjects);
-          if (Array.isArray(p.clientQuotes)) setClientQuotes(p.clientQuotes);
-          if (Array.isArray(p.clientVaultItems)) setClientVaultItems(p.clientVaultItems.filter(Boolean).map(vaultMetadata));
-          if (Array.isArray(p.clientContracts)) setClientContracts(p.clientContracts);
-          setArcotelConcession(normalizeConcession(sanitizeObjectTexts(p.arcotelConcession)));
-          if (Array.isArray(p.arcotelFiles)) setArcotelFiles(p.arcotelFiles);
-          if (Array.isArray(p.clientDocuments)) setClientDocuments(p.clientDocuments);
-          if (Array.isArray(p.inventoryProducts)) setInventoryProducts(p.inventoryProducts);
-          if (Array.isArray(p.inventoryWarehouses)) setInventoryWarehouses(p.inventoryWarehouses);
-          if (Array.isArray(p.inventoryCategories)) setInventoryCategories(p.inventoryCategories);
-          if (Array.isArray(p.inventoryBrands)) setInventoryBrands(p.inventoryBrands);
-          if (Array.isArray(p.inventoryKardex)) setInventoryKardex(p.inventoryKardex);
-          if (Array.isArray(p.inventoryTransfers)) setInventoryTransfers(p.inventoryTransfers);
-          if (Array.isArray(p.inventoryAdjustments)) setInventoryAdjustments(p.inventoryAdjustments);
-          if (Array.isArray(p.billingInvoices)) setBillingInvoices(p.billingInvoices);
-          if (Array.isArray(p.billingQuotes)) setBillingQuotes(p.billingQuotes);
-          if (Array.isArray(p.billingCreditNotes)) setBillingCreditNotes(p.billingCreditNotes);
-          if (Array.isArray(p.billingWithholdings)) setBillingWithholdings(p.billingWithholdings);
-          if (Array.isArray(p.billingRemissionGuides)) setBillingRemissionGuides(p.billingRemissionGuides);
-          if (p.sriCompanyConfig && p.sriCompanyConfig.ruc) setSriCompanyConfig(p.sriCompanyConfig);
-          if (Array.isArray(p.suppliers)) setSuppliers(p.suppliers);
-          if (Array.isArray(p.purchaseInvoices)) setPurchaseInvoices(p.purchaseInvoices);
-          if (Array.isArray(p.supplierCreditNotes)) setSupplierCreditNotes(p.supplierCreditNotes);
-          if (Array.isArray(p.supplierDebitNotes)) setSupplierDebitNotes(p.supplierDebitNotes);
-          if (Array.isArray(p.purchaseWithholdings)) setPurchaseWithholdings(p.purchaseWithholdings);
-          if (Array.isArray(p.bankAccounts)) {
-            setBankAccounts(p.bankAccounts.length > 0 ? p.bankAccounts : INITIAL_BANK_ACCOUNTS);
-          }
-          if (Array.isArray(p.financialMovements)) setFinancialMovements(p.financialMovements);
-          if (Array.isArray(p.supplierPayments)) setSupplierPayments(p.supplierPayments);
-          if (Array.isArray(p.hostingDomains)) setHostingDomains(p.hostingDomains);
-          if (Array.isArray(p.regulatoryTramites)) setRegulatoryTramites(p.regulatoryTramites);
-        } catch (e) {}
-      }
     } catch (e) {
       console.warn("Error loading local state:", e);
     }
@@ -664,110 +604,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("inntel:security-lockdown", handleLockdown);
     return () => window.removeEventListener("inntel:security-lockdown", handleLockdown);
   }, []);
-
-  // Sync to LocalStorage on every state update
-  useEffect(() => {
-    if (!isAuthLoaded || !isAuthenticated || !dataReady || !cachePreserved.current) return;
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          clients,
-          clientServices,
-          plans,
-          nodes,
-          ipPools,
-          policies,
-          vault,
-          tickets,
-          ticketSubjects,
-          expenses,
-          monthlyCharges,
-          clientAdvances,
-          auditLogs,
-          projects,
-          clientProjects,
-          clientQuotes,
-          clientVaultItems,
-          clientContracts,
-          arcotelConcession,
-          arcotelFiles,
-          clientDocuments,
-          inventoryProducts,
-          inventoryWarehouses,
-          inventoryCategories,
-          inventoryBrands,
-          inventoryKardex,
-          inventoryTransfers,
-          inventoryAdjustments,
-          billingInvoices,
-          billingQuotes,
-          billingCreditNotes,
-          billingWithholdings,
-          billingRemissionGuides,
-          sriCompanyConfig,
-          suppliers,
-          purchaseInvoices,
-          supplierCreditNotes,
-          supplierDebitNotes,
-          purchaseWithholdings,
-          bankAccounts,
-          financialMovements,
-          supplierPayments,
-          hostingDomains,
-          regulatoryTramites,
-        })
-      );
-      localStorage.setItem(USERS_KEY, JSON.stringify(systemUsers));
-    } catch (e) {}
-  }, [
-    clients,
-    clientServices,
-    plans,
-    nodes,
-    ipPools,
-    policies,
-    vault,
-    tickets,
-    ticketSubjects,
-    expenses,
-    monthlyCharges,
-    clientAdvances,
-    auditLogs,
-    projects,
-    clientProjects,
-    clientQuotes,
-    clientVaultItems,
-    clientContracts,
-    arcotelConcession,
-    arcotelFiles,
-    clientDocuments,
-    inventoryProducts,
-    inventoryWarehouses,
-    inventoryCategories,
-    inventoryBrands,
-    inventoryKardex,
-    inventoryTransfers,
-    inventoryAdjustments,
-    billingInvoices,
-    billingQuotes,
-    billingCreditNotes,
-    billingWithholdings,
-    billingRemissionGuides,
-    sriCompanyConfig,
-    suppliers,
-    purchaseInvoices,
-    supplierCreditNotes,
-    supplierDebitNotes,
-    purchaseWithholdings,
-    bankAccounts,
-    financialMovements,
-    supplierPayments,
-    hostingDomains,
-    regulatoryTramites,
-    systemUsers,
-    isAuthLoaded,
-  ]);
 
   const addAuditLog = (action: AuditLog["action"], resource: string, details: string) => {
     const newLog: AuditLog = {
@@ -878,6 +714,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
       { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
       { name: "ticketSubjects", setter: setTicketSubjects, initialData: [] },
+      { name: "ticketDepartments", setter: setTicketDepartmentRecords, initialData: [] },
       { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
       { name: "expenseCategories", setter: setExpenseCategories, initialData: [] },
       { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
@@ -888,6 +725,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "clientVaultItems", setter: setClientVaultItems, initialData: INITIAL_CLIENT_VAULT },
       { name: "clientContracts", setter: setClientContracts, initialData: INITIAL_CONTRACTS },
       { name: "users", setter: setSystemUsers, initialData: INITIAL_SYSTEM_USERS },
+      { name: "userRoleTemplates", setter: setUserRoleTemplates, initialData: [] },
       { name: "auditLogs", setter: setAuditLogs, initialData: INITIAL_AUDIT_LOGS },
       { name: "inventoryProducts", setter: setInventoryProducts, initialData: INITIAL_PRODUCTS },
       { name: "inventoryWarehouses", setter: setInventoryWarehouses, initialData: INITIAL_WAREHOUSES },
@@ -924,6 +762,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!Array.isArray(serverSnapshot[entityKey])) throw new Error(`Falta la colección ${entityKey} en la respuesta del servidor.`);
       col.setter(serverSnapshot[entityKey]);
     });
+    if (serverSnapshot.currentUser?.uid === uid) setCurrentUser(serverSnapshot.currentUser);
+    setTicketAssignees(Array.isArray(serverSnapshot.ticketAssignees) ? serverSnapshot.ticketAssignees : []);
     if (serverSnapshot.sriCompanyConfig?.[0]) setSriCompanyConfig(serverSnapshot.sriCompanyConfig[0]);
     const concession = serverSnapshot.systemConfig?.find((row: any) => row.id === "arcotelConcession");
     setArcotelConcession(normalizeConcession(concession));
@@ -931,12 +771,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDataReady(true);
   }, []);
 
-  const runCommercial = async <T,>(action: string, data: Record<string, unknown>, refreshAfter = true): Promise<T> => {
-    const payload = JSON.parse(JSON.stringify(data));
+  const pendingOperation = async (action: string, payload: unknown) => {
     const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify({ action, data: payload }))))).map(b => b.toString(16).padStart(2, "0")).join("");
     const key = `INNTEL_PENDING_${currentUser.uid}_${hash}`;
     let operationId = sessionStorage.getItem(key);
     if (!operationId) { operationId = crypto.randomUUID(); sessionStorage.setItem(key, operationId); }
+    return { key, operationId };
+  };
+
+  const runCommercial = async <T,>(action: string, data: Record<string, unknown>, refreshAfter = true): Promise<T> => {
+    const payload = JSON.parse(JSON.stringify(data));
+    const { key, operationId } = await pendingOperation(action, payload);
     const response = await api<{ result: T }>("/api/commercial", { action, operationId, data: payload });
     if (refreshAfter) await refresh();
     sessionStorage.removeItem(key);
@@ -1026,6 +871,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const exists = prev.some((s) => s.id === targetId);
           return exists ? prev.map((s) => (s.id === targetId ? ({ ...s, ...recordWithId } as TicketSubject) : s)) : [...prev, recordWithId as TicketSubject];
         });
+        break;
+      case "ticketDepartments":
+        setTicketDepartmentRecords(prev => [...prev.filter(row => row.id !== targetId), recordWithId as TicketDepartmentRecord]);
+        break;
+      case "userRoleTemplates":
+        setUserRoleTemplates(prev => [...prev.filter(row => row.id !== targetId), recordWithId as UserRoleTemplate]);
         break;
       case "vault":
         setVault((prev) => {
@@ -1621,8 +1472,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addTicket = async (ticketData: Omit<Ticket, "id" | "ticketNumber" | "createdAt">) => {
     const newTicket: Ticket = {
       ...ticketData,
-      id: "tck-" + Date.now(),
-      ticketNumber: "TCK-" + (1080 + tickets.length + 1),
+      id: "tck-" + crypto.randomUUID(),
+      ticketNumber: "",
       createdAt: new Date().toISOString(),
     };
     await syncToFirestore("tickets", newTicket.id, newTicket);
@@ -1646,49 +1497,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Ticket no encontrado.");
     }
 
-    const message: TicketMessage = {
-      id: crypto.randomUUID(),
-      body: text,
-      authorId: auth.currentUser.uid,
-      authorName: currentUser.displayName,
-      authorRole:
-        currentUser.role === "admin" || currentUser.role === "superadmin"
-          ? "admin"
-          : currentUser.role === "tecnico"
-          ? "tecnico"
-          : "staff",
-      createdAt: new Date().toISOString(),
-      isInternal: !!isInternal,
-    };
-
-    const targetTicket = tickets.find((t) => t.id === id);
-    const updatedStatus =
-      newStatus || (isInternal ? targetTicket?.status || "en_progreso" : "respondido");
-
-    const updates: Partial<Ticket> = {
-      status: updatedStatus,
-      updatedAt: new Date().toISOString(),
-      lastReplyAt: new Date().toISOString(),
-      lastReplier: currentUser.displayName,
-    };
-
-    if (updatedStatus === "resuelto" || updatedStatus === "cerrado") {
-      updates.resolvedAt = new Date().toISOString();
-    }
-
-    await api("/api/tickets/reply", { id, messageId: message.id, body: text, isInternal: !!isInternal, status: updatedStatus });
-
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              ...updates,
-              messages: [...(t.messages || []).filter((m) => m.id !== message.id), message],
-            }
-          : t
-      )
-    );
+    await api("/api/tickets/reply", { id, messageId: crypto.randomUUID(), body: text, isInternal, status: newStatus });
+    await refresh();
   };
 
   const updateTicketDetails = async (id: string, updates: Partial<Ticket>) => {
@@ -1874,356 +1684,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       customSecuencial?: number;
     }
   ): Promise<SriInvoice> => {
-    if (data.documentType === "nota_venta") return runCommercial<SriInvoice>("issueSale", data);
-    const now = new Date().toISOString();
-    const invoiceId = `inv-${Date.now()}`;
-    const dateStr = data.date || now.slice(0, 10);
-    const docType: string = String(data.documentType || "factura");
-    const isDraft = data.status === "borrador";
-
-    const estab = sriCompanyConfig.establecimiento || "010";
-    const pto = sriCompanyConfig.puntoEmision || "001";
-
-    let documentNumber = "";
-    let claveAcceso = "";
-
-    if (isDraft) {
-      documentNumber = `BORRADOR-${String(Date.now()).slice(-4)}`;
-      claveAcceso = "BORRADOR_PENDIENTE";
-    } else if (docType === "nota_venta") {
-      const startFromNotaVenta = (sriCompanyConfig.secuencialNotaVenta || 1) - 1;
-      const maxSecNota = billingInvoices
-        .filter((inv) => inv.documentType === "nota_venta" && inv.status !== "borrador")
-        .reduce((max, inv) => {
-          const parts = (inv.documentNumber || "").split("-");
-          const num = parseInt(parts[2] || "0", 10);
-          return !isNaN(num) && num > max ? num : max;
-        }, 0);
-      const secuencial = data.customSecuencial || (Math.max(maxSecNota, startFromNotaVenta) + 1);
-      documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
-      claveAcceso = "";
-    } else {
-      const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-      const maxSec = billingInvoices
-        .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
-        .reduce((max, inv) => {
-          const parts = (inv.documentNumber || "").split("-");
-          const num = parseInt(parts[2] || "0", 10);
-          return !isNaN(num) && num > max ? num : max;
-        }, 0);
-      const secuencial = data.customSecuencial || (Math.max(maxSec, startFromFactura) + 1);
-      documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
-
-      claveAcceso = generarClaveAccesoSRI({
-        fechaEmision: dateStr,
-        tipoComprobante: "01",
-        ruc: sriCompanyConfig.ruc,
-        ambiente: sriCompanyConfig.ambiente,
-        establecimiento: estab,
-        puntoEmision: pto,
-        secuencial,
-        codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-      });
-    }
-
-    const wh = inventoryWarehouses.find((w) => w.id === data.warehouseId) || inventoryWarehouses[0];
-    const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
-    const warehouseName = wh ? wh.name : (data.warehouseName || "Bodega Central");
-
-    const kardexEntries: KardexEntry[] = [];
-    const updatedProductsMap = new Map<string, InventoryProduct>();
-
-    if (!isDraft) {
-      for (const item of data.items) {
-        if (!item.productId) continue;
-        const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-        if (!product || !product.tracksStock) continue;
-
-        const qty = Math.abs(item.quantity);
-        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-        if (product.tracksStock && product.type !== "servicio" && currentWhStock < qty) {
-          throw new Error(`Stock insuficiente para '${product.name}' en la bodega '${warehouseName}'. Disponible: ${currentWhStock}, Solicitado: ${qty}.`);
-        }
-        const newWhStock = currentWhStock - qty;
-
-        const kdx = buildKardexEntry({
-          product,
-          warehouse: wh || { id: warehouseId, name: warehouseName },
-          type: "SALE",
-          referenceId: invoiceId,
-          referenceDocNumber: documentNumber,
-          concept: `Venta ${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${documentNumber} - Cliente: ${data.clientName}`,
-          quantity: qty,
-          unitCost: product.baseCost,
-          currentStock: currentWhStock,
-          currentAvgCost: product.baseCost,
-          userName: currentUser.displayName,
-        });
-
-        kardexEntries.push(kdx);
-
-        const updatedStockByWh = {
-          ...(product.stockByWarehouse || {}),
-          [warehouseId]: newWhStock,
-        };
-        const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-        const updatedProd: InventoryProduct = {
-          ...product,
-          stockByWarehouse: updatedStockByWh,
-          stock: totalStock,
-          updatedAt: now,
-        };
-
-        updatedProductsMap.set(product.id, updatedProd);
-      }
-    }
-
-    const newInvoice: SriInvoice = {
-      ...data,
-      clientRuc: String(data.clientRuc || "").replace(/\s+/g, "").trim(),
-      clientEmail: String(data.clientEmail || "").replace(/\s+/g, "").trim().toLowerCase(),
-      clientName: String(data.clientName || "").replace(/\s+/g, " ").trim(),
-      documentType: docType as "nota_venta" | "factura",
-      id: invoiceId,
-      documentNumber: String(documentNumber || "").replace(/\s+/g, "").trim(),
-      claveAcceso: String(claveAcceso || "").replace(/\s+/g, "").trim(),
-      warehouseId,
-      warehouseName,
-      kardexRegistered: kardexEntries.length > 0,
-      createdAt: now,
-    };
-
-    await Promise.all([
-      syncToFirestore("billingInvoices", newInvoice.id, newInvoice),
-      ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-      ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-    ]);
-
-    setBillingInvoices((prev) => [newInvoice, ...prev]);
-    if (kardexEntries.length > 0) {
-      setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-      setInventoryProducts((prev) =>
-        prev.map((p) => updatedProductsMap.get(p.id) || p)
-      );
-    }
-
-    // Sincronización financiera y cuentas por cobrar cuando no es borrador
-    if (!isDraft) {
-      const breakdown = data.paymentsBreakdown;
-      const paidImmediate = breakdown
-        ? Math.min(
-            data.total,
-            (Number(breakdown.efectivo) || 0) +
-              (Number(breakdown.transferencia) || 0) +
-              (Number(breakdown.tarjeta) || 0)
-          )
-        : data.paymentMethod !== "credito"
-        ? data.total
-        : 0;
-
-      const creditPart = breakdown
-        ? Number(breakdown.credito) || 0
-        : data.paymentMethod === "credito"
-        ? data.total
-        : 0;
-
-      if (paidImmediate > 0) {
-        const targetBank = data.bankAccountId
-          ? bankAccounts.find((b) => b.id === data.bankAccountId)
-          : undefined;
-        if (targetBank) {
-          const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-          const movement: FinancialMovement = {
-            id: movId,
-            type: "ingreso",
-            date: dateStr,
-            amount: Math.round(paidImmediate * 100) / 100,
-            category: "venta_equipos",
-            description: `Cobro ${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${documentNumber} - ${data.clientName}`,
-            bankAccountId: targetBank.id,
-            bankAccountName: targetBank.bankName,
-            paymentMethod:
-              data.paymentMethod === "credito" ? "efectivo" : data.paymentMethod,
-            referenceNumber: data.transferenciaRef || data.tarjetaRef || documentNumber,
-            relatedEntityId: invoiceId,
-            createdAt: now,
-          };
-          setFinancialMovements((prev) => [movement, ...prev]);
-          syncToFirestore("financialMovements", movId, movement);
-
-          const newBal = Math.round((targetBank.currentBalance + paidImmediate) * 100) / 100;
-          setBankAccounts((prev) =>
-            prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBal } : b))
-          );
-          syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBal });
-        }
-      }
-
-      if (creditPart > 0 && data.clientId && data.clientId !== "cf-9999999999999") {
-        const clientObj = clients.find((c) => c.id === data.clientId);
-        if (clientObj) {
-          const newClientBal = Math.round(((clientObj.currentBalance || 0) + creditPart) * 100) / 100;
-          setClients((prev) =>
-            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: newClientBal } : c))
-          );
-          syncToFirestore("clients", clientObj.id, { currentBalance: newClientBal });
-        }
-      }
-
-      // Registro y vinculación automática del comprobante de venta a Cobranzas
-      const chargeId = `chg-inv-${newInvoice.id}`;
-      const balanceRemaining =
-        creditPart > 0
-          ? creditPart
-          : data.paymentMethod === "credito"
-          ? data.total
-          : Math.max(0, Math.round((newInvoice.total - paidImmediate) * 100) / 100);
-
-      const chargeStatus: "pagado" | "parcial" | "pendiente" =
-        balanceRemaining <= 0.009
-          ? "pagado"
-          : paidImmediate > 0
-          ? "parcial"
-          : "pendiente";
-
-      const initialPayments: ChargePayment[] = [];
-      if (paidImmediate > 0) {
-        initialPayments.push({
-          id: `pay-init-${Date.now()}`,
-          date: dateStr,
-          amount: paidImmediate,
-          method: data.paymentMethod === "credito" ? "efectivo" : data.paymentMethod,
-          reference: data.transferenciaRef || data.tarjetaRef || documentNumber,
-          bankAccountId: data.bankAccountId,
-          bankAccountName: data.bankAccountId
-            ? bankAccounts.find((b) => b.id === data.bankAccountId)?.bankName
-            : undefined,
-        });
-      }
-
-      const dateParts = dateStr.split("-");
-      const chargeYear = parseInt(dateParts[0] || "2026", 10);
-      const chargeMonth = parseInt(dateParts[1] || "1", 10);
-
-      const newCharge: MonthlyCharge = {
-        id: chargeId,
-        invoiceId: newInvoice.id,
-        invoiceNumber: newInvoice.documentNumber,
-        saleDate: dateStr,
-        clientId: data.clientId || "cf-9999999999999",
-        clientName: newInvoice.clientName,
-        clientRuc: newInvoice.clientRuc,
-        month: chargeMonth,
-        year: chargeYear,
-        serviceDescription:
-          newInvoice.items.map((i) => i.name).join(", ") ||
-          (docType === "nota_venta" ? "Nota de Venta" : "Factura de Venta"),
-        subtotal: (newInvoice.subtotal15 || 0) + (newInvoice.subtotal0 || 0),
-        ivaAmount: newInvoice.ivaTotal || 0,
-        maxPaymentDate: data.creditDueDate || dateStr,
-        total: newInvoice.total,
-        paidAmount: paidImmediate,
-        balanceRemaining,
-        status: chargeStatus,
-        paymentMethod: data.paymentMethod,
-        paymentReference: data.transferenciaRef || data.tarjetaRef || undefined,
-        paymentDate: paidImmediate > 0 ? dateStr : undefined,
-        payments: initialPayments,
-        notes: data.notes || undefined,
-      };
-
-      setMonthlyCharges((prev) => [
-        newCharge,
-        ...prev.filter(
-          (c) => c.invoiceId !== newInvoice.id && c.invoiceNumber !== newInvoice.documentNumber
-        ),
-      ]);
-      void syncToFirestore("monthlyCharges", newCharge.id, newCharge);
-
-      // Sincronización y seguimiento automático de servicios del cliente desde Nota de Venta / Factura
-      if (data.clientId && data.clientId !== "cf-9999999999999") {
-        const clientObj = clients.find((c) => c.id === data.clientId);
-        for (const item of data.items) {
-          const invProd = inventoryProducts.find((p) => p.id === item.productId);
-          const isService =
-            item.unit === "servicio" ||
-            invProd?.type === "servicio" ||
-            (item.sku && item.sku.toUpperCase().startsWith("SRV-"));
-
-          if (isService) {
-            // Verificar si el cliente ya tiene este servicio registrado pendiente de nota de venta
-            const existingPending = clientServices.find(
-              (cs) =>
-                cs.clientId === data.clientId &&
-                (cs.inventoryProductId === item.productId || cs.planName.toLowerCase() === item.name.toLowerCase()) &&
-                cs.saleStatus === "pendiente_venta"
-            );
-
-            if (existingPending) {
-              const updates: Partial<ClientService> = {
-                origin: docType === "nota_venta" ? "nota_venta" : "factura",
-                saleInvoiceId: invoiceId,
-                saleDocNumber: documentNumber,
-                saleDate: dateStr,
-                saleStatus: "emitida",
-                status: "activo",
-                isBillableInCurrentCycle: true,
-                basePrice: item.unitPrice,
-                customPrice: item.unitPrice,
-              };
-              setClientServices((prev) =>
-                prev.map((s) => (s.id === existingPending.id ? { ...s, ...updates } : s))
-              );
-              syncToFirestore("clientServices", existingPending.id, updates);
-            } else {
-              // Si no existe, crear el servicio vinculado a esta venta en el inventario del cliente
-              const renewalDate = new Date();
-              renewalDate.setMonth(renewalDate.getMonth() + 1);
-              const newSvc: ClientService = {
-                id: `srv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                clientId: data.clientId,
-                planId: item.productId || `plan-${Date.now()}`,
-                planName: item.name,
-                inventoryProductId: item.productId || undefined,
-                inventorySku: item.sku || undefined,
-                downloadMbps: 100,
-                uploadMbps: 100,
-                basePrice: item.unitPrice,
-                customPrice: item.unitPrice,
-                billingType: "pospago",
-                billingFrequency: "mensual",
-                cutoffDay: 5,
-                nodeId: "node-1",
-                nodeName: "NODO-CENTRAL",
-                ipv4Address: "DHCP",
-                pppoeUser: `svc-${Date.now().toString().slice(-4)}`,
-                status: "activo",
-                installationDate: dateStr,
-                nextRenewalDate: renewalDate.toISOString().split("T")[0],
-                isBillableInCurrentCycle: true,
-                origin: docType === "nota_venta" ? "nota_venta" : "factura",
-                saleInvoiceId: invoiceId,
-                saleDocNumber: documentNumber,
-                saleDate: dateStr,
-                saleStatus: "emitida",
-                installationAddress: clientObj?.address || "Dirección Principal",
-              };
-              setClientServices((prev) => [...prev, newSvc]);
-              syncToFirestore("clientServices", newSvc.id, newSvc);
-            }
-          }
-        }
-      }
-    }
-
-    addAuditLog(
-      "CREATE_CLIENT",
-      `${docType === "nota_venta" ? "Nota de Venta" : "Factura"} ${isDraft ? "(Borrador)" : "Emitida"}: ${documentNumber}`,
-      `Total: $${newInvoice.total.toFixed(2)} - Cliente: ${newInvoice.clientName}`
-    );
-
-    return newInvoice;
+    if (data.documentType !== "nota_venta") throw new Error("Emite la factura SRI desde una nota de venta registrada.");
+    return runCommercial<SriInvoice>("issueSale", data);
   };
 
   const emitRecurringInvoiceForClient = async (
@@ -2237,778 +1699,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return runCommercial<SriInvoice>("recur", { clientId, month, year, serviceIds, expectedTotal: calculateLines(lines).total });
   };
 
-  const updateInvoiceStatus = async (
-    id: string,
-    status: SriInvoice["status"],
-    authorizationDate?: string
-  ) => {
-    if (status === "anulada" && billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
-      await runCommercial("cancelSale", { id, reason: "Anulación comercial" });
-      return;
+  const updateInvoiceStatus = async (id: string, status: SriInvoice["status"]) => {
+    if (status !== "anulada" || billingInvoices.find(invoice => invoice.id === id)?.documentType !== "nota_venta") {
+      throw new Error("Consulta el estado tributario en Facturación SRI.");
     }
-    const inv = billingInvoices.find((i) => i.id === id);
-    if (!inv) return;
-
-    const now = new Date().toISOString();
-
-    // Si pasa a "anulada":
-    // - Si es una Nota de Venta comercial (documentType === "nota_venta") y tenía kardex registrado, reversamos el stock y finanzas.
-    // - Si es una Factura Electrónica SRI (documentType === "factura"), NO altera inventario ni finanzas (que pertenecen a la Nota de Venta comercial), y libera la Nota de Venta origen si aplica.
-    if (status === "anulada" && inv.status !== "anulada") {
-      if (inv.documentType === "nota_venta" && inv.kardexRegistered) {
-        const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
-        const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
-        const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
-        const kardexEntries: KardexEntry[] = [];
-        const updatedProductsMap = new Map<string, InventoryProduct>();
-
-        for (const item of inv.items) {
-          if (!item.productId) continue;
-          const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-          if (!product || !product.tracksStock) continue;
-
-          const qty = Math.abs(item.quantity);
-          const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-          const newWhStock = currentWhStock + qty;
-
-          const kdx = buildKardexEntry({
-            product,
-            warehouse: wh || { id: warehouseId, name: warehouseName },
-            type: "CUSTOMER_RETURN",
-            referenceId: inv.id,
-            referenceDocNumber: inv.documentNumber,
-            concept: `Anulación de Nota de Venta ${inv.documentNumber}`,
-            quantity: qty,
-            unitCost: product.baseCost,
-            currentStock: currentWhStock,
-            currentAvgCost: product.baseCost,
-            userName: currentUser.displayName,
-          });
-
-          kardexEntries.push(kdx);
-
-          const updatedStockByWh = {
-            ...(product.stockByWarehouse || {}),
-            [warehouseId]: newWhStock,
-          };
-          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-          updatedProductsMap.set(product.id, {
-            ...product,
-            baseCost: kdx.balanceAverageCost,
-            stockByWarehouse: updatedStockByWh,
-            stock: totalStock,
-            updatedAt: now,
-          });
-        }
-
-        if (kardexEntries.length > 0) {
-          await Promise.all([
-            ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-            ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-          ]);
-          setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-          setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
-        }
-
-        const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
-        for (const mov of linkedMovs) {
-          if (mov.bankAccountId) {
-            const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-            if (bank) {
-              const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-              await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-              setBankAccounts((prev) =>
-                prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
-              );
-            }
-          }
-          const revId = `mov-rev-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-          const revMov: FinancialMovement = {
-            id: revId,
-            type: "egreso",
-            date: getEcuadorDate(),
-            amount: mov.amount,
-            category: "reversiones",
-            description: `Reverso por anulación de Nota de Venta ${inv.documentNumber}`,
-            bankAccountId: mov.bankAccountId,
-            bankAccountName: mov.bankAccountName,
-            paymentMethod: mov.paymentMethod || "transferencia",
-            relatedEntityId: inv.id,
-            createdAt: now,
-          };
-          await syncToFirestore("financialMovements", revId, revMov);
-          setFinancialMovements((prev) => [revMov, ...prev]);
-        }
-
-        if (inv.clientId) {
-          const clientObj = clients.find((c) => c.id === inv.clientId);
-          if (clientObj) {
-            const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
-            await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
-            setClients((prev) =>
-              prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
-            );
-          }
-        }
-      } else if (inv.relatedSaleId) {
-        // Es Factura Electrónica SRI: liberar la Nota de Venta comercial vinculada sin alterar stock ni finanzas
-        const originSale = billingInvoices.find((s) => s.id === inv.relatedSaleId);
-        if (originSale) {
-          const restoredSale: SriInvoice = {
-            ...originSale,
-            sriStatus: "pendiente",
-            sriInvoiceId: undefined,
-            sriDocumentNumber: undefined,
-          };
-          await syncToFirestore("billingInvoices", originSale.id, restoredSale);
-          setBillingInvoices((prev) => prev.map((i) => (i.id === originSale.id ? restoredSale : i)));
-        }
-      }
-    }
-
-    const updated: SriInvoice = {
-      ...inv,
-      status,
-      authorizationDate: authorizationDate || (status === "autorizada" ? now : inv.authorizationDate),
-    };
-
-    await syncToFirestore("billingInvoices", id, updated);
-    setBillingInvoices((prev) => prev.map((i) => (i.id === id ? updated : i)));
-    addAuditLog("UPDATE_CLIENT", `Estado Documento ${inv.documentNumber}`, `Nuevo estado: ${status}`);
+    await runCommercial("cancelSale", { id, reason: "Anulación comercial" });
   };
 
-  const updateInvoice = async (
-    id: string,
-    updates: Partial<SriInvoice>
-  ): Promise<SriInvoice> => {
-    if (billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
-      return runCommercial<SriInvoice>("editSale", { id, updates });
+  const updateInvoice = async (id: string, updates: Partial<SriInvoice>) => {
+    if (billingInvoices.find(invoice => invoice.id === id)?.documentType !== "nota_venta") {
+      throw new Error("Los documentos fiscales se administran en Facturación SRI.");
     }
-    const inv = billingInvoices.find((i) => i.id === id);
-    if (!inv) throw new Error("Comprobante no encontrado.");
-
-    // Validación de permisos
-    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
-    const canEdit =
-      isSuperOrAdmin ||
-      currentUser.permissions?.includes("all") ||
-      currentUser.permissions?.includes("manage_finance") ||
-      currentUser.permissions?.includes("edit_invoices") ||
-      currentUser.modulePermissions?.actions?.canEditInvoices;
-
-    if (!canEdit) {
-      throw new Error("No tienes autorización para editar ventas o notas de venta.");
-    }
-
-    if (inv.status === "anulada") {
-      throw new Error("No se puede editar un comprobante que ya ha sido anulado.");
-    }
-
-    if (inv.documentType === "factura" && inv.status === "autorizada") {
-      throw new Error("Una factura electrónica ya autorizada por el SRI no puede modificarse directamente. Debe emitir una Nota de Crédito.");
-    }
-
-    const now = new Date().toISOString();
-    const oldWarehouseId = inv.warehouseId || "wh-central";
-    const newWarehouseId = updates.warehouseId || oldWarehouseId;
-    const wh = inventoryWarehouses.find((w) => w.id === newWarehouseId) || inventoryWarehouses[0];
-    const warehouseId = wh ? wh.id : newWarehouseId;
-    const warehouseName = wh ? wh.name : (updates.warehouseName || inv.warehouseName || "Bodega Central");
-
-    // 1. Ajuste de Inventario / Kardex si aplica
-    const kardexEntries: KardexEntry[] = [];
-    const updatedProductsMap = new Map<string, InventoryProduct>();
-    const isTransitioningFromDraft = inv.status === "borrador" && updates.status !== undefined && updates.status !== "borrador";
-
-    let assignedDocNumber = inv.documentNumber;
-    let assignedClaveAcceso = inv.claveAcceso;
-
-    if (isTransitioningFromDraft) {
-      const estab = sriCompanyConfig.establecimiento || "010";
-      const pto = sriCompanyConfig.puntoEmision || "001";
-      const docType = updates.documentType || inv.documentType || "factura";
-      const dateStr = updates.date || inv.date || now.slice(0, 10);
-
-      if (docType === "nota_venta") {
-        const startFromNotaVenta = (sriCompanyConfig.secuencialNotaVenta || 1) - 1;
-        const maxSecNota = billingInvoices
-          .filter((i) => i.documentType === "nota_venta" && i.status !== "borrador")
-          .reduce((max, i) => {
-            const parts = (i.documentNumber || "").split("-");
-            const num = parseInt(parts[2] || "0", 10);
-            return !isNaN(num) && num > max ? num : max;
-          }, 0);
-        assignedDocNumber = formatearSecuencialSRI(Math.max(maxSecNota, startFromNotaVenta) + 1, estab, pto);
-        assignedClaveAcceso = "";
-      } else {
-        const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-        const maxSec = billingInvoices
-          .filter((i) => (i.documentType || "factura") === "factura" && i.status !== "borrador")
-          .reduce((max, i) => {
-            const parts = (i.documentNumber || "").split("-");
-            const num = parseInt(parts[2] || "0", 10);
-            return !isNaN(num) && num > max ? num : max;
-          }, 0);
-        const secuencial = Math.max(maxSec, startFromFactura) + 1;
-        assignedDocNumber = formatearSecuencialSRI(secuencial, estab, pto);
-        assignedClaveAcceso = generarClaveAccesoSRI({
-          fechaEmision: dateStr,
-          tipoComprobante: "01",
-          ruc: sriCompanyConfig.ruc,
-          ambiente: sriCompanyConfig.ambiente,
-          establecimiento: estab,
-          puntoEmision: pto,
-          secuencial,
-          codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-        });
-      }
-    }
-
-    if ((inv.status !== "borrador" && (inv.kardexRegistered || updates.items)) || isTransitioningFromDraft) {
-      const oldItems = isTransitioningFromDraft ? [] : (inv.items || []);
-      const newItems = updates.items || inv.items || [];
-
-      const oldQtyMap = new Map<string, number>();
-      for (const it of oldItems) {
-        if (!it.productId) continue;
-        oldQtyMap.set(it.productId, (oldQtyMap.get(it.productId) || 0) + Math.abs(it.quantity));
-      }
-
-      const newQtyMap = new Map<string, number>();
-      for (const it of newItems) {
-        if (!it.productId) continue;
-        newQtyMap.set(it.productId, (newQtyMap.get(it.productId) || 0) + Math.abs(it.quantity));
-      }
-
-      const allProductIds = Array.from(new Set([...oldQtyMap.keys(), ...newQtyMap.keys()]));
-
-      for (const prodId of allProductIds) {
-        const product = updatedProductsMap.get(prodId) || inventoryProducts.find((p) => p.id === prodId);
-        if (!product || !product.tracksStock) continue;
-
-        const oldQty = oldQtyMap.get(prodId) || 0;
-        const newQty = newQtyMap.get(prodId) || 0;
-        const delta = newQty - oldQty;
-
-        if (delta === 0) continue;
-
-        const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-
-        if (delta > 0) {
-          if (product.tracksStock && product.type !== "servicio" && currentWhStock < delta) {
-            throw new Error(`Stock insuficiente para '${product.name}' en la bodega '${warehouseName}'. Disponible: ${currentWhStock}, adicional requerido: ${delta}.`);
-          }
-          const newWhStock = currentWhStock - delta;
-          const kdx = buildKardexEntry({
-            product,
-            warehouse: wh || { id: warehouseId, name: warehouseName },
-            type: "SALE",
-            referenceId: inv.id,
-            referenceDocNumber: inv.documentNumber,
-            concept: `Ajuste incremento por edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
-            quantity: delta,
-            unitCost: product.baseCost,
-            currentStock: currentWhStock,
-            currentAvgCost: product.baseCost,
-            userName: currentUser.displayName,
-          });
-          kardexEntries.push(kdx);
-
-          const updatedStockByWh = {
-            ...(product.stockByWarehouse || {}),
-            [warehouseId]: newWhStock,
-          };
-          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-          updatedProductsMap.set(product.id, {
-            ...product,
-            stockByWarehouse: updatedStockByWh,
-            stock: totalStock,
-            updatedAt: now,
-          });
-        } else {
-          const returnQty = Math.abs(delta);
-          const newWhStock = currentWhStock + returnQty;
-          const kdx = buildKardexEntry({
-            product,
-            warehouse: wh || { id: warehouseId, name: warehouseName },
-            type: "CUSTOMER_RETURN",
-            referenceId: inv.id,
-            referenceDocNumber: inv.documentNumber,
-            concept: `Reversión por reducción en edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
-            quantity: returnQty,
-            unitCost: product.baseCost,
-            currentStock: currentWhStock,
-            currentAvgCost: product.baseCost,
-            userName: currentUser.displayName,
-          });
-          kardexEntries.push(kdx);
-
-          const updatedStockByWh = {
-            ...(product.stockByWarehouse || {}),
-            [warehouseId]: newWhStock,
-          };
-          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-          updatedProductsMap.set(product.id, {
-            ...product,
-            stockByWarehouse: updatedStockByWh,
-            stock: totalStock,
-            updatedAt: now,
-          });
-        }
-      }
-
-      if (kardexEntries.length > 0) {
-        await Promise.all([
-          ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-          ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-        ]);
-        setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-        setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
-      }
-    }
-
-    // 2. Ajuste de movimientos financieros y saldos bancarios / cuentas por cobrar
-    const oldTotal = Number(inv.total || 0);
-    const newTotal = updates.total !== undefined ? Number(updates.total) : oldTotal;
-    const oldMethod = inv.paymentMethod || "transferencia";
-    const newMethod = updates.paymentMethod || oldMethod;
-    const oldBankId = inv.bankAccountId;
-    const newBankId = updates.bankAccountId || oldBankId;
-
-    if (inv.status !== "borrador") {
-      const diffTotal = Math.round((newTotal - oldTotal) * 100) / 100;
-      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
-
-      if (newMethod !== "credito") {
-        if (oldMethod === "credito") {
-          // Cambió de crédito a contado
-          if (inv.clientId && inv.clientId !== "cf-9999999999999") {
-            const cl = clients.find((c) => c.id === inv.clientId);
-            if (cl) {
-              const adjustedClBal = Math.max(0, Math.round(((cl.currentBalance || 0) - oldTotal) * 100) / 100);
-              await syncToFirestore("clients", cl.id, { currentBalance: adjustedClBal });
-              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: adjustedClBal } : c)));
-            }
-          }
-          const targetBank = newBankId ? bankAccounts.find((b) => b.id === newBankId) : bankAccounts[0];
-          if (targetBank) {
-            const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-            const movement: FinancialMovement = {
-              id: movId,
-              type: "ingreso",
-              date: updates.date || inv.date,
-              amount: newTotal,
-              category: "venta_equipos",
-              description: `Cobro editado ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber} - ${updates.clientName || inv.clientName}`,
-              bankAccountId: targetBank.id,
-              bankAccountName: targetBank.bankName,
-              paymentMethod: newMethod,
-              referenceNumber: updates.transferenciaRef || updates.tarjetaRef || inv.documentNumber,
-              relatedEntityId: inv.id,
-              createdAt: now,
-            };
-            setFinancialMovements((prev) => [movement, ...prev]);
-            await syncToFirestore("financialMovements", movId, movement);
-
-            const newBankBal = Math.round((targetBank.currentBalance + newTotal) * 100) / 100;
-            setBankAccounts((prev) => prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBankBal } : b)));
-            await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBankBal });
-          }
-        } else {
-          // Ambos contado
-          if (linkedMovs.length > 0) {
-            for (const mov of linkedMovs) {
-              const currentBank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-              if (currentBank) {
-                if (!newBankId || newBankId === mov.bankAccountId) {
-                  const updatedBankBal = Math.max(0, Math.round(((currentBank.currentBalance || 0) + diffTotal) * 100) / 100);
-                  await syncToFirestore("bankAccounts", currentBank.id, { currentBalance: updatedBankBal });
-                  setBankAccounts((prev) => prev.map((b) => (b.id === currentBank.id ? { ...b, currentBalance: updatedBankBal } : b)));
-                } else {
-                  const revertedOldBankBal = Math.max(0, Math.round(((currentBank.currentBalance || 0) - mov.amount) * 100) / 100);
-                  await syncToFirestore("bankAccounts", currentBank.id, { currentBalance: revertedOldBankBal });
-                  setBankAccounts((prev) => prev.map((b) => (b.id === currentBank.id ? { ...b, currentBalance: revertedOldBankBal } : b)));
-
-                  const targetNewBank = bankAccounts.find((b) => b.id === newBankId);
-                  if (targetNewBank) {
-                    const updatedNewBankBal = Math.round(((targetNewBank.currentBalance || 0) + newTotal) * 100) / 100;
-                    await syncToFirestore("bankAccounts", targetNewBank.id, { currentBalance: updatedNewBankBal });
-                    setBankAccounts((prev) => prev.map((b) => (b.id === targetNewBank.id ? { ...b, currentBalance: updatedNewBankBal } : b)));
-                  }
-                }
-              }
-              const updatedMov: FinancialMovement = {
-                ...mov,
-                amount: newTotal,
-                bankAccountId: newBankId || mov.bankAccountId,
-                bankAccountName: newBankId ? (bankAccounts.find((b) => b.id === newBankId)?.bankName || mov.bankAccountName) : mov.bankAccountName,
-                paymentMethod: newMethod,
-                description: `Cobro editado ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber} - ${updates.clientName || inv.clientName}`,
-              };
-              await syncToFirestore("financialMovements", mov.id, updatedMov);
-              setFinancialMovements((prev) => prev.map((m) => (m.id === mov.id ? updatedMov : m)));
-            }
-          }
-        }
-      } else {
-        // Nuevo método es crédito
-        if (oldMethod !== "credito") {
-          for (const mov of linkedMovs) {
-            if (mov.bankAccountId) {
-              const b = bankAccounts.find((acc) => acc.id === mov.bankAccountId);
-              if (b) {
-                const revBal = Math.max(0, Math.round(((b.currentBalance || 0) - mov.amount) * 100) / 100);
-                await syncToFirestore("bankAccounts", b.id, { currentBalance: revBal });
-                setBankAccounts((prev) => prev.map((item) => (item.id === b.id ? { ...item, currentBalance: revBal } : item)));
-              }
-            }
-            await deleteFromFirestore("financialMovements", mov.id);
-          }
-          setFinancialMovements((prev) => prev.filter((m) => m.relatedEntityId !== inv.id));
-
-          const targetClientId = updates.clientId || inv.clientId;
-          if (targetClientId && targetClientId !== "cf-9999999999999") {
-            const cl = clients.find((c) => c.id === targetClientId);
-            if (cl) {
-              const updatedClBal = Math.round(((cl.currentBalance || 0) + newTotal) * 100) / 100;
-              await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
-              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
-            }
-          }
-        } else {
-          // Ya era crédito
-          const targetClientId = updates.clientId || inv.clientId;
-          if (targetClientId && targetClientId !== "cf-9999999999999") {
-            const cl = clients.find((c) => c.id === targetClientId);
-            if (cl) {
-              const updatedClBal = Math.max(0, Math.round(((cl.currentBalance || 0) + diffTotal) * 100) / 100);
-              await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
-              setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
-            }
-          }
-        }
-      }
-    } else if (isTransitioningFromDraft) {
-      if (newMethod !== "credito") {
-        const targetBank = newBankId ? bankAccounts.find((b) => b.id === newBankId) : bankAccounts[0];
-        if (targetBank && newTotal > 0) {
-          const movId = `mov-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-          const movement: FinancialMovement = {
-            id: movId,
-            type: "ingreso",
-            date: updates.date || inv.date,
-            amount: newTotal,
-            category: "venta_equipos",
-            description: `Cobro ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${assignedDocNumber} - ${updates.clientName || inv.clientName}`,
-            bankAccountId: targetBank.id,
-            bankAccountName: targetBank.bankName,
-            paymentMethod: newMethod,
-            referenceNumber: updates.transferenciaRef || updates.tarjetaRef || assignedDocNumber,
-            relatedEntityId: inv.id,
-            createdAt: now,
-          };
-          setFinancialMovements((prev) => [movement, ...prev]);
-          await syncToFirestore("financialMovements", movId, movement);
-
-          const newBankBal = Math.round((targetBank.currentBalance + newTotal) * 100) / 100;
-          setBankAccounts((prev) => prev.map((b) => (b.id === targetBank.id ? { ...b, currentBalance: newBankBal } : b)));
-          await syncToFirestore("bankAccounts", targetBank.id, { currentBalance: newBankBal });
-        }
-      } else {
-        const targetClientId = updates.clientId || inv.clientId;
-        if (targetClientId && targetClientId !== "cf-9999999999999" && newTotal > 0) {
-          const cl = clients.find((c) => c.id === targetClientId);
-          if (cl) {
-            const updatedClBal = Math.round(((cl.currentBalance || 0) + newTotal) * 100) / 100;
-            await syncToFirestore("clients", cl.id, { currentBalance: updatedClBal });
-            setClients((prev) => prev.map((c) => (c.id === cl.id ? { ...c, currentBalance: updatedClBal } : c)));
-          }
-        }
-      }
-    }
-
-    // 3. Objeto actualizado final y sincronización
-    const updatedInvoice: SriInvoice = {
-      ...inv,
-      ...updates,
-      documentNumber: assignedDocNumber,
-      claveAcceso: assignedClaveAcceso,
-      authorizationDate: isTransitioningFromDraft ? now : (updates.authorizationDate || inv.authorizationDate),
-      warehouseId,
-      warehouseName,
-      kardexRegistered: inv.kardexRegistered || kardexEntries.length > 0,
-      clientRuc: updates.clientRuc ? String(updates.clientRuc).replace(/\s+/g, "").trim() : inv.clientRuc,
-      clientEmail: updates.clientEmail ? String(updates.clientEmail).replace(/\s+/g, "").trim().toLowerCase() : inv.clientEmail,
-      clientName: updates.clientName ? String(updates.clientName).replace(/\s+/g, " ").trim() : inv.clientName,
-    };
-
-    await syncToFirestore("billingInvoices", id, updatedInvoice);
-    setBillingInvoices((prev) => prev.map((i) => (i.id === id ? updatedInvoice : i)));
-
-    addAuditLog(
-      "UPDATE_CLIENT",
-      `Edición de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"}: ${inv.documentNumber}`,
-      `Total anterior: $${oldTotal.toFixed(2)} -> Nuevo Total: $${newTotal.toFixed(2)} - Cliente: ${updatedInvoice.clientName}`
-    );
-
-    return updatedInvoice;
+    return runCommercial<SriInvoice>("editSale", { id, updates });
   };
 
   const deleteInvoice = async (id: string) => {
-    if (billingInvoices.find(i => i.id === id)?.documentType === "nota_venta") {
-      await runCommercial("cancelSale", { id, reason: "Anulación desde gestión comercial" });
-      return;
-    }
-    const inv = billingInvoices.find((i) => i.id === id);
-    if (!inv) return;
-
-    // Validación de permisos para eliminación de facturas / notas de venta
-    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
-    const canDelete =
-      isSuperOrAdmin ||
-      currentUser.permissions?.includes("all") ||
-      currentUser.permissions?.includes("delete_invoices") ||
-      currentUser.permissions?.includes("manage_finance") ||
-      currentUser.modulePermissions?.actions?.canDeleteInvoices;
-
-    if (!canDelete) {
-      throw new Error("No tienes autorización para eliminar ventas o notas de venta.");
-    }
-
-    const now = new Date().toISOString();
-
-    // Si es una Factura Electrónica SRI vinculada a una Nota de Venta, liberar la Nota de Venta comercial
-    if (inv.documentType !== "nota_venta" && inv.relatedSaleId) {
-      const originSale = billingInvoices.find((s) => s.id === inv.relatedSaleId);
-      if (originSale) {
-        const restoredSale: SriInvoice = {
-          ...originSale,
-          sriStatus: "pendiente",
-          sriInvoiceId: undefined,
-          sriDocumentNumber: undefined,
-        };
-        await syncToFirestore("billingInvoices", originSale.id, restoredSale);
-        setBillingInvoices((prev) => prev.map((i) => (i.id === originSale.id ? restoredSale : i)));
-      }
-    } else if (inv.status !== "anulada") {
-      // 1. Reversión de inventario / stock en Kardex si la venta registró salidas físicas
-      if (inv.kardexRegistered) {
-        const wh = inventoryWarehouses.find((w) => w.id === inv.warehouseId) || inventoryWarehouses[0];
-        const warehouseId = wh ? wh.id : (inv.warehouseId || "wh-central");
-        const warehouseName = wh ? wh.name : (inv.warehouseName || "Bodega Central");
-        const kardexEntries: KardexEntry[] = [];
-        const updatedProductsMap = new Map<string, InventoryProduct>();
-
-        for (const item of inv.items) {
-          if (!item.productId) continue;
-          const product = updatedProductsMap.get(item.productId) || inventoryProducts.find((p) => p.id === item.productId);
-          if (!product || !product.tracksStock) continue;
-
-          const qty = Math.abs(item.quantity);
-          const currentWhStock = Number(product.stockByWarehouse?.[warehouseId] || 0);
-          const newWhStock = currentWhStock + qty;
-
-          const kdx = buildKardexEntry({
-            product,
-            warehouse: wh || { id: warehouseId, name: warehouseName },
-            type: "CUSTOMER_RETURN",
-            referenceId: inv.id,
-            referenceDocNumber: inv.documentNumber,
-            concept: `Reversión por eliminación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${inv.documentNumber}`,
-            quantity: qty,
-            unitCost: product.baseCost,
-            currentStock: currentWhStock,
-            currentAvgCost: product.baseCost,
-            userName: currentUser.displayName,
-          });
-
-          kardexEntries.push(kdx);
-
-          const updatedStockByWh = {
-            ...(product.stockByWarehouse || {}),
-            [warehouseId]: newWhStock,
-          };
-          const totalStock = Object.values(updatedStockByWh).reduce((acc, val) => acc + (Number(val) || 0), 0);
-
-          updatedProductsMap.set(product.id, {
-            ...product,
-            baseCost: kdx.balanceAverageCost,
-            stockByWarehouse: updatedStockByWh,
-            stock: totalStock,
-            updatedAt: now,
-          });
-        }
-
-        if (kardexEntries.length > 0) {
-          await Promise.all([
-            ...kardexEntries.map((k) => syncToFirestore("inventoryKardex", k.id, k)),
-            ...Array.from(updatedProductsMap.values()).map((p) => syncToFirestore("inventoryProducts", p.id, p)),
-          ]);
-          setInventoryKardex((prev) => [...kardexEntries, ...prev]);
-          setInventoryProducts((prev) => prev.map((p) => updatedProductsMap.get(p.id) || p));
-        }
-      }
-
-      // 2. Reversión de movimientos financieros vinculados
-      const linkedMovs = financialMovements.filter((m) => m.relatedEntityId === inv.id);
-      for (const mov of linkedMovs) {
-        if (mov.bankAccountId) {
-          const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-          if (bank) {
-            const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-            await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-            setBankAccounts((prev) =>
-              prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
-            );
-          }
-        }
-        await deleteFromFirestore("financialMovements", mov.id);
-      }
-      if (linkedMovs.length > 0) {
-        const linkedIds = new Set(linkedMovs.map((m) => m.id));
-        setFinancialMovements((prev) => prev.filter((m) => !linkedIds.has(m.id)));
-      }
-
-      // 3. Reversión de saldo de cliente si aplica
-      if (inv.clientId) {
-        const clientObj = clients.find((c) => c.id === inv.clientId);
-        if (clientObj) {
-          const revertedClientBal = Math.max(0, Math.round(((clientObj.currentBalance || 0) - (inv.total || 0)) * 100) / 100);
-          await syncToFirestore("clients", clientObj.id, { currentBalance: revertedClientBal });
-          setClients((prev) =>
-            prev.map((c) => (c.id === clientObj.id ? { ...c, currentBalance: revertedClientBal } : c))
-          );
-        }
-      }
-
-      // 4. Reversión y eliminación en cascada de servicios del cliente vinculados a esta venta
-      const linkedServices = clientServices.filter(
-        (s) =>
-          s.saleInvoiceId === inv.id ||
-          s.saleDocNumber === inv.documentNumber ||
-          s.lastBilledInvoiceId === inv.id
-      );
-
-      const servicesToDelete: string[] = [];
-      const servicesToRevert: ClientService[] = [];
-
-      for (const svc of linkedServices) {
-        // Si el servicio fue generado por la emisión de esta venta/nota de venta comercial:
-        const wasCreatedBySale =
-          svc.origin === "nota_venta" ||
-          svc.origin === "factura" ||
-          (!svc.origin && svc.saleInvoiceId === inv.id);
-
-        if (wasCreatedBySale) {
-          servicesToDelete.push(svc.id);
-          await deleteFromFirestore("clientServices", svc.id);
-        } else {
-          // Si era un servicio preexistente (ej. de contrato o recurrente periódico facturado):
-          servicesToRevert.push(svc);
-          const updates: Partial<ClientService> = {
-            saleInvoiceId: undefined,
-            saleDocNumber: undefined,
-            saleDate: undefined,
-            saleStatus: "pendiente_venta",
-            lastBilledPeriod: undefined,
-            lastBilledInvoiceId: undefined,
-          };
-          await syncToFirestore("clientServices", svc.id, updates);
-        }
-      }
-
-      if (servicesToDelete.length > 0) {
-        const delSet = new Set(servicesToDelete);
-        setClientServices((prev) => prev.filter((s) => !delSet.has(s.id)));
-      }
-      if (servicesToRevert.length > 0) {
-        const revSet = new Set(servicesToRevert.map((s) => s.id));
-        setClientServices((prev) =>
-          prev.map((s) => {
-            if (revSet.has(s.id)) {
-              return {
-                ...s,
-                saleInvoiceId: undefined,
-                saleDocNumber: undefined,
-                saleDate: undefined,
-                saleStatus: "pendiente_venta",
-                lastBilledPeriod: undefined,
-                lastBilledInvoiceId: undefined,
-              };
-            }
-            return s;
-          })
-        );
-      }
-
-      // Actualizar contador de servicios activos del cliente si cambió
-      if (inv.clientId) {
-        const clientObj = clients.find((c) => c.id === inv.clientId);
-        if (clientObj) {
-          const activeCount = clientServices.filter(
-            (s) => s.clientId === inv.clientId && !servicesToDelete.includes(s.id) && s.status === "activo"
-          ).length;
-          await syncToFirestore("clients", clientObj.id, { totalActiveServices: activeCount });
-          setClients((prev) =>
-            prev.map((c) => (c.id === clientObj.id ? { ...c, totalActiveServices: activeCount } : c))
-          );
-        }
-      }
-    }
-
-    // 5. Eliminar de Firestore y estado local
-    await deleteFromFirestore("billingInvoices", id);
-    setBillingInvoices((prev) => prev.filter((i) => i.id !== id));
-
-    // 6. Purga en cascada de cobros y abonos comerciales vinculados a esta venta
-    const invDate = new Date(inv.date);
-    const invMonth = isNaN(invDate.getTime()) ? undefined : invDate.getMonth() + 1;
-    const invYear = isNaN(invDate.getTime()) ? undefined : invDate.getFullYear();
-    const linkedCharges = monthlyCharges.filter(
-      (c) =>
-        c.invoiceId === id ||
-        c.invoiceNumber === inv.documentNumber ||
-        c.id === id ||
-        c.id === `chg-inv-${id}` ||
-        (invMonth && invYear && c.id === `chg-${inv.clientId}-${invMonth}-${invYear}`) ||
-        (c.clientId === inv.clientId && (c.invoiceNumber === inv.documentNumber || c.invoiceId === id))
-    );
-    for (const chg of linkedCharges) {
-      const chgMovs = financialMovements.filter((m) => m.relatedEntityId === chg.id);
-      for (const mov of chgMovs) {
-        if (mov.bankAccountId) {
-          const bank = bankAccounts.find((b) => b.id === mov.bankAccountId);
-          if (bank) {
-            const revertedBankBal = Math.max(0, Math.round(((bank.currentBalance || 0) - mov.amount) * 100) / 100);
-            await syncToFirestore("bankAccounts", bank.id, { currentBalance: revertedBankBal });
-            setBankAccounts((prev) =>
-              prev.map((b) => (b.id === bank.id ? { ...b, currentBalance: revertedBankBal } : b))
-            );
-          }
-        }
-        await deleteFromFirestore("financialMovements", mov.id);
-      }
-      if (chgMovs.length > 0) {
-        const chgMovIds = new Set(chgMovs.map((m) => m.id));
-        setFinancialMovements((prev) => prev.filter((m) => !chgMovIds.has(m.id)));
-      }
-      await deleteFromFirestore("monthlyCharges", chg.id);
-    }
-    if (linkedCharges.length > 0) {
-      const chgIds = new Set(linkedCharges.map((c) => c.id));
-      setMonthlyCharges((prev) =>
-        prev.filter((c) => !chgIds.has(c.id))
-      );
-    }
-
-    addAuditLog(
-      "UPDATE_CLIENT",
-      `Eliminación de ${inv.documentType === "nota_venta" ? "Nota de Venta" : "Factura"}: ${inv.documentNumber}`,
-      `Total: $${inv.total?.toFixed(2) || "0.00"} - Cliente: ${inv.clientName}`
-    );
+    await updateInvoiceStatus(id, "anulada");
   };
 
   const createBillingQuote = async (
@@ -3107,321 +1813,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return invoice;
   };
 
-  const convertSaleToSriInvoice = async (
-    saleId: string,
-    customData?: Partial<SriInvoice> & { customSecuencial?: number }
-  ): Promise<SriInvoice> => {
-    const sale = billingInvoices.find((i) => i.id === saleId);
-    if (!sale) throw new Error("Venta comercial no encontrada.");
-    if (sale.status === "anulada") {
-      throw new Error("La nota de venta está anulada: no puede convertirse en factura electrónica.");
-    }
-
-    // Si ya existe una factura vinculada se reutiliza el mismo comprobante.
-    // El SRI identifica cada documento por su clave de acceso, por lo que un
-    // reintento no debe generar un secuencial nuevo.
-    let invoice: SriInvoice | null = null;
-    if (sale.sriInvoiceId) {
-      const existing = billingInvoices.find((i) => i.id === sale.sriInvoiceId);
-      if (existing) {
-        if (existing.status === "anulada") {
-          throw new Error(
-            `La factura ${existing.documentNumber} está anulada. Emite una nueva nota de venta para volver a facturar.`
-          );
-        }
-        if (existing.status === "autorizada" && existing.estadoSRI === "AUTORIZADO") {
-          return existing;
-        }
-        invoice = existing;
-      }
-    }
-
-    const { customSecuencial, ...overrides } = customData || {};
-    const now = new Date().toISOString();
-
-    if (!invoice) {
-      const dateStr = overrides.date || sale.date || now.slice(0, 10);
-      const estab = sriCompanyConfig.establecimiento || "010";
-      const pto = sriCompanyConfig.puntoEmision || "001";
-
-      const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-      const maxSec = billingInvoices
-        .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
-        .reduce((max, inv) => {
-          const parts = (inv.documentNumber || "").split("-");
-          const num = parseInt(parts[2] || "0", 10);
-          return !isNaN(num) && num > max ? num : max;
-        }, 0);
-      const secuencial = customSecuencial || Math.max(maxSec, startFromFactura) + 1;
-      const documentNumber = formatearSecuencialSRI(secuencial, estab, pto);
-
-      const claveAcceso = generarClaveAccesoSRI({
-        fechaEmision: dateStr,
-        tipoComprobante: "01",
-        ruc: sriCompanyConfig.ruc,
-        ambiente: sriCompanyConfig.ambiente,
-        establecimiento: estab,
-        puntoEmision: pto,
-        secuencial,
-        codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-      });
-
-      invoice = {
-        ...sale,
-        ...overrides,
-        id: `inv-${Date.now()}`,
-        documentType: "factura",
-        documentNumber,
-        claveAcceso,
-        date: dateStr,
-        time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
-        status: "emitida",
-        relatedSaleId: sale.id,
-        kardexRegistered: false, // El stock ya fue descontado en la Nota de Venta comercial
-        notes: `Factura Electrónica emitida a partir de Nota de Venta ${sale.documentNumber}. ${sale.notes || ""}`,
-        createdAt: now,
-      };
-    } else {
-      // Reintento: se conserva número, clave y fecha originales, y solo se
-      // actualizan los datos fiscales del receptor.
-      invoice = {
-        ...invoice,
-        ...overrides,
-        id: invoice.id,
-        documentType: "factura",
-        documentNumber: invoice.documentNumber,
-        claveAcceso: invoice.claveAcceso,
-        date: invoice.date,
-        status: "emitida",
-        relatedSaleId: sale.id,
-      };
-    }
-
-    // La firma, el envío al SRI y la persistencia se ejecutan en el servidor.
-    const result = await api<{
-      invoice: SriInvoice;
-      autorizado: boolean;
-      estadoSRI?: SriInvoice["estadoSRI"];
-      mensajesSRI?: SriInvoice["mensajesSRI"];
-      alreadyAuthorized?: boolean;
-    }>("/api/sri/emitir", { invoice, enviarCorreo: true });
-
+  const runFiscal = async <T,>(request: SriSubmission): Promise<T> => {
+    const operation = request.kind === "factura" || request.kind === "consultar" || request.correctionId
+      ? null : await pendingOperation("sri", request);
+    const result = await api<{ document: T }>("/api/sri/emitir", { ...request, operationId: operation?.operationId });
     await refresh();
-
-    addAuditLog(
-      "UPDATE_CLIENT",
-      `Factura Electrónica SRI: ${sale.documentNumber} -> ${result.invoice.documentNumber}`,
-      `Estado SRI: ${result.estadoSRI || (result.autorizado ? "AUTORIZADO" : "SIN RESPUESTA")} - Total: $${(result.invoice.total || 0).toFixed(2)} - Cliente: ${result.invoice.clientName}`
-    );
-
-    return result.invoice;
+    if (operation) sessionStorage.removeItem(operation.key);
+    return result.document;
   };
 
-  const createCreditNote = async (
-    data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">
-  ): Promise<CreditNote> => {
-    const now = new Date().toISOString();
-    const ncId = `nc-${Date.now()}`;
-    const dateStr = data.date || now.slice(0, 10);
-
-    const startFromNC = (sriCompanyConfig.secuencialNotaCredito || 1) - 1;
-    const maxSec = billingCreditNotes.reduce((max, nc) => {
-      const parts = (nc.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    const secuencial = Math.max(maxSec, startFromNC) + 1;
-    const documentNumber = formatearSecuencialSRI(
-      secuencial,
-      sriCompanyConfig.establecimiento,
-      sriCompanyConfig.puntoEmision
-    );
-
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "04",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: sriCompanyConfig.establecimiento,
-      puntoEmision: sriCompanyConfig.puntoEmision,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
+  const convertSaleToSriInvoice = (saleId: string, customData?: Partial<SriInvoice>, correctionId?: string) =>
+    runFiscal<SriInvoice>({
+      kind: "factura", saleId, correctionId, clientId: customData?.clientId, clientRuc: customData?.clientRuc,
+      clientEmail: customData?.clientEmail || undefined, clientAddress: customData?.clientAddress || undefined,
     });
 
-    const wh = inventoryWarehouses.find((w) => w.id === data.warehouseId) || inventoryWarehouses[0];
-    const warehouseId = wh ? wh.id : (data.warehouseId || "wh-central");
-    const warehouseName = wh ? wh.name : (data.warehouseName || "Bodega Central");
+  const createCreditNote = (data: Omit<CreditNote, "id" | "claveAcceso" | "documentNumber" | "createdAt" | "kardexReentered">, correctionId?: string) =>
+    runFiscal<CreditNote>({ kind: "nota_credito", correctionId, invoiceId: data.invoiceId, reason: data.reason,
+      items: data.items.map(({ id, quantity }) => ({ id, quantity })) });
 
-    // La Nota de Crédito (04) es un comprobante electrónico tributario del SRI sobre la Factura Electrónica (01).
-    // El inventario y las finanzas se gestionan fuera del proceso de facturación electrónica.
-    const newCreditNote: CreditNote = {
-      ...data,
-      id: ncId,
-      documentNumber,
-      claveAcceso,
-      warehouseId,
-      warehouseName,
-      kardexReentered: false,
-      createdAt: now,
-    };
-
-    await syncToFirestore("billingCreditNotes", newCreditNote.id, newCreditNote);
-    setBillingCreditNotes((prev) => [newCreditNote, ...prev]);
-
-    // Si la Nota de Crédito cubre el total de la Factura Electrónica modificada, marcar la factura SRI como anulada y liberar la Nota de Venta origen
-    const targetInv = billingInvoices.find((i) => i.id === data.invoiceId);
-    if (targetInv && newCreditNote.total >= (targetInv.total || 0)) {
-      await updateInvoiceStatus(targetInv.id, "anulada");
-    }
-
-    addAuditLog("CREATE_EXPENSE", `Nota de Crédito SRI: ${documentNumber}`, `Factura: ${data.invoiceNumber} - Total: $${newCreditNote.total.toFixed(2)}`);
-
-    return newCreditNote;
+  const createDebitNote = (data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">, correctionId?: string) => {
+    if (!data.invoiceId || !data.paymentCode) throw new Error("Selecciona la factura de sustento y la forma de pago.");
+    return runFiscal<DebitNote>({ kind: "nota_debito", correctionId, invoiceId: data.invoiceId, ivaRate: data.ivaRate,
+      paymentCode: data.paymentCode, reasons: data.reasons });
   };
 
-  const createDebitNote = async (
-    data: Omit<DebitNote, "id" | "claveAcceso" | "documentNumber" | "createdAt">
-  ): Promise<DebitNote> => {
-    const now = new Date().toISOString();
-    const ndId = `nd-${Date.now()}`;
-    const dateStr = data.date || now.slice(0, 10);
+  const createWithholding = (data: Omit<Extract<SriRequest, { kind: "retencion" }>, "kind">, correctionId?: string) =>
+    runFiscal<WithholdingReceipt>({ kind: "retencion", correctionId, ...data });
 
-    const startFromND = (sriCompanyConfig.secuencialNotaDebito || 1) - 1;
-    const maxSec = billingDebitNotes.reduce((max, nd) => {
-      const parts = (nd.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    const secuencial = Math.max(maxSec, startFromND) + 1;
-    const documentNumber = formatearSecuencialSRI(
-      secuencial,
-      sriCompanyConfig.establecimiento,
-      sriCompanyConfig.puntoEmision
-    );
+  const createRemissionGuide = (data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt"> & { invoiceId?: string }, correctionId?: string) =>
+    runFiscal<RemissionGuide>({ kind: "guia_remision", correctionId, ...data });
 
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "05",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: sriCompanyConfig.establecimiento,
-      puntoEmision: sriCompanyConfig.puntoEmision,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-    });
-
-    const newND: DebitNote = {
-      ...data,
-      status: data.status || "autorizada",
-      id: ndId,
-      documentNumber,
-      claveAcceso,
-      createdAt: now,
-    };
-
-    await syncToFirestore("billingDebitNotes", newND.id, newND);
-    setBillingDebitNotes((prev) => [newND, ...prev]);
-
-    addAuditLog(
-      "UPDATE_CLIENT",
-      `Nota de Débito SRI: ${newND.documentNumber}`,
-      `Total: $${newND.total.toFixed(2)} - Factura Modificada: ${newND.modifiedInvoiceNumber}`
-    );
-
-    return newND;
-  };
-
-  const createWithholding = async (
-    data: Omit<WithholdingReceipt, "id" | "claveAcceso" | "documentNumber" | "createdAt">
-  ): Promise<WithholdingReceipt> => {
-    const now = new Date().toISOString();
-    const retId = `ret-${Date.now()}`;
-    const dateStr = data.date || now.slice(0, 10);
-
-    const startFromRet = (sriCompanyConfig.secuencialRetencion || 1) - 1;
-    const maxSec = billingWithholdings.reduce((max, w) => {
-      const parts = (w.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    const secuencial = Math.max(maxSec, startFromRet) + 1;
-    const documentNumber = formatearSecuencialSRI(
-      secuencial,
-      sriCompanyConfig.establecimiento,
-      sriCompanyConfig.puntoEmision
-    );
-
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "07",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: sriCompanyConfig.establecimiento,
-      puntoEmision: sriCompanyConfig.puntoEmision,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-    });
-
-    const newWithholding: WithholdingReceipt = {
-      ...data,
-      id: retId,
-      documentNumber,
-      claveAcceso,
-      createdAt: now,
-    };
-
-    await syncToFirestore("billingWithholdings", newWithholding.id, newWithholding);
-    setBillingWithholdings((prev) => [newWithholding, ...prev]);
-    addAuditLog("CREATE_EXPENSE", `Comprobante Retención: ${documentNumber}`, `Cliente: ${newWithholding.clientName} - Retenido: $${newWithholding.totalRetained.toFixed(2)}`);
-
-    return newWithholding;
-  };
-
-  const createRemissionGuide = async (
-    data: Omit<RemissionGuide, "id" | "claveAcceso" | "documentNumber" | "createdAt">
-  ): Promise<RemissionGuide> => {
-    const now = new Date().toISOString();
-    const guideId = `gr-${Date.now()}`;
-    const dateStr = data.date || now.slice(0, 10);
-
-    const startFromGuia = (sriCompanyConfig.secuencialGuiaRemision || 1) - 1;
-    const maxSec = billingRemissionGuides.reduce((max, g) => {
-      const parts = (g.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-    const secuencial = Math.max(maxSec, startFromGuia) + 1;
-    const documentNumber = formatearSecuencialSRI(
-      secuencial,
-      sriCompanyConfig.establecimiento,
-      sriCompanyConfig.puntoEmision
-    );
-
-    const claveAcceso = generarClaveAccesoSRI({
-      fechaEmision: dateStr,
-      tipoComprobante: "06",
-      ruc: sriCompanyConfig.ruc,
-      ambiente: sriCompanyConfig.ambiente,
-      establecimiento: sriCompanyConfig.establecimiento,
-      puntoEmision: sriCompanyConfig.puntoEmision,
-      secuencial,
-      codigoNumerico: Math.floor(10000000 + Math.random() * 90000000).toString(),
-    });
-
-    const newGuide: RemissionGuide = {
-      ...data,
-      id: guideId,
-      documentNumber,
-      claveAcceso,
-      createdAt: now,
-    };
-
-    await syncToFirestore("billingRemissionGuides", newGuide.id, newGuide);
-    setBillingRemissionGuides((prev) => [newGuide, ...prev]);
-    addAuditLog("CREATE_EXPENSE", `Guía de Remisión: ${documentNumber}`, `Destino: ${newGuide.destAddress} - Transportista: ${newGuide.carrierName}`);
-
-    return newGuide;
-  };
+  const consultFiscalDocument = (documentKind: FiscalKind, id: string, retry = false) =>
+    runFiscal<SriFiscalEvidence>({ kind: "consultar", documentKind, id, retry });
 
   const updateSriConfig = async (updates: Partial<SriCompanyConfig>) => {
     const updated: SriCompanyConfig = {
@@ -3481,20 +1905,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addSupplierDebitNote = async (note: Omit<SupplierDebitNote, "id" | "createdAt">): Promise<SupplierDebitNote> =>
     runCommercial<SupplierDebitNote>("supplierDebit", note);
 
-  const addPurchaseWithholding = async (
-    ret: Omit<PurchaseWithholding, "id" | "createdAt">
-  ): Promise<PurchaseWithholding> => {
-    const id = `ret-pur-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const newRet: PurchaseWithholding = {
-      ...ret,
-      id,
-      createdAt: new Date().toISOString(),
-    };
-    setPurchaseWithholdings((prev) => [newRet, ...prev]);
-    await syncToFirestore("purchaseWithholdings", id, newRet);
-    return newRet;
-  };
-
   const addBankAccount = async (account: Omit<BankAccount, "id">): Promise<BankAccount> =>
     runCommercial<BankAccount>("createBank", account);
 
@@ -3525,6 +1935,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resetDataToDefaults = async () => { await refresh(); };
 
   const hasAccess = canAccessRoute(currentUser, pathname);
+  const homeRoute = firstAccessibleRoute(currentUser);
+  const router = useRouter();
+  useEffect(() => {
+    if (isAuthenticated && dataReady && pathname === "/" && !hasAccess && homeRoute) router.replace(homeRoute);
+  }, [isAuthenticated, dataReady, pathname, hasAccess, homeRoute, router]);
 
   return (
     <ToastProvider>
@@ -3587,6 +2002,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           vault,
           tickets,
           ticketSubjects,
+          ticketDepartments,
+          ticketAssignees,
+          userRoleTemplates,
           expenses,
           expenseCategories,
           monthlyCharges,
@@ -3671,6 +2089,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createDebitNote,
           createWithholding,
           createRemissionGuide,
+          consultFiscalDocument,
           updateSriConfig,
           // Compras & Proveedores & Finanzas Bancarias
           suppliers,
@@ -3689,7 +2108,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updatePurchaseInvoice,
           addSupplierCreditNote,
           addSupplierDebitNote,
-          addPurchaseWithholding,
           addBankAccount,
           updateBankAccount,
           adjustBankBalance,
@@ -3704,6 +2122,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSearchQuery,
           isSearchOpen,
           setIsSearchOpen,
+          isNavigationOpen,
+          setIsNavigationOpen,
           resetDataToDefaults,
         }}
       >
@@ -3726,7 +2146,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   <p className="text-xs text-slate-500">
                     Tu rol ({currentUser.role}) no tiene asignado el permiso para acceder a esta sección.
                   </p>
-                  <BackButton href="/" label="Volver al Dashboard" />
+                  {homeRoute && <BackButton href={homeRoute} label="Ir a mi inicio" />}
+                  <button type="button" className="px-3 py-2 text-xs text-[#004ac6]" onClick={() => void logout()}>Cerrar sesión</button>
                 </div>
               </div>
             )

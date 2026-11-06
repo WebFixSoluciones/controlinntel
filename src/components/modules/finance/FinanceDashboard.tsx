@@ -5,6 +5,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { activeCommercialDocuments } from "@/lib/sales-policy";
+import { ChargePaymentModal } from "./ChargePaymentModal";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber, safeFloat } from "@/lib/print-service";
 import {
@@ -38,13 +39,6 @@ const PAYMENT_METHODS = [
   "Tarjeta de Crédito / Débito",
   "Saldo a Favor / Anticipo",
 ];
-
-/** Forma de pago pactada al asignar el servicio → etiqueta del selector de cobro. */
-const PREFERRED_PAYMENT_LABEL: Record<string, string> = {
-  transferencia: "Transferencia Bancaria",
-  efectivo: "Efectivo",
-  tarjeta: "Tarjeta de Crédito / Débito",
-};
 
 export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   enlace_transito: "Internet y Enlaces",
@@ -84,7 +78,6 @@ export function FinanceDashboard({
     updateMonthlyCharge,
     deleteMonthlyCharge,
     deleteInvoice,
-    addPaymentToCharge,
     addClientAdvance,
     applyClientAdvance,
     deleteClientAdvance,
@@ -117,12 +110,6 @@ export function FinanceDashboard({
 
   // Modal Registrar Abono / Cobro
   const [payingCharge, setPayingCharge] = useState<MonthlyCharge | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
-  const [paymentBankId, setPaymentBankId] = useState<string>("");
-  const [paymentReference, setPaymentReference] = useState("");
-  const [paymentDate, setPaymentDate] = useState(getEcuadorDate());
-  const [paymentNotes, setPaymentNotes] = useState("");
 
   // Modal Historial de Abonos
   const [historyCharge, setHistoryCharge] = useState<MonthlyCharge | null>(null);
@@ -247,78 +234,6 @@ export function FinanceDashboard({
       showSuccess("Excel Exportado", `Se descargaron ${filteredCharges.length} comprobantes de cobro.`);
     } catch {
       showError("Error", "No se pudo generar el archivo Excel.");
-    }
-  };
-
-  const openPaymentModal = (charge: MonthlyCharge) => {
-    setPayingCharge(charge);
-    const balance =
-      charge.balanceRemaining !== undefined
-        ? charge.balanceRemaining
-        : charge.status === "pagado"
-        ? 0
-        : charge.total;
-    setPaymentAmount(Math.max(0, balance));
-    // Preselecciona la forma de pago pactada al asignar el servicio (R28).
-    const preferred = PREFERRED_PAYMENT_LABEL[String(charge.expectedPaymentMethod || "")];
-    setPaymentMethod(preferred && PAYMENT_METHODS.includes(preferred) ? preferred : PAYMENT_METHODS[0]);
-    setPaymentBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
-    setPaymentReference(`REF-${Date.now().toString().slice(-6)}`);
-    setPaymentDate(getEcuadorDate());
-    setPaymentNotes("");
-  };
-
-  const handleConfirmPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payingCharge) return;
-
-    if (paymentAmount <= 0) {
-      showError("Monto Inválido", "El valor del abono debe ser mayor a $0.00.");
-      return;
-    }
-
-    try {
-      await addPaymentToCharge(payingCharge.id, {
-        amount: paymentAmount,
-        method: paymentMethod,
-        reference: paymentReference.trim() || undefined,
-        bankAccountId: paymentBankId || undefined,
-        date: paymentDate,
-        notes: paymentNotes.trim() || undefined,
-      });
-
-      showSuccess(
-        "Abono Registrado",
-        `Se registró abono de $${paymentAmount.toFixed(2)} al comprobante ${payingCharge.invoiceNumber}.`
-      );
-      setPayingCharge(null);
-    } catch (error) {
-      showError("Error", error instanceof Error ? error.message : "No se pudo registrar el cobro.");
-    }
-  };
-
-  const handleApplyAdvanceDirectly = async (adv: ClientAdvance, charge: MonthlyCharge) => {
-    const chargeBalance =
-      charge.balanceRemaining !== undefined
-        ? charge.balanceRemaining
-        : charge.status === "pagado"
-        ? 0
-        : charge.total;
-    const amountToApply = Math.min(adv.remaining, chargeBalance);
-    if (amountToApply <= 0) {
-      showError("Sin saldo", "El comprobante ya no tiene saldo pendiente o el anticipo está agotado.");
-      return;
-    }
-
-    try {
-      await applyClientAdvance(adv.id, charge.id, amountToApply);
-      showSuccess(
-        "Anticipo Aplicado",
-        `Se aplicaron $${amountToApply.toFixed(2)} del saldo a favor de ${adv.clientName} al comprobante ${charge.invoiceNumber}.`
-      );
-      setPayingCharge(null);
-    } catch (error) {
-      showError("Error", error instanceof Error ? error.message : "No se pudo aplicar el anticipo.");
     }
   };
 
@@ -712,7 +627,7 @@ export function FinanceDashboard({
                               <button
                                 type="button"
                                 title="Registrar Cobro / Abono"
-                                onClick={() => openPaymentModal(charge)}
+                                onClick={() => setPayingCharge(charge)}
                                 className="p-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-md transition cursor-pointer shadow-xs"
                               >
                                 <CreditCard className="w-3.5 h-3.5" />
@@ -913,195 +828,7 @@ export function FinanceDashboard({
         </div>
       )}
 
-      {/* MODAL 1: REGISTRAR ABONO / COBRO A COMPROBANTE */}
-      {payingCharge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#004ac6]" />
-                  Abonar al Comprobante: {payingCharge.invoiceNumber}
-                </h3>
-                <span className="text-[11px] text-slate-500">
-                  Cliente: <strong className="text-slate-800">{payingCharge.clientName}</strong>
-                </span>
-              </div>
-              <button aria-label="Cerrar"
-                type="button"
-                onClick={() => setPayingCharge(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Aviso de Saldo a Favor por Anticipos si el cliente tiene */}
-            {(() => {
-              const clientAdvancesList = clientAdvancesMap.get(payingCharge.clientId) || [];
-              const availableAdvance = clientAdvancesList[0];
-              if (!availableAdvance) return null;
-              return (
-                <div className="m-5 mb-0 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-600 shrink-0" />
-                    <div>
-                      <span className="font-bold text-indigo-900 block">
-                        Cliente tiene anticipo disponible: ${safeNumber(availableAdvance.remaining)} USD
-                      </span>
-                      <span className="text-[11px] text-indigo-700">
-                        ¿Deseas saldar este comprobante usando el saldo a favor?
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyAdvanceDirectly(availableAdvance, payingCharge)}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-bold text-[11px] whitespace-nowrap cursor-pointer transition"
-                  >
-                    Aplicar Saldo
-                  </button>
-                </div>
-              );
-            })()}
-
-            <form onSubmit={handleConfirmPayment} className="p-5 space-y-3.5 text-xs">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] text-slate-500 block">Total Comprobante</span>
-                  <span className="text-sm font-mono font-bold text-slate-800">${safeNumber(payingCharge.total)}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[11px] text-slate-500 block">Saldo Pendiente</span>
-                  <span className="text-sm font-mono font-bold text-amber-700">
-                    ${safeNumber(
-                      payingCharge.balanceRemaining !== undefined
-                        ? payingCharge.balanceRemaining
-                        : payingCharge.status === "pagado"
-                        ? 0
-                        : payingCharge.total
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="finance-dashboard-field-1" className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Monto a Abonar ($) *
-                  </label>
-                  <input id="finance-dashboard-field-1"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max={
-                      payingCharge.balanceRemaining !== undefined
-                        ? payingCharge.balanceRemaining
-                        : payingCharge.total
-                    }
-                    required
-                    value={paymentAmount || ""}
-                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:outline-hidden focus:border-[#004ac6]"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="finance-dashboard-field-2" className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Fecha del Abono *
-                  </label>
-                  <input id="finance-dashboard-field-2"
-                    type="date"
-                    required
-                    value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="finance-dashboard-field-3" className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Forma de Pago
-                  </label>
-                  <select id="finance-dashboard-field-3"
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                  >
-                    {PAYMENT_METHODS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="finance-dashboard-field-4" className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Cuenta / Banco Destino
-                  </label>
-                  <select id="finance-dashboard-field-4"
-                    value={paymentBankId}
-                    onChange={(e) => setPaymentBankId(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                  >
-                    <option value="">Seleccionar cuenta...</option>
-                    {bankAccounts.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.bankName} ({b.accountNumber})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="finance-dashboard-field-5" className="text-[11px] font-bold text-slate-700 block mb-1">
-                  N° Referencia / Comprobante Bancario
-                </label>
-                <input id="finance-dashboard-field-5"
-                  type="text"
-                  placeholder="Ej: Depósito #491029 / Transf. Pichincha"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="finance-dashboard-field-6" className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Observaciones / Notas del Cobro
-                </label>
-                <input id="finance-dashboard-field-6"
-                  type="text"
-                  placeholder="Detalle adicional del pago o abono..."
-                  value={paymentNotes}
-                  onChange={(e) => setPaymentNotes(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setPayingCharge(null)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold shadow-xs cursor-pointer transition"
-                >
-                  Confirmar y Guardar Abono
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {payingCharge && <ChargePaymentModal key={payingCharge.id} charge={payingCharge} onClose={() => setPayingCharge(null)} />}
 
       {/* MODAL 2: HISTORIAL DE ABONOS */}
       {historyCharge && (

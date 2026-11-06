@@ -4,11 +4,12 @@ import type { UserProfile } from "@/types";
 import { adminServices } from "./admin.ts";
 import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
-import { calculateLines, cents, money, chargeBalance, planServicePeriod, validDate, addDays, type RecordData as Row } from "../commercial-core.ts";
+import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
 import { schemas } from "./schemas.ts";
-import { canUser, canPerformAction } from "../permissions.ts";
+import { canUser, canPerformAction, canViewServicePrices } from "../permissions.ts";
+import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 
 export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
@@ -17,7 +18,8 @@ class Context {
   original = new Map<string, Row | null>();
   writes = new Map<string, Row>();
   db: Firestore; tx: Transaction; user: UserProfile; operationId: string;
-  constructor(db: Firestore, tx: Transaction, user: UserProfile, operationId: string) {this.db=db;this.tx=tx;this.user=user;this.operationId=operationId;}
+  readonly today: string;
+  constructor(db: Firestore, tx: Transaction, user: UserProfile, operationId: string, today = getEcuadorDate()) {this.db=db;this.tx=tx;this.user=user;this.operationId=operationId;this.today=today;}
   async get(collection: string, id: string, required = true): Promise<Row> {
     if (!id || id.includes("/")) throw new HttpError(400,"Referencia inválida.");
     const key = collection + "/" + id;
@@ -80,11 +82,22 @@ class Context {
 function checkedAmount(value: unknown) { const amount=cents(value); if(amount<=0) throw new HttpError(400,"El importe debe ser mayor que cero."); return amount; }
 function checkedDate(value: string | undefined) { const date=value || getEcuadorDate(); if(!validDate(date)) throw new HttpError(400,"Fecha inválida."); return date; }
 
-// Primer período facturable de un servicio recién asignado. Se planifica sobre el mes de
-// activación y se permite fecha futura: el comprobante se emite por anticipado al ciclo.
-function firstPeriodFor(service: Row, today: string) {
-  const start = String(service.contractStartDate || service.installationDate || today);
-  return planServicePeriod(service, Number(start.slice(5, 7)), Number(start.slice(0, 4)), today, { allowFuture: true });
+async function billingPeriodState(c: Context, service: Row, plan: EligibleServicePeriod) {
+  const period = await c.get("billingPeriods", plan.key, false);
+  const periodMonth = plan.periodStart.slice(0, 7);
+  const legacyMatch = service.lastBilledPeriod === periodMonth
+    || service.billingFrequency === "anual" && service.lastBilledPeriod === plan.periodStart.slice(0, 4);
+  let invoiceId = period.invoiceId || (legacyMatch ? service.lastBilledInvoiceId || service.saleInvoiceId : undefined);
+  let invoice = invoiceId ? await c.get("billingInvoices", invoiceId, false) : {};
+  if (!period.id && !invoice.id && (legacyMatch || String(service.lastBilledPeriod || "") > periodMonth)) {
+    const historical = (await c.list("billingInvoices", "clientId", service.clientId)).filter(note =>
+      note.documentType === "nota_venta" && note.status !== "borrador" && note.items?.some((item: Row) =>
+        item.serviceId === service.id && item.periodStart === plan.periodStart && item.periodEnd === plan.periodEnd));
+    invoice = historical.find(note => note.status !== "anulada") || historical[0] || {};
+    invoiceId = invoice.id;
+  }
+  if (period.status === "cancelled" || invoice.status === "anulada") return { state: "cancelled" as const, period, invoiceId };
+  return { state: period.id || invoice.id || legacyMatch ? "issued" as const : "pending" as const, period, invoiceId };
 }
 
 async function payCharge(c: Context, data: Row) {
@@ -101,13 +114,19 @@ async function payCharge(c: Context, data: Row) {
     if(!data.bankAccountId) throw new HttpError(400,"Selecciona la cuenta de recepción, incluida caja para efectivo.");
     movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"cobro_cliente",description:`Abono ${charge.invoiceNumber}`,paymentMethod:data.method||"transferencia",referenceNumber:data.reference||"",invoiceId:charge.invoiceId||null,chargeId:charge.id});
   }
-  const payment={id,date,amount:money(amount),method:data.method||"transferencia",reference:data.reference||"",...(data.bankAccountId?{bankAccountId:data.bankAccountId}:{}),...(movementId?{movementId}:{}),...(data.advanceId?{advanceId:data.advanceId}:{})};
+  const payment={id,date,amount:money(amount),method:data.method||"transferencia",reference:data.reference||"",...(typeof data.notes === "string" && data.notes.trim() ? { notes: data.notes.trim().slice(0, 500) } : {}),...(data.bankAccountId?{bankAccountId:data.bankAccountId}:{}),...(movementId?{movementId}:{}),...(data.advanceId?{advanceId:data.advanceId}:{})};
   const remaining=chargeBalance(charge)-amount;
   c.put("monthlyCharges",{...charge,paidAmount:money(cents(charge.paidAmount??(charge.status==="pagado"?charge.total:0))+amount),balanceRemaining:money(remaining),status:remaining?"parcial":"pagado",paymentDate:date,payments:[...(charge.payments||[]),payment]});
   c.put("payments",{...payment,clientId:charge.clientId,status:"confirmed",operationId:c.operationId});
   c.put("paymentApplications",{id,paymentId:id,chargeId:charge.id,clientId:charge.clientId,amount:money(amount),status:"applied",date});
   await c.clientBalance(charge.clientId);
   return payment;
+}
+
+function commercialFields(input: Row) {
+  return Object.fromEntries(Object.entries(input).filter(([key]) =>
+    !/^(sri(?!PaymentCode$)|fiscal|estadoSRI|mensajesSRI|xml|authorizationDate|numeroAutorizacion|relatedSaleId|ambiente|ultimoEnvioSRI|certificadoFirma)/i.test(key)
+  ));
 }
 
 async function issueSale(c: Context, input: Row) {
@@ -118,7 +137,7 @@ async function issueSale(c: Context, input: Row) {
   const calculated=calculateLines(input.items), id=randomUUID();
   if(calculated.items.some(item=>Number(item.unitPrice)===0&&!String(item.zeroPriceReason||input.notes||"").trim()))throw new HttpError(400,"Indica el motivo de la partida gratuita en las notas.");
   const configs=await c.list("sriCompanyConfig"), config=configs[0]||{};
-  // Canal comercial: mostrador (venta puntual) o servicio (alta y recurrencia).
+  // Canal comercial: mostrador (venta puntual) o servicio (recurrencia).
   const saleChannel=input.saleChannel==="servicio"?"servicio":"mostrador";
   const establishment=String(input.establishment||config.establecimiento||"010").padStart(3,"0").slice(-3);
   if(!/^\d{3}$/.test(establishment)) throw new HttpError(400,"Establecimiento inválido.");
@@ -137,7 +156,6 @@ async function issueSale(c: Context, input: Row) {
     documentNumber=`${series}-${String(next).padStart(9,"0")}`;
     const reservation=await c.get("documentNumbers",`nota_venta_${documentNumber}`,false);
     if(reservation.id) throw new HttpError(409,"Numeración reservada; revisa la serie.");
-    // Los documentos pueden emitirse con fecha futura (primer período al dar de alta el servicio).
     // La serie debe conservar el orden cronológico: ninguna fecha anterior al último comprobante.
     const lastDate=String(counter.lastDate||"");
     if(lastDate && date<lastDate) throw new HttpError(409,`La fecha ${date} es anterior al último comprobante de la serie ${series} (${lastDate}). Ajusta el período o emite en orden cronológico.`);
@@ -148,7 +166,7 @@ async function issueSale(c: Context, input: Row) {
   if(immediate<0 || immediate>cents(calculated.total)) throw new HttpError(400,"Pago inicial inválido.");
   if(input.paymentsBreakdown && immediate+cents(input.paymentsBreakdown.credito||0)!==cents(calculated.total)) throw new HttpError(400,"La distribución del pago no coincide con el total calculado.");
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
-  const invoice={...input,...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
+  const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
   for(const item of calculated.items) {
     if(!item.productId) continue;
     const product=await c.get("inventoryProducts",item.productId,false);
@@ -157,16 +175,21 @@ async function issueSale(c: Context, input: Row) {
     if(!isDraft&&item.serviceId){
       const service=await c.get("clientServices",item.serviceId);
       if(service.clientId!==client.id||!item.periodStart||!item.periodEnd)throw new HttpError(400,"El período o servicio no pertenece al cliente.");
-      const plan=planServicePeriod(service,Number(String(item.periodStart).slice(5,7)),Number(String(item.periodStart).slice(0,4)),getEcuadorDate(),{allowFuture:input.allowFuturePeriod===true});
+      const plan=planServicePeriod(service,Number(String(item.periodStart).slice(5,7)),Number(String(item.periodStart).slice(0,4)),c.today);
       if(!plan.eligible)throw new HttpError(409,plan.reason);
-      if(plan.periodStart!==item.periodStart||plan.periodEnd!==item.periodEnd||item.quantity!==1)throw new HttpError(409,"El período cambió; vuelve a previsualizar el servicio.");
-      if((await c.get("billingPeriods",plan.key,false)).id||service.lastBilledPeriod===plan.periodStart.slice(0,7))throw new HttpError(409,"El período ya fue emitido o requiere conciliación histórica.");
-      c.put("billingPeriods",{id:plan.key,serviceId:service.id,clientId:client.id,periodStart:plan.periodStart,periodEnd:plan.periodEnd,invoiceId:id,status:"issued"});
+      if(plan.periodStart!==item.periodStart||plan.periodEnd!==item.periodEnd||item.quantity!==1||plan.line.productId!==item.productId)throw new HttpError(409,"El período cambió; vuelve a previsualizar el servicio.");
+      if(cents(item.unitPrice)!==cents(plan.line.unitPrice)||item.ivaRate!==plan.line.ivaRate||item.discount!==0)throw new HttpError(409,"La tarifa o el impuesto cambió; vuelve a previsualizar el período.");
+      const { state, period, invoiceId } = await billingPeriodState(c, service, plan);
+      if(state==="issued")throw new HttpError(409,"El período ya fue emitido o requiere conciliación histórica.");
+      const previousInvoiceIds = [...new Set([...(period.previousInvoiceIds || []), ...(state === "cancelled" && invoiceId ? [invoiceId] : [])])];
+      c.put("billingPeriods",{id:plan.key,serviceId:service.id,clientId:client.id,periodStart:plan.periodStart,periodEnd:plan.periodEnd,invoiceId:id,status:"issued",previousInvoiceIds});
       const latest=String(service.lastBilledPeriod||"")<=plan.periodStart.slice(0,7);
-      c.put("clientServices",{...service,saleStatus:"emitida",saleInvoiceId:service.saleInvoiceId||id,saleDocNumber:service.saleDocNumber||documentNumber,...(latest?{lastBilledPeriod:plan.periodStart.slice(0,7),lastBilledInvoiceId:id,nextRenewalDate:plan.periodEnd}:{})});
+      const replaceLink = !service.saleInvoiceId || (state === "cancelled" && service.saleInvoiceId === invoiceId);
+      const nextRenewalDate = String(service.nextRenewalDate || "") > plan.periodEnd ? service.nextRenewalDate : plan.periodEnd;
+      c.put("clientServices",{...service,saleStatus:"emitida",saleInvoiceId:replaceLink?id:service.saleInvoiceId,saleDocNumber:replaceLink?documentNumber:service.saleDocNumber,...(latest?{lastBilledPeriod:plan.periodStart.slice(0,7),lastBilledInvoiceId:id,nextRenewalDate}:{})});
     }else if(!isDraft&&product.type==="servicio"&&client.id!=="cf-9999999999999"){
       const assigned=(await c.list("clientServices","clientId",client.id)).filter(s=>s.status!=="retirado"&&(s.inventoryProductId===product.id||s.planId===product.id));
-      if(assigned.length)throw new HttpError(409,"Este servicio ya está asignado. Emite su período desde la ficha del cliente o Ventas recurrentes.");
+      if(assigned.length)throw new HttpError(409,"Este servicio tiene un contrato activo o histórico. Ve a Ventas → Recurrentes, selecciona el mes de inicio del período y genera la nota desde allí.");
     }
     if(isDraft || !product.tracksStock || product.type==="servicio") continue;
     const wh=await c.get("inventoryWarehouses",input.warehouseId), qty=Number(item.quantity), available=Number(product.stockByWarehouse?.[wh.id]||0);
@@ -213,6 +236,44 @@ async function cancelCharge(c: Context, id: string) {
   }
   const updated={...charge,status:"anulado",balanceRemaining:0,paidAmount:0,historicalPaidAmount:charge.paidAmount||0,payments:(charge.payments||[]).map((p:Row)=>({...p,status:"reversed"})),cancelledAt:new Date().toISOString()};
   c.put("monthlyCharges",updated); await c.clientBalance(charge.clientId); return updated;
+}
+
+async function cancelSalePeriods(c: Context, invoice: Row) {
+  for (const item of invoice.items || []) {
+    if (!item.serviceId || !validDate(item.periodStart) || !validDate(item.periodEnd)) continue;
+    const service = await c.get("clientServices", item.serviceId, false);
+    const id = `${item.serviceId}_${item.periodStart}_${item.periodEnd}`;
+    const period = await c.get("billingPeriods", id, false);
+    if (period.invoiceId && period.invoiceId !== invoice.id) continue;
+    c.put("billingPeriods", { ...period, id, serviceId: item.serviceId, clientId: invoice.clientId,
+      periodStart: item.periodStart, periodEnd: item.periodEnd, invoiceId: invoice.id, status: "cancelled" });
+    if (!service.id || service.clientId !== invoice.clientId) continue;
+    if (service.lastBilledInvoiceId !== invoice.id && service.saleInvoiceId !== invoice.id) continue;
+    const remaining = (await c.list("billingPeriods", "serviceId", service.id))
+      .filter(row => row.status === "issued" && row.invoiceId && row.invoiceId !== invoice.id && validDate(row.periodStart))
+      .sort((a, b) => b.periodStart.localeCompare(a.periodStart));
+    let latest: Row | undefined;
+    let latestPeriod: Row | undefined;
+    for (const row of remaining) {
+      const document = await c.get("billingInvoices", row.invoiceId, false);
+      if (document.id && document.status !== "anulada") {
+        latest = document;
+        latestPeriod = row;
+        break;
+      }
+    }
+    c.put("clientServices", { ...service,
+      ...(service.lastBilledInvoiceId === invoice.id ? { lastBilledInvoiceId: latest?.id, lastBilledPeriod: latestPeriod?.periodStart.slice(0, 7) } : {}),
+      ...(service.saleInvoiceId === invoice.id ? { saleInvoiceId: latest?.id, saleDocNumber: latest?.documentNumber, saleStatus: latest ? "emitida" : "pendiente_venta" } : {}),
+    });
+  }
+}
+
+async function issueRecurringSale(c: Context, clientId: string, plans: EligibleServicePeriod[], expectedPaymentMethod?: string) {
+  const firstDueDate = plans.map(plan => plan.dueDate).sort()[0];
+  return issueSale(c, { documentType: "nota_venta", status: "registrado", clientId, date: c.today,
+    items: plans.map(plan => plan.line), saleChannel: "servicio", paymentMethod: "credito",
+    creditDueDate: firstDueDate < c.today ? c.today : firstDueDate, expectedPaymentMethod, recurring: true });
 }
 
 async function execute(c:Context, action:CommercialCommand["action"], data:Row):Promise<any> {
@@ -283,6 +344,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "createProduct": {
       const id=randomUUID(),input=schemas.inventoryProducts.parse({...data,id,stock:0}),stocks=data.stockByWarehouse||{};
+      if (input.type === "servicio" && !canViewServicePrices(c.user)) throw new HttpError(403, "La creación de servicios requiere acceso a sus valores.");
       if(!["producto","servicio","combo"].includes(input.type))throw new HttpError(400,"Tipo de artículo inválido.");
       if((await c.list("inventoryProducts","sku",input.sku)).length)throw new HttpError(409,"SKU ya registrado.");
       if(input.categoryId) {const category=await c.get("inventoryCategories",input.categoryId);if(category.itemType!=="ambos"&&category.itemType!==input.type)throw new HttpError(400,"Categoría incompatible.");input.categoryName=category.name;}
@@ -293,6 +355,10 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "editProduct": {
       const old=await c.get("inventoryProducts",data.id),updated=schemas.inventoryProducts.parse({...old,...data});
+      if (old.type === "servicio" && !canViewServicePrices(c.user)
+        && servicePriceFields.inventoryProducts.some(key => key in data && data[key] !== old[key])) {
+        throw new HttpError(403, "No tienes permiso para cambiar los valores del servicio.");
+      }
       if(updated.stock!==old.stock||JSON.stringify(updated.stockByWarehouse)!==JSON.stringify(old.stockByWarehouse)||updated.baseCost!==old.baseCost)throw new HttpError(400,"Utiliza ajustes de inventario para cambiar existencias o valoración.");
       if(updated.type!==old.type||updated.tracksStock!==old.tracksStock)throw new HttpError(400,"No cambies el control de existencias de un artículo registrado; crea otro artículo.");
       if(updated.sku!==old.sku&&(await c.list("inventoryProducts","sku",updated.sku)).length)throw new HttpError(409,"SKU ya registrado.");
@@ -347,6 +413,13 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     case "assignService":
     case "editService": {
       const old=action==="editService"?await c.get("clientServices",data.id):{}, source={...old,...data};
+      if (!canViewServicePrices(c.user) && action === "assignService") {
+        throw new HttpError(403, "La asignación comercial de servicios requiere acceso a sus valores.");
+      }
+      if (action === "editService" && (!canViewServicePrices(c.user) || !canUser(c.user, "clientes", "canEditServicePrices"))
+        && servicePriceFields.clientServices.some(key => key in data && data[key] !== old[key])) {
+        throw new HttpError(403, "No tienes permiso para cambiar los valores del servicio.");
+      }
       const client=await c.get("clients",source.clientId);
       if(client.status==="retirado")throw new HttpError(400,"Cliente retirado.");
       const product=await c.get("inventoryProducts",String(source.inventoryProductId||source.planId),false), plan=await c.get("plans",String(source.planId),false);
@@ -355,7 +428,10 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const price=source.customPrice??product.salePrice??plan.defaultPrice;
       const rate=source.ivaRate??product.ivaRate;
       if(rate===undefined) throw new HttpError(400,"Configura el impuesto del servicio.");
-      const service=schemas.clientServices.parse({...source,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:product.name||plan.name,inventoryProductId:product.id||null,
+      const { emitFirstInvoice: _emitFirstInvoice, ...serviceFields } = source;
+      const service=schemas.clientServices.parse({...serviceFields,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:product.name||plan.name,inventoryProductId:product.id||null,
+        saleStatus: old.saleStatus || (old.saleInvoiceId || old.saleDocNumber ? "emitida" : "pendiente_venta"), saleInvoiceId: old.saleInvoiceId, saleDocNumber: old.saleDocNumber,
+        lastBilledPeriod: old.lastBilledPeriod, lastBilledInvoiceId: old.lastBilledInvoiceId,
         status:source.status||"activo",billingType:source.billingType||"pospago",billingFrequency:source.billingFrequency||"mensual",cycleAnchor:source.cycleAnchor||"aniversario",
         contractStartDate:source.contractStartDate||source.installationDate||getEcuadorDate(),installationDate:source.installationDate||getEcuadorDate(),nodeId:source.nodeId||"",nodeName:source.nodeName||"Sin configurar",ipv4Address:source.ipv4Address||"",pppoeUser:source.pppoeUser||""});
       if(cents(price)===0&&!source.zeroPriceReason)throw new HttpError(400,"Registra el motivo de gratuidad.");
@@ -364,21 +440,14 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const services=await c.list("clientServices","clientId",client.id);
       c.put("clientServices",service);
       c.put("clients",{...client,totalActiveServices:services.filter(s=>s.id!==service.id&&s.status==="activo").length+(service.status==="activo"?1:0)});
-      // El alta emite de inmediato la nota de venta del primer período, con la fecha que
-      // dicta el ciclo configurado en el formulario (modalidad, día de cobro y anticipo).
-      if(action!=="assignService"||source.emitFirstInvoice===false) return service;
-      const first=firstPeriodFor(service,getEcuadorDate());
-      if(!first.eligible) return {...service,firstInvoiceSkipped:first.reason};
-      const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:first.issueDate,
-        saleChannel:"servicio",allowFuturePeriod:true,paymentMethod:"credito",creditDueDate:first.dueDate,items:[{...first.line}],
-        expectedPaymentMethod:service.paymentMethod,
-        notes:`Primer período ${first.periodStart} al ${addDays(first.periodEnd,-1)}`});
-      return {...(c.writes.get("clientServices/"+service.id)||service),invoice};
+      return service;
     }
     case "issueSale": return issueSale(c,data);
     case "editSale": {
-      const old=await c.get("billingInvoices",data.id),changes=data.updates||{};
+      const old=await c.get("billingInvoices",data.id),changes=commercialFields(data.updates||{});
       if(old.documentType!=="nota_venta"||old.status==="anulada")throw new HttpError(409,"Documento no editable.");
+      if(old.sriInvoiceId) throw new HttpError(409,"La nota de venta tiene una factura SRI vinculada.");
+      if(changes.documentType && changes.documentType !== old.documentType || changes.claveAcceso) throw new HttpError(400,"El tipo y la clave del documento se conservan.");
       if(changes.documentNumber&&changes.documentNumber!==old.documentNumber)throw new HttpError(400,"La numeración emitida no se modifica.");
       const calculated=calculateLines(changes.items||old.items);
       if(old.status==="borrador") {
@@ -410,21 +479,19 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(!Array.isArray(data.serviceIds)||!data.serviceIds.length) throw new HttpError(400,"Selecciona los servicios a emitir.");
       const selected=services.filter(s=>data.serviceIds.includes(s.id));
       if(selected.length!==new Set(data.serviceIds).size) throw new HttpError(400,"La selección contiene servicios de otro cliente o inexistentes.");
-      const plans=selected.map(s=>planServicePeriod(s,data.month,data.year,getEcuadorDate()));
-      const eligible=[];
-      for(const plan of plans) {
+      const eligible: EligibleServicePeriod[] = [];
+      for(const service of selected) {
+        const plan = planServicePeriod(service, data.month, data.year, c.today);
         if(!plan.eligible) throw new HttpError(409,plan.reason);
-        const period=await c.get("billingPeriods",plan.key,false);
-        if(period.id) throw new HttpError(409,`El período ${plan.periodStart} ya fue emitido; consulta su documento.`);
-        // Do not silently re-emit legacy periods that lack a period registry.
-        const service=selected.find(s=>s.id===plan.serviceId)!;
-        if(service.lastBilledPeriod===`${data.year}-${String(data.month).padStart(2,"0")}`) throw new HttpError(409,"Período histórico ya emitido; requiere conciliación.");
+        if ((await billingPeriodState(c, service, plan)).state === "issued") {
+          throw new HttpError(409,`El período ${plan.periodStart} ya fue emitido; consulta su documento.`);
+        }
         eligible.push(plan);
       }
       const previewTotal=calculateLines(eligible.map(p=>p.line)).total;
       if(data.expectedTotal!==undefined&&cents(data.expectedTotal)!==cents(previewTotal))throw new HttpError(409,"La tarifa cambió después de la vista previa. Revisa el nuevo importe.");
-      const invoice=await issueSale(c,{documentType:"nota_venta",status:"registrado",clientId:client.id,date:getEcuadorDate(),items:eligible.map(p=>p.line),saleChannel:"servicio",paymentMethod:"credito",creditDueDate:eligible.map(p=>p.dueDate).sort()[0],recurring:true});
-      return invoice;
+      const method = selected[0].paymentMethod;
+      return issueRecurringSale(c, client.id, eligible, selected.every(service => service.paymentMethod === method) ? method : undefined);
     }
     case "payCharge": return payCharge(c,data);
     case "applyAdvance": return payCharge(c,{...data,method:"Anticipo de Cliente"});
@@ -445,6 +512,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     case "cancelSale": {
       const invoice=await c.get("billingInvoices",data.id);
       if(invoice.documentType!=="nota_venta") throw new HttpError(400,"Documento fuera del alcance comercial.");
+      if(invoice.sriInvoiceId) throw new HttpError(409,"La nota de venta tiene una factura SRI vinculada. Revisa el comprobante fiscal antes de realizar ajustes.");
       if(invoice.status==="anulada") return invoice;
       const charges=await c.list("monthlyCharges","invoiceId",invoice.id);
       if(charges.some(ch=>ch.clientId!==invoice.clientId)) throw new HttpError(409,"Relación histórica inconsistente; concilia antes de anular.");
@@ -466,6 +534,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
         c.put("inventoryProducts",{...product,stock,baseCost:cost,stockByWarehouse:{...product.stockByWarehouse,[whId]:current+qty}});
         c.put("inventoryKardex",{...original,id:randomUUID(),type:"CUSTOMER_RETURN",reversesId:original.id,exitQuantity:0,exitTotalCost:0,entryQuantity:qty,entryUnitCost:original.exitUnitCost,entryTotalCost:original.exitTotalCost,balanceQuantity:current+qty,balanceAverageCost:cost,balanceTotalCost:money(cents((current+qty)*cost)),date:getEcuadorDate(),concept:`Reversión ${invoice.documentNumber}`});
       }
+      await cancelSalePeriods(c, invoice);
       c.put("billingInvoices",{...invoice,status:"anulada",cancelReason:data.reason||"Anulación comercial",cancelledAt:new Date().toISOString()});
       return invoice.id;
     }
@@ -524,6 +593,58 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
   }
 }
 
+function visibleCommercialResult<T>(user: UserProfile, action: CommercialCommand["action"], result: T): T {
+  if (!result || typeof result !== "object") return result;
+  if (["assignService", "editService", "retireService"].includes(action)) {
+    const service = { ...visibleServiceData(user, "clientServices", result as Row) };
+    if (!canViewServicePrices(user)) delete service.invoice;
+    return service as T;
+  }
+  if (action === "createProduct" || action === "editProduct") return visibleServiceData(user, "inventoryProducts", result as Row) as T;
+  return result;
+}
+
+const recurringJobActor: UserProfile = {
+  uid: "scheduled-recurring-billing", email: "", displayName: "Facturación recurrente programada",
+  role: "superadmin", status: "activo", permissions: ["manage_finance"],
+};
+
+export async function runScheduledRecurringBilling(db: Firestore, today = getEcuadorDate()) {
+  if (!validDate(today) || !today.endsWith("-01")) return { date: today, issued: 0, failures: [] };
+  const active = await db.collection("clientServices").where("status", "==", "activo").select("clientId").get();
+  const clientIds = new Set(active.docs.map(doc => doc.get("clientId")).filter((id): id is string => typeof id === "string" && id !== ""));
+  const failures: { clientId: string; error: string }[] = [];
+  let issued = 0;
+  for (const clientId of clientIds) {
+    try {
+      const created = await db.runTransaction(async tx => {
+        const c = new Context(db, tx, recurringJobActor, randomUUID(), today);
+        const client = await c.get("clients", clientId, false);
+        if (client.status !== "activo") return false;
+        const services = await c.list("clientServices", "clientId", clientId);
+        const plans: EligibleServicePeriod[] = [];
+        const methods = new Set<string | undefined>();
+        for (const service of services) {
+          for (const plan of scheduledServicePeriods(service, today)) {
+            // Un período anulado solo se reemite por decisión explícita de un operador.
+            if ((await billingPeriodState(c, service, plan)).state !== "pending") continue;
+            plans.push(plan);
+            methods.add(service.paymentMethod);
+          }
+        }
+        if (!plans.length) return false;
+        const invoice = await issueRecurringSale(c, clientId, plans, methods.size === 1 ? [...methods][0] : undefined);
+        c.commit("scheduledRecurringBilling", { invoiceId: invoice.id }, digest([today, clientId, plans.map(plan => plan.key)]));
+        return true;
+      });
+      if (created) issued++;
+    } catch (error) {
+      failures.push({ clientId, error: error instanceof Error ? error.message : "No se pudo emitir el ciclo." });
+    }
+  }
+  return { date: today, issued, failures };
+}
+
 export async function executeCommercial(user:UserProfile, command:CommercialCommand, database?:Firestore) {
   const permission=["createClient","assignService","editService","retireClient","retireService"].includes(command.action)?"manage_clients":["createProduct","editProduct","inventoryTransfer","inventoryAdjustment"].includes(command.action)?"manage_network":"manage_finance";
   requirePermission(user,permission);
@@ -545,10 +666,11 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     const existing=(await tx.get(db.collection("operationLog").doc(command.operationId))).data();
     if(existing) {
       if(existing.actorId!==user.uid || existing.source?.requestHash!==requestHash) throw new HttpError(409,"Identificador de operación utilizado con otros datos.");
-      return existing.source.result;
+      return visibleCommercialResult(user, command.action, existing.source.result);
     }
     const c=new Context(db,tx,user,command.operationId);
     const result=await execute(c,command.action,command.data);
-    c.commit(command.action,result,requestHash); return result;
+    c.commit(command.action,result,requestHash);
+    return visibleCommercialResult(user, command.action, result);
   });
 }

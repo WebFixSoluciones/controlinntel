@@ -24,10 +24,10 @@ interface ClientTicketsTabProps {
 }
 
 export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
-  const { tickets, updateTicketStatus } = useApp();
-  const { showSuccess, showError, showConfirm } = useToast();
+  const { tickets } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [resolveOnOpen, setResolveOnOpen] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"abiertos" | "todos">("abiertos");
   const [ticketSearch, setTicketSearch] = useState("");
@@ -48,32 +48,18 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
 
   const displayedTickets = useMemo(() => {
     const base = filterMode === "abiertos" ? openTickets : clientTickets;
-    if (!ticketSearch.trim()) return base;
+    const sorted = [...base].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+    if (!ticketSearch.trim()) return sorted;
     const q = ticketSearch.trim().toLowerCase();
-    return base.filter(
+    return sorted.filter(
       (t) =>
         t.ticketNumber.toLowerCase().includes(q) ||
+        t.previousTicketNumber?.toLowerCase().includes(q) ||
         t.title.toLowerCase().includes(q) ||
         (t.assignedToName && t.assignedToName.toLowerCase().includes(q)) ||
         (t.category && t.category.toLowerCase().includes(q))
     );
   }, [filterMode, openTickets, clientTickets, ticketSearch]);
-
-  const handleResolveTicket = (ticket: Ticket) => {
-    showConfirm(
-      "¿Resolver Incidencia?",
-      `¿Deseas marcar el ticket ${ticket.ticketNumber} ("${ticket.title}") como resuelto?`,
-      async () => {
-        try {
-          await updateTicketStatus(ticket.id, "resuelto", "Resuelto desde la ficha del cliente.");
-          showSuccess("Ticket Resuelto", `El ticket ${ticket.ticketNumber} fue marcado como resuelto.`);
-        } catch (error) {
-          showError("Error", "No se pudo actualizar el estado del ticket.");
-        }
-      },
-      "Marcar como Resuelto"
-    );
-  };
 
   const getPriorityBadge = (priority: TicketPriority) => {
     switch (priority) {
@@ -158,7 +144,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
   if (selectedTicketId) {
     return (
       <div className="bg-white rounded-xl p-2 sm:p-4 border border-slate-200 shadow-xs animate-in fade-in">
-        <TicketDetail id={selectedTicketId} onBack={() => setSelectedTicketId(null)} />
+        <TicketDetail key={selectedTicketId} id={selectedTicketId} resolveOnOpen={resolveOnOpen} onBack={() => setSelectedTicketId(null)} />
       </div>
     );
   }
@@ -313,7 +299,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                         {/* Ver / Gestionar Ticket */}
                         <button
                           type="button"
-                          onClick={() => setSelectedTicketId(t.id)}
+                          onClick={() => { setResolveOnOpen(false); setSelectedTicketId(t.id); }}
                           className="p-2 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
                           title="Ver y Gestionar Ticket"
                           aria-label="Ver y Gestionar Ticket"
@@ -325,10 +311,10 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                         {t.status !== "resuelto" && t.status !== "cerrado" && (
                           <button
                             type="button"
-                            onClick={() => handleResolveTicket(t)}
+                            onClick={() => { setResolveOnOpen(true); setSelectedTicketId(t.id); }}
                             className="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
-                            title="Marcar Ticket como Resuelto"
-                            aria-label="Marcar Ticket como Resuelto"
+                            title="Responder y resolver ticket"
+                            aria-label="Responder y resolver ticket"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                           </button>

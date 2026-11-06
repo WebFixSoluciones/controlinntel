@@ -11,14 +11,16 @@ import {
   Receipt,
   CheckCircle2,
 } from "lucide-react";
+import { isFiscalAuthorized } from "@/lib/sri-service";
 import { useApp } from "@/lib/state";
-import { useToast } from "@/lib/toast-context";
+
 import { DebitNote, SriInvoice } from "@/types";
 
 interface DebitNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialInvoice?: SriInvoice | null;
+  correction?: DebitNote;
   onSuccess?: (nd: DebitNote) => void;
 }
 
@@ -26,13 +28,13 @@ export function DebitNoteModal({
   isOpen,
   onClose,
   initialInvoice,
+  correction,
   onSuccess,
 }: DebitNoteModalProps) {
   const { billingInvoices, createDebitNote } = useApp();
-  const { showSuccess, showError } = useToast();
 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
-  const [date, setDate] = useState("");
+  const [paymentCode, setPaymentCode] = useState<NonNullable<DebitNote["paymentCode"]>>("20");
   const [reasons, setReasons] = useState<{ reason: string; amount: number }[]>([
     { reason: "Intereses por mora en pago de factura", amount: 5.0 },
   ]);
@@ -43,22 +45,25 @@ export function DebitNoteModal({
   const authorizedInvoices = billingInvoices.filter(
     (inv) =>
       (inv.documentType || "factura") === "factura" &&
-      inv.status !== "anulada" &&
-      inv.status !== "borrador"
+      isFiscalAuthorized(inv)
   );
 
   useEffect(() => {
     if (isOpen) {
-      setDate(new Date().toISOString().slice(0, 10));
       setErrorMsg("");
-      if (initialInvoice) {
+      if (correction) {
+        setSelectedInvoiceId(correction.invoiceId || "");
+        setReasons(correction.reasons);
+        setIvaRate(correction.ivaRate);
+        setPaymentCode(correction.paymentCode || "20");
+      } else if (initialInvoice) {
         setSelectedInvoiceId(initialInvoice.id);
       } else if (authorizedInvoices.length > 0) {
         setSelectedInvoiceId(authorizedInvoices[0].id);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialInvoice]);
+  }, [isOpen, initialInvoice, correction]);
 
   if (!isOpen) return null;
 
@@ -108,7 +113,9 @@ export function DebitNoteModal({
     setIsSubmitting(true);
     try {
       const newND = await createDebitNote({
-        date: date || new Date().toISOString().slice(0, 10),
+        date: "",
+        invoiceId: targetInvoice.id,
+        paymentCode,
         modifiedInvoiceNumber: targetInvoice.documentNumber,
         modifiedInvoiceDate: targetInvoice.date,
         clientId: targetInvoice.clientId,
@@ -121,13 +128,9 @@ export function DebitNoteModal({
         ivaRate,
         ivaAmount,
         total,
-        status: "autorizada",
-      });
+        status: "emitida",
+      }, correction?.id);
 
-      showSuccess(
-        "Nota de Débito Emitida",
-        `La Nota de Débito ${newND.documentNumber} fue generada exitosamente ante el SRI.`
-      );
       if (onSuccess) onSuccess(newND);
       onClose();
     } catch (err: any) {
@@ -178,6 +181,7 @@ export function DebitNoteModal({
             </label>
             <select
               value={selectedInvoiceId}
+                disabled={!!correction}
               onChange={(e) => setSelectedInvoiceId(e.target.value)}
               className="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
             >
@@ -200,15 +204,14 @@ export function DebitNoteModal({
           {/* Date & IVA */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Fecha de Emisión
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-              />
+              <label className="block text-xs font-semibold mb-1">Forma de pago SRI</label>
+              <select value={paymentCode} onChange={e => setPaymentCode(e.target.value as NonNullable<DebitNote["paymentCode"]>)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs">
+                <option value="01">Sin uso del sistema financiero</option>
+                <option value="16">Tarjeta de débito</option>
+                <option value="19">Tarjeta de crédito</option>
+                <option value="20">Otros con uso del sistema financiero</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -221,6 +224,10 @@ export function DebitNoteModal({
               >
                 <option value={15}>15% (General)</option>
                 <option value={0}>0% (Sin IVA)</option>
+                <option value={5}>5%</option>
+                <option value={12}>12%</option>
+                <option value={13}>13%</option>
+                <option value={14}>14%</option>
               </select>
             </div>
           </div>

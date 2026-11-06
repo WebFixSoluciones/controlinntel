@@ -981,7 +981,7 @@ test("Flujo E2E 16: Separación Estricta de Ventas, Inventario y Finanzas respec
   const billingManagerContent = fs.readFileSync(billingManagerPath, "utf8");
   assert.ok(
     billingManagerContent.includes("Emitir Factura") &&
-      billingManagerContent.includes("handleVoidSriInvoice") &&
+      !billingManagerContent.includes("handleVoidSriInvoice") && billingManagerContent.includes("consultFiscalDocument") &&
       billingManagerContent.includes("batchFilter") &&
       billingManagerContent.includes("dateFrom") &&
       !billingManagerContent.includes("<th className=\"py-2.5 px-3\">Bodega</th>"),
@@ -1329,9 +1329,10 @@ test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas 
   const contractPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
   const contractContent = fs.readFileSync(contractPath, "utf8");
   assert.ok(
-    contractContent.includes("min-w-[850px] table-fixed") &&
-      contractContent.includes("w-4/12") &&
-      contractContent.includes("w-2/12"),
+    contractContent.includes("table-fixed") &&
+      contractContent.includes("min-w-[63rem]") &&
+      contractContent.includes('aria-label="Tabla de servicios contratados"') &&
+      contractContent.includes("overflow-x-auto"),
     "ClientContractTab debe estructurar la tabla de servicios con layout fijo y columnas balanceadas"
   );
   assert.ok(
@@ -1429,7 +1430,7 @@ test("Flujo E2E 26: Estandarización Global de Diseño UI/UX Fase 3 (Tablas Maes
     "SalesManager debe unificar tablas de notas de venta y cotizaciones en table-fixed con cabecera estándar"
   );
   assert.ok(
-    salesContent.includes("Facturada SRI •"),
+    salesContent.includes("Autorizada SRI") && salesContent.includes("Autorizada en pruebas") && salesContent.includes("Pendiente SRI"),
     "SalesManager debe purgar paréntesis ruidosos en los badges de estado"
   );
   assert.ok(
@@ -2199,15 +2200,14 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
       stateContent.includes("monthsToAdd = 3"),
     "renewClientService debe avanzar la fecha según la frecuencia elegida (+1, +3, +6 o +12 meses)"
   );
-  // La emisión recurrente se trasladó a la capa de servidor: al emitir un período se fija
-  // el próximo cobro a partir del fin del período planificado.
+  // La emisión recurrente avanza la renovación según el fin del período sin retrocederla.
   const commercialPath = path.resolve(rootDir, "src/lib/server/commercial.ts");
   const commercialContent = fs.readFileSync(commercialPath, "utf8");
   assert.ok(
     commercialContent.includes("planServicePeriod") &&
-      commercialContent.includes("nextRenewalDate:plan.periodEnd") &&
+      commercialContent.includes('String(service.nextRenewalDate || "") > plan.periodEnd') &&
       commercialContent.includes('c.get("billingPeriods"'),
-    "emitRecurringInvoiceForClient debe avanzar automáticamente la fecha de próximo cobro para servicios recurrentes"
+    "La emisión recurrente debe avanzar la renovación sin sobrescribir una fecha posterior"
   );
 
   // 3. Verificación de UI y Alertas en ClientContractTab.tsx
@@ -3265,7 +3265,7 @@ test("Flujo E2E 61: Eliminación de Servicios Recurrentes y Cascada Integral con
   assert.ok(
     commercialContent.includes("invoiceId:id") &&
       commercialContent.includes("lastBilledInvoiceId:id") &&
-      commercialContent.includes("saleInvoiceId:service.saleInvoiceId||id"),
+      commercialContent.includes("saleInvoiceId:replaceLink?id:service.saleInvoiceId"),
     "emitRecurringInvoiceForClient debe vincular estrictamente invoiceId en el cobro y servicio"
   );
 
@@ -3274,8 +3274,9 @@ test("Flujo E2E 61: Eliminación de Servicios Recurrentes y Cascada Integral con
     commercialContent.includes('case "cancelSale"') &&
       commercialContent.includes('c.list("monthlyCharges","invoiceId",invoice.id)') &&
       commercialContent.includes("Relación histórica inconsistente") &&
-      commercialContent.includes("Kardex de la venta inconsistente"),
-    "deleteInvoice debe eliminar servicios nacidos de la venta, revertir servicios preexistentes y purgar cobranzas"
+      commercialContent.includes("Kardex de la venta inconsistente") &&
+      commercialContent.includes("await cancelSalePeriods(c, invoice)"),
+    "La anulación debe revertir los cobros, actualizar el Kardex y liberar los períodos vinculados"
   );
 
   // 5. El retiro de servicio cesa la facturación futura sin borrar la deuda devengada (R15)

@@ -15,9 +15,9 @@ export const collectionPermissions = {
   clients: "manage_clients", clientServices: "manage_clients", plans: "manage_clients",
   projects: "manage_network", clientProjects: "manage_clients", clientContracts: "manage_clients",
   clientQuotes: "manage_finance", nodes: "manage_network", ipPools: "manage_network",
-  policies: "manage_policies", tickets: "manage_tickets", ticketSubjects: "manage_tickets", expenses: "manage_finance",
+  policies: "manage_policies", tickets: "manage_tickets", ticketSubjects: "manage_tickets", ticketDepartments: "manage_tickets", expenses: "manage_finance",
   expenseCategories: "manage_finance", monthlyCharges: "manage_finance", clientAdvances: "manage_finance", vault: "manage_vault", clientVaultItems: "manage_vault",
-  systemUsers: "manage_users", auditLogs: "manage_users",
+  systemUsers: "manage_users", userRoleTemplates: "manage_users", auditLogs: "manage_users",
   arcotelFiles: "manage_policies", clientDocuments: "manage_clients",
   inventoryProducts: "manage_network", inventoryWarehouses: "manage_network",
   inventoryCategories: "manage_network", inventoryBrands: "manage_network",
@@ -44,10 +44,37 @@ export const collectionPermissions = {
 
 export type Entity = keyof typeof collectionPermissions;
 
+export const DEFAULT_ACCOUNT_PERMISSIONS: Record<UserRole, NonNullable<UserProfile["permissions"]>> = {
+  superadmin: ["all"],
+  admin: ["manage_clients", "manage_finance", "manage_network", "manage_tickets", "manage_vault", "manage_policies", "export_reports"],
+  ventas: ["manage_clients", "manage_finance", "export_reports"],
+  finanzas: ["manage_finance", "manage_clients", "export_reports"],
+  tecnico: ["manage_clients", "manage_network", "manage_tickets"],
+  soporte: ["manage_tickets"],
+  bodega: ["manage_network"],
+  legal: ["manage_policies", "export_reports"],
+  consulta: ["export_reports"],
+};
+
+export function effectiveAccountPermissions(role: UserRole, permissions: UserProfile["permissions"] = []) {
+  if (role !== "tecnico" || !permissions.includes("all")) return permissions;
+  return [...new Set([...DEFAULT_ACCOUNT_PERMISSIONS.tecnico, ...permissions.filter(permission => permission !== "all")])];
+}
+
+export function canViewServicePrices(user: UserProfile | undefined | null): boolean {
+  return user?.status === "activo" && (user.role === "superadmin"
+    || (user.modulePermissions?.visibility?.canViewServicePrices ?? user.role !== "tecnico"));
+}
+
+export function canManageTicketDepartments(user: UserProfile): boolean {
+  return can(user, "manage_tickets") && canAccessModule(user, "tickets") &&
+    (user.role === "superadmin" || (user.modulePermissions?.tickets?.actions?.canManageDepartments ?? user.role === "admin"));
+}
+
 export function can(user: UserProfile, permission: string) {
   if (!user || user.status !== "activo") return false;
   if (user.role === "superadmin") return true;
-  return !!user.permissions?.some(p => p === "all" || p === permission);
+  return effectiveAccountPermissions(user.role, user.permissions).some(p => p === "all" || p === permission);
 }
 
 export const DEFAULT_INVENTORY_ACTIONS: InventoryActions = {
@@ -115,6 +142,8 @@ export const DEFAULT_VAULT_ACTIONS: VaultActions = {
  */
 export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePermissions> = {
   superadmin: {
+    dashboard: { enabled: true },
+    visibility: { canViewServicePrices: true },
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: true } },
     clientes: { enabled: true, actions: { ...DEFAULT_CLIENT_ACTIONS } },
@@ -234,6 +263,8 @@ export const DEFAULT_MODULE_PERMISSIONS_BY_ROLE: Record<UserRole, UserModulePerm
     actions: { canDeleteClients: false, canDeleteFiles: false, canEditInvoices: true, canDeleteInvoices: false },
   },
   tecnico: {
+    dashboard: { enabled: false },
+    visibility: { canViewServicePrices: false },
     abonados: { enabled: true },
     personas: { enabled: true, submodules: { proveedores: true, usuarios_equipo: false } },
     clientes: { enabled: true, actions: { canCreateClient: true, canEditClient: true, canEditServicePrices: false, canUploadContracts: true, canDeleteContracts: false, canDeleteClient: false } },
@@ -333,8 +364,9 @@ export function canAccessModule(user: UserProfile | undefined | null, moduleKey:
   if (user.role === "superadmin") return true;
   if (moduleKey === "actions") return true;
   const override = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
-  if (override !== undefined) return override.enabled === true;
-  if (user.permissions?.includes("all")) return true;
+  if (typeof override?.enabled === "boolean") return override.enabled;
+  if (moduleKey === "dashboard") return user.role !== "tecnico";
+  if (effectiveAccountPermissions(user.role, user.permissions).includes("all")) return true;
   if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
   const preset = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role]?.[moduleKey] as { enabled?: boolean } | undefined;
   return preset?.enabled === true;
@@ -377,7 +409,7 @@ export function canAccessSubmodule(
   if (modPerms && modPerms.submodules && typeof modPerms.submodules[submoduleKey] === "boolean") {
     return modPerms.submodules[submoduleKey];
   }
-  if (user.permissions?.includes("all")) return true;
+  if (effectiveAccountPermissions(user.role, user.permissions).includes("all")) return true;
   if (moduleKey === "finanzas" && user.permissions?.includes("manage_finance")) return true;
 
   // Fallback a los predeterminados del rol
@@ -390,6 +422,7 @@ export function canAccessSubmodule(
 }
 
 export const routePermissions: Record<string, keyof UserModulePermissions> = {
+  "/": "dashboard",
   "/abonados": "abonados",
   "/personas": "personas",
   "/clientes": "abonados",
@@ -411,15 +444,17 @@ export const routePermissions: Record<string, keyof UserModulePermissions> = {
 export function canAccessRoute(user: UserProfile, route: string): boolean {
   if (!user || user.status === "inactivo") return false;
   if (user.role === "superadmin") return true;
-  if (route === "/" || route === "") return true;
-
-  const targetModule = routePermissions[route];
+  const targetModule = routePermissions[route || "/"];
   if (targetModule) {
     return canAccessModule(user, targetModule);
   }
 
   // Fail-closed por defecto para rutas no reconocidas
   return false;
+}
+
+export function firstAccessibleRoute(user: UserProfile): string | undefined {
+  return ["/", "/clientes", "/tickets", ...Object.keys(routePermissions)].find(route => canAccessRoute(user, route));
 }
 
 export const tabPermissions: Record<string, string> = {

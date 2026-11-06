@@ -286,6 +286,12 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   }).passthrough(),
   hostingDomains: z.object({ domainOrService: text, annualCost: money }).passthrough(),
   ticketSubjects: z.object({ name: text, category: text, defaultDepartment: text }).passthrough(),
+  ticketDepartments: z.object({ name: z.string().trim().min(2).max(80), active: z.boolean() }),
+  userRoleTemplates: z.object({
+    name: z.string().trim().min(2).max(80),
+    baseRole: z.enum(["admin", "ventas", "finanzas", "tecnico", "soporte", "bodega", "legal", "consulta"]),
+    modulePermissions: z.record(z.unknown()),
+  }),
   clientAdvances: z.object({ clientId: text, amount: money, remaining: money, applications: z.array(z.record(z.unknown())) }).passthrough(),
   billingDebitNotes: z.object({ clientId: text, total: money }).passthrough(),
   auditLogs: z.object({ action: text, resource: text, details: z.string().max(20000), timestamp: text }).passthrough(),

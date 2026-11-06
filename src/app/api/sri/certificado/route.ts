@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { actor, HttpError, requirePermission } from "@/lib/server/security";
-import { save } from "@/lib/server/operations";
+import { canAccessSubmodule } from "@/lib/permissions";
 import { parsePkcs12 } from "@/lib/server/sri-signer";
 import {
   clearEmitterSecret,
   hasEmitterSecret,
-  readEmitterSecret,
   readSriCompanyConfig,
   writeEmitterSecret,
 } from "@/lib/server/sri-secrets";
@@ -29,7 +28,7 @@ function checkRateLimit(key: string, limit = 20, windowMs = 60_000): boolean {
   return true;
 }
 
-const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_FILE_BYTES = 512 * 1024;
 
 const bodySchema = z.object({
   action: z.enum(["validar", "guardar"]),
@@ -73,7 +72,7 @@ function failure(error: unknown) {
       ? error.message
       : error instanceof ZodError
       ? "Datos inválidos. Revisa el archivo y la contraseña."
-      : (error as Error)?.message || "Servicio temporalmente no disponible.";
+      : "No se pudo acceder al almacenamiento seguro de la firma electrónica.";
   return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
@@ -83,7 +82,9 @@ export async function GET(request: NextRequest) {
     if (!checkRateLimit(`sri-cert-get-${ip}`, 60)) {
       return NextResponse.json({ error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
     }
-    await actor(request);
+    const user = await actor(request);
+    requirePermission(user, "manage_finance");
+    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
     const config = await readSriCompanyConfig();
     const stored = await hasEmitterSecret();
     return NextResponse.json(
@@ -117,11 +118,12 @@ export async function POST(request: NextRequest) {
 
     const user = await actor(request);
     requirePermission(user, "manage_finance");
+    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
 
     const body = bodySchema.parse(await request.json());
     const base64 = normalizeBase64(body.certificadoBase64);
     const size = estimatedBytes(base64);
-    if (size > MAX_FILE_BYTES) throw new HttpError(413, "El certificado supera los 2 MB permitidos.");
+    if (size > MAX_FILE_BYTES) throw new HttpError(413, "El certificado supera los 512 KiB permitidos.");
 
     let summary;
     try {
@@ -157,41 +159,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guardar: primero los secretos y luego los metadatos públicos. Si el
-    // guardado de metadatos falla, el secreto queda igualmente disponible.
-    await writeEmitterSecret({
-      pkcs12Base64: base64,
-      password: body.certificadoClave,
-      fileName,
-    });
-
-    const config = await readSriCompanyConfig();
-    const saved = (await save(
-      user,
-      "sriCompanyConfig",
-      {
-        id: config.id || "sri-config-inntel",
-        ruc: config.ruc,
-        razonSocial: config.razonSocial,
-        ...metadata,
-        // Limpieza de secretos heredados que pudieran haber quedado en el
-        // documento público: `save` elimina las claves con valor null.
-        certificadoBase64: null,
-        certificadoClave: null,
-      } as any,
-      config.id || "sri-config-inntel"
-    )) as Record<string, unknown>;
+    await writeEmitterSecret({ pkcs12Base64: base64, password: body.certificadoClave, fileName,
+      updatedAt: new Date().toISOString() }, metadata);
 
     return NextResponse.json(
       {
         valid: true,
-        message: "Firma electrónica guardada. Ya puedes emitir facturas al SRI.",
+        message: "Firma electrónica guardada correctamente.",
         certificado: {
-          nombre: saved.certificadoNombre,
-          vencimiento: saved.certificadoVencimiento,
-          emisor: saved.certificadoEmisor,
-          tamano: saved.certificadoTamano,
-          fechaCarga: saved.certificadoFechaCarga,
+          nombre: metadata.certificadoNombre,
+          vencimiento: metadata.certificadoVencimiento,
+          emisor: metadata.certificadoEmisor,
+          tamano: metadata.certificadoTamano,
+          fechaCarga: metadata.certificadoFechaCarga,
           cargado: true,
         },
       },
@@ -206,28 +186,9 @@ export async function DELETE(request: NextRequest) {
   try {
     const user = await actor(request);
     requirePermission(user, "manage_finance");
+    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
 
     await clearEmitterSecret();
-
-    const config = await readSriCompanyConfig();
-    await save(
-      user,
-      "sriCompanyConfig",
-      {
-        id: config.id || "sri-config-inntel",
-        ruc: config.ruc,
-        razonSocial: config.razonSocial,
-        certificadoNombre: null,
-        certificadoVencimiento: null,
-        certificadoEmisor: null,
-        certificadoTamano: null,
-        certificadoFechaCarga: null,
-        certificadoCargado: false,
-        certificadoBase64: null,
-        certificadoClave: null,
-      } as any,
-      config.id || "sri-config-inntel"
-    );
 
     return NextResponse.json(
       { message: "Firma electrónica eliminada del servidor." },

@@ -244,7 +244,9 @@ export interface VaultActions {
 }
 
 export interface UserModulePermissions {
-  abonados?: { enabled: boolean };
+  dashboard?: { enabled: boolean };
+  visibility?: { canViewServicePrices?: boolean };
+  abonados?: { enabled: boolean; submodules?: Record<string, boolean> };
   personas?: {
     enabled: boolean;
     submodules: {
@@ -323,7 +325,7 @@ export interface UserModulePermissions {
     actions?: NetworkActions;
   };
   proyectos?: { enabled: boolean };
-  tickets?: { enabled: boolean };
+  tickets?: { enabled: boolean; actions?: { canManageDepartments?: boolean } };
   arcotel?: { enabled: boolean };
   boveda?: {
     enabled: boolean;
@@ -343,4 +345,11 @@ export interface UserModulePermissions {
     canEditInvoices?: boolean;
     canDeleteInvoices?: boolean;
   };
+}
+
+export interface UserRoleTemplate {
+  id: string;
+  name: string;
+  baseRole: Exclude<import("./index").UserRole, "superadmin">;
+  modulePermissions: UserModulePermissions;
 }

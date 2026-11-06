@@ -5,7 +5,7 @@ import { useApp } from "@/lib/state";
 import { clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientContactPerson, MonthlyCharge } from "@/types";
-import { can, tabPermissions } from "@/lib/permissions";
+import { can, canAccessSubmodule, canUser, tabPermissions } from "@/lib/permissions";
 import { printHtmlElement } from "@/lib/print-service";
 import { ClientTasksTab } from "./ClientTasksTab";
 import { ClientQuotesManager } from "./ClientQuotesManager";
@@ -18,6 +18,8 @@ import { ClientArcotelTab } from "./ClientArcotelTab";
 import { ClientTicketsTab } from "./ClientTicketsTab";
 import { ClientContactsModal } from "./ClientContactsModal";
 import { ClientFilesTab } from "./ClientFilesTab";
+import { ChargePaymentModal } from "../finance/ChargePaymentModal";
+import { chargeBalance, money } from "@/lib/commercial-core";
 import { ClientInvoicesTab } from "./ClientInvoicesTab";
 import { canReadCollection } from "@/lib/persistence-contracts";
 import {
@@ -89,12 +91,11 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     nodes,
     regulatoryTramites,
     currentUser,
-    markChargeAsPaid,
     deleteClient,
     sriCompanyConfig,
     bankAccounts,
   } = useApp();
-  const { showSuccess, showError, showConfirm } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
     if (initialTab) return initialTab;
@@ -124,11 +125,13 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   const clientId = client?.id || "";
   const services = clientServices.filter((s) => s.clientId === clientId);
   const charges = monthlyCharges.filter((c) => c.clientId === clientId);
+  const currentCharges = charges.filter((c) => c.status !== "anulado");
 
   // Cobros & Finanzas state
   const [cobrosSearch, setCobrosSearch] = useState("");
-  const [cobrosStatusFilter, setCobrosStatusFilter] = useState<"todos" | "pendiente" | "pagado">("todos");
+  const [cobrosStatusFilter, setCobrosStatusFilter] = useState<"todos" | "pendiente" | "pagado" | "anulado">("todos");
   const [isAccountStatementOpen, setIsAccountStatementOpen] = useState(false);
+  const [payingCharge, setPayingCharge] = useState<MonthlyCharge | null>(null);
   const [receiptCharge, setReceiptCharge] = useState<MonthlyCharge | null>(null);
 
   const accountStatementPrintRef = useRef<HTMLDivElement>(null);
@@ -144,7 +147,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         `${c.month}/${c.year}`.includes(q);
 
       const matchStatus =
-        cobrosStatusFilter === "todos" || c.status === cobrosStatusFilter;
+        (cobrosStatusFilter === "todos" && c.status !== "anulado") || c.status === cobrosStatusFilter || (cobrosStatusFilter === "pendiente" && c.status === "parcial");
 
       return matchSearch && matchStatus;
     });
@@ -152,18 +155,17 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
 
   const cobrosCounts = useMemo(() => {
     return {
-      todos: charges.length,
-      pendiente: charges.filter((c) => c.status === "pendiente").length,
+      todos: currentCharges.length,
+      anulado: charges.length - currentCharges.length,
+      pendiente: charges.filter((c) => chargeBalance(c) > 0).length,
       pagado: charges.filter((c) => c.status === "pagado").length,
-      totalPending: charges
-        .filter((c) => c.status === "pendiente")
-        .reduce((sum, c) => sum + (c.balanceRemaining ?? c.total), 0),
+      totalPending: money(charges.reduce((sum, c) => sum + chargeBalance(c), 0)),
       totalPaid: charges
         .filter((c) => c.status === "pagado")
         .reduce((sum, c) => sum + (c.paidAmount ?? c.total), 0),
-      grandTotal: charges.reduce((sum, c) => sum + c.total, 0),
+      grandTotal: currentCharges.reduce((sum, c) => sum + c.total, 0),
     };
-  }, [charges]);
+  }, [charges, currentCharges]);
 
   const handlePrintAccountStatement = () => {
     if (accountStatementPrintRef.current) {
@@ -190,7 +192,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   };
 
   const handleExportCobranzaCsv = () => {
-    if (!client || charges.length === 0) {
+    if (!client || filteredCharges.length === 0) {
       showError("Sin datos", "No existen registros de cobro para exportar.");
       return;
     }
@@ -208,7 +210,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
       "Referencia",
     ];
 
-    const rows = charges.map((c) => [
+    const rows = filteredCharges.map((c) => [
       `"${c.invoiceNumber || ""}"`,
       `"${c.month}/${c.year}"`,
       `"${(c.serviceDescription || "").replace(/"/g, '""')}"`,
@@ -266,31 +268,11 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handlePayCharge = (chargeId: string) => {
-    showConfirm(
-      "¿Registrar Cobro?",
-      "¿Confirmas el registro del pago para este comprobante?",
-      async () => {
-        try {
-          await markChargeAsPaid(chargeId, "transferencia");
-          showSuccess("Pago Registrado", "Comprobante marcado como PAGADO.");
-        } catch (error) {
-          window.dispatchEvent(
-            new CustomEvent("inntel:error", {
-              detail: error instanceof Error ? error.message : "No se pudo guardar.",
-            })
-          );
-        }
-      },
-      "Registrar Pago"
-    );
-  };
-
   const allTabs: { id: ProfileTab; label: string; icon: any; permission: string }[] = [
     { id: "fiscal", label: "Identificación", icon: User, permission: "manage_clients" },
     { id: "red", label: "Nodos", icon: Radio, permission: "manage_network" },
     { id: "boveda", label: "Bóveda", icon: KeyRound, permission: "manage_vault" },
-    { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_policies" },
+    { id: "contratos", label: "Servicios", icon: ShieldCheck, permission: "manage_clients" },
     { id: "archivos", label: "Archivos", icon: HardDrive, permission: "manage_clients" },
     { id: "cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, permission: "manage_finance" },
     { id: "facturacion", label: "Facturación", icon: FileText, permission: "manage_finance" },
@@ -315,7 +297,14 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   });
 
   // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
-  const authorizedTabs = eligibleTabs.filter((t) => t.id === "facturacion" ? canReadCollection(currentUser, "billingInvoices") : can(currentUser, t.permission));
+  const authorizedTabs = eligibleTabs.filter(tab => {
+    if (currentUser.role !== "superadmin" && currentUser.modulePermissions?.abonados?.submodules?.[tab.id] === false) return false;
+    if (tab.id === "facturacion") return canReadCollection(currentUser, "billingInvoices");
+    if (tab.id === "contratos") return canReadCollection(currentUser, "clientServices");
+    if (tab.id === "finanzas") return canAccessSubmodule(currentUser, "finanzas", "cobranzas") && can(currentUser, "manage_finance");
+    return can(currentUser, tab.permission);
+  });
+  const canCollect = canUser(currentUser, "finanzas", "canRegisterReceipts");
   const currentTabAllowed = authorizedTabs.some((t) => t.id === activeTab);
 
   // Asegurar que si la pestaña activa queda fuera de las permitidas, vuelva a Identificación o Servicios
@@ -335,12 +324,12 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   if (!client) return null;
 
   return (
-    <div className="w-full animate-in fade-in duration-200">
+    <div className="w-full min-w-0 animate-in fade-in duration-200">
       {/* Contenedor Principal de la Ficha */}
       <div className="w-full bg-white rounded-xl shadow-2xs border border-[#e2e8f0] overflow-hidden flex flex-col min-h-[calc(100vh-14rem)]">
         {/* Hub Header Elegante y Limpio con Estado, Título e Iconos de Acción */}
-        <div className="p-4 px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-wrap">
+        <div className="p-3 sm:p-4 lg:px-6 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-x-3 gap-y-2 flex-wrap">
             <span
               className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                 client.status === "activo"
@@ -351,7 +340,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
               }`}
               title={`Estado: ${client.status.toUpperCase()}`}
             />
-            <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase">
+            <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase [overflow-wrap:anywhere]">
               {client.businessName}
             </h1>
             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{clientStatusLabel(client.status)}</span>
@@ -361,7 +350,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {authorizedTabs.some((t) => t.id === "archivos") && (
               <button
                 type="button"
@@ -421,8 +410,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         </div>
 
         {/* Tab Navigation Ribbon - Granular RBAC Permissions (PDF Page 9 & 10) */}
-        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-200 bg-slate-100/90 overflow-x-auto scrollbar-thin">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+        <div className="min-w-0 px-3 sm:px-4 py-2 border-b border-slate-200 bg-slate-100/90">
+          <nav aria-label="Secciones de la ficha" className="flex flex-wrap items-center gap-1.5">
             {ribbonTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -443,10 +432,10 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                 </button>
               );
             })}
-          </div>
+          </nav>
 
           {!hasServices && (
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg shrink-0">
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-lg shrink-0">
               <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>Asigna un servicio en &quot;Servicios&quot; para habilitar Nodos, Bóveda, Cobros, Tickets y demás pestañas.</span>
             </div>
@@ -454,7 +443,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         </div>
 
         {/* Tab Content Body */}
-        <div className="p-6 flex-1 overflow-y-auto bg-slate-50/40">
+        <div className="min-w-0 p-2 sm:p-4 xl:p-6 flex-1 bg-slate-50/40">
           {!currentTabAllowed && (
             <div className="p-8 text-center bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3">
               <ShieldAlert className="w-10 h-10 text-amber-500 mx-auto" />
@@ -732,7 +721,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5 text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       {[
                         { id: "todos", label: "Todos", count: cobrosCounts.todos },
                         {
@@ -742,6 +731,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                           isWarning: cobrosCounts.pendiente > 0,
                         },
                         { id: "pagado", label: "Pagados", count: cobrosCounts.pagado },
+                        { id: "anulado", label: "Anulados", count: cobrosCounts.anulado },
                       ].map((tab) => {
                         const isActive = cobrosStatusFilter === tab.id;
                         return (
@@ -826,8 +816,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                     )}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="table-fixed w-full text-left text-xs border-collapse">
+                  <div role="region" aria-label="Tabla de cobros" tabIndex={0} className="max-w-full overflow-x-auto">
+                    <table className="table-fixed w-full min-w-[42rem] text-left text-xs border-collapse">
                       <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                         <tr>
                           <th className="py-3 px-4 w-[18%]">Comprobante</th>
@@ -860,14 +850,14 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {c.status === "pendiente" ? (
+                                {chargeBalance(c) > 0 && canCollect ? (
                                   <button
-                                    onClick={() => handlePayCharge(c.id)}
+                                    onClick={() => setPayingCharge(c)}
                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer transition shadow-2xs"
                                   >
                                     Cobrar
                                   </button>
-                                ) : (
+                                ) : c.status !== "anulado" && (c.status === "pagado" || (c.paidAmount || 0) > 0) && (
                                   <button
                                     type="button"
                                     onClick={() => setReceiptCharge(c)}
@@ -907,6 +897,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
       </div>
 
       {/* Modal de Confirmación de Baja / Eliminación de Cliente */}
+      {payingCharge && canCollect && <ChargePaymentModal key={payingCharge.id} charge={payingCharge} onClose={() => setPayingCharge(null)} />}
+
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-md overflow-hidden">
@@ -1076,7 +1068,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                     <span className="text-lg font-mono font-black text-slate-900 mt-1 block">
                       ${cobrosCounts.grandTotal.toFixed(2)} USD
                     </span>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">{charges.length} comprobante(s)</span>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">{currentCharges.length} comprobante(s)</span>
                   </div>
 
                   <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 text-left">
@@ -1122,15 +1114,15 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                      {charges.length === 0 ? (
+                      {currentCharges.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="py-6 text-center text-slate-400 italic">
                             Sin cobros registrados en el historial de este cliente.
                           </td>
                         </tr>
                       ) : (
-                        charges.map((c) => {
-                          const balance = c.status === "pagado" ? 0 : (c.balanceRemaining ?? c.total);
+                        currentCharges.map((c) => {
+                          const balance = money(chargeBalance(c));
                           return (
                             <tr key={c.id}>
                               <td className="py-2.5 px-3 font-mono font-bold text-slate-900">

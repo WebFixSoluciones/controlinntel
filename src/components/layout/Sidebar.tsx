@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
-import { canAccessRoute, canAccessSubmodule } from "@/lib/permissions";
+import { canAccessRoute, canAccessSubmodule, firstAccessibleRoute } from "@/lib/permissions";
 import { useToast } from "@/lib/toast-context";
 import {
   LayoutDashboard,
@@ -24,6 +24,7 @@ import {
   Contact2,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import { UserModulePermissions } from "@/types";
 
@@ -157,6 +158,8 @@ function SidebarContent() {
   const {
     currentUser,
     logout,
+    isNavigationOpen,
+    setIsNavigationOpen,
   } = useApp();
   const { showConfirm, showInfo } = useToast();
 
@@ -184,11 +187,40 @@ function SidebarContent() {
     setOpenAccordions((prev) => ({ ...prev, [href]: !prev[href] }));
   };
 
+  useEffect(() => {
+    if (!isNavigationOpen) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = () => { if (desktop.matches) setIsNavigationOpen(false); };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsNavigationOpen(false);
+        document.getElementById("app-navigation-trigger")?.focus();
+      }
+    };
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      desktop.removeEventListener("change", closeOnDesktop);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isNavigationOpen, setIsNavigationOpen]);
+
+  const closeNavigation = () => {
+    setIsNavigationOpen(false);
+    document.getElementById("app-navigation-trigger")?.focus();
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 min-h-screen">
+    <>
+    {isNavigationOpen && <div aria-hidden="true" onClick={closeNavigation} className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden" />}
+    <aside id="app-navigation" role={isNavigationOpen ? "dialog" : undefined}
+      aria-modal={isNavigationOpen ? true : undefined} aria-label="Menú principal"
+      className={`${isNavigationOpen ? "flex" : "hidden"} fixed inset-y-0 left-0 z-50 h-dvh w-64 max-w-[calc(100%-2rem)] shrink-0 flex-col border-r border-[#e2e8f0] bg-white lg:static lg:z-auto lg:flex lg:h-auto lg:min-h-screen`}>
+      {isNavigationOpen && <h2 className="sr-only">Menú principal</h2>}
       {/* Brand Header: Logo Only */}
-      <div className="h-16 border-b border-[#e2e8f0] flex items-center justify-center px-4 bg-white">
-        <Link href="/" className="flex items-center justify-center">
+      <div className="relative h-16 shrink-0 border-b border-[#e2e8f0] flex items-center justify-center px-4 bg-white">
+        <Link href={firstAccessibleRoute(currentUser) || "/"} onClick={() => setIsNavigationOpen(false)} className="flex items-center justify-center">
           <Image
             src="/logo-inntel.webp"
             alt="INNTEL CORP"
@@ -198,10 +230,14 @@ function SidebarContent() {
             priority
           />
         </Link>
+        <button type="button" aria-label="Cerrar menú" onClick={closeNavigation}
+          className="absolute right-2 grid h-10 w-10 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden">
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="min-h-0 flex-1 p-3 space-y-1 overflow-y-auto overscroll-contain">
         <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#737686]">
           Módulos
         </div>
@@ -235,6 +271,7 @@ function SidebarContent() {
                 <button
                   type="button"
                   onClick={() => {
+                    setIsNavigationOpen(false);
                     toggleAccordion(item.href);
                     if (item.href === "/clientes" || item.href === "/abonados") {
                       window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
@@ -285,6 +322,7 @@ function SidebarContent() {
                 <Link
                   href={item.href}
                   onClick={() => {
+                    setIsNavigationOpen(false);
                     if (item.href === "/clientes" || item.href === "/abonados") {
                       window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
                     }
@@ -324,6 +362,7 @@ function SidebarContent() {
                         key={sub.key}
                         href={sub.href}
                         onClick={() => {
+                          setIsNavigationOpen(false);
                           if (sub.href === "/clientes" || sub.href.startsWith("/clientes") || sub.href.startsWith("/abonados")) {
                             window.dispatchEvent(new CustomEvent("inntel:reset-client-selection"));
                           }
@@ -350,12 +389,13 @@ function SidebarContent() {
         })}
       </nav>
     </aside>
+    </>
   );
 }
 
 export function Sidebar() {
   return (
-    <Suspense fallback={<aside className="w-64 bg-white border-r border-[#e2e8f0] min-h-screen" />}>
+    <Suspense fallback={<aside className="hidden w-64 shrink-0 bg-white border-r border-[#e2e8f0] min-h-screen lg:block" />}>
       <SidebarContent />
     </Suspense>
   );

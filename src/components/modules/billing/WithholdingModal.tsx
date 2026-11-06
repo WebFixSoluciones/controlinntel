@@ -1,479 +1,135 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  X,
-  DollarSign,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  CheckCircle2,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Percent, X } from "lucide-react";
 import { useApp } from "@/lib/state";
-import { useToast } from "@/lib/toast-context";
-import { SriInvoice, WithholdingReceipt, WithholdingItem } from "@/types";
+import type { WithholdingReceipt } from "@/types";
 
 interface WithholdingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialInvoice?: SriInvoice | null;
-  onSuccess?: (ret: WithholdingReceipt) => void;
+  initialPurchaseId?: string;
+  correction?: WithholdingReceipt;
+  onSuccess?: (document: WithholdingReceipt) => void;
 }
 
-const SRI_RETENTION_PRESETS: Array<{
-  label: string;
-  taxType: "RENTA" | "IVA";
-  code: string;
-  percentage: number;
-}> = [
-  { label: "312 - Transferencia de bienes muebles (1.75%)", taxType: "RENTA", code: "312", percentage: 1.75 },
-  { label: "3440 - Otras retenciones aplicables 2.75% (Servicios telecom)", taxType: "RENTA", code: "3440", percentage: 2.75 },
-  { label: "303 - Honorarios profesionales (10%)", taxType: "RENTA", code: "303", percentage: 10 },
-  { label: "304 - Predomina el intelecto (8%)", taxType: "RENTA", code: "304", percentage: 8 },
-  { label: "332 - Pagos bienes/servicios no sujetos a retención (0%)", taxType: "RENTA", code: "332", percentage: 0 },
-  { label: "IVA 30% - Retención de IVA Bienes (Cod. 1)", taxType: "IVA", code: "1", percentage: 30 },
-  { label: "IVA 70% - Retención de IVA Servicios (Cod. 2)", taxType: "IVA", code: "2", percentage: 70 },
-  { label: "IVA 100% - Retención Total de IVA (Cod. 3)", taxType: "IVA", code: "3", percentage: 100 },
-];
+const ivaCodes: Record<number, string> = { 10: "9", 20: "10", 30: "1", 50: "11", 70: "2", 100: "3" };
+const field = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-xs";
 
-export function WithholdingModal({
-  isOpen,
-  onClose,
-  initialInvoice,
-  onSuccess,
-}: WithholdingModalProps) {
-  const { billingInvoices, createWithholding } = useApp();
-  const { showSuccess } = useToast();
-
-  const sriInvoices = billingInvoices.filter(
-    (inv) =>
-      (inv.documentType || "factura") === "factura" &&
-      inv.status !== "anulada" &&
-      inv.status !== "borrador"
-  );
-
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
-  const [date, setDate] = useState("");
-  const [fiscalPeriod, setFiscalPeriod] = useState("");
-  const [items, setItems] = useState<WithholdingItem[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const buildDefaultItemsForInvoice = (inv?: SriInvoice): WithholdingItem[] => {
-    const baseRenta = inv
-      ? Math.round(((inv.subtotal15 || 0) + (inv.subtotal0 || 0)) * 100) / 100
-      : 100;
-    const baseIva = inv ? Math.round((inv.ivaTotal || 0) * 100) / 100 : 15;
-    const rows: WithholdingItem[] = [
-      {
-        taxType: "RENTA",
-        code: "3440",
-        percentage: 2.75,
-        taxBase: baseRenta,
-        retainedAmount: Math.round(baseRenta * 0.0275 * 100) / 100,
-      },
-    ];
-    if (baseIva > 0) {
-      rows.push({
-        taxType: "IVA",
-        code: "2",
-        percentage: 70,
-        taxBase: baseIva,
-        retainedAmount: Math.round(baseIva * 0.7 * 100) / 100,
-      });
-    }
-    return rows;
-  };
+export function WithholdingModal({ isOpen, onClose, initialPurchaseId, correction, onSuccess }: WithholdingModalProps) {
+  const { purchaseInvoices, createWithholding } = useApp();
+  const [purchaseId, setPurchaseId] = useState("");
+  const [supportCode, setSupportCode] = useState("");
+  const [relatedParty, setRelatedParty] = useState<"" | "si" | "no">("");
+  const [paymentCode, setPaymentCode] = useState<"01" | "16" | "19" | "20">("20");
+  const [rentaCode, setRentaCode] = useState("");
+  const [rentaBase, setRentaBase] = useState("");
+  const [rentaRate, setRentaRate] = useState("");
+  const [ivaBase, setIvaBase] = useState("");
+  const [ivaRate, setIvaRate] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const available = purchaseInvoices.filter(purchase => /^\d{49}$/.test(purchase.claveAcceso || ""));
 
   useEffect(() => {
-    if (isOpen) {
-      const today = new Date().toISOString().slice(0, 10);
-      setDate(today);
-      const [yyyy, mm] = today.split("-");
-      setFiscalPeriod(`${mm}/${yyyy}`);
-      setErrorMsg("");
-
-      const target = initialInvoice || sriInvoices[0];
-      if (target) {
-        setSelectedInvoiceId(target.id);
-        setItems(buildDefaultItemsForInvoice(target));
-      } else {
-        setSelectedInvoiceId("");
-        setItems(buildDefaultItemsForInvoice(undefined));
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialInvoice]);
+    if (!isOpen) return;
+    const renta = correction?.items.find(item => item.taxType === "RENTA");
+    const iva = correction?.items.find(item => item.taxType === "IVA");
+    setPurchaseId(correction?.purchaseInvoiceId || initialPurchaseId || "");
+    setSupportCode(correction?.support?.code || "");
+    setRelatedParty(correction?.support ? correction.support.relatedParty ? "si" : "no" : "");
+    setPaymentCode((correction?.support?.paymentCode as typeof paymentCode) || "20");
+    setRentaCode(renta?.code || "");
+    setRentaBase(renta ? String(renta.taxBase) : "");
+    setRentaRate(renta ? String(renta.percentage) : "");
+    setIvaBase(iva ? String(iva.taxBase) : "");
+    setIvaRate(iva?.percentage || 0);
+    setError("");
+  }, [isOpen, initialPurchaseId, correction]);
 
   if (!isOpen) return null;
+  const purchase = available.find(item => item.id === purchaseId);
+  const close = () => { if (!saving) onClose(); };
 
-  const targetInvoice = sriInvoices.find((i) => i.id === selectedInvoiceId);
-
-  const handleInvoiceChange = (invId: string) => {
-    setSelectedInvoiceId(invId);
-    const inv = sriInvoices.find((i) => i.id === invId);
-    if (inv) {
-      const [yyyy, mm] = (inv.date || date).split("-");
-      if (yyyy && mm) setFiscalPeriod(`${mm}/${yyyy}`);
-      setItems(buildDefaultItemsForInvoice(inv));
-    }
-  };
-
-  const handleAddItem = () => {
-    const baseRenta = targetInvoice
-      ? Math.round(((targetInvoice.subtotal15 || 0) + (targetInvoice.subtotal0 || 0)) * 100) / 100
-      : 100;
-    setItems((prev) => [
-      ...prev,
-      {
-        taxType: "RENTA",
-        code: "312",
-        percentage: 1.75,
-        taxBase: baseRenta,
-        retainedAmount: Math.round(baseRenta * 0.0175 * 100) / 100,
-      },
-    ]);
-  };
-
-  const handleApplyPreset = (index: number, presetIndex: number) => {
-    const preset = SRI_RETENTION_PRESETS[presetIndex];
-    if (!preset) return;
-    setItems((prev) =>
-      prev.map((it, idx) => {
-        if (idx !== index) return it;
-        const defaultBase =
-          preset.taxType === "IVA"
-            ? targetInvoice?.ivaTotal || it.taxBase
-            : targetInvoice
-            ? (targetInvoice.subtotal15 || 0) + (targetInvoice.subtotal0 || 0)
-            : it.taxBase;
-        const base = Math.round(Number(defaultBase || 0) * 100) / 100;
-        const retained = Math.round(base * (preset.percentage / 100) * 100) / 100;
-        return {
-          taxType: preset.taxType,
-          code: preset.code,
-          percentage: preset.percentage,
-          taxBase: base,
-          retainedAmount: retained,
-        };
-      })
-    );
-  };
-
-  const handleUpdateItem = (
-    index: number,
-    field: keyof WithholdingItem,
-    value: string | number
-  ) => {
-    setItems((prev) =>
-      prev.map((it, idx) => {
-        if (idx !== index) return it;
-        const updated = { ...it, [field]: value };
-        if (field === "taxBase" || field === "percentage") {
-          const base = Math.max(0, Number(updated.taxBase) || 0);
-          const pct = Math.max(0, Number(updated.percentage) || 0);
-          updated.taxBase = base;
-          updated.percentage = pct;
-          updated.retainedAmount = Math.round(base * (pct / 100) * 100) / 100;
-        }
-        return updated;
-      })
-    );
-  };
-
-  const handleRemoveItem = (index: number) => {
-    if (items.length <= 1) return;
-    setItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const totalRetained = Math.round(
-    items.reduce((sum, it) => sum + (Number(it.retainedAmount) || 0), 0) * 100
-  ) / 100;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-
-    if (!targetInvoice) {
-      setErrorMsg("Debe seleccionar una factura electrónica de sustento.");
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!purchase || !relatedParty) return;
+    const items: Parameters<typeof createWithholding>[0]["items"] = [];
+    if (Number(rentaRate) > 0) items.push({ taxType: "RENTA", code: rentaCode.trim().toUpperCase(), taxBase: Number(rentaBase), percentage: Number(rentaRate) });
+    if (ivaRate) items.push({ taxType: "IVA", code: ivaCodes[ivaRate], taxBase: Number(ivaBase), percentage: ivaRate });
+    if (!items.length || items.some(item => !item.code || item.taxBase <= 0)) {
+      setError("Indica al menos una retención con su código, base y porcentaje.");
       return;
     }
-
-    if (items.length === 0) {
-      setErrorMsg("Debe registrar al menos un impuesto retenido.");
-      return;
-    }
-
-    setIsSubmitting(true);
+    setSaving(true);
+    setError("");
     try {
-      const created = await createWithholding({
-        date: date || new Date().toISOString().slice(0, 10),
-        clientId: targetInvoice.clientId,
-        clientName: targetInvoice.clientName,
-        clientRuc: targetInvoice.clientRuc,
-        invoiceNumber: targetInvoice.documentNumber,
-        fiscalPeriod: fiscalPeriod || "10/2026",
-        items,
-        totalRetained,
-        status: "autorizada",
-      });
-
-      showSuccess(
-        "Comprobante de Retención Emitido",
-        `Retención ${created.documentNumber} autorizada por $${created.totalRetained.toFixed(2)}.`
-      );
-      if (onSuccess) onSuccess(created);
+      const result = await createWithholding({ purchaseInvoiceId: purchase.id, supportCode, relatedParty: relatedParty === "si", paymentCode, items }, correction?.id);
+      onSuccess?.(result);
       onClose();
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Error al emitir el comprobante de retención.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudo procesar la retención.");
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh] my-auto">
-        {/* Header */}
-        <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-white shadow-xs">
-              <DollarSign className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold leading-tight text-white">
-                Emitir Comprobante de Retención SRI • 07
-              </h2>
-              <p className="text-xs text-blue-100">
-                Retención electrónica de Impuesto a la Renta e IVA vinculada a factura
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {errorMsg && (
-          <div className="mx-6 mt-4 p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs overflow-y-auto flex-1">
-          {/* Factura de Sustento y Periodo */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Factura de Sustento *
-              </label>
-              <select
-                value={selectedInvoiceId}
-                onChange={(e) => handleInvoiceChange(e.target.value)}
-                className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-hidden focus:border-[#004ac6]"
-              >
-                {sriInvoices.map((inv) => (
-                  <option key={inv.id} value={inv.id}>
-                    {inv.documentNumber} • {inv.clientName} (${inv.total.toFixed(2)})
-                  </option>
-                ))}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4">
+      <section role="dialog" aria-modal="true" aria-labelledby="sri-retencion-title" className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-xl bg-white shadow-xl">
+        <header className="flex items-center justify-between bg-[#004ac6] px-5 py-4 text-white">
+          <h2 id="sri-retencion-title" className="flex items-center gap-2 font-semibold"><Percent className="h-4 w-4" /> Emitir retención a proveedor</h2>
+          <button type="button" aria-label="Cerrar" disabled={saving} onClick={close}><X className="h-5 w-5" /></button>
+        </header>
+        <form onSubmit={submit} className="space-y-4 p-5 text-xs text-slate-700">
+          <label className="block font-semibold">Factura electrónica de compra
+            <select className={field} required disabled={!!correction} value={purchaseId} onChange={event => setPurchaseId(event.target.value)}>
+              <option value="">Selecciona la factura de sustento</option>
+              {available.map(item => <option key={item.id} value={item.id}>{item.documentNumber} · {item.supplierName} · ${item.total.toFixed(2)}</option>)}
+            </select>
+          </label>
+          {available.length === 0 && <p className="rounded-lg bg-amber-50 p-3">Registra primero una factura de proveedor con clave de acceso.</p>}
+          {purchase && <p className="rounded-lg bg-slate-50 p-3">Proveedor {purchase.supplierRuc} · Base de compra ${purchase.subtotal.toFixed(2)} · IVA ${purchase.ivaAmount.toFixed(2)}</p>}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="font-semibold">Código de sustento ATS
+              <input className={field} required pattern="[0-9]{2}" maxLength={2} value={supportCode} onChange={event => setSupportCode(event.target.value)} />
+            </label>
+            <label className="font-semibold">Parte relacionada
+              <select className={field} required value={relatedParty} onChange={event => setRelatedParty(event.target.value as typeof relatedParty)}>
+                <option value="">Selecciona</option><option value="no">No</option><option value="si">Sí</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Periodo Fiscal (MM/AAAA) *
-              </label>
-              <input
-                type="text"
-                value={fiscalPeriod}
-                onChange={(e) => setFiscalPeriod(e.target.value)}
-                placeholder="10/2026"
-                required
-                className="w-full text-xs font-mono font-bold bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-              />
-            </div>
-
-            {targetInvoice && (
-              <div className="sm:col-span-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#e2e8f0] text-[11px] text-slate-600">
-                <span>
-                  <strong className="text-slate-800">Sujeto Retenido:</strong> {targetInvoice.clientName} (RUC: {targetInvoice.clientRuc})
-                </span>
-                <span className="font-mono">
-                  Base Subtotales:{" "}
-                  <strong>
-                    ${((targetInvoice.subtotal15 || 0) + (targetInvoice.subtotal0 || 0)).toFixed(2)}
-                  </strong>{" "}
-                  | IVA 15%: <strong>${(targetInvoice.ivaTotal || 0).toFixed(2)}</strong>
-                </span>
-              </div>
-            )}
+            </label>
+            <label className="font-semibold">Forma de pago SRI
+              <select className={field} value={paymentCode} onChange={event => setPaymentCode(event.target.value as typeof paymentCode)}>
+                <option value="01">Sin sistema financiero</option><option value="16">Tarjeta de débito</option>
+                <option value="19">Tarjeta de crédito</option><option value="20">Otros con sistema financiero</option>
+              </select>
+            </label>
           </div>
-
-          {/* Detalle de Impuestos Retenidos */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-900 uppercase tracking-wider text-xs">
-                Detalle de Impuestos Retenidos
-              </span>
-              <button
-                type="button"
-                onClick={handleAddItem}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-[#004ac6] hover:bg-blue-100 font-bold text-xs transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Agregar Línea</span>
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {items.map((it, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0] space-y-2.5"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <select
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val)) handleApplyPreset(idx, val);
-                      }}
-                      defaultValue=""
-                      className="text-xs bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-slate-700 flex-1 min-w-[220px] focus:outline-hidden focus:border-[#004ac6]"
-                    >
-                      <option value="" disabled>
-                        Seleccionar código rápido del catálogo SRI...
-                      </option>
-                      {SRI_RETENTION_PRESETS.map((p, pIdx) => (
-                        <option key={pIdx} value={pIdx}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    {items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                        title="Eliminar impuesto"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 items-end">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        Impuesto
-                      </label>
-                      <select
-                        value={it.taxType}
-                        onChange={(e) =>
-                          handleUpdateItem(idx, "taxType", e.target.value as "RENTA" | "IVA")
-                        }
-                        className="w-full text-xs font-bold bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#004ac6]"
-                      >
-                        <option value="RENTA">RENTA</option>
-                        <option value="IVA">IVA</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        Código SRI
-                      </label>
-                      <input
-                        type="text"
-                        value={it.code}
-                        onChange={(e) => handleUpdateItem(idx, "code", e.target.value)}
-                        className="w-full text-xs font-mono font-bold bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#004ac6]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        Base Imponible ($)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={it.taxBase}
-                        onChange={(e) =>
-                          handleUpdateItem(idx, "taxBase", parseFloat(e.target.value) || 0)
-                        }
-                        className="w-full text-xs font-mono text-right bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#004ac6]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        % Retención
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={it.percentage}
-                        onChange={(e) =>
-                          handleUpdateItem(idx, "percentage", parseFloat(e.target.value) || 0)
-                        }
-                        className="w-full text-xs font-mono font-bold text-right bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:border-[#004ac6]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        Valor Retenido ($)
-                      </label>
-                      <div className="w-full text-xs font-mono font-bold text-right bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-2.5 py-1.5">
-                        ${it.retainedAmount.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Total Summary */}
-          <div className="p-4 rounded-xl bg-slate-900 text-white flex items-center justify-between">
-            <span className="font-bold text-xs uppercase tracking-wider">
-              Total Comprobante de Retención • 07:
-            </span>
-            <span className="text-lg font-mono font-black text-emerald-400">
-              ${totalRetained.toFixed(2)}
-            </span>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-2 border-t border-[#e2e8f0] flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-[#e2e8f0] text-slate-700 hover:bg-slate-100 font-semibold rounded-lg text-xs transition cursor-pointer"
-            >
-              Cancelar
+          <fieldset className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-3">
+            <legend className="px-1 font-semibold">Retención de renta</legend>
+            <label>Código SRI<input className={field} required={Number(rentaRate) > 0} maxLength={5} value={rentaCode} onChange={event => setRentaCode(event.target.value)} /></label>
+            <label>Base<input className={field} type="number" min="0.01" step="0.01" max={purchase?.subtotal} required={Number(rentaRate) > 0} value={rentaBase} onChange={event => setRentaBase(event.target.value)} /></label>
+            <label>Porcentaje<input className={field} type="number" min="0" max="100" step="0.01" value={rentaRate} onChange={event => setRentaRate(event.target.value)} /></label>
+          </fieldset>
+          <fieldset className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+            <legend className="px-1 font-semibold">Retención de IVA</legend>
+            <label>Base de IVA a retener<input className={field} type="number" min="0.01" step="0.01" max={purchase?.ivaAmount} required={ivaRate > 0} value={ivaBase} onChange={event => setIvaBase(event.target.value)} /></label>
+            <label>Porcentaje<select className={field} value={ivaRate} onChange={event => setIvaRate(Number(event.target.value))}>
+              <option value={0}>Sin retención de IVA</option>
+              {Object.keys(ivaCodes).map(value => <option key={value} value={value}>{value}%</option>)}
+            </select></label>
+          </fieldset>
+          <p className="text-right font-semibold">Total a retener ${((Math.round(Number(rentaBase) * Number(rentaRate)) + Math.round(Number(ivaBase) * ivaRate)) / 100).toFixed(2)}</p>
+          {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-rose-700">{error}</p>}
+          <footer className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+            <button type="button" disabled={saving} onClick={close} className="rounded-lg px-4 py-2">Cancelar</button>
+            <button disabled={saving || !purchase} className="rounded-lg bg-[#004ac6] px-4 py-2 font-semibold text-white disabled:opacity-50">
+              {saving ? "Procesando…" : "Firmar y enviar al SRI"}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !targetInvoice}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? "Emitiendo..." : "Emitir Retención SRI"}</span>
-            </button>
-          </div>
+          </footer>
         </form>
-      </div>
+      </section>
     </div>
   );
 }

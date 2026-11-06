@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SRI_WS_URLS, validarClaveAccesoSRI } from "@/lib/sri-service";
-import { SriEnvironment } from "@/types";
+import { SRI_WS_URLS } from "@/lib/sri-service";
+import type { SriEnvironment } from "@/types";
 
 export const runtime = "nodejs";
-
-// Control de límite de tasa en memoria (P0-05)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(key: string, limit = 40, windowMs = 60000): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(key);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= limit) return false;
-  entry.count++;
-  return true;
-}
 
 /**
  * Endpoint para Test de Conectividad con el SRI y Consulta RUC
@@ -168,152 +153,25 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (action === "test_connection") {
-    const urls = ambiente === "2" ? SRI_WS_URLS.produccion : SRI_WS_URLS.pruebas;
-    const startTime = Date.now();
-    let recepcionOnline = false;
-    let autorizacionOnline = false;
-
+  if (action !== "test_connection" || !["1", "2"].includes(ambiente)) {
+    return NextResponse.json({ error: "Consulta SRI inválida." }, { status: 400 });
+  }
+  const urls = ambiente === "2" ? SRI_WS_URLS.produccion : SRI_WS_URLS.pruebas;
+  const startTime = Date.now();
+  async function check(url: string) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-      // Verificamos cabecera HTTP de los WSDLs del SRI
-      const checkRes = await fetch(urls.recepcion, {
-        method: "HEAD",
-        signal: controller.signal,
-      }).catch(() => null);
-
-      clearTimeout(timeoutId);
-
-      if (checkRes && (checkRes.ok || checkRes.status === 405 || checkRes.status === 200)) {
-        recepcionOnline = true;
-        autorizacionOnline = true;
-      }
+      const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
+      return response.ok && /<(?:[\w.-]+:)?definitions[\s>]/.test(await response.text());
     } catch {
-      // Si la red bloquea la salida al SRI, establecemos estado simulado de éxito
+      return false;
     }
-
-    const latencyMs = Math.max(38, Date.now() - startTime);
-
-    return NextResponse.json(
-      {
-        online: true,
-        ambiente,
-        recepcionWsUrl: urls.recepcion,
-        autorizacionWsUrl: urls.autorizacion,
-        recepcionStatus: "disponible",
-        autorizacionStatus: "disponible",
-        latencyMs,
-        checkedAt: new Date().toISOString(),
-        message: `Servidores del SRI (${ambiente === "2" ? "Producción" : "Pruebas"}) en línea y listos para facturación electrónica.`,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-        },
-      }
-    );
   }
-
-  return NextResponse.json({ error: "Acción no reconocida." }, { status: 400 });
-}
-
-/**
- * Endpoint para Consulta y Envío de comprobantes al SRI
- */
-export async function POST(request: NextRequest) {
-  try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-    if (!checkRateLimit(`sri_post_${ip}`, 40, 60000)) {
-      return NextResponse.json(
-        { error: "Límite de tasa excedido en el servicio SRI. Por favor espera un momento antes de reintentar." },
-        { status: 429 }
-      );
-    }
-
-    const body = await request.json();
-    const { action, claveAcceso: rawClaveAcceso, ambiente = "1", xml } = body;
-    const claveAcceso = String(rawClaveAcceso || "").replace(/\s+/g, "").trim();
-
-    if (action === "consultar") {
-      if (!claveAcceso) {
-        return NextResponse.json(
-          { error: "La clave de acceso es requerida." },
-          { status: 400 }
-        );
-      }
-
-      const val = validarClaveAccesoSRI(claveAcceso);
-      if (!val.isValid) {
-        return NextResponse.json(
-          {
-            success: false,
-            estado: "DEVUELTA",
-            claveAcceso,
-            ambiente,
-            mensajes: [
-              {
-                identificador: "ERR-MOD11",
-                mensaje: val.error || "Clave de acceso con formato o dígito verificador inválido.",
-                tipo: "ERROR",
-              },
-            ],
-          },
-          { status: 200 }
-        );
-      }
-
-      // Control de integridad fiscal: sin integración SOAP y certificado .p12 real, el comprobante se mantiene como borrador local
-      return NextResponse.json({
-        success: false,
-        estado: "NO_ENVIADO",
-        claveAcceso,
-        numeroAutorizacion: null,
-        fechaAutorizacion: null,
-        ambiente,
-        mensajes: [
-          {
-            identificador: "SRI-NO-ENVIADO",
-            mensaje: "COMPROBANTE LOCAL: El servicio SOAP oficial del SRI requiere configuración de certificado .p12 para emisión tributaria real.",
-            informacionAdicional: `Ambiente ${ambiente === "2" ? "Producción" : "Pruebas"} - Comprobante guardado como borrador local`,
-            tipo: "ADVERTENCIA",
-          },
-        ],
-      });
-    }
-
-    if (action === "enviar") {
-      if (!claveAcceso || !xml) {
-        return NextResponse.json(
-          { error: "XML y Clave de Acceso requeridos." },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json({
-        success: false,
-        estado: "NO_ENVIADO",
-        claveAcceso,
-        numeroAutorizacion: null,
-        fechaAutorizacion: null,
-        ambiente,
-        mensajes: [
-          {
-            identificador: "SRI-NO-ENVIADO",
-            mensaje: "RECEPCIÓN NO EJECUTADA: Requiere firma digital XAdES-BES real y conexión SOAP activa con el SRI.",
-            tipo: "ADVERTENCIA",
-          },
-        ],
-        xmlFirmado: null,
-      });
-    }
-
-    return NextResponse.json({ error: "Acción no soportada." }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || "Error procesando solicitud SRI." },
-      { status: 500 }
-    );
-  }
+  const [receipt, authorization] = await Promise.all([check(urls.recepcion), check(urls.autorizacion)]);
+  return NextResponse.json({
+    online: receipt && authorization, ambiente, recepcionWsUrl: urls.recepcion, autorizacionWsUrl: urls.autorizacion,
+    recepcionStatus: receipt ? "disponible" : "inaccesible",
+    autorizacionStatus: authorization ? "disponible" : "inaccesible",
+    latencyMs: Date.now() - startTime, checkedAt: new Date().toISOString(),
+    message: receipt && authorization ? "Recepción y autorización respondieron." : "Hay servicios del SRI que no respondieron.",
+  }, { headers: { "Cache-Control": "no-store" } });
 }

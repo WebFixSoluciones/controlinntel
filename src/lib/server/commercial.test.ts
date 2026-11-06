@@ -1,14 +1,16 @@
-import { save } from "./operations.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { executeCommercial, type CommercialCommand } from "./commercial.ts";
+import { executeCommercial, runScheduledRecurringBilling, type CommercialCommand } from "./commercial.ts";
 import { schemas } from "./schemas.ts";
+import { save } from "./operations.ts";
+import { numberHistoricalTickets } from "./ticket-sequence.ts";
+import { requiresPublicTicketReply } from "../ticket-status.ts";
+import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
 import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
-import { planServicePeriod, calculateLines } from "../commercial-core.ts";
+import { planServicePeriod, calculateLines, scheduledServicePeriods } from "../commercial-core.ts";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "../financial-summary.ts";
-import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 
@@ -18,12 +20,13 @@ class Database {
   rows = new Map<string,any>(); tail=Promise.resolve(); failCommit=false;
   constructor(initial:Record<string,any[]>) {for(const [name,rows] of Object.entries(initial))for(const row of rows)this.rows.set(name+"/"+row.id,structuredClone(row));}
   doc(path:string):any {return {path,id:path.split("/").pop(),parent:{id:path.split("/")[0]}};}
-  collection(name:string):any {const query=(field?:string,value?:unknown):any=>({name,field,value,doc:(id:string)=>this.doc(name+"/"+id),where:(f:string,_op:string,v:unknown)=>query(f,v)});return query();}
+  collection(name:string):any {const query=(field?:string,value?:unknown):any=>({name,field,value,doc:(id:string)=>this.doc(name+"/"+id),where:(f:string,_op:string,v:unknown)=>query(f,v),select:()=>query(field,value),
+    get:async()=>({docs:this.list(name).filter(row=>!field||row[field]===value).map(row=>({get:(key:string)=>row[key]}))})});return query();}
   async runTransaction(fn:(tx:any)=>Promise<any>) {
     let release!:()=>void;const prior=this.tail;this.tail=new Promise<void>(r=>release=r);await prior;
     const pending=new Map<string,any>();
-    const snap=(path:string)=>({id:path.split("/").pop(),exists:this.rows.has(path),data:()=>structuredClone(this.rows.get(path))});
-    const tx={get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...this.rows].filter(([key,row])=>key.startsWith(ref.name+"/")&&(!ref.field||row[ref.field]===ref.value)).map(([key])=>snap(key))},set:(ref:any,row:any)=>pending.set(ref.path,structuredClone(row)),create:(ref:any,row:any)=>{if(this.rows.has(ref.path))throw Error("Already exists");pending.set(ref.path,structuredClone(row));}};
+    const snap=(path:string)=>({id:path.split("/").pop(),ref:this.doc(path),exists:this.rows.has(path),data:()=>structuredClone(this.rows.get(path))});
+    const tx={get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...this.rows].filter(([key,row])=>key.startsWith(ref.name+"/")&&(!ref.field||row[ref.field]===ref.value)).map(([key])=>snap(key))},getAll:async(...refs:any[])=>refs.map(ref=>snap(ref.path)),set:(ref:any,row:any)=>pending.set(ref.path,structuredClone(row)),update:(ref:any,row:any)=>pending.set(ref.path,{...structuredClone(this.rows.get(ref.path)),...structuredClone(row)}),create:(ref:any,row:any)=>{if(this.rows.has(ref.path))throw Error("Already exists");pending.set(ref.path,structuredClone(row));}};
     try {const result=await fn(tx);if(this.failCommit)throw Error("Injected commit failure");pending.forEach((row,key)=>this.rows.set(key,row));return result;} finally{release();}
   }
   list(name:string){return [...this.rows].filter(([key])=>key.startsWith(name+"/")).map(([,row])=>row);}
@@ -33,6 +36,57 @@ const user:UserProfile={uid:"qa",email:"qa@example.test",displayName:"QA",role:"
 const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificationType:"PASAPORTE",identificationNumber:"QA-00001",status:"activo",currentBalance:0},{id:"b",businessName:"PRUEBA CLIENTE B",identificationNumber:"QA-00002",status:"activo",currentBalance:0}],inventoryProducts:[{id:"srv",name:"Servicio QA",sku:"QA",type:"servicio",salePrice:100,ivaRate:15,stock:0,tracksStock:false,status:"activo"}],bankAccounts:[{id:"bank",bankName:"Banco QA",currentBalance:1000,initialBalance:1000,status:"activa"},{id:"bank2",bankName:"Banco QA 2",currentBalance:0,initialBalance:0,status:"activa"}],suppliers:[{id:"supplier",razonSocial:"PROVEEDOR QA",ruc:"QA-111",status:"activo"}]});
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
+
+test("El gasto vincula al proveedor, conserva la referencia y usa solo categorías activas", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-06T17:00:00Z") });
+  const db = new Database({ ...initial(), suppliers: [{ id: "supplier-qa", razonSocial: "Proveedor guardado", ruc: "1700000000001", status: "activo" }] });
+  const firestore = db as unknown as Firestore;
+  await save(user, "expenseCategories", { name: "Movilización", active: true }, "travel", undefined, firestore);
+  const expense = await run(db, "expense", { supplierId: "supplier-qa", supplierName: "Texto no canónico", expenseDate: "2026-11-06",
+    description: "Visita técnica", invoiceNumber: "REF-12", category: "travel", amount: 30, bankAccountId: "bank", paymentMethod: "transferencia" });
+  assert.equal(expense.supplierName, "Proveedor guardado");
+  assert.equal(expense.supplierRuc, "1700000000001");
+  assert.equal(db.row("financialMovements", expense.movementId).referenceNumber, "REF-12");
+  await save(user, "expenseCategories", { name: "Movilización técnica", active: false }, "travel", undefined, firestore);
+  assert.equal(expenseCategoriesWithDefaults(db.list("expenseCategories")).find(item => item.id === "travel")?.name, "Movilización técnica");
+  assert.equal(db.row("expenses", expense.id).category, "travel");
+  await assert.rejects(run(db, "expense", { ...expense, amount: 5 }), /categoría de gasto activa/);
+  assert.equal(db.list("financialMovements").length, 1);
+});
+
+test("Numeración de soporte asigna TK correlativos sin cambiar las referencias del historial", async () => {
+  const ticket = { clientId: "a", title: "Ticket QA", description: "Incidencia de prueba", status: "abierto", priority: "media", department: "soporte_tecnico" };
+  const database = new Database({ ...initial(), tickets: [
+    { ...ticket, id: "old-2", ticketNumber: "TCK-old-2", createdAt: "2026-11-05T10:00:00Z", messages: [{ id: "m" }] },
+    { ...ticket, id: "old-1", ticketNumber: "TCK-old-1", createdAt: "2026-11-05T09:00:00Z" },
+  ] });
+  const db = database as unknown as Firestore;
+  assert.deepEqual(await numberHistoricalTickets(db, user), { updated: 2, remaining: 0 });
+  assert.deepEqual(await numberHistoricalTickets(db, user), { updated: 0, remaining: 0 });
+  assert.equal(database.row("tickets", "old-1").ticketNumber, "TK-001");
+  assert.equal(database.row("tickets", "old-2").previousTicketNumber, "TCK-old-2");
+  assert.equal(database.row("tickets", "old-2").messages[0].id, "m");
+  const created = await Promise.all(["new-1", "new-2"].map(id => save(user, "tickets", { ...ticket, ticketNumber: "TK-001" }, id, undefined, db)));
+  assert.deepEqual(created.map(row => row.ticketNumber).sort(), ["TK-003", "TK-004"]);
+  await assert.rejects(save(user, "tickets", { status: "resuelto", messages: [{ body: "Falsa", isInternal: false }] }, "new-1", undefined, db), /formulario de respuesta/);
+  assert.equal(requiresPublicTicketReply("abierto", "resuelto", { body: " ", isInternal: false }), true);
+  assert.equal(requiresPublicTicketReply("abierto", "resuelto", { body: "Nota", isInternal: true }), true);
+  assert.equal(requiresPublicTicketReply("abierto", "resuelto", { body: "Respuesta al cliente", isInternal: false }), false);
+});
+
+test("Los departamentos de soporte se archivan conservando los tickets y sus permisos de gestión", async () => {
+  const database = new Database(initial());
+  const db = database as unknown as Firestore;
+  const technician: UserProfile = { ...user, role: "tecnico", permissions: ["manage_tickets"] };
+  await assert.rejects(save(technician, "ticketDepartments", { name: "Red", active: true }, "dept-red", undefined, db), /administrar departamentos/);
+  await save(user, "ticketDepartments", { name: "Red", active: true }, "dept-red", undefined, db);
+  const ticket = { clientId: "a", title: "Ticket QA", description: "Incidencia de prueba", status: "abierto", priority: "media", department: "dept-red" };
+  await save(technician, "tickets", ticket, "first", undefined, db);
+  await save(user, "ticketDepartments", { active: false }, "dept-red", undefined, db);
+  await assert.rejects(save(technician, "tickets", ticket, "second", undefined, db), /departamento de soporte activo/);
+  await save(technician, "tickets", { priority: "alta" }, "first", undefined, db);
+  assert.equal(database.row("tickets", "first").department, "dept-red");
+});
 
 test("catalog creation persists the chosen category, product type and initial stock atomically", async () => {
   const db = new Database({ ...initial(), inventoryCategories: [
@@ -153,23 +207,6 @@ test("refunding unused advance preserves its already applied payment and can be 
   assert.equal(db.row("bankAccounts", "bank").currentBalance, 1100);
 });
 
-test("El gasto vincula al proveedor, conserva la referencia y usa solo categorías activas", async t => {
-  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-06T17:00:00Z") });
-  const db = new Database({ ...initial(), suppliers: [{ id: "supplier-qa", razonSocial: "Proveedor guardado", ruc: "1700000000001", status: "activo" }] });
-  const firestore = db as unknown as Firestore;
-  await save(user, "expenseCategories", { name: "Movilización", active: true }, "travel", undefined, firestore);
-  const expense = await run(db, "expense", { supplierId: "supplier-qa", supplierName: "Texto no canónico", expenseDate: "2026-11-06",
-    description: "Visita técnica", invoiceNumber: "REF-12", category: "travel", amount: 30, bankAccountId: "bank", paymentMethod: "transferencia" });
-  assert.equal(expense.supplierName, "Proveedor guardado");
-  assert.equal(expense.supplierRuc, "1700000000001");
-  assert.equal(db.row("financialMovements", expense.movementId).referenceNumber, "REF-12");
-  await save(user, "expenseCategories", { name: "Movilización técnica", active: false }, "travel", undefined, firestore);
-  assert.equal(expenseCategoriesWithDefaults(db.list("expenseCategories")).find(item => item.id === "travel")?.name, "Movilización técnica");
-  assert.equal(db.row("expenses", expense.id).category, "travel");
-  await assert.rejects(run(db, "expense", { ...expense, amount: 5 }), /categoría de gasto activa/);
-  assert.equal(db.list("financialMovements").length, 1);
-});
-
 test("reports remove a cancelled paid sale from collections, retain its credit, and reflect the subsequent refund", async () => {
   const db = new Database(initial());
   const first = await run(db, "issueSale", sale("a", { items: [{ productId: "srv", name: "Servicio QA", quantity: 1, unitPrice: 500, ivaRate: 15 }] }));
@@ -229,79 +266,115 @@ const servicePayload=(extra={})=>({clientId:"a",inventoryProductId:"srv",planId:
   customPrice:100,ivaRate:15,billingType:"prepago",billingFrequency:"mensual",cycleAnchor:"calendario",
   contractStartDate:"2026-11-01",billingDay:1,advanceNoticeDay:26,status:"activo",...extra});
 
-test("R28: assigning a service issues its first note dated by the configured cycle and books it to receivables",async()=>{
-  const db=new Database(initial());
-  const result=await run(db,"assignService",servicePayload());
-  assert.ok(result.invoice,"el alta debe emitir la nota de venta del primer período");
-  assert.match(result.invoice.documentNumber,/^010-001-\d{9}$/);
-  assert.equal(result.invoice.date,"2026-11-01");
-  assert.equal(result.invoice.total,115);
-  const charge=db.row("monthlyCharges",`chg-inv-${result.invoice.id}`);
-  assert.equal(charge.month,11);assert.equal(charge.year,2026);
-  assert.equal(charge.balanceRemaining,115);assert.equal(charge.status,"pendiente");
-  assert.equal(db.row("clients","a").currentBalance,115);
-  assert.equal(db.list("billingPeriods").length,1);
-  assert.equal(db.row("clientServices",result.id).lastBilledPeriod,"2026-11");
-  assert.equal(db.row("sequences","nota_venta_010-001").lastDate,"2026-11-01");
+const runSchedule = (db: Database, date: string) => runScheduledRecurringBilling(db as unknown as Firestore, date);
+
+test("El alta del cliente y del servicio no genera nota, cartera ni reserva de secuencial", async () => {
+  const db = new Database(initial());
+  const client = await run(db, "createClient", {
+    client: { businessName: "CLIENTE QA NUEVO", identificationType: "PASAPORTE", identificationNumber: "NEW-QA-01",
+      email: "qa@example.test", phone: "0990000000", address: "Quito", status: "activo" },
+    service: servicePayload({ emitFirstInvoice: true }),
+  });
+  const assigned = db.list("clientServices").find(row => row.clientId === client.id);
+  assert.equal(client.totalActiveServices, 1);
+  assert.equal(client.currentBalance, 0);
+  assert.equal(assigned.saleStatus, "pendiente_venta");
+  assert.equal(assigned.emitFirstInvoice, undefined);
+  await run(db, "editService", { id: assigned.id, customPrice: 120 });
+  for (const collection of ["billingInvoices", "monthlyCharges", "billingPeriods", "sequences", "documentNumbers"]) {
+    assert.equal(db.list(collection).length, 0, collection);
+  }
 });
 
-test("R28: editing the assigned service never issues a second note for the same period",async()=>{
-  const db=new Database(initial()), first=await run(db,"assignService",servicePayload());
-  const edited=await run(db,"editService",servicePayload({id:first.id,customPrice:120}));
-  assert.equal(db.list("billingInvoices").length,1);
-  assert.equal(edited.invoice,undefined);
-  assert.equal(db.list("monthlyCharges").length,1);
+test("La corrida del día 1 distingue prepago, pospago, servicios excluidos y reintentos", async () => {
+  const db = new Database(initial());
+  const prepaid = await run(db, "assignService", servicePayload({ paymentMethod: "efectivo" }));
+  const postpaid = await run(db, "assignService", servicePayload({ clientId: "b", billingType: "pospago" }));
+  await run(db, "assignService", servicePayload({ isBillableInCurrentCycle: false }));
+  assert.equal((await runSchedule(db, "2026-11-05")).issued, 0);
+  const results = await Promise.all([runSchedule(db, "2026-11-01"), runSchedule(db, "2026-11-01")]);
+  assert.equal(results.reduce((sum, result) => sum + result.issued, 0), 1);
+  assert.deepEqual(results.flatMap(result => result.failures), []);
+  const first = db.list("billingInvoices")[0];
+  assert.equal(first.date, "2026-11-01");
+  assert.equal(first.total, 115);
+  assert.equal(first.items[0].serviceId, prepaid.id);
+  const charge = db.row("monthlyCharges", `chg-inv-${first.id}`);
+  assert.equal(charge.expectedPaymentMethod, "efectivo");
+  assert.equal(charge.paidAmount, 0);
+  assert.equal(charge.balanceRemaining, 115);
+  assert.equal(db.list("financialMovements").length, 0);
+  assert.equal(db.row("clients", "a").currentBalance, 115);
+  assert.equal(db.row("clientServices", prepaid.id).nextRenewalDate, "2026-12-01");
+  assert.equal((await runSchedule(db, "2026-12-01")).issued, 2);
+  const postpaidNote = db.list("billingInvoices").find(invoice => invoice.clientId === "b");
+  assert.equal(postpaidNote.date, "2026-12-01");
+  assert.equal(postpaidNote.items[0].serviceId, postpaid.id);
+  assert.equal(postpaidNote.items[0].periodStart, "2026-11-01");
 });
 
-test("R28: a post-dated note blocks any earlier date in the same series",async()=>{
-  const db=new Database(initial());
-  await run(db,"assignService",servicePayload());
-  await assert.rejects(run(db,"issueSale",sale("b",{date:"2026-10-01"})),/anterior al último comprobante/);
-  assert.equal(db.list("billingInvoices").length,1);
+test("Los ciclos aniversario se programan para el primer día disponible y conservan el período anual pospago", () => {
+  const service = { id: "anniversary", ...servicePayload({ contractStartDate: "2026-11-05", cycleAnchor: "aniversario" }) };
+  assert.deepEqual(scheduledServicePeriods(service, "2026-11-01"), []);
+  assert.deepEqual(scheduledServicePeriods(service, "2026-12-01").map(plan => plan.periodStart), ["2026-11-05"]);
+  const annual = { ...service, billingType: "pospago", billingFrequency: "anual" };
+  assert.deepEqual(scheduledServicePeriods(annual, "2027-11-01"), []);
+  assert.deepEqual(scheduledServicePeriods(annual, "2027-12-01").map(plan => plan.periodStart), ["2026-11-05"]);
+  const newAfterRun = { ...service, contractStartDate: "2026-11-01", createdAt: "2026-11-01T15:00:00Z" };
+  assert.deepEqual(scheduledServicePeriods(newAfterRun, "2026-12-01").map(plan => plan.periodStart), ["2026-11-01", "2026-12-01"]);
 });
 
-test("R28: a non-billable service is saved without a note and reports the reason",async()=>{
-  const db=new Database(initial());
-  const result=await run(db,"assignService",servicePayload({isBillableInCurrentCycle:false}));
-  assert.equal(db.list("billingInvoices").length,0);
-  assert.equal(db.list("clientServices").length,1);
-  assert.equal(result.firstInvoiceSkipped,"Servicio no activo o no facturable.");
+test("Anular cancela el cobro y permite reemitir manualmente con otro número, una sola vez", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-01T16:00:00Z") });
+  const db = new Database(initial());
+  const service = await run(db, "assignService", servicePayload());
+  await runSchedule(db, "2026-11-01");
+  const first = db.list("billingInvoices")[0];
+  await run(db, "cancelSale", { id: first.id });
+  assert.equal(db.row("billingInvoices", first.id).status, "anulada");
+  assert.equal(db.row("monthlyCharges", `chg-inv-${first.id}`).status, "anulado");
+  assert.equal(db.row("monthlyCharges", `chg-inv-${first.id}`).balanceRemaining, 0);
+  assert.equal(db.row("clients", "a").currentBalance, 0);
+  assert.equal(db.row("clientServices", service.id).lastBilledPeriod, undefined);
+  assert.equal(db.list("billingPeriods")[0].status, "cancelled");
+  assert.equal((await runSchedule(db, "2026-11-01")).issued, 0);
+  const selection = { clientId: "a", month: 11, year: 2026, serviceIds: [service.id], expectedTotal: 115 };
+  const replacement = await run(db, "recur", selection);
+  assert.equal(replacement.documentNumber, "010-001-000000002");
+  assert.equal(db.row("clients", "a").currentBalance, 115);
+  assert.equal(db.list("billingPeriods")[0].invoiceId, replacement.id);
+  assert.deepEqual(db.list("billingPeriods")[0].previousInvoiceIds, [first.id]);
+  await assert.rejects(run(db, "recur", selection), /ya fue emitido/);
 });
 
-test("R28: consecutive assignments take sequential numbers and keep the agreed payment method",async()=>{
-  const db=new Database(initial());
-  const first=await run(db,"assignService",servicePayload({paymentMethod:"efectivo"}));
-  const second=await run(db,"assignService",servicePayload({clientId:"b",paymentMethod:"tarjeta"}));
-  assert.equal(first.invoice.documentNumber,"010-001-000000001");
-  assert.equal(second.invoice.documentNumber,"010-001-000000002");
-  assert.equal(db.row("clientServices",first.id).paymentMethod,"efectivo");
-  assert.equal(db.row("monthlyCharges",`chg-inv-${first.invoice.id}`).expectedPaymentMethod,"efectivo");
-  assert.equal(db.row("monthlyCharges",`chg-inv-${second.invoice.id}`).expectedPaymentMethod,"tarjeta");
-  // La nota nace pendiente: la forma de pago es una preferencia, no un cobro aplicado.
-  assert.equal(db.row("monthlyCharges",`chg-inv-${first.invoice.id}`).paidAmount,0);
-  assert.equal(db.list("financialMovements").length,0);
+test("Un período histórico se puede recuperar aunque la anulación antigua dejara sus marcas de emisión", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-06T16:00:00Z") });
+  const db = new Database(initial());
+  const service = await run(db, "assignService", servicePayload());
+  const selection = { clientId: "a", month: 11, year: 2026, serviceIds: [service.id], expectedTotal: 115 };
+  const first = await run(db, "recur", selection);
+  db.rows.set("billingInvoices/" + first.id, { ...first, status: "anulada" });
+  db.rows.delete("billingPeriods/" + db.list("billingPeriods")[0].id);
+  const replacement = await run(db, "recur", selection);
+  assert.equal(db.row("clientServices", service.id).saleInvoiceId, replacement.id);
+  assert.deepEqual(db.list("billingPeriods")[0].previousInvoiceIds, [first.id]);
 });
 
-test("R29: counter sales and service billing share one series by default, each keeping its channel",async()=>{
-  const db=new Database(initial());
-  const counter=await run(db,"issueSale",sale());
-  const service=await run(db,"assignService",servicePayload());
-  assert.equal(counter.documentNumber,"010-001-000000001");
-  assert.equal(service.invoice.documentNumber,"010-001-000000002");
-  assert.equal(counter.saleChannel,"mostrador");
-  assert.equal(service.invoice.saleChannel,"servicio");
-});
+test("R29: mostrador y recurrencia comparten serie salvo si se configura un punto de servicios", async () => {
+  const shared = new Database(initial());
+  const counter = await run(shared, "issueSale", sale());
+  await run(shared, "assignService", servicePayload());
+  await runSchedule(shared, "2026-11-01");
+  const recurring = shared.list("billingInvoices").find(invoice => invoice.saleChannel === "servicio");
+  assert.equal(counter.documentNumber, "010-001-000000001");
+  assert.equal(recurring.documentNumber, "010-001-000000002");
 
-test("R29: a configured service emission point gives each channel its own sequential",async()=>{
-  const db=new Database({...initial(),sriCompanyConfig:[{id:"cfg",establecimiento:"001",puntoEmision:"001",puntoEmisionServicios:"002"}]});
-  const counter=await run(db,"issueSale",sale());
-  const service=await run(db,"assignService",servicePayload());
-  assert.equal(counter.documentNumber,"001-001-000000001");
-  assert.equal(service.invoice.documentNumber,"001-002-000000001");
-  assert.equal(db.row("sequences","nota_venta_001-001").value,1);
-  assert.equal(db.row("sequences","nota_venta_001-002").value,1);
+  const separate = new Database({ ...initial(), sriCompanyConfig: [{ id: "cfg", establecimiento: "001", puntoEmision: "001", puntoEmisionServicios: "002" }] });
+  await run(separate, "issueSale", sale());
+  await run(separate, "assignService", servicePayload());
+  await runSchedule(separate, "2026-11-01");
+  assert.deepEqual(separate.list("billingInvoices").map(invoice => invoice.documentNumber), ["001-001-000000001", "001-002-000000001"]);
 });
-
 test("R29: the series honours the establishment chosen at the point of sale",async()=>{
   const db=new Database(initial());
   const custom=await run(db,"issueSale",sale("a",{establishment:"007"}));

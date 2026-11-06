@@ -3,6 +3,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { calculateLines, planServicePeriod } from "@/lib/commercial-core";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { getEcuadorDate } from "@/lib/date-utils";
 import { api } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
@@ -46,6 +48,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   const {
     clients,
     clientServices,
+    billingInvoices,
     updateClientService,
     deleteClientService,
     renewClientService,
@@ -60,9 +63,15 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   const [subView, setSubView] = useState<"lote" | "renovaciones">("lote");
 
   // Period selection
-  const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[now.getMonth()]);
-  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
+  const params = useSearchParams();
+  const [todayYear, todayMonth] = getEcuadorDate().split("-").map(Number);
+  const requestedPeriod = params.get("periodo") || "";
+  const [requestedYear, requestedMonth] = /^20\d{2}-(0[1-9]|1[0-2])$/.test(requestedPeriod)
+    ? requestedPeriod.split("-").map(Number) : [todayYear, todayMonth];
+  const clientFilter = params.get("cliente");
+  const requestedServices = params.getAll("servicio").join(",");
+  const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[requestedMonth - 1]);
+  const [selectedYear, setSelectedYear] = useState<number>(requestedYear);
   const [frequencyFilter, setFrequencyFilter] = useState<"todos" | ServiceBillingFrequency>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
@@ -80,6 +89,21 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
   const selectedMonthNum = Math.max(1, MONTHS.indexOf(selectedMonth) + 1);
   const periodKey = `${selectedYear}-${String(selectedMonthNum).padStart(2, "0")}`;
+  const periodDocuments = useMemo(() => {
+    const byService = new Map<string, { issued: boolean; cancelled: boolean }>();
+    const cancelledIds = new Set<string>();
+    for (const invoice of billingInvoices) {
+      if (invoice.documentType !== "nota_venta" || invoice.status === "borrador") continue;
+      const cancelled = invoice.status === "anulada";
+      if (cancelled) cancelledIds.add(invoice.id);
+      for (const item of invoice.items || []) {
+        if (!item.serviceId || item.periodStart?.slice(0, 7) !== periodKey) continue;
+        const evidence = byService.get(item.serviceId) || { issued: false, cancelled: false };
+        byService.set(item.serviceId, { issued: evidence.issued || !cancelled, cancelled: evidence.cancelled || cancelled });
+      }
+    }
+    return { byService, cancelledIds };
+  }, [billingInvoices, periodKey]);
 
   // Helper: calculate days until renewal
   const getRenewalStatus = (nextDate?: string) => {
@@ -103,11 +127,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   // Group recurring clients with their services
   const recurringClientsRows = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
+    const serviceFilter = new Set(requestedServices.split(",").filter(Boolean));
 
     return clients
+      .filter(client => client.status === "activo" && (!clientFilter || client.id === clientFilter))
       .map((client) => {
         const allClientServices = clientServices.filter(
-          (s) => s.clientId === client.id && s.status !== "retirado"
+          (s) => s.clientId === client.id && s.status !== "retirado" && (!serviceFilter.size || serviceFilter.has(s.id))
         );
         if (allClientServices.length === 0) return null;
 
@@ -119,13 +145,21 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         if (matchingFreqServices.length === 0) return null;
 
-        const plans = matchingFreqServices.map(service => ({ service, plan: planServicePeriod(service, selectedMonthNum, selectedYear, getEcuadorDate()) }));
-        const billableServices = plans.filter(({ service, plan }) => plan.eligible && service.lastBilledPeriod !== periodKey).map(p => p.service);
+        const plans = matchingFreqServices.map(service => {
+          const evidence = periodDocuments.byService.get(service.id);
+          const legacyBilled = service.lastBilledPeriod === periodKey || (service.billingFrequency === "anual" && service.lastBilledPeriod === String(selectedYear));
+          const legacyInvoiceId = service.lastBilledInvoiceId || service.saleInvoiceId;
+          const cancelled = Boolean(evidence?.cancelled || legacyBilled && legacyInvoiceId && periodDocuments.cancelledIds.has(legacyInvoiceId));
+          const issued = Boolean(evidence?.issued || legacyBilled && !cancelled);
+          return { service, plan: planServicePeriod(service, selectedMonthNum, selectedYear, getEcuadorDate()), issued, cancelled };
+        });
+        const available = plans.filter(({ plan, issued }) => plan.eligible && !issued);
+        const billableServices = available.map(p => p.service);
         const nonBillableServices = matchingFreqServices.filter(service => !billableServices.some(s => s.id === service.id));
-        const eligibleLines = plans.filter(({ service, plan }) => plan.eligible && service.lastBilledPeriod !== periodKey).flatMap(({ plan }) => plan.eligible ? [plan.line] : []);
+        const eligibleLines = available.flatMap(({ plan }) => plan.eligible ? [plan.line] : []);
         const calculated = eligibleLines.length ? calculateLines(eligibleLines) : { subtotal: 0, ivaTotal: 0, total: 0 };
         const subtotal = calculated.subtotal, iva = calculated.ivaTotal, total = calculated.total;
-        const alreadyBilledInPeriod = matchingFreqServices.length > 0 && matchingFreqServices.every(s => s.lastBilledPeriod === periodKey);
+        const alreadyBilledInPeriod = plans.every(plan => plan.issued);
 
         const hasMonthly = matchingFreqServices.some(
           (s) => (s.billingFrequency || "mensual") === "mensual"
@@ -149,6 +183,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           iva,
           total,
           alreadyBilledInPeriod,
+          canReissue: available.some(plan => plan.cancelled),
           freqLabel,
           hasPrepago,
           hasPostpago,
@@ -166,7 +201,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           row.services.some((s) => s.planName.toLowerCase().includes(q))
         );
       });
-  }, [clients, clientServices, frequencyFilter, searchQuery, periodKey]);
+  }, [clients, clientServices, frequencyFilter, searchQuery, clientFilter, requestedServices, periodKey, selectedMonthNum, selectedYear, periodDocuments]);
 
   // All services enriched with client for Renovaciones tab
   const enrichedServices = useMemo(() => {
@@ -399,6 +434,14 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-slate-700">
+        <span>La emisión automática está programada para el día 1. Para emitir manualmente, selecciona el mes en que inicia el período del servicio.</span>
+        {clientFilter && (
+          <Link href="/ventas?sub=recurrentes" className="font-bold text-[#004ac6] hover:underline">
+            Ver todos los clientes
+          </Link>
+        )}
+      </div>
       {/* Top Bar: Selector de Vista + Periodo + Frecuencia */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
         {/* Selector de Sub-vista */}
@@ -455,7 +498,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="bg-transparent font-mono font-bold text-slate-800 focus:outline-hidden cursor-pointer"
             >
-              {[2025, 2026, 2027].map((yr) => (
+              {Array.from({ length: Math.max(todayYear + 1, selectedYear) - 2019 }, (_, index) => 2020 + index).map((yr) => (
                 <option key={yr} value={yr}>
                   {yr}
                 </option>
@@ -627,7 +670,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                 >
                                   {row.modalityLabel}
                                 </span>
-                                <span className="text-[10px] text-slate-500 font-mono" title={`Facturación: Día ${row.billingDay} • Aviso previo: Día ${row.advanceNoticeDay}`}>
+                                <span className="text-[10px] text-slate-500 font-mono" title={`Cobro: Día ${row.billingDay} • Aviso previo: Día ${row.advanceNoticeDay}`}>
                                   D{row.billingDay}
                                 </span>
                               </div>
@@ -712,7 +755,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                   ? "Emitiendo..."
                                   : row.alreadyBilledInPeriod
                                   ? "Ya emitida"
-                                  : "Generar Nota Venta"}
+                                  : row.canReissue ? "Volver a emitir" : "Generar Nota Venta"}
                               </button>
 
                               {row.services.length > 0 && (

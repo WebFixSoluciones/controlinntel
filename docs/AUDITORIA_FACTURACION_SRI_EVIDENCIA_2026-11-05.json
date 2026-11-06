@@ -1,0 +1,166 @@
+{
+  "revision": "92abe25",
+  "fecha": "2026-11-05",
+  "datos": "sintéticos",
+  "envios_reales_sri": 0,
+  "pruebas_del_proyecto": {
+    "aprobadas": 167,
+    "fallos": 0
+  },
+  "certificado": {
+    "rsaBits": 2048,
+    "wrongPasswordRejected": true,
+    "malformedRejected": true,
+    "expiredDetected": true,
+    "futureCertificateAcceptedByExpirationCheck": true
+  },
+  "firma_y_esquemas": {
+    "factura": {
+      "xsd": {
+        "valid": true,
+        "errors": []
+      },
+      "xsd-firmado": {
+        "valid": true,
+        "errors": []
+      },
+      "rsa_verifies": true,
+      "digests": {
+        "comprobante": true,
+        "SignedProperties-inntel": true
+      },
+      "prefirma": {
+        "xml_well_formed": true,
+        "certificate_valid_der": false
+      }
+    },
+    "credito": {
+      "xsd": {
+        "valid": true,
+        "errors": []
+      },
+      "xsd-firmado": {
+        "valid": true,
+        "errors": []
+      },
+      "rsa_verifies": true,
+      "digests": {
+        "comprobante": true,
+        "SignedProperties-inntel": true
+      }
+    },
+    "debito": {
+      "xsd": {
+        "valid": true,
+        "errors": []
+      },
+      "xsd-firmado": {
+        "valid": true,
+        "errors": []
+      },
+      "rsa_verifies": true,
+      "digests": {
+        "comprobante": true,
+        "SignedProperties-inntel": true
+      },
+      "prefirma": {
+        "xml_well_formed": false,
+        "certificate_valid_der": false
+      }
+    },
+    "retencion": {
+      "xsd": {
+        "valid": true,
+        "errors": []
+      },
+      "xsd-firmado": {
+        "valid": true,
+        "errors": []
+      },
+      "rsa_verifies": true,
+      "digests": {
+        "comprobante": true,
+        "SignedProperties-inntel": true
+      }
+    },
+    "guia": {
+      "xsd": {
+        "valid": true,
+        "errors": []
+      },
+      "xsd-firmado": {
+        "valid": true,
+        "errors": []
+      },
+      "rsa_verifies": true,
+      "digests": {
+        "comprobante": true,
+        "SignedProperties-inntel": true
+      }
+    }
+  },
+  "estados_soap": {
+    "recibida_autorizada": {
+      "state": "AUTORIZADO",
+      "authorized": true,
+      "receipt": "RECIBIDA"
+    },
+    "recibida_sin_autorizacion": {
+      "state": "EN PROCESO",
+      "authorized": false,
+      "receipt": "RECIBIDA"
+    },
+    "devuelta_sin_autorizacion": {
+      "state": "EN PROCESO",
+      "authorized": false,
+      "receipt": "DEVUELTA"
+    },
+    "multiples_autorizaciones": {
+      "state": "NO AUTORIZADO",
+      "authorized": false,
+      "receipt": "RECIBIDA"
+    },
+    "legacyOffline": {
+      "lookup": "AUTORIZADO",
+      "send": "AUTORIZADO",
+      "connection": true
+    }
+  },
+  "variantes_tributarias": {
+    "rimpe": {
+      "valid": true,
+      "errors": []
+    },
+    "agente": {
+      "valid": true,
+      "errors": []
+    },
+    "especial": {
+      "valid": true,
+      "errors": []
+    },
+    "creditoIVA5": {
+      "code": "0",
+      "headerTaxGroups": 0
+    },
+    "retencionAgainst2.0": {
+      "valid": false,
+      "errors": [
+        "Element 'razonSocialSujetoRetenido': This element is not expected. Expected is one of ( tipoSujetoRetenido, parteRel ).",
+        "Element 'impuestos': This element is not expected. Expected is ( docsSustento )."
+      ]
+    }
+  },
+  "ruta_emision_aislada": {
+    "cancelledOtherClientOriginAccepted": true,
+    "secondInvoiceSameOriginAndNumberSent": true,
+    "missingOriginAccepted": true,
+    "mismatchedKeyDateSeriesSequenceSent": true,
+    "inconsistentTotalSent": true,
+    "postSendPersistenceFailure": {
+      "http": 503,
+      "soapCalled": true,
+      "recordExists": false
+    }
+  }
+}

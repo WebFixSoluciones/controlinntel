@@ -15,13 +15,14 @@ import { useApp } from "@/lib/state";
 import { canTradeWithClient } from "@/lib/sales-policy";
 import { useToast } from "@/lib/toast-context";
 import { SriInvoice } from "@/types";
-import { formatearSecuencialSRI } from "@/lib/sri-service";
+import { findSaleFiscalInvoice } from "@/lib/sri-service";
 
 interface ConvertToSriInvoiceModalProps {
   isOpen: boolean;
   sale: SriInvoice | null;
   onClose: () => void;
   onSuccess?: (invoice: SriInvoice) => void;
+  correction?: SriInvoice;
 }
 
 export function ConvertToSriInvoiceModal({
@@ -29,11 +30,11 @@ export function ConvertToSriInvoiceModal({
   sale,
   onClose,
   onSuccess,
+  correction,
 }: ConvertToSriInvoiceModalProps) {
   const { sriCompanyConfig, convertSaleToSriInvoice, billingInvoices, clients } = useApp();
   const { showSuccess } = useToast();
 
-  const [selectedClientId, setSelectedClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientRuc, setClientRuc] = useState("");
   const [clientEmail, setClientEmail] = useState("");
@@ -44,46 +45,18 @@ export function ConvertToSriInvoiceModal({
   useEffect(() => {
     if (isOpen && sale) {
       setErrorMsg("");
-      setSelectedClientId(sale.clientId && sale.clientId !== "cf-9999999999999" ? sale.clientId : "");
-      setClientName(sale.clientName || "");
-      setClientRuc(sale.clientRuc || "");
-      setClientEmail(
-        sale.clientEmail || sriCompanyConfig?.emailNotificaciones || "facturacion@inntelcorp.com"
-      );
-      setClientAddress(sale.clientAddress || "Quito, Ecuador");
+      const receiver = clients.find(client => client.id === sale.clientId);
+      setClientName(receiver?.businessName || sale.clientName || "");
+      setClientRuc(receiver?.identificationNumber || sale.clientRuc || "");
+      setClientEmail(correction?.clientEmail || receiver?.email || sale.clientEmail || "");
+      setClientAddress(correction?.clientAddress || receiver?.address || sale.clientAddress || "");
     }
-  }, [isOpen, sale, sriCompanyConfig]);
+  }, [isOpen, sale, clients, correction]);
 
   if (!isOpen || !sale) return null;
 
-  const estab = sriCompanyConfig.establecimiento || "010";
-  const pto = sriCompanyConfig.puntoEmision || "001";
-  const linkedInvoice = sale.sriInvoiceId
-    ? billingInvoices.find((inv) => inv.id === sale.sriInvoiceId)
-    : undefined;
-  const startFromFactura = (sriCompanyConfig.secuencialFactura || 1) - 1;
-  const maxSec = billingInvoices
-    .filter((inv) => (inv.documentType || "factura") === "factura" && inv.status !== "borrador")
-    .reduce((max, inv) => {
-      const parts = (inv.documentNumber || "").split("-");
-      const num = parseInt(parts[2] || "0", 10);
-      return !isNaN(num) && num > max ? num : max;
-    }, 0);
-  const nextSecuencial = Math.max(maxSec, startFromFactura) + 1;
-  const estimatedDocNumber =
-    linkedInvoice?.documentNumber || formatearSecuencialSRI(nextSecuencial, estab, pto);
-
-  const handleSelectRegisteredClient = (cid: string) => {
-    setSelectedClientId(cid);
-    if (!cid) return;
-    const found = clients.find((c) => c.id === cid && canTradeWithClient(c));
-    if (found) {
-      setClientName(found.businessName || found.legalRepresentative || "");
-      setClientRuc(found.identificationNumber || "");
-      setClientEmail(found.email || "facturacion@inntelcorp.com");
-      setClientAddress(found.address || "Quito, Ecuador");
-    }
-  };
+  const linkedInvoice = correction || findSaleFiscalInvoice(sale, billingInvoices, sriCompanyConfig.ambiente);
+  const estimatedDocNumber = linkedInvoice?.documentNumber || "Se asigna al emitir";
 
   // Validation rules for SRI
   const cleanRuc = clientRuc.replace(/\s+/g, "").trim();
@@ -92,7 +65,7 @@ export function ConvertToSriInvoiceModal({
 
   const handleConvert = async () => {
     setErrorMsg("");
-    const receiver = clients.find(client => client.id === (selectedClientId || sale.clientId));
+    const receiver = clients.find(client => client.id === sale.clientId);
     if (receiver && !canTradeWithClient(receiver)) {
       setErrorMsg("El cliente está retirado y no puede facturar.");
       return;
@@ -110,9 +83,9 @@ export function ConvertToSriInvoiceModal({
       return;
     }
 
-    if (!clientEmail || !clientEmail.includes("@")) {
+    if (clientEmail && !clientEmail.includes("@")) {
       setErrorMsg(
-        "El cliente debe tener un correo electrónico válido para recibir el comprobante electrónico SRI."
+        "Revisa el correo del receptor."
       );
       return;
     }
@@ -123,13 +96,13 @@ export function ConvertToSriInvoiceModal({
     setIsSubmitting(true);
     try {
       const newInvoice = await convertSaleToSriInvoice(sale.id, {
-        clientId: selectedClientId || sale.clientId,
+        clientId: sale.clientId,
         clientName: clientName.trim(),
         clientRuc: cleanRuc,
         clientEmail: clientEmail.trim().toLowerCase(),
-        clientAddress: clientAddress.trim() || "Ecuador",
+        clientAddress: clientAddress.trim(),
         tipoIdentificacion,
-      });
+      }, correction?.id);
 
       const autorizada =
         newInvoice.status === "autorizada" && newInvoice.estadoSRI === "AUTORIZADO";
@@ -145,13 +118,13 @@ export function ConvertToSriInvoiceModal({
         setErrorMsg(
           `El SRI no autorizó el comprobante ${newInvoice.documentNumber} (estado: ${newInvoice.estadoSRI || "sin respuesta"}).` +
             (detalle ? `\n${detalle}` : "") +
-            "\nEl comprobante quedó registrado como pendiente: corrige el problema y vuelve a intentarlo sobre el mismo número."
+            "\nConsulta el estado y las opciones del comprobante en Facturación SRI."
         );
         return;
       }
 
       showSuccess(
-        "Factura Electrónica Autorizada",
+        newInvoice.ambiente === "1" ? "Factura autorizada en pruebas" : "Factura electrónica autorizada",
         `La venta ${sale.documentNumber} fue emitida como Factura SRI ${newInvoice.documentNumber} y autorizada por el SRI.`
       );
       if (onSuccess) onSuccess(newInvoice);
@@ -215,18 +188,6 @@ export function ConvertToSriInvoiceModal({
                 <User className="w-3.5 h-3.5 text-[#004ac6]" />
                 Datos Fiscales del Receptor (SRI)
               </span>
-              <select
-                value={selectedClientId}
-                onChange={(e) => handleSelectRegisteredClient(e.target.value)}
-                className="text-[11px] bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-700 focus:outline-hidden focus:border-[#004ac6]"
-              >
-                <option value="">-- Cargar cliente registrado --</option>
-                {clients.filter(canTradeWithClient).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.businessName} ({c.identificationNumber})
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -237,7 +198,7 @@ export function ConvertToSriInvoiceModal({
                 <input
                   type="text"
                   value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
+                  readOnly
                   className="w-full text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   placeholder="Ej. Corporación Inntel S.A."
                 />
@@ -249,7 +210,7 @@ export function ConvertToSriInvoiceModal({
                 <input
                   type="text"
                   value={clientRuc}
-                  onChange={(e) => setClientRuc(e.target.value)}
+                  readOnly
                   className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   placeholder="1790000000001"
                 />
@@ -257,7 +218,7 @@ export function ConvertToSriInvoiceModal({
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                   <Mail className="w-3 h-3 inline mr-1 text-slate-400" />
-                  Correo para envío RIDE *
+                  Correo para envío del comprobante
                 </label>
                 <input
                   type="email"
@@ -299,7 +260,7 @@ export function ConvertToSriInvoiceModal({
             <div className="flex justify-between">
               <span>Ambiente SRI:</span>
               <span className="font-semibold text-slate-800">
-                {sriCompanyConfig.ambiente === "2" ? "Producción • 2" : "Pruebas • 1"}
+                {(linkedInvoice?.ambiente || sriCompanyConfig.ambiente) === "2" ? "Producción • 2" : "Pruebas • 1"}
               </span>
             </div>
           </div>

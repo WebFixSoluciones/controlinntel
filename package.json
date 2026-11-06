@@ -23,6 +23,7 @@
     "exceljs": "^4.4.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^12.7.0",
+    "jsbarcode": "^3.12.3",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "leaflet": "^1.9.4",

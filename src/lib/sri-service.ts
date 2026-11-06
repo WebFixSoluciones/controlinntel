@@ -8,6 +8,7 @@ import type {
   SriWsResponse,
   SriConnectionTestResult,
   SriEnvironment,
+  SriFiscalEvidence,
 } from "../types";
 
 /**
@@ -491,6 +492,9 @@ export function codigoPorcentajeIva(rate: number): string {
   const r = Number(rate) || 0;
   if (r === 15) return "4";
   if (r === 5) return "5";
+  if (r === 12) return "2";
+  if (r === 14) return "3";
+  if (r === 13) return "10";
   if (r < 0) return r === -2 ? "7" : "6";
   return "0";
 }
@@ -709,7 +713,14 @@ export function generarNotaCreditoXml(
 
   const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
   const cleanClientRuc = limpiarIdentificacion(nc.clientRuc);
-  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc, nc.tipoIdentificacion);
+  const groupedTaxes = new Map<number, { base: number; tax: number }>();
+  for (const item of nc.items) {
+    const group = groupedTaxes.get(item.ivaRate) || { base: 0, tax: 0 };
+    group.base += item.subtotal;
+    group.tax += item.ivaAmount;
+    groupedTaxes.set(item.ivaRate, group);
+  }
 
   const regimenTag =
     emisor.tipoContribuyente === "rimpe_emprendedor" || emisor.tipoContribuyente === "rimpe_popular"
@@ -722,15 +733,15 @@ export function generarNotaCreditoXml(
     <detalle>
       <codigoInterno>${escaparXml(limpiarIdentificacion(item.sku || "ITEM"))}</codigoInterno>
       <descripcion>${escaparXml(limpiarTextoSri(item.name))}</descripcion>
-      <cantidad>${item.quantity.toFixed(2)}</cantidad>
-      <precioUnitario>${item.unitPrice.toFixed(4)}</precioUnitario>
+      <cantidad>${decimalSri(item.quantity)}</cantidad>
+      <precioUnitario>${decimalSri(item.unitPrice)}</precioUnitario>
       <descuento>${(item.discount || 0).toFixed(2)}</descuento>
       <precioTotalSinImpuesto>${item.subtotal.toFixed(2)}</precioTotalSinImpuesto>
       <impuestos>
         <impuesto>
           <codigo>2</codigo>
-          <codigoPorcentaje>${item.ivaRate === 15 ? "4" : "0"}</codigoPorcentaje>
-          <tarifa>${item.ivaRate}</tarifa>
+          <codigoPorcentaje>${codigoPorcentajeIva(item.ivaRate)}</codigoPorcentaje>
+          <tarifa>${Math.max(0, item.ivaRate)}</tarifa>
           <baseImponible>${item.subtotal.toFixed(2)}</baseImponible>
           <valor>${item.ivaAmount.toFixed(2)}</valor>
         </impuesto>
@@ -764,32 +775,17 @@ export function generarNotaCreditoXml(
     <codDocModificado>01</codDocModificado>
     <numDocModificado>${limpiarIdentificacion(nc.invoiceNumber)}</numDocModificado>
     <fechaEmisionDocSustento>${fechaFacturaDdmmyyyy}</fechaEmisionDocSustento>
-    <totalSinImpuestos>${(nc.subtotal15 + nc.subtotal0).toFixed(2)}</totalSinImpuestos>
+    <totalSinImpuestos>${nc.items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}</totalSinImpuestos>
     <valorModificacion>${nc.total.toFixed(2)}</valorModificacion>
     <moneda>DOLAR</moneda>
     <totalConImpuestos>
-      ${
-        nc.subtotal15 > 0
-          ? `
+      ${[...groupedTaxes].map(([rate, group]) => `
       <totalImpuesto>
         <codigo>2</codigo>
-        <codigoPorcentaje>4</codigoPorcentaje>
-        <baseImponible>${nc.subtotal15.toFixed(2)}</baseImponible>
-        <valor>${nc.ivaTotal.toFixed(2)}</valor>
-      </totalImpuesto>`
-          : ""
-      }
-      ${
-        nc.subtotal0 > 0
-          ? `
-      <totalImpuesto>
-        <codigo>2</codigo>
-        <codigoPorcentaje>0</codigoPorcentaje>
-        <baseImponible>${nc.subtotal0.toFixed(2)}</baseImponible>
-        <valor>0.00</valor>
-      </totalImpuesto>`
-          : ""
-      }
+        <codigoPorcentaje>${codigoPorcentajeIva(rate)}</codigoPorcentaje>
+        <baseImponible>${group.base.toFixed(2)}</baseImponible>
+        <valor>${group.tax.toFixed(2)}</valor>
+      </totalImpuesto>`).join("")}
     </totalConImpuestos>
     <motivo>${escaparXml(limpiarTextoSri(nc.reason))}</motivo>
   </infoNotaCredito>
@@ -797,7 +793,7 @@ export function generarNotaCreditoXml(
   </detalles>
   <infoAdicional>
     <campoAdicional nombre="FacturaAfectada">${escaparXml(limpiarIdentificacion(nc.invoiceNumber))}</campoAdicional>
-    <campoAdicional nombre="Bodega">${escaparXml(limpiarTextoSri(nc.warehouseName))}</campoAdicional>
+    ${nc.warehouseName ? `<campoAdicional nombre="Bodega">${escaparXml(limpiarTextoSri(nc.warehouseName))}</campoAdicional>` : ""}
   </infoAdicional>
 </notaCredito>`;
 }
@@ -813,7 +809,7 @@ export function generarNotaDebitoXml(
   const fechaEmisionDdmmyyyy = formatearFechaDdmmyyyy(nd.date);
   const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
   const cleanClientRuc = limpiarIdentificacion(nd.clientRuc);
-  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+  const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc, nd.tipoIdentificacion);
 
   const regimenTag =
     emisor.tipoContribuyente === "rimpe_emprendedor" || emisor.tipoContribuyente === "rimpe_popular"
@@ -858,7 +854,7 @@ export function generarNotaDebitoXml(
     <impuestos>
       <impuesto>
         <codigo>2</codigo>
-        <codigoPorcentaje>${nd.ivaRate === 15 ? "4" : "0"}</codigoPorcentaje>
+        <codigoPorcentaje>${codigoPorcentajeIva(nd.ivaRate)}</codigoPorcentaje>
         <tarifa>${nd.ivaRate}</tarifa>
         <baseImponible>${nd.subtotal.toFixed(2)}</baseImponible>
         <valor>${nd.ivaAmount.toFixed(2)}</valor>
@@ -867,17 +863,17 @@ export function generarNotaDebitoXml(
     <valorTotal>${nd.total.toFixed(2)}</valorTotal>
     <pagos>
       <pago>
-        <formaPago>20</formaPago>
+        <formaPago>${nd.paymentCode || "20"}</formaPago>
         <total>${nd.total.toFixed(2)}</total>
       </pago>
     </pagos>
   </infoNotaDebito>
   <motivos>${xmlMotivos}
   </motivos>
-  <infoAdicional>
-    <campoAdicional nombre="Email">${escaparXml(limpiarEmailSri(nd.clientEmail))}</campoAdicional>
+  ${nd.clientEmail || nd.clientAddress ? `<infoAdicional>
+    ${nd.clientEmail ? `<campoAdicional nombre="Email">${escaparXml(limpiarEmailSri(nd.clientEmail))}</campoAdicional>` : ""}
     ${nd.clientAddress ? `<campoAdicional nombre="Direccion">${escaparXml(limpiarTextoSri(nd.clientAddress))}</campoAdicional>` : ""}
-  </infoAdicional>
+  </infoAdicional>` : ""}
 </notaDebito>`;
 }
 
@@ -894,6 +890,59 @@ export function generarComprobanteRetencionXml(
   const cleanEmisorRuc = limpiarIdentificacion(emisor.ruc);
   const cleanClientRuc = limpiarIdentificacion(ret.clientRuc);
   const cleanTipoId = obtenerTipoIdentificacionSRI(cleanClientRuc);
+
+  if (ret.support) {
+    const support = ret.support;
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<comprobanteRetencion id="comprobante" version="2.0.0">
+  <infoTributaria>
+    <ambiente>${emisor.ambiente}</ambiente>
+    <tipoEmision>1</tipoEmision>
+    <razonSocial>${escaparXml(emisor.razonSocial)}</razonSocial>
+    <ruc>${cleanEmisorRuc}</ruc>
+    <claveAcceso>${ret.claveAcceso}</claveAcceso>
+    <codDoc>07</codDoc>
+    <estab>${estab}</estab><ptoEmi>${pto}</ptoEmi><secuencial>${sec}</secuencial>
+    <dirMatriz>${escaparXml(emisor.direccionMatriz)}</dirMatriz>
+    ${emisor.resolucionAgenteRetencion ? `<agenteRetencion>${escaparXml(emisor.resolucionAgenteRetencion)}</agenteRetencion>` : ""}
+  </infoTributaria>
+  <infoCompRetencion>
+    <fechaEmision>${fechaEmisionDdmmyyyy}</fechaEmision>
+    <dirEstablecimiento>${escaparXml(emisor.direccionEstablecimiento || emisor.direccionMatriz)}</dirEstablecimiento>
+    ${emisor.contribuyenteEspecial ? `<contribuyenteEspecial>${escaparXml(emisor.contribuyenteEspecial)}</contribuyenteEspecial>` : ""}
+    <obligadoContabilidad>${emisor.obligadoContabilidad ? "SI" : "NO"}</obligadoContabilidad>
+    <tipoIdentificacionSujetoRetenido>${cleanTipoId}</tipoIdentificacionSujetoRetenido>
+    <parteRel>${support.relatedParty ? "SI" : "NO"}</parteRel>
+    <razonSocialSujetoRetenido>${escaparXml(ret.clientName)}</razonSocialSujetoRetenido>
+    <identificacionSujetoRetenido>${cleanClientRuc}</identificacionSujetoRetenido>
+    <periodoFiscal>${ret.fiscalPeriod}</periodoFiscal>
+  </infoCompRetencion>
+  <docsSustento><docSustento>
+    <codSustento>${support.code}</codSustento>
+    <codDocSustento>01</codDocSustento>
+    <numDocSustento>${ret.invoiceNumber.replaceAll("-", "")}</numDocSustento>
+    <fechaEmisionDocSustento>${formatearFechaDdmmyyyy(support.date)}</fechaEmisionDocSustento>
+    <numAutDocSustento>${support.authorization}</numAutDocSustento>
+    <pagoLocExt>01</pagoLocExt>
+    <totalSinImpuestos>${support.subtotal.toFixed(2)}</totalSinImpuestos>
+    <importeTotal>${support.total.toFixed(2)}</importeTotal>
+    <impuestosDocSustento>${support.taxes.map(tax => `
+      <impuestoDocSustento><codImpuestoDocSustento>2</codImpuestoDocSustento>
+        <codigoPorcentaje>${codigoPorcentajeIva(tax.rate)}</codigoPorcentaje>
+        <baseImponible>${tax.base.toFixed(2)}</baseImponible>
+        <tarifa>${tax.rate.toFixed(2)}</tarifa><valorImpuesto>${tax.value.toFixed(2)}</valorImpuesto>
+      </impuestoDocSustento>`).join("")}</impuestosDocSustento>
+    <retenciones>${ret.items.map(item => `
+      <retencion><codigo>${item.taxType === "RENTA" ? "1" : "2"}</codigo>
+        <codigoRetencion>${escaparXml(item.code)}</codigoRetencion>
+        <baseImponible>${item.taxBase.toFixed(2)}</baseImponible>
+        <porcentajeRetener>${item.percentage.toFixed(2)}</porcentajeRetener>
+        <valorRetenido>${item.retainedAmount.toFixed(2)}</valorRetenido>
+      </retencion>`).join("")}</retenciones>
+    <pagos><pago><formaPago>${support.paymentCode}</formaPago><total>${support.total.toFixed(2)}</total></pago></pagos>
+  </docSustento></docsSustento>
+</comprobanteRetencion>`;
+  }
 
   const impuestosXml = ret.items
     .map(
@@ -965,7 +1014,7 @@ export function generarGuiaRemisionXml(
         <detalle>
           <codigoInterno>${escaparXml(limpiarIdentificacion(it.sku || "ART"))}</codigoInterno>
           <descripcion>${escaparXml(limpiarTextoSri(it.name))}</descripcion>
-          <cantidad>${it.quantity.toFixed(2)}</cantidad>
+          <cantidad>${decimalSri(it.quantity)}</cantidad>
         </detalle>`
     )
     .join("");
@@ -1002,7 +1051,8 @@ export function generarGuiaRemisionXml(
       <razonSocialDestinatario>${escaparXml(limpiarTextoSri(guia.destClientName))}</razonSocialDestinatario>
       <dirDestinatario>${escaparXml(limpiarTextoSri(guia.destAddress))}</dirDestinatario>
       <motivoTraslado>${escaparXml(limpiarTextoSri(guia.reason || "Venta de bienes y equipos telecom"))}</motivoTraslado>
-      ${guia.invoiceNumber ? `<codDocSustento>01</codDocSustento><numDocSustento>${limpiarIdentificacion(guia.invoiceNumber)}</numDocSustento>` : ""}
+      ${guia.route ? `<ruta>${escaparXml(limpiarTextoSri(guia.route))}</ruta>` : ""}
+      ${guia.invoiceNumber ? `<codDocSustento>01</codDocSustento><numDocSustento>${escaparXml(guia.invoiceNumber)}</numDocSustento>${guia.invoiceAuthorization ? `<numAutDocSustento>${escaparXml(guia.invoiceAuthorization)}</numAutDocSustento>` : ""}${guia.invoiceDate ? `<fechaEmisionDocSustento>${formatearFechaDdmmyyyy(guia.invoiceDate)}</fechaEmisionDocSustento>` : ""}` : ""}
       <detalles>${itemsXml}
       </detalles>
     </destinatario>
@@ -1010,92 +1060,22 @@ export function generarGuiaRemisionXml(
 </guiaRemision>`;
 }
 
-/**
- * Estructura y anexa la firma digital XAdES-BES oficial de Ecuador al XML del comprobante.
- */
-export function generarXmlFirmado(
-  xmlSinFirma: string,
-  emisor: SriCompanyConfig = DEFAULT_INNTEL_SRI_CONFIG
-): string {
-  const timeIso = new Date().toISOString();
-  const signatureId = `Signature-${Date.now()}`;
-  const signedInfoId = `Signature-SignedInfo-${Date.now()}`;
-  const signedPropertiesId = `SignedPropertiesID-${Date.now()}`;
-
-  // Seudo-hash criptográfico representativo para pre-firma estándar XAdES-BES
-  const fakeDigest = Buffer.from(xmlSinFirma.slice(0, 120) + timeIso).toString("base64").slice(0, 28) + "=";
-  const fakePropDigest = Buffer.from(signedPropertiesId + timeIso).toString("base64").slice(0, 28) + "=";
-  const fakeSigValue = Buffer.from(`INNTEL-SIGNATURE-XADES-BES-${timeIso}-${limpiarIdentificacion(emisor.ruc)}`).toString("base64");
-
-  const xadesSignature = `
-  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:etsi="http://uri.etsi.org/01903/v1.3.2#" Id="${signatureId}">
-    <ds:SignedInfo Id="${signedInfoId}">
-      <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
-      <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha1"/>
-      <ds:Reference Id="signed-doc-ref" URI="#comprobante">
-        <ds:Transforms>
-          <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-        </ds:Transforms>
-        <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-        <ds:DigestValue>${fakeDigest}</ds:DigestValue>
-      </ds:Reference>
-      <ds:Reference URI="#${signedPropertiesId}" Type="http://uri.etsi.org/01903#SignedProperties">
-        <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-        <ds:DigestValue>${fakePropDigest}</ds:DigestValue>
-      </ds:Reference>
-    </ds:SignedInfo>
-    <ds:SignatureValue Id="SigValue-${signatureId}">
-      ${fakeSigValue}
-    </ds:SignatureValue>
-    <ds:KeyInfo Id="Certificate-${signatureId}">
-      <ds:X509Data>
-        <ds:X509Certificate>
-          MIIF4zCCBMugAwIBAgIETK80VTANBgkqhkiG9w0BAQsFADBhMQswCQYDVQQGEwJFQzEQMA4GA1UEChMHU0VHVVJJRFkxHjAcBgNVBAMTFUFVVE9SSURBRCBERSBDRVJUSUZJQ0FDSTEjMCEGA1UECxMaU0VDVVJJVFkgREFUQSBTRSBFQ1VBRE9S...
-        </ds:X509Certificate>
-      </ds:X509Data>
-      <ds:KeyValue>
-        <ds:RSAKeyValue>
-          <ds:Modulus>AN13Z4/2G849nJ...==</ds:Modulus>
-          <ds:Exponent>AQAB</ds:Exponent>
-        </ds:RSAKeyValue>
-      </ds:KeyValue>
-    </ds:KeyInfo>
-    <ds:Object Id="Object-${signatureId}">
-      <etsi:QualifyingProperties Target="#${signatureId}">
-        <etsi:SignedProperties Id="${signedPropertiesId}">
-          <etsi:SignedSignatureProperties>
-            <etsi:SigningTime>${timeIso}</etsi:SigningTime>
-            <etsi:SigningCertificate>
-              <etsi:Cert>
-                <etsi:CertDigest>
-                  <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-                  <ds:DigestValue>${fakePropDigest}</ds:DigestValue>
-                </etsi:CertDigest>
-                <etsi:IssuerSerial>
-                  <ds:X509IssuerName>CN=${emisor.certificadoEmisor || "Security Data S.A."}, C=EC</ds:X509IssuerName>
-                  <ds:X509SerialNumber>${limpiarIdentificacion(emisor.ruc)}</ds:X509SerialNumber>
-                </etsi:IssuerSerial>
-              </etsi:Cert>
-            </etsi:SigningCertificate>
-          </etsi:SignedSignatureProperties>
-        </etsi:SignedProperties>
-      </etsi:QualifyingProperties>
-    </ds:Object>
-  </ds:Signature>`;
-
-  const closingTags = ["</factura>", "</notaCredito>", "</comprobanteRetencion>", "</guiaRemision>"];
-  for (const tag of closingTags) {
-    if (xmlSinFirma.includes(tag)) {
-      return xmlSinFirma.replace(tag, `${xadesSignature}\n${tag}`);
-    }
-  }
-
-  return xmlSinFirma + xadesSignature;
+export function isFiscalAuthorized(doc?: SriFiscalEvidence) {
+  return doc?.estadoSRI === "AUTORIZADO" && Boolean(doc.authorizationVerified || doc.xmlAutorizado);
 }
 
-/**
- * Función auxiliar para descargar un archivo generado directamente en el navegador.
- */
+export function fiscalStateLabel(doc: SriFiscalEvidence & { status?: string }) {
+  if (isFiscalAuthorized(doc)) return "AUTORIZADO";
+  if (doc.estadoSRI && doc.estadoSRI !== "AUTORIZADO") return doc.estadoSRI === "ERROR_CONEXION" ? "SIN CONEXIÓN" : doc.estadoSRI;
+  return doc.status === "borrador" ? "BORRADOR" : "POR VERIFICAR";
+}
+
+export function findSaleFiscalInvoice(sale: SriInvoice, invoices: SriInvoice[], ambiente: SriEnvironment) {
+  const id = sale.sriInvoicesByEnvironment?.[ambiente] || sale.sriInvoiceId;
+  return id ? invoices.find(invoice => invoice.id === id && invoice.relatedSaleId === sale.id
+    && (invoice.ambiente || invoice.claveAcceso?.[23]) === ambiente) : undefined;
+}
+
 export function descargarXmlArchivo(xmlContenido: string, nombreArchivo: string): void {
   const blob = new Blob([xmlContenido], { type: "application/xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -1131,109 +1111,16 @@ export async function probarConexionServidoresSri(
     // Si la llamada a la API falla o está offline, calcular respuesta estructurada
   }
 
-  const latency = Date.now() - startTime;
   return {
-    online: true,
+    online: false,
     ambiente,
     recepcionWsUrl: urls.recepcion,
     autorizacionWsUrl: urls.autorizacion,
-    recepcionStatus: "disponible",
-    autorizacionStatus: "disponible",
-    latencyMs: Math.max(45, latency),
+    recepcionStatus: "inaccesible",
+    autorizacionStatus: "inaccesible",
+    latencyMs: Date.now() - startTime,
     checkedAt: new Date().toISOString(),
-    message: `Servidores del SRI ${ambiente === "2" ? "Producción" : "Pruebas"} operativos y respondiendo correctamente.`,
-  };
-}
-
-/**
- * Consulta el estado oficial de autorización de un comprobante ante el SRI.
- */
-export async function consultarComprobanteEnSri(
-  claveAcceso: string,
-  ambiente: SriEnvironment = "1"
-): Promise<SriWsResponse> {
-  const cleanClave = limpiarIdentificacion(claveAcceso);
-  try {
-    const res = await fetch("/api/sri", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "consultar",
-        claveAcceso: cleanClave,
-        ambiente,
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch {
-    // Fallback estructurado en caso de desconexión
-  }
-
-  return {
-    success: true,
-    estado: "AUTORIZADO",
-    claveAcceso: cleanClave,
-    numeroAutorizacion: cleanClave,
-    fechaAutorizacion: new Date().toISOString(),
-    ambiente,
-    mensajes: [
-      {
-        identificador: "SRI-OK-001",
-        mensaje: "COMPROBANTE AUTORIZADO CORRECTAMENTE",
-        informacionAdicional: `Ambiente ${ambiente === "2" ? "Producción Oficial" : "Pruebas SRI"}`,
-        tipo: "INFORMACION",
-      },
-    ],
-  };
-}
-
-/**
- * Envía un comprobante electrónico al SRI para su recepción y autorización.
- */
-export async function enviarComprobanteAlSri(
-  xmlFirmado: string,
-  claveAcceso: string,
-  ambiente: SriEnvironment = "1"
-): Promise<SriWsResponse> {
-  const cleanClave = limpiarIdentificacion(claveAcceso);
-  try {
-    const res = await fetch("/api/sri", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "enviar",
-        xml: xmlFirmado,
-        claveAcceso: cleanClave,
-        ambiente,
-      }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
-  } catch {
-    // fallback
-  }
-
-  return {
-    success: true,
-    estado: "AUTORIZADO",
-    claveAcceso: cleanClave,
-    numeroAutorizacion: cleanClave,
-    fechaAutorizacion: new Date().toISOString(),
-    ambiente,
-    mensajes: [
-      {
-        identificador: "AUT-200",
-        mensaje: "COMPROBANTE AUTORIZADO EN LÍNEA POR EL SRI",
-        tipo: "INFORMACION",
-      },
-    ],
-    xmlFirmado,
+    message: "No se pudo verificar la conexión con los servicios del SRI.",
   };
 }
 

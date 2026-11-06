@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   Shield,
+  Menu,
 } from "lucide-react";
 import { ProfileModal } from "./ProfileModal";
 
@@ -148,7 +149,7 @@ function HeaderContent() {
   const subParam = searchParams.get("sub");
   const pageTitle = getPageTitle(pathname, subParam);
 
-  const { currentUser, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout } = useApp();
+  const { currentUser, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout, isNavigationOpen, setIsNavigationOpen } = useApp();
   const { showConfirm, showInfo, showSuccess } = useToast();
 
   const cleanUserName = (currentUser?.displayName || "Administrador")
@@ -178,16 +179,21 @@ function HeaderContent() {
   const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
 
   return (
-    <header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between sticky top-0 z-30">
+    <header className="app-header h-16 min-w-0 bg-white border-b border-[#e2e8f0] px-2 sm:px-4 xl:px-8 flex items-center justify-between gap-1 sticky top-0 z-30">
       {/* Minimalist Top Module / Submodule Title */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+        <button type="button" id="app-navigation-trigger" aria-label="Abrir menú" aria-controls="app-navigation"
+          aria-expanded={isNavigationOpen} onClick={() => setIsNavigationOpen(true)}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden">
+          <Menu className="h-5 w-5" />
+        </button>
         <h1 className="text-base font-bold text-[#0b1c30] tracking-tight truncate">
           {pageTitle}
         </h1>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
         {/* Search Icon Button (directly to the left of Notifications) */}
         <button
           onClick={() => setIsSearchOpen(true)}
@@ -219,7 +225,7 @@ function HeaderContent() {
               "Plataforma Integral de Gestión Operativa y Facturación Electrónica SRI. Para soporte o incidencias contacta a soporte@inntelcorp.com."
             )
           }
-          className="p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all cursor-pointer"
+          className="hidden sm:block p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all cursor-pointer"
           title="Ayuda y Documentación"
         >
           <HelpCircle className="w-4 h-4" />
@@ -235,7 +241,7 @@ function HeaderContent() {
             <div className="w-8 h-8 rounded-full bg-[#004ac6] group-hover:bg-[#003ca3] text-white font-bold text-xs flex items-center justify-center shadow-xs transition-colors">
               {cleanUserName.charAt(0).toUpperCase()}
             </div>
-            <div className="hidden sm:block text-left">
+            <div className="hidden md:block max-w-[11rem] text-left">
               <p className="text-xs font-bold text-[#0b1c30] leading-tight truncate">{cleanUserName}</p>
               <p className="text-[10px] text-[#737686] leading-none capitalize">{currentUser.role}</p>
             </div>

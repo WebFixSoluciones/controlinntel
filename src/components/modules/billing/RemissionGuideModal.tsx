@@ -1,5 +1,6 @@
 "use client";
 
+import { getEcuadorDate } from "@/lib/date-utils";
 import React, { useState, useEffect } from "react";
 import {
   X,
@@ -18,6 +19,7 @@ interface RemissionGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialInvoice?: SriInvoice | null;
+  correction?: RemissionGuide;
   onSuccess?: (guide: RemissionGuide) => void;
 }
 
@@ -25,16 +27,17 @@ export function RemissionGuideModal({
   isOpen,
   onClose,
   initialInvoice,
+  correction,
   onSuccess,
 }: RemissionGuideModalProps) {
   const { clients, createRemissionGuide, sriCompanyConfig } = useApp();
 
-  const [carrierName, setCarrierName] = useState("Transportes Rápidos Pichincha S.A.");
-  const [carrierRuc, setCarrierRuc] = useState("1791234567001");
-  const [licensePlate, setLicensePlate] = useState("PCX-4820");
+  const [carrierName, setCarrierName] = useState("");
+  const [carrierRuc, setCarrierRuc] = useState("");
+  const [licensePlate, setLicensePlate] = useState("");
 
   const [originAddress, setOriginAddress] = useState(
-    sriCompanyConfig?.direccionMatriz || "Av. Amazonas N45-12 y Gaspar de Villarroel, Quito"
+    sriCompanyConfig?.direccionMatriz || ""
   );
   const [destAddress, setDestAddress] = useState("");
   const [destClientName, setDestClientName] = useState("");
@@ -42,8 +45,8 @@ export function RemissionGuideModal({
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [route, setRoute] = useState("Quito Norte - Iñaquito - Plataforma Financiera");
-  const [reason, setReason] = useState("Traslado de equipamiento de red para entrega a cliente corporativo");
+  const [route, setRoute] = useState("");
+  const [reason, setReason] = useState("");
 
   const [items, setItems] = useState<RemissionGuideItem[]>([]);
   const [newItemName, setNewItemName] = useState("");
@@ -55,12 +58,25 @@ export function RemissionGuideModal({
 
   useEffect(() => {
     if (isOpen) {
-      const today = new Date().toISOString().slice(0, 10);
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const today = getEcuadorDate();
+      const tomorrow = getEcuadorDate(Date.now() + 24 * 60 * 60 * 1000);
       setStartDate(today);
       setEndDate(tomorrow);
 
-      if (initialInvoice) {
+      if (correction) {
+        setCarrierName(correction.carrierName);
+        setCarrierRuc(correction.carrierRuc);
+        setLicensePlate(correction.licensePlate);
+        setOriginAddress(correction.originAddress);
+        setDestAddress(correction.destAddress);
+        setDestClientName(correction.destClientName);
+        setDestClientRuc(correction.destClientRuc);
+        setStartDate(correction.startDate);
+        setEndDate(correction.endDate);
+        setRoute(correction.route);
+        setReason(correction.reason);
+        setItems(correction.items);
+      } else if (initialInvoice) {
         setDestClientName(initialInvoice.clientName);
         setDestClientRuc(initialInvoice.clientRuc);
         setDestAddress(initialInvoice.clientAddress || "Quito");
@@ -72,22 +88,15 @@ export function RemissionGuideModal({
             sku: it.sku,
           }))
         );
-      } else if (clients.length > 0) {
-        setDestClientName(clients[0].businessName);
-        setDestClientRuc(clients[0].identificationNumber);
-        setDestAddress(clients[0].address);
-        setItems([
-          {
-            name: "ONT Huawei EchoLife EG8145V5 Dual Band AC GPON",
-            quantity: 2,
-            unit: "unidad",
-            sku: "ONT-HW-EG8145V5",
-          },
-        ]);
+      } else {
+        setDestClientName("");
+        setDestClientRuc("");
+        setDestAddress("");
+        setItems([]);
       }
       setErrorMsg("");
     }
-  }, [isOpen, initialInvoice, clients, sriCompanyConfig]);
+  }, [isOpen, initialInvoice, correction, clients, sriCompanyConfig]);
 
   if (!isOpen) return null;
 
@@ -127,10 +136,10 @@ export function RemissionGuideModal({
     setIsSubmitting(true);
     try {
       const guide = await createRemissionGuide({
-        date: new Date().toISOString().slice(0, 10),
+        date: getEcuadorDate(),
         startDate,
         endDate,
-        invoiceNumber: initialInvoice ? initialInvoice.documentNumber : undefined,
+        invoiceId: correction?.invoiceId || initialInvoice?.id,
         carrierName,
         carrierRuc,
         licensePlate,
@@ -142,7 +151,7 @@ export function RemissionGuideModal({
         reason,
         items,
         status: "emitida",
-      });
+      }, correction?.id);
 
       if (onSuccess) onSuccess(guide);
       onClose();

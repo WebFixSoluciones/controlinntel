@@ -17,6 +17,7 @@ export const storageName=(entity:Entity)=>entity==="systemUsers"?"users":entity;
 export function canReadCollection(user:UserProfile,entity:Entity) {
   if(user.status!=="activo")return false;
   if(user.role==="superadmin")return true;
+  if(entity==="userRoleTemplates")return false;
   if(["systemUsers","auditLogs","operationLog"].includes(entity))return can(user,"manage_users");
   if(entity==="vault")return canUser(user,"boveda","canViewInternalVault");
   if(entity==="clientVaultItems")return canUser(user,"boveda","canViewClientVault");
@@ -26,7 +27,7 @@ export function canReadCollection(user:UserProfile,entity:Entity) {
   else if(entity==="clientQuotes")modules=["ventas"];
   else if(["nodes","ipPools"].includes(entity))modules=["red"];
   else if(entity==="projects")modules=["proyectos"];
-  else if(["tickets","ticketSubjects"].includes(entity))modules=["tickets"];
+  else if(["tickets","ticketSubjects","ticketDepartments"].includes(entity))modules=["tickets"];
   else if(["policies","arcotelFiles","regulatoryTramites","systemConfig"].includes(entity))modules=["arcotel","configuracion"];
   else if(["billingInvoices","billingQuotes"].includes(entity))modules=["ventas","facturacion"];
   else if(entity.startsWith("billing")||entity==="sriCompanyConfig")modules=["facturacion","configuracion"];

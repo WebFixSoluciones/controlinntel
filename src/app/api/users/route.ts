@@ -3,9 +3,10 @@ import {z} from "zod";
 import {actor,requirePermission,HttpError,audit} from "@/lib/server/security";
 import {adminServices} from "@/lib/server/admin";
 import {recordOperation} from "@/lib/server/operation-log";
+import {effectiveAccountPermissions} from "@/lib/permissions";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
-const roles=z.enum(["superadmin","admin","finanzas","tecnico","soporte","legal","consulta"]);
+const roles=z.enum(["superadmin","admin","ventas","finanzas","tecnico","soporte","bodega","legal","consulta"]);
 const permissions=z.array(z.enum(["all","manage_users","manage_vault","manage_clients","manage_network","manage_tickets","manage_finance","manage_policies","export_reports"]));
 const profile=z.object({email:z.string().email(),displayName:z.string().min(3).max(150),role:roles,status:z.enum(["activo","inactivo"]),permissions,modulePermissions:z.record(z.unknown()).optional(),department:z.string().max(200).optional(),phone:z.string().max(50).optional()});
 const requestSchema=z.object({action:z.enum(["create","update","disable"]),uid:z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/).optional(),data:z.record(z.unknown()).optional()});
@@ -17,6 +18,7 @@ export async function POST(request:NextRequest) {
    const body=requestSchema.parse(await request.json()),{auth,db}=adminServices();
    if(body.action==="create") {
      const data=profile.parse(body.data);
+     data.permissions=effectiveAccountPermissions(data.role,data.permissions) as typeof data.permissions;
      const password=z.string().min(12).max(128).parse(body.data?.passwordHash);
      const account=await auth.createUser({email:data.email,password,displayName:data.displayName,disabled:true});
      try {
@@ -41,6 +43,7 @@ export async function POST(request:NextRequest) {
        const ref=db.collection("users").doc(uid),existing=await tx.get(ref),old=existing.data();
        if(!old)throw new HttpError(404,"Usuario inexistente.");
        const data=profile.parse({...old,...changes});
+       data.permissions=effectiveAccountPermissions(data.role,data.permissions) as typeof data.permissions;
        if(data.email!==old.email)throw new HttpError(400,"El correo de acceso no puede cambiarse desde este formulario.");
        if(old.role==="superadmin"&&(data.role!=="superadmin"||data.status!=="activo")) {
          const admins=await tx.get(db.collection("users").where("role","==","superadmin"));

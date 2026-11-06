@@ -1,21 +1,19 @@
 "use client";
-import { getEcuadorDate } from "@/lib/date-utils";
+
 
 import React, { useState, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import {
-  calculateWithholdingAmounts,
-  generateWithholdingAccessKey,
-} from "@/lib/purchases-service";
+import { WithholdingModal } from "../billing/WithholdingModal";
+import { RidePreviewModal } from "../billing/RidePreviewModal";
+import { fiscalStateLabel, isFiscalAuthorized } from "@/lib/sri-service";
+import type { WithholdingReceipt } from "@/types";
 import { printHtmlElement } from "@/lib/print-service";
 import {
-  FileText,
   Plus,
   Percent,
   Search,
   Eye,
-  CheckCircle,
   X,
   Printer,
   ShieldCheck,
@@ -33,11 +31,10 @@ export function PurchaseWithholdingsTab({
 }: PurchaseWithholdingsTabProps) {
   const {
     purchaseWithholdings,
-    purchaseInvoices,
+    billingWithholdings,
     sriCompanyConfig,
-    addPurchaseWithholding,
   } = useApp();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess, showWarning } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(!!initialInvoice);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,100 +42,26 @@ export function PurchaseWithholdingsTab({
     useState<PurchaseWithholding | null>(null);
   const withholdingPrintRef = useRef<HTMLDivElement>(null);
 
-  // Form State
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>(
-    initialInvoice?.id || ""
-  );
-  const [documentNumber, setDocumentNumber] = useState<string>(() => {
-    const count = purchaseWithholdings.length + 1;
-    return `001-001-${String(count).padStart(9, "0")}`;
-  });
-  const [date, setDate] = useState<string>(getEcuadorDate());
-  const [rentaPercentage, setRentaPercentage] = useState<number>(1.75);
-  const [ivaPercentage, setIvaPercentage] = useState<number>(30);
-
-  const selectedInvoice = purchaseInvoices.find((inv) => inv.id === selectedInvoiceId);
-
-  // Calculate live values
-  const { rentaBase, rentaAmount, ivaBase, ivaRetainedAmount, totalWithheld } =
-    calculateWithholdingAmounts({
-      baseImponible15: selectedInvoice?.subtotal15 || 0,
-      baseImponible0: selectedInvoice?.subtotal0 || 0,
-      ivaAmount: selectedInvoice?.ivaAmount || 0,
-      rentaPercentage,
-      ivaPercentage,
-    });
-
-  const handleOpenModal = (invoice?: PurchaseInvoice) => {
-    if (invoice) {
-      setSelectedInvoiceId(invoice.id);
-    }
-    const count = purchaseWithholdings.length + 1;
-    setDocumentNumber(`001-001-${String(count).padStart(9, "0")}`);
-    setIsModalOpen(true);
-  };
+  const [fiscalPreview, setFiscalPreview] = useState<WithholdingReceipt | null>(null);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    if (onClearInitialInvoice) onClearInitialInvoice();
+    onClearInitialInvoice?.();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!selectedInvoice) {
-      showError("Factura Requerida", "Debes seleccionar la factura del proveedor a retener.");
-      return;
-    }
-
-    try {
-      const secuencialStr = documentNumber.split("-")[2] || "1";
-      const claveAcceso = generateWithholdingAccessKey({
-        date,
-        companyRuc: sriCompanyConfig.ruc || "1792458921001",
-        ambiente: sriCompanyConfig.ambiente || "1",
-        establecimiento: sriCompanyConfig.establecimiento || "001",
-        puntoEmision: sriCompanyConfig.puntoEmision || "001",
-        secuencial: secuencialStr,
-      });
-
-      await addPurchaseWithholding({
-        purchaseInvoiceId: selectedInvoice.id,
-        documentNumber,
-        claveAcceso,
-        supplierId: selectedInvoice.supplierId,
-        supplierName: selectedInvoice.supplierName,
-        supplierRuc: selectedInvoice.supplierRuc,
-        date,
-        rentaBase,
-        rentaPercentage,
-        rentaAmount,
-        ivaBase,
-        ivaPercentage,
-        ivaAmount: ivaRetainedAmount,
-        totalWithheld,
-      });
-
-      showSuccess(
-        "Retención Emitida",
-        `Comprobante ${documentNumber} por $${totalWithheld.toFixed(2)} emitido hacia ${selectedInvoice.supplierName}.`
-      );
-
-      handleCloseModal();
-    } catch (err: any) {
-      showError("Error al Emitir", err?.message || "No se pudo generar la retención electrónica.");
-    }
-  };
-
-  const filtered = purchaseWithholdings.filter((w) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      w.supplierName.toLowerCase().includes(q) ||
-      w.supplierRuc.includes(q) ||
-      w.documentNumber.includes(q) ||
-      w.claveAcceso.includes(q)
-    );
-  });
+  const fiscalRows = billingWithholdings.filter(row => row.purchaseInvoiceId);
+  const legacy = purchaseWithholdings.filter(row => !fiscalRows.some(fiscal => fiscal.claveAcceso === row.claveAcceso));
+  const filtered = [
+    ...fiscalRows.map(row => ({
+      id: row.id, date: row.date, documentNumber: row.documentNumber, supplierName: row.clientName,
+      supplierRuc: row.clientRuc, claveAcceso: row.claveAcceso, totalWithheld: row.totalRetained,
+      rentaAmount: row.items.filter(item => item.taxType === "RENTA").reduce((sum, item) => sum + item.retainedAmount, 0),
+      ivaAmount: row.items.filter(item => item.taxType === "IVA").reduce((sum, item) => sum + item.retainedAmount, 0),
+      statusLabel: fiscalStateLabel(row), preview: () => setFiscalPreview(row),
+    })),
+    ...legacy.map(row => ({ ...row, statusLabel: "HISTÓRICO LOCAL", preview: () => setSelectedWithholding(row) })),
+  ].filter(row => [row.supplierName, row.supplierRuc, row.documentNumber, row.claveAcceso].some(value => value.toLowerCase().includes(searchQuery.trim().toLowerCase())))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.documentNumber.localeCompare(a.documentNumber));
 
   return (
     <div className="space-y-6">
@@ -156,7 +79,7 @@ export function PurchaseWithholdingsTab({
         </div>
 
         <button
-          onClick={() => handleOpenModal()}
+          onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
@@ -189,25 +112,25 @@ export function PurchaseWithholdingsTab({
               filtered.map((w) => (
                 <tr key={w.id} className="hover:bg-[#f8f9ff]/60 transition-colors">
                   <td className="py-3 px-4 text-[#0b1c30] font-medium">{w.date}</td>
-                  <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{w.documentNumber}</td>
+                  <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{w.documentNumber}<span className="block text-[10px] text-slate-600">{w.statusLabel}</span></td>
                   <td className="py-3 px-4">
                     <div className="font-bold text-[#0b1c30]">{w.supplierName}</div>
                     <div className="text-[11px] font-mono text-[#737686]">{w.supplierRuc}</div>
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-medium text-[#434655]">
-                    ${w.rentaAmount.toFixed(2)} ({w.rentaPercentage}%)
+                    ${w.rentaAmount.toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-medium text-[#434655]">
-                    ${w.ivaAmount.toFixed(2)} ({w.ivaPercentage}%)
+                    ${w.ivaAmount.toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-bold text-[#059669]">
                     ${w.totalWithheld.toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <button
-                      onClick={() => setSelectedWithholding(w)}
+                      onClick={w.preview}
                       className="p-1.5 rounded-lg text-[#004ac6] hover:bg-[#eff4ff]"
-                      title="Ver RIDE de Retención"
+                      title="Ver retención"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
@@ -219,156 +142,14 @@ export function PurchaseWithholdingsTab({
         </table>
       </div>
 
-      {/* Modal Emitir Retención */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150">
-            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div>
-                <h3 className="text-base font-bold text-[#0b1c30]">
-                  Emitir Comprobante de Retención SRI
-                </h3>
-                <p className="text-xs text-[#737686]">
-                  Calcula y genera la clave de acceso de 49 dígitos para el proveedor
-                </p>
-              </div>
-              <button
-                onClick={handleCloseModal}
-                className="p-1.5 rounded-lg text-[#737686] hover:bg-[#e2e8f0]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                  Factura de Compra *
-                </label>
-                <select
-                  value={selectedInvoiceId}
-                  onChange={(e) => setSelectedInvoiceId(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30]"
-                >
-                  <option value="">-- Seleccionar Factura --</option>
-                  {purchaseInvoices.map((inv) => (
-                    <option key={inv.id} value={inv.id}>
-                      {inv.documentNumber} - {inv.supplierName} (Subtotal: ${inv.subtotal.toFixed(2)}, IVA: ${inv.ivaAmount.toFixed(2)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    Secuencial Retención *
-                  </label>
-                  <input
-                    type="text"
-                    value={documentNumber}
-                    onChange={(e) => setDocumentNumber(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-mono font-medium text-[#0b1c30]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    Fecha de Emisión *
-                  </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30]"
-                  />
-                </div>
-              </div>
-
-              {/* Percentages */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-[#f8f9ff] rounded-xl border border-[#e2e8f0]">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    % Retención Renta
-                  </label>
-                  <select
-                    value={rentaPercentage}
-                    onChange={(e) => setRentaPercentage(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30]"
-                  >
-                    <option value={1.75}>1.75% (Bienes y materiales)</option>
-                    <option value={2.75}>2.75% (Servicios técnicos)</option>
-                    <option value={8}>8.00% (Honorarios profesionales)</option>
-                    <option value={0}>0.00% (No aplica)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-[#434655] uppercase tracking-wider">
-                    % Retención IVA
-                  </label>
-                  <select
-                    value={ivaPercentage}
-                    onChange={(e) => setIvaPercentage(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30]"
-                  >
-                    <option value={30}>30% (Bienes con IVA)</option>
-                    <option value={70}>70% (Servicios con IVA)</option>
-                    <option value={100}>100% (Honorarios / Liquidaciones)</option>
-                    <option value={0}>0% (No aplica)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Calculations summary */}
-              {selectedInvoice && (
-                <div className="p-4 bg-[#eff4ff] rounded-xl border border-[#bfdbfe] space-y-2 text-xs">
-                  <div className="flex justify-between text-[#434655]">
-                    <span>Base Imponible Renta:</span>
-                    <span className="font-mono font-medium">${rentaBase.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-[#434655]">
-                    <span>Monto Retenido Renta ({rentaPercentage}%):</span>
-                    <span className="font-mono font-medium text-[#059669]">${rentaAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-[#434655]">
-                    <span>Base IVA:</span>
-                    <span className="font-mono font-medium">${ivaBase.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-[#434655]">
-                    <span>Monto Retenido IVA ({ivaPercentage}%):</span>
-                    <span className="font-mono font-medium text-[#059669]">${ivaRetainedAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-sm text-[#004ac6] pt-1 border-t border-[#bfdbfe]">
-                    <span>Total Retención a Entregar:</span>
-                    <span className="font-mono">${totalWithheld.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-[#e2e8f0]">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-xs font-semibold text-[#434655]"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={!selectedInvoice}
-                  className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
-                >
-                  Emitir Retención Oficial
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <WithholdingModal isOpen={isModalOpen || !!initialInvoice} initialPurchaseId={initialInvoice?.id}
+        onClose={handleCloseModal} onSuccess={doc => {
+          if (isFiscalAuthorized(doc)) showSuccess("Retención autorizada por el SRI", doc.documentNumber);
+          else showWarning(fiscalStateLabel(doc), "Consulta la respuesta del SRI desde Facturación SRI → Retenciones.");
+          setFiscalPreview(doc);
+        }} />
+      <RidePreviewModal isOpen={!!fiscalPreview} onClose={() => setFiscalPreview(null)}
+        withholding={fiscalPreview} companyConfig={sriCompanyConfig} />
 
       {/* RIDE Preview Modal */}
       {selectedWithholding && (
@@ -377,7 +158,7 @@ export function PurchaseWithholdingsTab({
             <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-slate-900 text-white print:hidden">
               <div>
                 <h3 className="text-base font-bold text-white">
-                  Comprobante de Retención RIDE
+                  Registro histórico de retención
                 </h3>
                 <p className="text-xs text-slate-400 font-mono">
                   {selectedWithholding.documentNumber}
@@ -395,7 +176,7 @@ export function PurchaseWithholdingsTab({
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#004ac6] hover:bg-[#003ca3] text-white text-xs font-bold shadow-xs cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimir RIDE</span>
+                  <span>Imprimir registro</span>
                 </button>
                 <button
                   onClick={() => setSelectedWithholding(null)}
@@ -411,6 +192,7 @@ export function PurchaseWithholdingsTab({
               ref={withholdingPrintRef}
               className="p-6 space-y-4 overflow-y-auto flex-1 text-xs bg-white"
             >
+              <p className="font-bold text-amber-800">REGISTRO LOCAL · AUTORIZACIÓN SRI SIN VERIFICAR</p>
               {/* Header con Logo INNTEL CORP */}
               <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#e2e8f0]">
                 <div className="flex items-center gap-3">
@@ -438,7 +220,7 @@ export function PurchaseWithholdingsTab({
                     R.U.C.: {sriCompanyConfig?.ruc || "1792458921001"}
                   </div>
                   <div className="text-xs font-black text-[#004ac6] uppercase">
-                    COMPROBANTE DE RETENCIÓN
+                    REGISTRO HISTÓRICO DE RETENCIÓN
                   </div>
                   <div className="font-mono font-bold text-slate-800">
                     No. {selectedWithholding.documentNumber}

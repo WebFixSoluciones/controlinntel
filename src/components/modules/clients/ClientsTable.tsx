@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { canViewServicePrices } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { matchesClientStatus, clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
@@ -34,6 +35,7 @@ interface ClientsTableProps {
 
 export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
   const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
+  const showServicePrices = canViewServicePrices(currentUser);
   const { showSuccess, showError } = useToast();
 
   const [filter, setFilter] = useState("");
@@ -237,7 +239,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* Search & Filter Toolbar */}
         <div className="p-4 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-white">
-          <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+          <div className="flex flex-wrap items-center gap-2 flex-1 basis-56 min-w-0">
             <div className="relative flex-1 max-w-lg">
               <Search className="w-4 h-4 text-[#737686] absolute left-3 top-2.5" />
               <input
@@ -921,7 +923,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                         <tr>
                           <th className="py-2.5 px-3">Servicio / Plan</th>
                           <th className="py-2.5 px-3">Categoría</th>
-                          <th className="py-2.5 px-3 text-right">Tarifa</th>
+                          {showServicePrices && <th className="py-2.5 px-3 text-right">Tarifa</th>}
                           <th className="py-2.5 px-3">Frecuencia</th>
                           <th className="py-2.5 px-3 text-center">Estado</th>
                         </tr>
@@ -942,9 +944,9 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                             <td className="py-2.5 px-3 uppercase text-[10px] font-semibold text-slate-500">
                               {srv.serviceCategory || "Internet"}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                              ${(srv.customPrice || srv.basePrice || 0).toFixed(2)}
-                            </td>
+                            {showServicePrices && <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                              ${(srv.customPrice ?? srv.basePrice ?? 0).toFixed(2)}
+                            </td>}
                             <td className="py-2.5 px-3 capitalize text-slate-600">
                               {srv.billingFrequency || "Mensual"}
                             </td>

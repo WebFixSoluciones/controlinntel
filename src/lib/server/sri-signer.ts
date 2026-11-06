@@ -169,13 +169,17 @@ export function parsePkcs12(source: string, password: string): SriSigningMateria
 
   // El certificado del firmante es aquel cuya clave pública coincide con la privada.
   const keyModulus = String((privateKey as any).n || "");
-  const signer =
-    certs.find((cert) => String((cert.publicKey as any)?.n || "") === keyModulus) || certs[0];
+  const signer = certs.find((cert) => {
+    const key = cert.publicKey as forge.pki.rsa.PublicKey;
+    return keyModulus && String(key?.n || "") === keyModulus && String(key?.e || "") === String(privateKey.e);
+  });
+  if (!signer) throw new Error("La clave privada no corresponde al certificado X.509.");
 
   const derBase64 = certificateDerBase64(signer);
   const validFrom = signer.validity?.notBefore || new Date();
   const validTo = signer.validity?.notAfter || new Date();
   const now = Date.now();
+  if (validFrom.getTime() > now) throw new Error("La firma electrónica todavía no está vigente.");
   const expiresInDays = Math.floor((validTo.getTime() - now) / 86_400_000);
 
   return {

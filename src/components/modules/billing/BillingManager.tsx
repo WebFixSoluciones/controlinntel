@@ -54,19 +54,22 @@ import {
   X,
   Trash2,
   Edit2,
-  Ban,
   FileCheck2,
 } from "lucide-react";
-import {
-  generarFacturaXml,
-  generarNotaCreditoXml,
-  generarNotaDebitoXml,
-  generarComprobanteRetencionXml,
-  generarGuiaRemisionXml,
-  generarXmlFirmado,
-  descargarXmlArchivo,
-  consultarComprobanteEnSri,
-} from "@/lib/sri-service";
+import { fiscalStateLabel, findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
+import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
+import type { FiscalKind } from "@/lib/server/sri-documents";
+import type { SriFiscalEvidence } from "@/types";
+
+function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { status?: string } }) {
+  const color = isFiscalAuthorized(doc)
+    ? doc.ambiente === "1" ? "bg-sky-50 text-sky-800 border-sky-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"
+    : doc.estadoSRI === "DEVUELTA" || doc.estadoSRI === "NO AUTORIZADO"
+      ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-amber-50 text-amber-800 border-amber-200";
+  return <span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-semibold ${color}`}>
+    {fiscalStateLabel(doc)}{doc.ambiente === "1" && " · PRUEBAS"}
+  </span>;
+}
 
 type BillingTab =
   | "facturas"
@@ -89,13 +92,11 @@ export function BillingManager() {
     billingRemissionGuides,
     sriCompanyConfig,
     convertQuoteToInvoice,
-    updateInvoiceStatus,
-    deleteInvoice,
+    consultFiscalDocument,
     deleteBillingQuote,
-    deleteRecord,
     inventoryWarehouses,
   } = useApp();
-  const { showConfirm, showSuccess, showError } = useToast();
+  const { showConfirm, showSuccess, showWarning, showError } = useToast();
 
   const searchParams = useSearchParams();
   const subParam = searchParams.get("sub") as BillingTab | null;
@@ -153,7 +154,6 @@ export function BillingManager() {
   const [debitNoteInitialInvoice, setDebitNoteInitialInvoice] = useState<SriInvoice | null>(null);
 
   const [isWithholdingModalOpen, setIsWithholdingModalOpen] = useState(false);
-  const [withholdingInitialInvoice, setWithholdingInitialInvoice] = useState<SriInvoice | null>(null);
 
   const [isRemissionModalOpen, setIsRemissionModalOpen] = useState(false);
   const [remissionInitialInvoice, setRemissionInitialInvoice] = useState<SriInvoice | null>(null);
@@ -175,11 +175,14 @@ export function BillingManager() {
   const [rideRemissionGuide, setRideRemissionGuide] = useState<RemissionGuide | null>(null);
 
   // SRI Status Verification Modal
+  const [correction, setCorrection] = useState<{ id: string; kind: FiscalKind } | null>(null);
   const [sriStatusModal, setSriStatusModal] = useState<{
     isOpen: boolean;
     docNumber: string;
     claveAcceso: string;
     result?: SriWsResponse;
+    documentId: string;
+    kind: FiscalKind;
     loading: boolean;
   } | null>(null);
 
@@ -249,7 +252,7 @@ export function BillingManager() {
         inv.clientRuc.includes(q) ||
         inv.claveAcceso.includes(q);
 
-      const matchStatus = statusFilter === "all" || inv.status === statusFilter;
+      const matchStatus = statusFilter === "all" || (statusFilter === "autorizada" ? isFiscalAuthorized(inv) : inv.status === statusFilter);
       return (
         matchSearch &&
         matchStatus &&
@@ -327,55 +330,12 @@ export function BillingManager() {
     return billingInvoices.filter(
       (inv) =>
         inv.documentType === "nota_venta" &&
-        inv.status !== "anulada" &&
-        inv.sriStatus !== "facturada" &&
-        !inv.sriInvoiceId
+        ["registrado", "emitida", "autorizada"].includes(inv.status) &&
+        !findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente)
     );
-  }, [billingInvoices]);
+  }, [billingInvoices, sriCompanyConfig.ambiente]);
 
   // Actions
-  const handleVoidSriInvoice = (inv: SriInvoice) => {
-    showConfirm(
-      "¿Anular Factura Electrónica SRI?",
-      `¿Confirmas anular la Factura Electrónica ${inv.documentNumber} (${inv.clientName})? Se liberará la Nota de Venta comercial origen para poder volver a facturarla, sin alterar el inventario (Kardex) ni los registros financieros.`,
-      async () => {
-        try {
-          await updateInvoiceStatus(inv.id, "anulada");
-          showSuccess(
-            "Factura SRI Anulada",
-            `La Factura ${inv.documentNumber} fue anulada y la Nota de Venta origen quedó disponible.`
-          );
-        } catch (err: any) {
-          showError("Error al Anular", err?.message || "No se pudo anular la Factura SRI.");
-        }
-      },
-      "Anular Factura SRI"
-    );
-  };
-
-  const handleDeleteInvoice = (inv: SriInvoice) => {
-    const isNota = inv.documentType === "nota_venta";
-    const docLabel = isNota ? "Nota de Venta" : "Factura Electrónica SRI";
-
-    showConfirm(
-      `¿Eliminar ${docLabel}?`,
-      `¿Confirmas la eliminación definitiva del comprobante ${inv.documentNumber} (${inv.clientName})? ${
-        isNota
-          ? "El stock de los productos se devolverá al inventario y se revertirá el movimiento financiero."
-          : "Se liberará la Nota de Venta comercial origen sin alterar el inventario ni las finanzas."
-      }`,
-      async () => {
-        try {
-          await deleteInvoice(inv.id);
-          showSuccess(`${docLabel} Eliminada`, `El comprobante ${inv.documentNumber} fue eliminado exitosamente.`);
-        } catch (err: any) {
-          showError("Error al Eliminar", err?.message || "No se pudo eliminar el comprobante.");
-        }
-      },
-      "Eliminar Comprobante"
-    );
-  };
-
   const handleOpenRide = (inv: SriInvoice) => {
     setRideInvoice(inv);
     setRideCreditNote(null);
@@ -421,70 +381,55 @@ export function BillingManager() {
     setIsRideOpen(true);
   };
 
-  const handleDownloadXmlDirect = (inv: SriInvoice) => {
+  const handleDownloadXml = async (kind: FiscalKind, doc: SriFiscalEvidence & { id: string; documentNumber: string }) => {
+    if (!isFiscalAuthorized(doc)) {
+      showError("XML no disponible", "Consulta el estado del comprobante para recuperar su XML autorizado.");
+      return;
+    }
     try {
-      const rawXml = generarFacturaXml(inv, sriCompanyConfig);
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-      descargarXmlArchivo(signedXml, `SRI-${inv.documentNumber}.xml`);
-      showSuccess("Descarga Exitosa", `XML de Factura ${inv.documentNumber} descargado.`);
-    } catch (e: any) {
-      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+      await downloadAuthorizedFiscalXml(kind, doc.id, doc.documentNumber);
+    } catch (error) {
+      showError("Descarga de XML", error instanceof Error ? error.message : "No se pudo descargar el comprobante.");
     }
   };
 
-  const handleDownloadXmlCreditNote = (nc: CreditNote) => {
+  const handleConsultarSri = async (kind: FiscalKind, doc: { id: string; claveAcceso: string; documentNumber: string }, retry = false) => {
+    const { claveAcceso, id: documentId, documentNumber: docNumber } = doc;
+    const dialog = { isOpen: true, kind, documentId, docNumber, claveAcceso };
+    setSriStatusModal({ ...dialog, loading: true });
     try {
-      const rawXml = generarNotaCreditoXml(nc, sriCompanyConfig);
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-      descargarXmlArchivo(signedXml, `SRI-NC-${nc.documentNumber}.xml`);
-      showSuccess("Descarga Exitosa", `XML de Nota de Crédito ${nc.documentNumber} descargado.`);
-    } catch (e: any) {
-      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
+      const result = await consultFiscalDocument(kind, documentId, retry);
+      setSriStatusModal(previous => previous?.documentId === documentId ? {
+        ...dialog, loading: false, result: {
+          success: result.estadoSRI === "AUTORIZADO", estado: result.estadoSRI || "EN PROCESO",
+          claveAcceso, ambiente: result.ambiente || (claveAcceso[23] === "2" ? "2" : "1"),
+          fechaAutorizacion: result.authorizationDate, numeroAutorizacion: result.numeroAutorizacion,
+          mensajes: result.mensajesSRI,
+        },
+      } : previous);
+    } catch (error) {
+      showError("Consulta SRI", error instanceof Error ? error.message : "No se pudo consultar el SRI.");
+      setSriStatusModal(previous => previous?.documentId === documentId ? null : previous);
     }
   };
 
-  const handleDownloadXmlWithholding = (ret: WithholdingReceipt) => {
-    try {
-      const rawXml = generarComprobanteRetencionXml(ret, sriCompanyConfig);
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-      descargarXmlArchivo(signedXml, `SRI-RET-${ret.documentNumber}.xml`);
-      showSuccess("Descarga Exitosa", `XML de Retención ${ret.documentNumber} descargado.`);
-    } catch (e: any) {
-      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
-    }
+  const reportFiscalResult = (doc: SriFiscalEvidence & { documentNumber: string }) => {
+    if (isFiscalAuthorized(doc)) showSuccess(doc.ambiente === "1" ? "Autorizado en pruebas" : "Autorizado por el SRI", doc.documentNumber);
+    else showWarning(fiscalStateLabel(doc), doc.mensajesSRI?.[0]?.mensaje || `Consulta el comprobante ${doc.documentNumber} en el listado.`);
   };
 
-  const handleDownloadXmlRemission = (guia: RemissionGuide) => {
-    try {
-      const rawXml = generarGuiaRemisionXml(guia, sriCompanyConfig);
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-      descargarXmlArchivo(signedXml, `SRI-GUIA-${guia.documentNumber}.xml`);
-      showSuccess("Descarga Exitosa", `XML de Guía ${guia.documentNumber} descargado.`);
-    } catch (e: any) {
-      showError("Error al generar XML", e?.message || "No se pudo generar el XML");
-    }
-  };
-
-  const handleConsultarSri = async (claveAcceso: string, docNumber: string) => {
-    setSriStatusModal({
-      isOpen: true,
-      docNumber,
-      claveAcceso,
-      loading: true,
-    });
-    try {
-      const res = await consultarComprobanteEnSri(claveAcceso, sriCompanyConfig.ambiente);
-      setSriStatusModal({
-        isOpen: true,
-        docNumber,
-        claveAcceso,
-        result: res,
-        loading: false,
-      });
-    } catch (err: any) {
-      showError("Error de Conexión SRI", err?.message || "No se pudo consultar el SRI.");
-      setSriStatusModal(null);
-    }
+  const openCorrection = (kind: FiscalKind, id: string) => {
+    if (kind === "factura") {
+      const invoice = billingInvoices.find(doc => doc.id === id);
+      const sale = billingInvoices.find(doc => doc.id === invoice?.relatedSaleId);
+      if (!sale) return showError("Origen sin vincular", "No se encontró la nota de venta de origen.");
+      setSaleToPromoteToSri(sale);
+    } else if (kind === "nota_credito") setIsCreditNoteModalOpen(true);
+    else if (kind === "nota_debito") setIsDebitNoteModalOpen(true);
+    else if (kind === "retencion") setIsWithholdingModalOpen(true);
+    else setIsRemissionModalOpen(true);
+    setCorrection({ kind, id });
+    setSriStatusModal(null);
   };
 
   const handleEmitNcFromInvoice = (inv: SriInvoice) => {
@@ -502,7 +447,7 @@ export function BillingManager() {
     setIsConverting(true);
     try {
       const invoice = await convertQuoteToInvoice(quoteToConvert.id, convertWarehouseId);
-      showSuccess("Facturación Completada", `Cotización ${quoteToConvert.quoteNumber} convertida en Factura ${invoice.documentNumber}.`);
+      showSuccess("Nota de venta registrada", `Cotización ${quoteToConvert.quoteNumber} convertida en la nota ${invoice.documentNumber}.`);
       setQuoteToConvert(null);
       setRideInvoice(invoice);
       setRideCreditNote(null);
@@ -693,8 +638,7 @@ export function BillingManager() {
           {activeTab === "retenciones" && (
             <button
               onClick={() => {
-                setWithholdingInitialInvoice(null);
-                setIsWithholdingModalOpen(true);
+                      setIsWithholdingModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
             >
@@ -794,19 +738,7 @@ export function BillingManager() {
                           ${safeNumber(inv.total)}
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <span
-                            className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
-                              inv.status === "autorizada" || inv.status === "registrado"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                                : inv.status === "anulada"
-                                ? "bg-rose-50 text-rose-700 border-rose-300"
-                                : inv.status === "emitida"
-                                ? "bg-sky-50 text-sky-700 border-sky-300"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                            }`}
-                          >
-                            {inv.status.toUpperCase()}
-                          </span>
+                          <FiscalStatus doc={inv} />
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1">
@@ -820,20 +752,20 @@ export function BillingManager() {
                             {!isNotaVenta && !isDraft && (
                               <>
                                 <button
-                                  onClick={() => handleDownloadXmlDirect(inv)}
+                                  onClick={() => handleDownloadXml("factura", inv)}
                                   className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                                   title="Descargar XML SRI Firmado"
                                 >
                                   <FileCode className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleConsultarSri(inv.claveAcceso, inv.documentNumber)}
+                                  onClick={() => handleConsultarSri("factura", inv)}
                                   className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                                   title="Consultar Estado en SRI"
                                 >
                                   <ShieldCheck className="w-4 h-4" />
                                 </button>
-                                {inv.status !== "anulada" && (
+                                {isFiscalAuthorized(inv) && (
                                   <>
                                     <button
                                       onClick={() => handleEmitNcFromInvoice(inv)}
@@ -853,34 +785,17 @@ export function BillingManager() {
                                       <FileText className="w-4 h-4" />
                                     </button>
                                     <button
-                                      onClick={() => {
-                                        setWithholdingInitialInvoice(inv);
-                                        setIsWithholdingModalOpen(true);
-                                      }}
-                                      className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
-                                      title="Emitir Retención"
-                                    >
-                                      <Percent className="w-4 h-4" />
-                                    </button>
-                                    <button
                                       onClick={() => handleEmitRemissionFromInvoice(inv)}
                                       className="p-1.5 rounded-lg text-[#737686] hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
                                       title="Emitir Guía de Remisión"
                                     >
                                       <Truck className="w-4 h-4" />
                                     </button>
-                                    <button
-                                      onClick={() => handleVoidSriInvoice(inv)}
-                                      className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                                      title="Anular Factura Electrónica"
-                                    >
-                                      <Ban className="w-4 h-4" />
-                                    </button>
                                   </>
                                 )}
                               </>
                             )}
-                            {(isNotaVenta || isDraft || inv.status !== "autorizada") && inv.status !== "anulada" && (
+                            {isNotaVenta && !inv.sriInvoiceId && inv.status !== "anulada" && (
                               <button
                                 onClick={() => {
                                   setInvoiceToEdit(inv);
@@ -892,13 +807,6 @@ export function BillingManager() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                             )}
-                            <button
-                              onClick={() => handleDeleteInvoice(inv)}
-                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              title="Eliminar Factura Electrónica"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1078,9 +986,7 @@ export function BillingManager() {
                         ${safeNumber(nc.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
-                          {nc.status.toUpperCase()}
-                        </span>
+                        <FiscalStatus doc={nc} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
@@ -1092,35 +998,18 @@ export function BillingManager() {
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDownloadXmlCreditNote(nc)}
+                            onClick={() => handleDownloadXml("nota_credito", nc)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Nota de Crédito"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleConsultarSri(nc.claveAcceso, nc.documentNumber)}
+                            onClick={() => handleConsultarSri("nota_credito", nc)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              showConfirm(
-                                "¿Eliminar Nota de Crédito?",
-                                `¿Confirmas eliminar la Nota de Crédito ${nc.documentNumber}?`,
-                                async () => {
-                                  await deleteRecord("billingCreditNotes", nc.id);
-                                  showSuccess("Nota Eliminada", `La Nota de Crédito ${nc.documentNumber} fue eliminada.`);
-                                },
-                                "Eliminar"
-                              );
-                            }}
-                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Eliminar Nota de Crédito"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1178,9 +1067,7 @@ export function BillingManager() {
                         ${safeNumber(nd.total)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {nd.status.toUpperCase()}
-                        </span>
+                        <FiscalStatus doc={nd} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
@@ -1192,44 +1079,18 @@ export function BillingManager() {
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
-                              try {
-                                const rawXml = generarNotaDebitoXml(nd, sriCompanyConfig);
-                                const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-                                descargarXmlArchivo(signedXml, `SRI-ND-${nd.documentNumber}.xml`);
-                                showSuccess("Descarga Exitosa", `XML de Nota de Débito ${nd.documentNumber} descargado.`);
-                              } catch (e: any) {
-                                showError("Error al generar XML", e?.message || "No se pudo generar el XML");
-                              }
-                            }}
+                            onClick={() => handleDownloadXml("nota_debito", nd)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML SRI"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleConsultarSri(nd.claveAcceso, nd.documentNumber)}
+                            onClick={() => handleConsultarSri("nota_debito", nd)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              showConfirm(
-                                "¿Eliminar Nota de Débito?",
-                                `¿Confirmas eliminar la Nota de Débito ${nd.documentNumber}?`,
-                                async () => {
-                                  await deleteRecord("billingDebitNotes", nd.id);
-                                  showSuccess("Nota Eliminada", `La Nota de Débito ${nd.documentNumber} fue eliminada.`);
-                                },
-                                "Eliminar"
-                              );
-                            }}
-                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Eliminar Nota de Débito"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1296,9 +1157,7 @@ export function BillingManager() {
                         ${safeNumber(ret.totalRetained)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
-                          {ret.status.toUpperCase()}
-                        </span>
+                        <FiscalStatus doc={ret} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
@@ -1310,35 +1169,18 @@ export function BillingManager() {
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDownloadXmlWithholding(ret)}
+                            onClick={() => handleDownloadXml("retencion", ret)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Retención"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleConsultarSri(ret.claveAcceso, ret.documentNumber)}
+                            onClick={() => handleConsultarSri("retencion", ret)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              showConfirm(
-                                "¿Eliminar Retención?",
-                                `¿Confirmas eliminar el Comprobante de Retención ${ret.documentNumber}?`,
-                                async () => {
-                                  await deleteRecord("billingWithholdings", ret.id);
-                                  showSuccess("Retención Eliminada", `El comprobante ${ret.documentNumber} fue eliminado.`);
-                                },
-                                "Eliminar"
-                              );
-                            }}
-                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Eliminar Retención"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1405,9 +1247,7 @@ export function BillingManager() {
                         ))}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          {g.status.toUpperCase()}
-                        </span>
+                        <FiscalStatus doc={g} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
@@ -1419,35 +1259,18 @@ export function BillingManager() {
                             <Printer className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDownloadXmlRemission(g)}
+                            onClick={() => handleDownloadXml("guia_remision", g)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-emerald-600 hover:bg-emerald-50 transition cursor-pointer"
                             title="Descargar XML Guía"
                           >
                             <FileCode className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleConsultarSri(g.claveAcceso, g.documentNumber)}
+                            onClick={() => handleConsultarSri("guia_remision", g)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-sky-600 hover:bg-sky-50 transition cursor-pointer"
                             title="Consultar Estado en SRI"
                           >
                             <ShieldCheck className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              showConfirm(
-                                "¿Eliminar Guía de Remisión?",
-                                `¿Confirmas eliminar la Guía de Remisión ${g.documentNumber}?`,
-                                async () => {
-                                  await deleteRecord("billingRemissionGuides", g.id);
-                                  showSuccess("Guía Eliminada", `La Guía ${g.documentNumber} fue eliminada.`);
-                                },
-                                "Eliminar"
-                              );
-                            }}
-                            className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                            title="Eliminar Guía de Remisión"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1490,7 +1313,7 @@ export function BillingManager() {
                   </p>
                   <p className="text-slate-600">
                     <span className="font-semibold text-slate-800">Ambiente:</span>{" "}
-                    {sriCompanyConfig.ambiente === "2" ? "2 - Producción Oficial" : "1 - Pruebas / Homologación"}
+                    {(sriStatusModal.result?.ambiente || sriStatusModal.claveAcceso[23]) === "2" ? "2 - Producción Oficial" : "1 - Pruebas / Homologación"}
                   </p>
                 </div>
 
@@ -1501,9 +1324,9 @@ export function BillingManager() {
                   </div>
                 ) : sriStatusModal.result ? (
                   <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+                    <div className={`p-3 rounded-lg border space-y-1 ${sriStatusModal.result.estado === "AUTORIZADO" ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        {sriStatusModal.result.estado === "AUTORIZADO" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                         <span className="font-bold text-xs uppercase">
                           Estado SRI: {sriStatusModal.result.estado}
                         </span>
@@ -1535,7 +1358,17 @@ export function BillingManager() {
                 ) : null}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                {!sriStatusModal.loading && ["DEVUELTA", "NO AUTORIZADO"].includes(sriStatusModal.result?.estado || "") && (
+                  <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold"
+                    onClick={() => openCorrection(sriStatusModal.kind, sriStatusModal.documentId)}>Corregir y reenviar</button>
+                )}
+                {!sriStatusModal.loading && ["EN PROCESO", "ERROR_CONEXION"].includes(sriStatusModal.result?.estado || "") && (
+                  <button type="button" className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-semibold"
+                    onClick={() => handleConsultarSri(sriStatusModal.kind, {
+                      id: sriStatusModal.documentId, documentNumber: sriStatusModal.docNumber, claveAcceso: sriStatusModal.claveAcceso,
+                    }, true)}>Reintentar</button>
+                )}
                 <button
                   onClick={() => setSriStatusModal(null)}
                   className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition cursor-pointer"
@@ -1567,7 +1400,7 @@ export function BillingManager() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Al confirmar, se emitirá una Factura Electrónica autorizada por el SRI para{" "}
+              Al confirmar, se registrará una nota de venta para{" "}
               <strong>{quoteToConvert.clientName}</strong> y se descontarán automáticamente las
               existencias de los productos físicos en la bodega seleccionada.
             </p>
@@ -1634,14 +1467,16 @@ export function BillingManager() {
       />
 
       <CreditNoteModal
+        correction={correction?.kind === "nota_credito" ? billingCreditNotes.find(doc => doc.id === correction.id) : undefined}
         isOpen={isCreditNoteModalOpen}
         onClose={() => {
+          setCorrection(null);
           setIsCreditNoteModalOpen(false);
           setCreditNoteInitialInvoice(null);
         }}
         initialInvoice={creditNoteInitialInvoice}
         onSuccess={(nc) => {
-          showSuccess("Nota de Crédito Emitida", `Nota de Crédito ${nc.documentNumber} emitida.`);
+          reportFiscalResult(nc);
           setRideCreditNote(nc);
           setRideInvoice(null);
           setRideWithholding(null);
@@ -1651,14 +1486,16 @@ export function BillingManager() {
       />
 
       <DebitNoteModal
+        correction={correction?.kind === "nota_debito" ? billingDebitNotes.find(doc => doc.id === correction.id) : undefined}
         isOpen={isDebitNoteModalOpen}
         onClose={() => {
+          setCorrection(null);
           setIsDebitNoteModalOpen(false);
           setDebitNoteInitialInvoice(null);
         }}
         initialInvoice={debitNoteInitialInvoice}
         onSuccess={(nd) => {
-          showSuccess("Nota de Débito Emitida", `Nota de Débito ${nd.documentNumber} emitida con éxito.`);
+          reportFiscalResult(nd);
           setRideDebitNote(nd);
           setRideInvoice(null);
           setRideCreditNote(null);
@@ -1669,14 +1506,14 @@ export function BillingManager() {
       />
 
       <WithholdingModal
+        correction={correction?.kind === "retencion" ? billingWithholdings.find(doc => doc.id === correction.id) : undefined}
         isOpen={isWithholdingModalOpen}
         onClose={() => {
+          setCorrection(null);
           setIsWithholdingModalOpen(false);
-          setWithholdingInitialInvoice(null);
         }}
-        initialInvoice={withholdingInitialInvoice}
         onSuccess={(ret) => {
-          showSuccess("Retención Emitida", `Comprobante de Retención ${ret.documentNumber} emitido con éxito.`);
+          reportFiscalResult(ret);
           setRideWithholding(ret);
           setRideInvoice(null);
           setRideCreditNote(null);
@@ -1687,14 +1524,16 @@ export function BillingManager() {
       />
 
       <RemissionGuideModal
+        correction={correction?.kind === "guia_remision" ? billingRemissionGuides.find(doc => doc.id === correction.id) : undefined}
         isOpen={isRemissionModalOpen}
         onClose={() => {
+          setCorrection(null);
           setIsRemissionModalOpen(false);
           setRemissionInitialInvoice(null);
         }}
         initialInvoice={remissionInitialInvoice}
         onSuccess={(g) => {
-          showSuccess("Guía Emitida", `Guía de Remisión ${g.documentNumber} emitida con éxito.`);
+          reportFiscalResult(g);
           setRideRemissionGuide(g);
           setRideInvoice(null);
           setRideCreditNote(null);
@@ -1855,13 +1694,11 @@ export function BillingManager() {
       <ConvertToSriInvoiceModal
         isOpen={Boolean(saleToPromoteToSri)}
         sale={saleToPromoteToSri}
-        onClose={() => setSaleToPromoteToSri(null)}
+        correction={correction?.kind === "factura" ? billingInvoices.find(doc => doc.id === correction.id) : undefined}
+        onClose={() => { setSaleToPromoteToSri(null); setCorrection(null); }}
         onSuccess={(sriInvoice) => {
           setSaleToPromoteToSri(null);
-          showSuccess(
-            "Factura Electrónica Emitida",
-            `Comprobante SRI ${sriInvoice.documentNumber} generado y autorizado.`
-          );
+          setCorrection(null);
           handleOpenRide(sriInvoice);
         }}
       />

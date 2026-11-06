@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import Image from "next/image";
+import { canViewServicePrices } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { Client } from "@/types";
 import { ClientTabHeader } from "./ClientTabHeader";
@@ -24,7 +25,7 @@ interface ClientDossierTabProps {
 }
 
 export function ClientDossierTab({ client }: ClientDossierTabProps) {
-  const { clientServices, clientProjects, clientQuotes, clientVaultItems, clientContracts, monthlyCharges, tickets } = useApp();
+  const { currentUser, clientServices, clientProjects, clientQuotes, clientVaultItems, clientContracts, monthlyCharges, tickets } = useApp();
 
   const services = clientServices.filter((s) => s.clientId === client.id);
   const projects = clientProjects.filter((p) => p.clientId === client.id);
@@ -34,7 +35,8 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
   const charges = monthlyCharges.filter((c) => c.clientId === client.id);
   const clientTickets = tickets.filter((t) => t.clientId === client.id);
 
-  const totalMonthlySpend = services.reduce((sum, s) => sum + s.customPrice, 0);
+  const showPrices = canViewServicePrices(currentUser);
+  const totalMonthlySpend = services.reduce((sum, s) => sum + (s.customPrice ?? s.basePrice ?? 0), 0);
   const dossierPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -126,10 +128,10 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
               <span className="text-xs font-semibold text-[#64748b] block mb-0.5">Estado del Cliente</span>
               <span className="font-bold text-emerald-700 uppercase">{client.status}</span>
             </div>
-            <div>
+            {showPrices && <div>
               <span className="text-xs font-semibold text-[#64748b] block mb-0.5">Tarifa Mensual Recurrente</span>
               <span className="font-bold text-[#0b1c30] font-mono">${totalMonthlySpend.toFixed(2)} USD</span>
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -146,7 +148,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
                 <div key={srv.id} className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] text-xs space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-[#0b1c30] text-sm">{srv.planName}</span>
-                    <span className="font-bold text-emerald-700 font-mono">${srv.customPrice.toFixed(2)}/mes</span>
+                    {showPrices && <span className="font-bold text-emerald-700 font-mono">${(srv.customPrice ?? srv.basePrice ?? 0).toFixed(2)}/mes</span>}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-[#e2e8f0]">
                     <p><span className="text-[#64748b]">Nodo/POP:</span> <span className="font-semibold text-[#0b1c30]">{srv.nodeName}</span></p>

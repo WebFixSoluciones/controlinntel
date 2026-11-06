@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { activeCommercialDocuments } from "@/lib/sales-policy";
 import { summarizeReceivables } from "@/lib/financial-summary";
+import { findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
 import { useToast } from "@/lib/toast-context";
 import { SriInvoice, ClientQuote } from "@/types";
 import { NewSaleView } from "../billing/NewSaleView";
@@ -125,7 +126,7 @@ export function SalesManager() {
         inv.clientName.toLowerCase().includes(q) ||
         (inv.clientRuc && inv.clientRuc.includes(q));
 
-      const isFacturada = inv.sriStatus === "facturada" || Boolean(inv.sriInvoiceId);
+      const isFacturada = isFiscalAuthorized(findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente));
       const matchesSri =
         sriFilter === "todos" ||
         (sriFilter === "facturadas" && isFacturada) ||
@@ -137,7 +138,7 @@ export function SalesManager() {
 
       return matchesSearch && matchesSri && matchesFrom && matchesTo;
     });
-  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo]);
+  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo, billingInvoices, sriCompanyConfig.ambiente]);
 
   const filteredQuotes = useMemo(() => {
     return billingQuotes.filter((q) => {
@@ -159,8 +160,8 @@ export function SalesManager() {
   }, [salesList]);
 
   const pendingSriCount = useMemo(() => {
-    return salesList.filter((inv) => inv.sriStatus !== "facturada" && !inv.sriInvoiceId).length;
-  }, [salesList]);
+    return salesList.filter(inv => inv.status !== "borrador" && !findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente)).length;
+  }, [salesList, billingInvoices, sriCompanyConfig.ambiente]);
 
   // Actions
   const handleDeleteSale = (sale: SriInvoice) => {
@@ -328,10 +329,9 @@ export function SalesManager() {
                   </tr>
                 ) : (
                   filteredSales.map((sale) => {
-                    const isFacturada = sale.sriStatus === "facturada" || Boolean(sale.sriInvoiceId);
-                    const linkedSriInv = sale.sriInvoiceId
-                      ? billingInvoices.find((i) => i.id === sale.sriInvoiceId)
-                      : null;
+                    const linkedSriInv = findSaleFiscalInvoice(sale, billingInvoices, sriCompanyConfig.ambiente);
+                    const isFacturada = isFiscalAuthorized(linkedSriInv);
+                    const fiscalLabel = isFacturada ? linkedSriInv?.ambiente === "2" ? "Autorizada SRI" : "Autorizada en pruebas" : "Pendiente SRI";
                     return (
                       <tr key={sale.id} className="hover:bg-[#f8f9ff] transition">
                         <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
@@ -353,7 +353,7 @@ export function SalesManager() {
                           ${(sale.total || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          {isFacturada ? (
+                          {linkedSriInv ? (
                             <button
                               type="button"
                               onClick={() => {
@@ -362,11 +362,11 @@ export function SalesManager() {
                                   setIsRideOpen(true);
                                 }
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition cursor-pointer ${isFacturada ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}
                               title="Clic para ver Factura SRI vinculada"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Facturada SRI • {sale.sriDocumentNumber || "01"}</span>
+                              {isFacturada ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                              <span>{fiscalLabel} · {linkedSriInv.documentNumber}</span>
                             </button>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
@@ -390,7 +390,7 @@ export function SalesManager() {
                             </button>
 
                             {/* Editar Nota de Venta */}
-                            <button
+                            {!sale.sriInvoiceId && (<button
                               onClick={() => {
                                 setSaleToEdit(sale);
                                 setIsEditSaleOpen(true);
@@ -399,10 +399,10 @@ export function SalesManager() {
                               title="Editar Nota de Venta"
                             >
                               <Edit2 className="w-4 h-4" />
-                            </button>
+                            </button>)}
 
                             {/* Pasar a Factura Electrónica SRI */}
-                            {!isFacturada && (
+                            {!linkedSriInv && sale.status !== "borrador" && (
                               <button
                                 onClick={() => {
                                   setSaleToConvert(sale);
@@ -417,13 +417,13 @@ export function SalesManager() {
                             )}
 
                             {/* Eliminar Nota de Venta */}
-                            <button
+                            {!sale.sriInvoiceId && (<button
                               onClick={() => handleDeleteSale(sale)}
                               className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                               title="Eliminar Nota de Venta"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </button>)}
                           </div>
                         </td>
                       </tr>

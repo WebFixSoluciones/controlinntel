@@ -1,8 +1,10 @@
 "use client";
 import { BackButton } from "@/components/ui/BackButton";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import Link from "next/link";
+import { isClosedTicketStatus } from "@/lib/ticket-status";
+import { departmentLabel } from "@/lib/ticket-departments";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -17,48 +19,53 @@ import { Send, Lock, MessageSquare, User, ShieldAlert, Building2, Phone, Mail, M
 interface TicketDetailProps {
   id: string;
   onBack: () => void;
+  resolveOnOpen?: boolean;
 }
 
 // Respuestas predefinidas de soporte técnico
 const CANNED_RESPONSES = [
   {
-    title: "Reinicio Eléctrico de ONT / Router",
-    body: "Estimado cliente, para restablecer los parámetros de sesión y refrescar la tabla ARP de su router, por favor desconecte el adaptador de corriente de la ONT durante 30 segundos y vuelva a encenderlo. Esperaremos 3 minutos para validar la reconexión con nuestra cabecera OLT.",
+    title: "Configuración de Mikrotik",
+    body: "Revisaremos la configuración del equipo MikroTik y te informaremos de los ajustes necesarios. Indícanos el nodo o equipo afectado y el cambio que necesitas.",
   },
   {
-    title: "Verificación de Potencia Óptica Normal",
-    body: "Estimado cliente, hemos verificado desde el OLT los niveles de potencia óptica de su enlace, registrando valores dentro del rango estándar (-19 dBm a -23 dBm). Por favor confirme si en su equipo ONT la luz 'PON' se encuentra encendida en color verde fijo o si parpadea la luz 'LOS'.",
+    title: "Revisión de sistemas",
+    body: "Revisaremos el sistema reportado. Compártenos el nombre del sistema, la operación afectada y el mensaje de error que aparece.",
   },
   {
-    title: "Despacho de Cuadrilla Técnica en Terreno",
-    body: "Estimado cliente, se ha derivado su caso al departamento de Planta Externa con orden de trabajo prioritaria. Una cuadrilla técnica se trasladará a su domicilio para verificar la acometida de fibra óptica y el conector SC/APC. Nos comunicaremos previamente al número de contacto registrado.",
+    title: "Problemas proveedor",
+    body: "Revisaremos la afectación con el proveedor. Indícanos el circuito o servicio afectado y la hora aproximada en que empezó el problema.",
   },
   {
-    title: "Interrupción de Servicio por Falla Masiva",
-    body: "Le informamos que se ha detectado una afectación general en la troncal de fibra óptica de su sector. Personal de emergencia NOC ya se encuentra en sitio realizando empalmes de reposición. El tiempo estimado de normalización es de 1 a 2 horas. Agradecemos su comprensión.",
+    title: "Configuración de OLT",
+    body: "Revisaremos la configuración de la OLT. Indícanos la sede, el equipo y el puerto PON relacionados con la solicitud.",
   },
   {
-    title: "Configuración de Red WiFi / Contraseña",
-    body: "Hemos verificado la configuración de radiofrecuencia (2.4 GHz y 5 GHz) de su router inalámbrico. Se han optimizado los canales de transmisión para evitar interferencias vecinales. Por favor verifique si el inconveniente de lentitud persiste.",
+    title: "Configuración de equipos terminales",
+    body: "Revisaremos la configuración del equipo terminal. Compártenos el modelo, el número de serie y el servicio asociado.",
   },
   {
-    title: "Confirmación de Servicio y Cierre",
-    body: "Estimado cliente, validamos que su enlace se encuentra 100% operativo con tráfico bidireccional continuo y latencia nominal óptima. Procedemos al cierre del presente ticket de asistencia técnica. Gracias por confiar en INNTEL CORP.",
+    title: "Revisión de Arcotel",
+    body: "Revisaremos el trámite o requerimiento de ARCOTEL. Indícanos el asunto y el número de trámite o documento, si está disponible.",
+  },
+  {
+    title: "Revisión de Facturación",
+    body: "Revisaremos el caso de facturación. Indícanos el número del comprobante, el período y el detalle que deseas revisar.",
   },
 ];
 
-export function TicketDetail({ id, onBack }: TicketDetailProps) {
+export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
   const {
     tickets,
     clients,
     clientServices,
-    systemUsers,
+    ticketAssignees,
+    ticketDepartments,
     replyToTicket,
     updateTicketStatus,
     updateTicketDetails,
-    addClientProjectTask,
   } = useApp();
-  const { showSuccess, showError, showConfirm } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const ticket = tickets.find((t) => t.id === id);
   const client = clients.find((c) => c.id === ticket?.clientId);
@@ -70,8 +77,9 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
   const [replyMode, setReplyMode] = useState<"reply" | "note">("reply");
   const [replyBody, setReplyBody] = useState("");
   const [replyStatus, setReplyStatus] = useState<TicketStatus>(
-    ticket?.status === "abierto" ? "respondido" : ticket?.status || "en_progreso"
+    resolveOnOpen ? "resuelto" : !ticket || ticket.status === "abierto" ? "respondido" : ticket.status
   );
+  const replyField = useRef<HTMLTextAreaElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Thread filter
@@ -99,6 +107,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
   // Handle Reply or Internal Note submission
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!replyBody.trim()) {
       showError("Campo Vacío", "Por favor redacta un mensaje o nota antes de enviar.");
       return;
@@ -107,7 +116,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
     setIsSubmitting(true);
     try {
       const isInternal = replyMode === "note";
-      await replyToTicket(ticket.id, replyBody.trim(), isInternal, replyStatus);
+      await replyToTicket(ticket.id, replyBody.trim(), isInternal, isInternal ? undefined : replyStatus);
 
       if (isInternal) {
         showSuccess("Nota Interna Guardada", "La nota técnica privada se registró en el expediente.");
@@ -123,46 +132,10 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
     }
   };
 
-  // Quick Action: Escalate to Technical Field Squad (Project Task)
-  const handleEscalateToProject = () => {
-    showConfirm(
-      "¿Escalar a Cuadrilla Técnica de Campo?",
-      `Se creará una orden de trabajo técnica en el tablero de Proyectos vinculada al cliente "${ticket.clientName}" y al ticket ${ticket.ticketNumber}.`,
-      async () => {
-        try {
-          await addClientProjectTask({
-            clientId: ticket.clientId,
-            clientName: ticket.clientName,
-            title: `[${ticket.ticketNumber}] ${ticket.title}`,
-            description: `Escalado desde Soporte Asistido.\nReporte: ${ticket.description}\nPrioridad: ${ticket.priority.toUpperCase()}`,
-            column: "factibilidad",
-            priority: ticket.priority === "critica" ? "urgente" : ticket.priority,
-            assignedTo: ticket.assignedToName || "Cuadrilla NOC Planta Externa",
-            boardFlow: "isp_tecnico",
-            startDate: new Date().toISOString(),
-            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            checklist: [
-              { id: "chk-1", text: "Inspección de acometida y splitter óptico", done: false },
-              { id: "chk-2", text: "Medición de potencia dBm con Power Meter", done: false },
-              { id: "chk-3", text: "Prueba de navegación y firma de acta técnica", done: false },
-            ],
-          });
-
-          // Add automated internal note to ticket
-          await replyToTicket(
-            ticket.id,
-            `NOTA DEL SISTEMA: Se escaló incidencia a orden de trabajo en cuadrilla de campo (Proyectos) con prioridad ${ticket.priority.toUpperCase()}. Asignado a: ${ticket.assignedToName || "NOC Planta Externa"}.`,
-            true,
-            "en_progreso"
-          );
-
-          showSuccess("Incidencia Escalada", "Se generó la tarea de cuadrilla en Proyectos.");
-        } catch (err: any) {
-          showError("Error al Escalar", err?.message);
-        }
-      },
-      "Escalar a Cuadrilla"
-    );
+  const startResolution = () => {
+    setReplyMode("reply");
+    setReplyStatus("resuelto");
+    replyField.current?.focus();
   };
 
   // Quick Status Change
@@ -207,7 +180,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         <div className="flex items-start md:items-center gap-3">
           <BackButton onClick={onBack} title="Volver a la lista de tickets" label="Volver a la lista de tickets" />
 
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs font-black text-[#004ac6] bg-[#eff4ff] px-2.5 py-0.5 rounded-lg border border-[#bfdbfe]">
                 {ticket.ticketNumber}
@@ -263,22 +236,13 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
             </a>
           )}
 
-          <button
-            onClick={handleEscalateToProject}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-[#004ac6] text-xs font-bold transition-colors cursor-pointer"
-            title="Crear tarea de cuadrilla en Proyectos"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Escalar a Cuadrilla</span>
-          </button>
-
           {ticket.status !== "resuelto" && ticket.status !== "cerrado" ? (
             <button
-              onClick={() => handleChangeStatus("resuelto")}
+              onClick={startResolution}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Resolver Ticket</span>
+              <span>Responder y resolver</span>
             </button>
           ) : (
             <button
@@ -297,10 +261,10 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         {/* ========================================================= */}
         {/* LEFT COLUMN: Assistance Thread & Foot Reply Box (8 cols)   */}
         {/* ========================================================= */}
-        <div className="lg:col-span-8 space-y-5">
+        <div className="lg:col-span-8 min-w-0 space-y-5">
           {/* Conversation History Thread */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-bold text-xs text-[#0b1c30] uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#004ac6]" />
                 <span>Historial de Asistencia</span>
@@ -443,8 +407,8 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
           {/* Clean Workspace Foot Reply Box */}
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             {/* Box Tabs: Reply vs Internal Note */}
-            <div className="flex items-center justify-between border-b border-[#e2e8f0] bg-[#f8f9ff] px-4 py-2.5">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e8f0] bg-[#f8f9ff] px-4 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setReplyMode("reply")}
@@ -473,8 +437,8 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
               </div>
 
               {/* Predefined Canned Responses */}
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#004ac6]" />
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#004ac6]" />
                 <select
                   onChange={(e) => {
                     if (e.target.value) {
@@ -482,11 +446,11 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                       e.target.value = "";
                     }
                   }}
-                  className="px-2.5 py-1 bg-white border border-[#cbd5e1] rounded-lg text-xs font-semibold text-[#434655] focus:outline-hidden cursor-pointer"
+                  className="min-w-0 px-2.5 py-1 bg-white border border-[#cbd5e1] rounded-lg text-xs font-semibold text-[#434655] focus:outline-hidden cursor-pointer"
                   defaultValue=""
                 >
                   <option value="" disabled>
-                    Respuestas Rápidas (Canned)...
+                    Respuestas rápidas…
                   </option>
                   {CANNED_RESPONSES.map((r, idx) => (
                     <option key={idx} value={r.body}>
@@ -500,6 +464,8 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
             {/* Form */}
             <form onSubmit={handleSubmitReply} className="p-4 space-y-3">
               <textarea
+                ref={replyField}
+                aria-label={replyMode === "reply" ? "Respuesta al cliente" : "Nota interna"}
                 rows={4}
                 required
                 value={replyBody}
@@ -515,7 +481,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                 placeholder={
                   replyMode === "reply"
                     ? "Escribe la respuesta formal para el cliente... (Ctrl + Enter para enviar)"
-                    : "Escribe una nota interna para la cuadrilla y soporte NOC... (Ctrl + Enter para guardar)"
+                    : "Escribe una nota interna para el equipo de soporte... (Ctrl + Enter para guardar)"
                 }
                 className={`w-full p-3 rounded-xl border text-xs focus:outline-hidden transition-colors ${
                   replyMode === "note"
@@ -525,19 +491,26 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#434655]">Estado:</span>
-                  <select
-                    value={replyStatus}
-                    onChange={(e) => setReplyStatus(e.target.value as TicketStatus)}
-                    className="px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl text-xs font-semibold text-[#0b1c30] focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="respondido">Respondido</option>
-                    <option value="en_progreso">En Progreso</option>
-                    <option value="en_espera">En Espera</option>
-                    <option value="resuelto">Resuelto</option>
-                    <option value="cerrado">Cerrado</option>
-                  </select>
+                <div className="flex flex-wrap items-center gap-2">
+                  {replyMode === "reply" && (
+                    <>
+                      <label htmlFor="ticket-reply-status" className="text-xs font-bold text-[#434655]">Estado</label>
+                      <select id="ticket-reply-status"
+                        value={replyStatus}
+                        onChange={(e) => setReplyStatus(e.target.value as TicketStatus)}
+                        className="max-w-full px-3 py-1.5 bg-white border border-[#cbd5e1] rounded-xl text-xs font-semibold text-[#0b1c30] focus:outline-hidden cursor-pointer"
+                      >
+                        {replyStatus === "abierto" && <option value="abierto">Abierto</option>}
+                        {replyStatus === "respuesta_cliente" && <option value="respuesta_cliente">Respuesta del cliente</option>}
+                        <option value="respondido">Respondido</option>
+                        <option value="en_progreso">En Progreso</option>
+                        <option value="en_espera">En Espera</option>
+                        <option value="resuelto">Resuelto</option>
+                        <option value="cerrado">Cerrado</option>
+                      </select>
+                      {isClosedTicketStatus(replyStatus) && <span className="text-xs font-medium text-slate-600">Respuesta obligatoria</span>}
+                    </>
+                  )}
                 </div>
 
                 <button
@@ -560,7 +533,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
         {/* ========================================================= */}
         {/* RIGHT COLUMN: Unified Context Panel (Single Card, 4 cols)  */}
         {/* ========================================================= */}
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-4 min-w-0">
           <div className="bg-white rounded-xl border border-[#e2e8f0] p-5 shadow-2xs divide-y divide-[#f1f5f9] space-y-4">
             {/* Header del Panel */}
             <div className="flex items-center justify-between pb-3">
@@ -634,12 +607,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                     </span>
                   </div>
                 )}
-                {ticket.nodeName && (
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-[#737686]">POP / Nodo:</span>
-                    <span className="font-medium text-[#434655]">{ticket.nodeName}</span>
-                  </div>
-                )}
+
                 {service?.ontSerialNumber && (
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-[#737686]">ONT / Serial:</span>
@@ -659,14 +627,14 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                 <div>
                   <label className="text-[10px] font-bold text-[#737686] block mb-1">Departamento:</label>
                   <select
-                    value={ticket.department || "soporte_tecnico"}
+                    value={ticket.department || ""}
                     onChange={(e) => handleUpdateProperty("department", e.target.value as TicketDepartment)}
                     className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 font-medium text-[#0b1c30] focus:outline-hidden text-xs"
                   >
-                    <option value="soporte_tecnico">Soporte NOC</option>
-                    <option value="facturacion">Facturación</option>
-                    <option value="noc_redes">Planta Externa</option>
-                    <option value="ventas">Comercial</option>
+                    {!ticket.department && <option value="">Sin departamento</option>}
+                    {ticket.department && !ticketDepartments.some(row => row.id === ticket.department && row.active) &&
+                      <option value={ticket.department}>{departmentLabel(ticketDepartments, ticket.department)} (histórico)</option>}
+                    {ticketDepartments.filter(row => row.active).map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -689,7 +657,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                     onChange={(e) => handleUpdateProperty("assignedToName", e.target.value)}
                     className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-3 py-1.5 font-medium text-[#0b1c30] focus:outline-hidden text-xs"
                   >
-                    {systemUsers.map((u) => (
+                    {ticketAssignees.map((u) => (
                       <option key={u.uid} value={u.displayName}>
                         {u.displayName}
                       </option>
@@ -707,8 +675,7 @@ export function TicketDetail({ id, onBack }: TicketDetailProps) {
                     <option value="en_progreso">En Progreso</option>
                     <option value="respondido">Respondido</option>
                     <option value="en_espera">En Espera</option>
-                    <option value="resuelto">Resuelto</option>
-                    <option value="cerrado">Cerrado</option>
+                    {isClosedTicketStatus(ticket.status) && <option value={ticket.status} disabled>{ticket.status === "resuelto" ? "Resuelto" : "Cerrado"}</option>}
                   </select>
                 </div>
               </div>

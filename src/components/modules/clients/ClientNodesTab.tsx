@@ -233,8 +233,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left text-xs border-collapse">
+          <div role="region" aria-label="Tabla de nodos" tabIndex={0} className="max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="table-fixed w-full min-w-[68rem] text-left text-xs border-collapse">
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
                   <th className="py-3 px-4 w-[20%]">Nodo / Sede</th>

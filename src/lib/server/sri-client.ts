@@ -39,6 +39,7 @@ export interface SriAutorizacionResult {
   comprobanteXml?: string;
   mensajes: SriMensaje[];
   raw?: string;
+  sinRegistro?: boolean;
 }
 
 type LocalName = string;
@@ -87,10 +88,18 @@ function textOf(node: Node | null | undefined, name: LocalName): string {
 
 function parseXml(raw: string): Document | null {
   try {
-    return new DOMParser().parseFromString(raw, "text/xml");
+    if (typeof raw !== "string" || !raw.trim() || /<!DOCTYPE|<!ENTITY/i.test(raw)) return null;
+    const doc = new DOMParser().parseFromString(raw, "text/xml");
+    return doc.documentElement ? doc : null;
   } catch {
     return null;
   }
+}
+
+export function sriSignatureValue(xml: string) {
+  const doc = parseXml(xml);
+  const signature = doc?.getElementsByTagNameNS("http://www.w3.org/2000/09/xmldsig#", "SignatureValue")[0];
+  return signature?.textContent?.replace(/\s+/g, "") || "";
 }
 
 function extractMensajes(node: Node | null | undefined): SriMensaje[] {
@@ -117,7 +126,7 @@ async function soapCall(
   url: string,
   action: string,
   bodyXml: string,
-  timeoutMs = 20_000
+  timeoutMs = 8_000
 ): Promise<string> {
   const envelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
@@ -125,32 +134,20 @@ async function soapCall(
   <soapenv:Body>${bodyXml}</soapenv:Body>
 </soapenv:Envelope>`;
 
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/xml; charset=utf-8",
-          SOAPAction: action,
-          Accept: "text/xml",
-          "User-Agent": "INNTEL-CORP/1.0 (+https://control.intelcorp.com)",
-        },
-        body: envelope,
-        signal: AbortSignal.timeout(timeoutMs),
-        cache: "no-store",
-      });
-      const raw = await response.text();
-      if (!response.ok && !raw.includes("Envelope")) {
-        throw new Error(`El SRI respondió HTTP ${response.status}.`);
-      }
-      return raw;
-    } catch (error) {
-      lastError = error;
-      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 700));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("No se pudo conectar con el SRI.");
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/xml; charset=utf-8",
+      SOAPAction: action,
+      Accept: "text/xml",
+      "User-Agent": "INNTEL-CORP/1.0 (+https://control.inntelcorp.com)",
+    },
+    body: envelope,
+    signal: AbortSignal.timeout(timeoutMs),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`El SRI respondió HTTP ${response.status}.`);
+  return response.text();
 }
 
 /**
@@ -168,7 +165,9 @@ export async function recepcionComprobante(
   try {
     const raw = await soapCall(recepcion, "validarComprobante", body);
     const doc = parseXml(raw);
-    if (!doc) {
+    const receipt = first(doc, "RespuestaRecepcionComprobante");
+    const estadoRaw = textOf(receipt, "estado").toUpperCase();
+    if (estadoRaw !== "RECIBIDA" && estadoRaw !== "DEVUELTA") {
       return {
         estado: "ERROR_CONEXION",
         mensajes: [{ mensaje: "El SRI devolvió una respuesta no interpretable.", tipo: "ERROR" }],
@@ -177,10 +176,7 @@ export async function recepcionComprobante(
       };
     }
 
-    const estadoRaw = (textOf(doc, "estado") || "").toUpperCase();
-    const estado = estadoRaw === "RECIBIDA" ? "RECIBIDA" : "DEVUELTA";
-    const mensajes = extractMensajes(doc);
-    return { estado, mensajes, claveAcceso, raw };
+    return { estado: estadoRaw, mensajes: extractMensajes(receipt), claveAcceso, raw };
   } catch (error: any) {
     return {
       estado: "ERROR_CONEXION",
@@ -212,7 +208,9 @@ export async function autorizacionComprobante(
   try {
     const raw = await soapCall(autorizacionUrl, "autorizacionComprobante", body);
     const doc = parseXml(raw);
-    if (!doc) {
+    const respuesta = first(doc, "RespuestaAutorizacionComprobante");
+    const consultada = textOf(respuesta, "claveAccesoConsultada");
+    if (!respuesta || consultada !== claveAcceso) {
       return {
         estado: "ERROR_CONEXION",
         mensajes: [{ mensaje: "El SRI devolvió una respuesta no interpretable.", tipo: "ERROR" }],
@@ -220,11 +218,28 @@ export async function autorizacionComprobante(
       };
     }
 
-    const autorizacion = first(doc, "autorizacion");
+    const entries = findAll(respuesta, "autorizacion");
+    const authorized = entries.find(entry => {
+      const xml = parseXml(textOf(entry, "comprobante"));
+      const tributaria = first(xml, "infoTributaria");
+      const declared = textOf(entry, "ambiente").toUpperCase();
+      const expected = ambiente === "2" ? ["2", "PRODUCCION", "PRODUCCIÓN"] : ["1", "PRUEBAS"];
+      return textOf(entry, "estado") === "AUTORIZADO"
+        && textOf(entry, "numeroAutorizacion") === claveAcceso
+        && Number.isFinite(Date.parse(textOf(entry, "fechaAutorizacion")))
+        && expected.includes(declared)
+        && textOf(tributaria, "claveAcceso") === claveAcceso
+        && textOf(tributaria, "ambiente") === ambiente
+        && !!xml?.getElementsByTagNameNS("http://www.w3.org/2000/09/xmldsig#", "Signature")[0];
+    });
+    const rejected = (entry: Element) => ["NO AUTORIZADO", "RECHAZADO"].includes(textOf(entry, "estado"));
+    const autorizacion = authorized || entries.find(rejected);
     if (!autorizacion) {
-      const numero = textOf(doc, "numeroComprobantes");
+      const numero = textOf(respuesta, "numeroComprobantes");
       return {
-        estado: "EN PROCESO",
+        estado: entries.some(entry => ["EN PROCESO", "PPR"].includes(textOf(entry, "estado")))
+          || (!entries.length && numero === "0") ? "EN PROCESO" : "ERROR_CONEXION",
+        sinRegistro: entries.length === 0 && numero === "0",
         mensajes: [
           {
             mensaje: `El SRI aún no registra autorización para la clave ${claveAcceso}.`,
@@ -236,9 +251,7 @@ export async function autorizacionComprobante(
       };
     }
 
-    const estadoRaw = (textOf(autorizacion, "estado") || "").toUpperCase();
-    const estado: SriAutorizacionResult["estado"] =
-      estadoRaw === "AUTORIZADO" ? "AUTORIZADO" : estadoRaw === "NO AUTORIZADO" ? "NO AUTORIZADO" : "EN PROCESO";
+    const estado = authorized ? "AUTORIZADO" : "NO AUTORIZADO";
 
     const comprobante = first(autorizacion, "comprobante");
     return {
@@ -281,11 +294,12 @@ export async function enviarComprobante(
   claveAcceso: string,
   xmlFirmado: string,
   ambiente: SriEnvironment,
-  options?: { autorizacionIntentos?: number; esperaMs?: number }
+  options?: { autorizacionIntentos?: number; esperaMs?: number; onReception?: (receipt: SriRecepcionResult) => Promise<void> }
 ): Promise<SriEmissionResult> {
   const recepcion = await recepcionComprobante(claveAcceso, xmlFirmado, ambiente);
+  await options?.onReception?.(recepcion);
 
-  const intentos = Math.max(1, options?.autorizacionIntentos ?? 4);
+  const intentos = Math.min(2, Math.max(1, options?.autorizacionIntentos ?? 2));
   const esperaMs = Math.max(0, options?.esperaMs ?? 1500);
 
   let autorizacion: SriAutorizacionResult | undefined;
@@ -293,7 +307,7 @@ export async function enviarComprobante(
     if (intento > 0 && esperaMs > 0) await new Promise((resolve) => setTimeout(resolve, esperaMs));
     autorizacion = await autorizacionComprobante(claveAcceso, ambiente);
     if (autorizacion.estado === "AUTORIZADO" || autorizacion.estado === "NO AUTORIZADO") break;
-    if (autorizacion.estado === "ERROR_CONEXION" && intento === 0) continue;
+    if (recepcion.estado !== "RECIBIDA" || autorizacion.estado === "ERROR_CONEXION") break;
   }
 
   if (autorizacion?.estado === "AUTORIZADO") {
@@ -306,7 +320,7 @@ export async function enviarComprobante(
     };
   }
 
-  if (autorizacion && autorizacion.estado !== "ERROR_CONEXION") {
+  if (autorizacion?.estado === "NO AUTORIZADO" || (recepcion.estado === "RECIBIDA" && autorizacion?.estado === "EN PROCESO")) {
     return {
       autorizado: false,
       estado: autorizacion.estado,
@@ -316,7 +330,7 @@ export async function enviarComprobante(
     };
   }
 
-  if (recepcion.estado === "DEVUELTA") {
+  if (recepcion.estado === "DEVUELTA" && !recepcion.mensajes.some(m => ["43", "70"].includes(m.identificador || ""))) {
     return {
       autorizado: false,
       estado: "DEVUELTA",

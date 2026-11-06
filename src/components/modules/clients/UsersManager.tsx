@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { SystemUser, UserModulePermissions } from "@/types";
 import { UserFormView } from "./UserFormView";
+import { DEFAULT_ACCOUNT_PERMISSIONS, effectiveAccountPermissions } from "@/lib/permissions";
 
 export function UsersManager() {
   const {
@@ -65,6 +66,9 @@ export function UsersManager() {
         await updateSystemUser(selectedUser.uid, {
           ...userData,
           modulePermissions: permissions,
+          permissions: userData.role && userData.role !== selectedUser.role
+            ? DEFAULT_ACCOUNT_PERMISSIONS[userData.role]
+            : effectiveAccountPermissions(selectedUser.role, selectedUser.permissions),
         });
         showSuccess(
           "Colaborador Actualizado",
@@ -77,9 +81,9 @@ export function UsersManager() {
           role: userData.role || "tecnico",
           department: userData.department || "Operaciones & Red",
           status: userData.status || "activo",
-          passwordHash: userData.passwordHash || "123456",
+          passwordHash: userData.passwordHash,
           phone: userData.phone,
-          permissions: ["all"],
+          permissions: DEFAULT_ACCOUNT_PERMISSIONS[userData.role || "tecnico"],
           modulePermissions: permissions,
         });
         showSuccess(

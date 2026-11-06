@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { departmentLabel } from "@/lib/ticket-departments";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { X, Plus, Trash2, Pencil, Check, ListChecks } from "lucide-react";
@@ -11,13 +12,6 @@ interface TicketSubjectsModalProps {
   onClose: () => void;
 }
 
-const DEPARTMENTS: { value: TicketDepartment; label: string }[] = [
-  { value: "soporte_tecnico", label: "Soporte Técnico NOC" },
-  { value: "noc_redes", label: "NOC / Planta Externa" },
-  { value: "facturacion", label: "Facturación & Cobranzas" },
-  { value: "ventas", label: "Ventas & Nuevos Servicios" },
-];
-
 const CATEGORIES: { value: TicketCategory; label: string }[] = [
   { value: "corte_fibra", label: "Falla de enlace / Corte" },
   { value: "atenuacion_alta", label: "Atenuación / Señal" },
@@ -27,12 +21,12 @@ const CATEGORIES: { value: TicketCategory; label: string }[] = [
 ];
 
 export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProps) {
-  const { ticketSubjects, addTicketSubject, updateTicketSubject, deleteTicketSubject } = useApp();
+  const { ticketDepartments, ticketSubjects, addTicketSubject, updateTicketSubject, deleteTicketSubject } = useApp();
   const { showError, showSuccess, showConfirm } = useToast();
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
+  const [department, setDepartment] = useState<TicketDepartment>("");
   const [category, setCategory] = useState<TicketCategory>("otro");
   const [saving, setSaving] = useState(false);
 
@@ -41,7 +35,7 @@ export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProp
   const resetForm = () => {
     setEditingId(null);
     setName("");
-    setDepartment("soporte_tecnico");
+    setDepartment("");
     setCategory("otro");
   };
 
@@ -69,10 +63,10 @@ export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProp
     setSaving(true);
     try {
       if (editingId) {
-        await updateTicketSubject(editingId, { name: trimmed, defaultDepartment: department, category });
+        await updateTicketSubject(editingId, { name: trimmed, defaultDepartment: department || ticketDepartments.find(row => row.active)?.id || "", category });
         showSuccess("Asunto actualizado", `"${trimmed}" fue actualizado.`);
       } else {
-        await addTicketSubject({ name: trimmed, defaultDepartment: department, category });
+        await addTicketSubject({ name: trimmed, defaultDepartment: department || ticketDepartments.find(row => row.active)?.id || "", category });
         showSuccess("Asunto creado", `"${trimmed}" ya está disponible al crear tickets.`);
       }
       resetForm();
@@ -136,13 +130,13 @@ export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProp
             <div className="md:col-span-5">
               <label className="font-bold text-[#434655] block mb-1">Departamento por defecto</label>
               <select
-                value={department}
+                value={department || ticketDepartments.find(row => row.active)?.id || ""}
                 onChange={(e) => setDepartment(e.target.value as TicketDepartment)}
                 className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 font-semibold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-none"
               >
-                {DEPARTMENTS.map((d) => (
-                  <option key={d.value} value={d.value}>
-                    {d.label}
+                {ticketDepartments.filter(row => row.active || row.id === department).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}{d.active ? "" : " (inactivo)"}
                   </option>
                 ))}
               </select>
@@ -203,7 +197,7 @@ export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProp
                     <tr key={s.id} className="hover:bg-[#f8f9ff]">
                       <td className="py-2.5 px-4 font-semibold text-[#0b1c30] break-words">{s.name}</td>
                       <td className="py-2.5 px-4 text-[#475569]">
-                        {DEPARTMENTS.find((d) => d.value === s.defaultDepartment)?.label || s.defaultDepartment}
+                        {departmentLabel(ticketDepartments, s.defaultDepartment)}
                       </td>
                       <td className="py-2.5 px-4 text-right whitespace-nowrap">
                         <button

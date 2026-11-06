@@ -49,6 +49,7 @@ export interface SriCompanyConfig {
   ambiente: SriEnvironment;
   resolucionAgenteRetencion?: string;
   contribuyenteEspecial?: string;
+  rucProveedorFacturacion?: string;
   emailNotificaciones?: string;
   telefonoContacto?: string;
   logoUrl?: string;
@@ -114,6 +115,18 @@ export interface SriConnectionTestResult {
   message: string;
 }
 
+export interface SriFiscalEvidence {
+  estadoSRI?: SriWsResponse["estado"];
+  numeroAutorizacion?: string;
+  authorizationDate?: string;
+  ambiente?: SriEnvironment;
+  xmlFirmado?: string;
+  xmlAutorizado?: string;
+  authorizationVerified?: boolean;
+  mensajesSRI?: SriWsResponse["mensajes"];
+  fiscalIssuer?: Partial<SriCompanyConfig>;
+}
+
 
 export interface InvoiceItem {
   serviceId?: string;
@@ -139,7 +152,7 @@ export interface InvoiceItem {
   serialNumbers?: string[]; // Números de serie / MAC para equipos como ONTs y routers
 }
 
-export interface SriInvoice {
+export interface SriInvoice extends SriFiscalEvidence {
   subtotal?: number;
   basesByRate?: Record<string, number>;
   id: string;
@@ -187,17 +200,6 @@ export interface SriInvoice {
   paymentTermDays?: number;
 
   status: "borrador" | "emitida" | "autorizada" | "anulada" | "registrado";
-  authorizationDate?: string;
-  /** Último estado reportado por el SRI para este comprobante. */
-  estadoSRI?: "AUTORIZADO" | "NO AUTORIZADO" | "EN PROCESO" | "DEVUELTA" | "ERROR_CONEXION";
-  numeroAutorizacion?: string;
-  xmlFirmado?: string;
-  mensajesSRI?: Array<{
-    identificador?: string;
-    mensaje: string;
-    informacionAdicional?: string;
-    tipo?: string;
-  }>;
   ultimoEnvioSRI?: string;
 
   warehouseId: string;
@@ -206,6 +208,7 @@ export interface SriInvoice {
 
   sriStatus?: "pendiente" | "facturada" | "no_aplica";
   sriInvoiceId?: string;
+  sriInvoicesByEnvironment?: Partial<Record<SriEnvironment, string>>;
   sriDocumentNumber?: string;
   relatedSaleId?: string;
 
@@ -242,7 +245,7 @@ export interface ClientQuote {
   createdAt: string;
 }
 
-export interface CreditNote {
+export interface CreditNote extends SriFiscalEvidence {
   id: string;
   documentNumber: string; // ej. "001-001-000000005"
   claveAcceso: string;    // 49 dígitos
@@ -253,6 +256,7 @@ export interface CreditNote {
   clientId: string;
   clientName: string;
   clientRuc: string;
+  tipoIdentificacion?: string;
   reason: string;         // Motivo de anulación o descuento
 
   items: InvoiceItem[];
@@ -278,7 +282,7 @@ export interface WithholdingItem {
   retainedAmount: number;
 }
 
-export interface WithholdingReceipt {
+export interface WithholdingReceipt extends SriFiscalEvidence {
   id: string;
   documentNumber: string; // ej. "001-001-000000012"
   claveAcceso: string;
@@ -287,6 +291,17 @@ export interface WithholdingReceipt {
   clientName: string;
   clientRuc: string;
   invoiceNumber: string;
+  purchaseInvoiceId?: string;
+  support?: {
+    date: string;
+    authorization: string;
+    code: string;
+    relatedParty: boolean;
+    paymentCode: string;
+    subtotal: number;
+    total: number;
+    taxes: { rate: number; base: number; value: number }[];
+  };
   fiscalPeriod: string;   // MM/YYYY
   items: WithholdingItem[];
   totalRetained: number;
@@ -301,14 +316,17 @@ export interface RemissionGuideItem {
   sku?: string;
 }
 
-export interface RemissionGuide {
+export interface RemissionGuide extends SriFiscalEvidence {
   id: string;
   documentNumber: string; // ej. "001-001-000000008"
   claveAcceso: string;
   date: string;
   startDate: string;
   endDate: string;
+  invoiceId?: string;
   invoiceNumber?: string;
+  invoiceDate?: string;
+  invoiceAuthorization?: string;
   carrierName: string;
   carrierRuc: string;
   licensePlate: string;
@@ -319,7 +337,7 @@ export interface RemissionGuide {
   route: string;
   reason: string;
   items: RemissionGuideItem[];
-  status: "emitida" | "en_transito" | "entregada";
+  status: "emitida" | "autorizada" | "en_transito" | "entregada";
   createdAt: string;
 }
 
@@ -328,16 +346,19 @@ export interface DebitNoteReason {
   amount: number;
 }
 
-export interface DebitNote {
+export interface DebitNote extends SriFiscalEvidence {
   id: string;
   documentNumber: string; // ej. "001-001-000000010"
   claveAcceso: string;    // 49 dígitos oficiales del SRI
   date: string;
   modifiedInvoiceNumber: string;
+  invoiceId?: string;
   modifiedInvoiceDate: string;
   clientId: string;
   clientName: string;
   clientRuc: string;
+  tipoIdentificacion?: string;
+  paymentCode?: "01" | "16" | "19" | "20";
   clientEmail: string;
   clientAddress?: string;
   reasons: DebitNoteReason[];

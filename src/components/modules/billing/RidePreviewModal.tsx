@@ -1,5 +1,6 @@
 "use client";
 
+import JsBarcode from "jsbarcode";
 import React, { useState, useEffect, useRef } from "react";
 import {
   X,
@@ -24,14 +25,11 @@ import { DebitNote } from "@/types/billing";
 import {
   DEFAULT_INNTEL_SRI_CONFIG,
   numeroALetrasDolares,
-  generarFacturaXml,
-  generarNotaCreditoXml,
-  generarNotaDebitoXml,
-  generarComprobanteRetencionXml,
-  generarGuiaRemisionXml,
-  generarXmlFirmado,
-  descargarXmlArchivo,
+  isFiscalAuthorized,
+  fiscalStateLabel,
 } from "@/lib/sri-service";
+import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
+import { useToast } from "@/lib/toast-context";
 import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
 
 interface RidePreviewModalProps {
@@ -58,6 +56,8 @@ export function RidePreviewModal({
   initialFormat = "ride",
 }: RidePreviewModalProps) {
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const { showError } = useToast();
+  const barcodeRef = useRef<SVGSVGElement>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [xmlDownloaded, setXmlDownloaded] = useState(false);
   const [format, setFormat] = useState<"ride" | "ticket">(initialFormat);
@@ -68,9 +68,15 @@ export function RidePreviewModal({
     }
   }, [isOpen, initialFormat]);
 
+  const doc = invoice || creditNote || debitNote || withholding || remissionGuide;
+  useEffect(() => {
+    if (barcodeRef.current && doc && isFiscalAuthorized(doc) && /^\d{49}$/.test(doc.claveAcceso)) {
+      JsBarcode(barcodeRef.current, doc.claveAcceso, { format: "CODE128", displayValue: false, width: 1.3, height: 38, margin: 12 });
+    }
+  }, [doc, isOpen, format]);
+
   if (!isOpen) return null;
 
-  const doc = invoice || creditNote || debitNote || withholding || remissionGuide;
   if (!doc) return null;
 
   const isInvoice = !!invoice;
@@ -95,7 +101,7 @@ export function RidePreviewModal({
   const docNumber = doc.documentNumber;
   const claveAcceso = doc.claveAcceso;
   const fechaEmision = doc.date;
-  const emisor = companyConfig;
+  const emisor = isNotaVenta ? companyConfig : { ...companyConfig, ...doc.fiscalIssuer };
 
   // Adquiriente
   const clienteNombre = isRemissionGuide
@@ -105,23 +111,22 @@ export function RidePreviewModal({
     ? remissionGuide.destClientRuc
     : (doc as any).clientRuc || "9999999999999";
 
-  // Totales seguros
-  const subtotal15 = safeFloat(
-    (invoice && invoice.subtotal15) ||
-    (creditNote && creditNote.subtotal15) ||
-    (debitNote && (debitNote.ivaRate > 0 ? debitNote.subtotal : 0)) ||
-    0
-  );
-  const subtotal0 = safeFloat(
-    (invoice && invoice.subtotal0) ||
-    (creditNote && creditNote.subtotal0) ||
-    (debitNote && (debitNote.ivaRate === 0 ? debitNote.subtotal : 0)) ||
-    0
-  );
-  const subtotalNoObjeto = safeFloat((invoice && invoice.subtotalNoObjeto) || 0);
-  const subtotalExento = safeFloat((invoice && invoice.subtotalExento) || 0);
-  const subtotalSinImpuestos = invoice?.subtotal !== undefined ? invoice.subtotal : invoice?.items?.length ? invoice.items.reduce((sum,item) => sum + safeFloat(item.subtotal), 0) : subtotal15 + subtotal0 + subtotalNoObjeto + subtotalExento;
-  const discountTotal = safeFloat((invoice && invoice.discountTotal) || 0);
+  const documentLines = invoice?.items || creditNote?.items || [];
+  const taxesByRate = new Map<number, number>();
+  for (const item of documentLines) {
+    const rate = safeFloat(item.ivaRate);
+    taxesByRate.set(rate, (taxesByRate.get(rate) || 0) + safeFloat(item.subtotal));
+  }
+  if (!documentLines.length && invoice) {
+    taxesByRate.set(15, safeFloat(invoice.subtotal15));
+    taxesByRate.set(0, safeFloat(invoice.subtotal0));
+  }
+  if (debitNote) taxesByRate.set(debitNote.ivaRate, safeFloat(debitNote.subtotal));
+  const taxBases = [...taxesByRate].sort(([a], [b]) => b - a);
+  const subtotalSinImpuestos = taxBases.reduce((sum, [, base]) => sum + base, 0);
+  const discountTotal = invoice ? safeFloat(invoice.discountTotal)
+    : documentLines.reduce((sum, item) => sum + safeFloat(item.discount), 0);
+  const baseLabel = (rate: number) => rate === -2 ? "EXENTO DE IVA" : rate === -1 ? "NO OBJETO DE IVA" : `${rate}%`;
   const ivaTotal = safeFloat(
     (invoice && invoice.ivaTotal) ||
     (creditNote && creditNote.ivaTotal) ||
@@ -205,35 +210,17 @@ export function RidePreviewModal({
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const handleDownloadXml = () => {
+  const fiscalAuthorized = isFiscalAuthorized(doc);
+  const docEnvironment = doc.ambiente || (claveAcceso?.[23] === "2" ? "2" : "1");
+  const handleDownloadXml = async () => {
+    if (!fiscalAuthorized) return;
+    const kind = invoice ? "factura" : creditNote ? "nota_credito" : debitNote ? "nota_debito" : withholding ? "retencion" : "guia_remision";
     try {
-      let rawXml = "";
-      let fileName = "";
-
-      if (invoice && !isNotaVenta) {
-        rawXml = generarFacturaXml(invoice, emisor);
-        fileName = `SRI-FACTURA-${invoice.documentNumber}.xml`;
-      } else if (creditNote) {
-        rawXml = generarNotaCreditoXml(creditNote, emisor);
-        fileName = `SRI-NC-${creditNote.documentNumber}.xml`;
-      } else if (debitNote) {
-        rawXml = generarNotaDebitoXml(debitNote, emisor);
-        fileName = `SRI-ND-${debitNote.documentNumber}.xml`;
-      } else if (withholding) {
-        rawXml = generarComprobanteRetencionXml(withholding, emisor);
-        fileName = `SRI-RET-${withholding.documentNumber}.xml`;
-      } else if (remissionGuide) {
-        rawXml = generarGuiaRemisionXml(remissionGuide, emisor);
-        fileName = `SRI-GUIA-${remissionGuide.documentNumber}.xml`;
-      }
-
-      if (!rawXml) return;
-      const signedXml = generarXmlFirmado(rawXml, emisor);
-      descargarXmlArchivo(signedXml, fileName);
+      await downloadAuthorizedFiscalXml(kind, doc.id, docNumber);
       setXmlDownloaded(true);
       setTimeout(() => setXmlDownloaded(false), 2000);
-    } catch (e) {
-      console.error("Error al descargar XML SRI:", e);
+    } catch (error) {
+      showError("Descarga de XML", error instanceof Error ? error.message : "No se pudo descargar el comprobante.");
     }
   };
 
@@ -261,18 +248,18 @@ export function RidePreviewModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
-                  {isNotaVenta ? "COMPROBANTE DE VENTA INTERNO" : "RIDE OFICIAL SRI ECUADOR"}
+                  {isNotaVenta ? "COMPROBANTE DE VENTA INTERNO" : fiscalAuthorized ? "RIDE ELECTRÓNICO" : "VISTA PREVIA SRI"}
                 </span>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    doc.status === "autorizada" || doc.status === "registrado"
+                    fiscalAuthorized || (isNotaVenta && doc.status === "registrado")
                       ? "bg-emerald-500 text-white"
                       : doc.status === "anulada"
                       ? "bg-rose-500 text-white"
                       : "bg-amber-400 text-slate-900"
                   }`}
                 >
-                  {isNotaVenta && doc.status === "autorizada"
+                  {!isNotaVenta ? fiscalStateLabel(doc) : isNotaVenta && doc.status === "autorizada"
                     ? "REGISTRADO"
                     : doc.status.toUpperCase()}
                 </span>
@@ -328,6 +315,7 @@ export function RidePreviewModal({
             {!isNotaVenta && (
               <button
                 onClick={handleDownloadXml}
+                disabled={!fiscalAuthorized}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20 transition cursor-pointer"
                 title="Descargar XML Firmado XAdES-BES"
               >
@@ -338,6 +326,7 @@ export function RidePreviewModal({
 
             <button
               onClick={handlePrint}
+              disabled={!isNotaVenta && !fiscalAuthorized}
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -379,7 +368,7 @@ export function RidePreviewModal({
                 {emisor.telefonoContacto && <p className="text-[9.5px]">Tel: {emisor.telefonoContacto}</p>}
                 {!isNotaVenta && (
                   <p className="text-[9.5px]">
-                    Ambiente: {emisor.ambiente === "2" ? "PRODUCCIÓN" : "PRUEBAS"} | Obligado Contab: {emisor.obligadoContabilidad ? "SI" : "NO"}
+                    Ambiente: {docEnvironment === "2" ? "PRODUCCIÓN" : "PRUEBAS · SIN VALIDEZ TRIBUTARIA"} | Obligado Contab: {emisor.obligadoContabilidad ? "SI" : "NO"}
                   </p>
                 )}
               </div>
@@ -438,14 +427,11 @@ export function RidePreviewModal({
               </table>
 
               <div className="space-y-1 text-[10.5px] border-b border-dashed border-slate-400 pb-3 mb-3">
-                <div className="flex justify-between">
-                  <span>SUBTOTAL 15%:</span>
-                  <span>${safeNumber(subtotal15)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>SUBTOTAL 0%:</span>
-                  <span>${safeNumber(subtotal0)}</span>
-                </div>
+                {taxBases.map(([rate, base]) => (
+                  <div key={rate} className="flex justify-between">
+                    <span>SUBTOTAL {baseLabel(rate)}:</span><span>${safeNumber(base)}</span>
+                  </div>
+                ))}
                 {discountTotal > 0 && (
                   <div className="flex justify-between">
                     <span>DESCUENTO:</span>
@@ -597,22 +583,22 @@ export function RidePreviewModal({
                           <span className="font-bold text-slate-900">NÚMERO DE AUTORIZACIÓN:</span>
                           <br />
                           <span className="font-mono text-[9.5px] break-all text-slate-900 font-semibold select-all">
-                            {claveAcceso}
+                            {fiscalAuthorized ? doc.numeroAutorizacion : "Pendiente"}
                           </span>
                         </p>
                         <p>
                           <span className="font-bold text-slate-900">FECHA Y HORA DE AUTORIZACIÓN:</span>{" "}
-                          {invoice && invoice.authorizationDate
-                            ? new Date(invoice.authorizationDate).toLocaleString("es-EC")
-                            : `${fechaEmision} ${invoice?.time || "10:35:00"}`}
+                          {fiscalAuthorized && doc.authorizationDate ? new Date(doc.authorizationDate).toLocaleString("es-EC", { timeZone: "America/Guayaquil" }) : "Pendiente"}
                         </p>
                         <p>
                           <span className="font-bold text-slate-900">AMBIENTE:</span>{" "}
-                          <span className="font-bold text-slate-900">{emisor.ambiente === "2" ? "PRODUCCIÓN" : "PRUEBAS"}</span>
+                          <span className="font-bold text-slate-900">{docEnvironment === "2" ? "PRODUCCIÓN" : "PRUEBAS"}</span>
                         </p>
                         <p>
-                          <span className="font-bold text-slate-900">EMISIÓN:</span> NORMAL
+                          <span className="font-bold text-slate-900">ESTADO:</span> {fiscalStateLabel(doc)}
+                          {docEnvironment === "1" && <strong className="block text-amber-800">COMPROBANTE DE PRUEBAS</strong>}
                         </p>
+                        {emisor.rucProveedorFacturacion && <p>RUC Proveedor: {emisor.rucProveedorFacturacion}</p>}
                       </div>
 
                       {/* Código de barras visual Code 128 y clave de acceso */}
@@ -622,18 +608,7 @@ export function RidePreviewModal({
                         </span>
 
                         <div className="w-full bg-white py-0.5 flex items-center justify-center overflow-hidden">
-                          <svg
-                            className="w-full h-8"
-                            viewBox="0 0 320 40"
-                            preserveAspectRatio="none"
-                            fill="currentColor"
-                          >
-                            {Array.from({ length: 70 }).map((_, i) => {
-                              const width = (i * 17) % 5 === 0 ? 3 : (i * 13) % 3 === 0 ? 2 : 1;
-                              const x = i * 4.5;
-                              return <rect key={i} x={x} y="0" width={width} height="40" fill="#0f172a" />;
-                            })}
-                          </svg>
+                          {fiscalAuthorized && <svg ref={barcodeRef} className="h-auto max-w-full" role="img" aria-label="Código de barras de la clave de acceso" />}
                         </div>
 
                         <p className="text-center font-mono font-bold text-[10px] tracking-wider text-slate-900 break-all select-all">
@@ -708,7 +683,7 @@ export function RidePreviewModal({
                         Comprobante de Sustento: Factura No. {withholding.invoiceNumber}
                       </p>
                       <p className="text-sky-800 text-[10.5px]">
-                        Período Fiscal: {withholding.fiscalPeriod}
+                        Período Fiscal: {withholding.fiscalPeriod}{withholding.support && ` · Fecha de sustento ${withholding.support.date}`}
                       </p>
                     </div>
                   )}
@@ -721,6 +696,10 @@ export function RidePreviewModal({
                       <p>
                         <strong className="text-indigo-950">Placa Vehículo:</strong> {remissionGuide.licensePlate}
                       </p>
+                      <p><strong className="text-indigo-950">Origen:</strong> {remissionGuide.originAddress}</p>
+                      <p><strong className="text-indigo-950">Traslado:</strong> {remissionGuide.startDate} a {remissionGuide.endDate}</p>
+                      <p><strong className="text-indigo-950">Motivo:</strong> {remissionGuide.reason}</p>
+                      {remissionGuide.invoiceNumber && <p><strong className="text-indigo-950">Factura de sustento:</strong> {remissionGuide.invoiceNumber} · {remissionGuide.invoiceDate}</p>}
                       <p>
                         <strong className="text-indigo-950">Ruta:</strong> {remissionGuide.route}
                       </p>
@@ -1014,22 +993,12 @@ export function RidePreviewModal({
                 <div className="md:col-span-5 print:col-span-5">
                   {(isInvoice || isCreditNote || isDebitNote) ? (
                     <div className="rounded-lg border-2 border-slate-900 overflow-hidden divide-y divide-slate-200 text-[11px]">
-                      <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
-                        <span className="font-bold text-slate-700">SUBTOTAL 15%:</span>
-                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotal15)}</span>
-                      </div>
-                      <div className="flex justify-between px-3.5 py-1.5">
-                        <span className="font-bold text-slate-700">SUBTOTAL 0%:</span>
-                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotal0)}</span>
-                      </div>
-                      <div className="flex justify-between px-3.5 py-1.5 bg-slate-50">
-                        <span className="font-bold text-slate-700">SUBTOTAL NO OBJETO DE IVA:</span>
-                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotalNoObjeto)}</span>
-                      </div>
-                      <div className="flex justify-between px-3.5 py-1.5">
-                        <span className="font-bold text-slate-700">SUBTOTAL EXENTO DE IVA:</span>
-                        <span className="font-mono font-semibold text-slate-900">${safeNumber(subtotalExento)}</span>
-                      </div>
+                      {taxBases.map(([rate, base]) => (
+                        <div key={rate} className="flex justify-between px-3.5 py-1.5 even:bg-slate-50">
+                          <span className="font-bold text-slate-700">SUBTOTAL {baseLabel(rate)}:</span>
+                          <span className="font-mono font-semibold text-slate-900">${safeNumber(base)}</span>
+                        </div>
+                      ))}
                       <div className="flex justify-between px-3.5 py-1.5 bg-slate-50 font-bold">
                         <span className="text-slate-900">SUBTOTAL SIN IMPUESTOS:</span>
                         <span className="font-mono text-slate-900">${safeNumber(subtotalSinImpuestos)}</span>

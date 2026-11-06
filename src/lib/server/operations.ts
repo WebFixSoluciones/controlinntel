@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { adminServices } from "./admin.ts";
 import { audit, HttpError, requirePermission } from "./security.ts";
-import { can, canAccessModule, canAccessSubmodule, canUser, collectionPermissions, type Entity } from "../permissions.ts";
+import { can, canAccessModule, canAccessSubmodule, canManageTicketDepartments, canUser, canViewServicePrices, collectionPermissions, type Entity } from "../permissions.ts";
 import { schemas } from "./schemas.ts";
 import { seal, unseal, initializeVaultKey } from "./vault.ts";
 import { requireVaultAccess } from "./vault-access.ts";
@@ -12,8 +12,15 @@ import { simpleDecrypt } from "../crypto-vault.ts";
 import { canReadCollection,storageName } from "../persistence-contracts.ts";
 import { quoteCompanyDetails } from "../quote-company.ts";
 import { canManageExpenseCategories, expenseCategoriesWithDefaults, expenseCategoryKey, type ExpenseCategory } from "../expense-categories.ts";
+import { fiscalMetadata } from "./sri-metadata.ts";
+import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
+import { resolveTicketDepartments } from "../ticket-departments.ts";
+import { nextTicketNumber } from "./ticket-sequence.ts";
+import { isClosedTicketStatus, requiresPublicTicketReply } from "../ticket-status.ts";
+import type { TicketDepartmentRecord } from "@/types";
 
 const now = () => new Date().toISOString();
+const fiscalCollections: ReadonlySet<string> = new Set(["billingCreditNotes", "billingDebitNotes", "billingWithholdings", "billingRemissionGuides", "purchaseWithholdings"]);
 export async function snapshot(user: UserProfile) {
   const {db} = adminServices();
   const result: Record<string, unknown> = {currentUser:user};
@@ -66,15 +73,23 @@ export async function snapshot(user: UserProfile) {
           return { ...rest, hasPassword: true };
         });
       }
-      if (entity==="inventoryProducts"&&!canUser(user,"inventarios","canViewCosts")) delete value.baseCost;
       if (entity==="clientProjects"&&!can(user,"manage_finance")) {delete value.estimatedBudget;delete value.executedCost;}
       if (entity==="policies") {
         value.daysUntilExpiration=Math.ceil((Date.parse(value.expirationDate)-Date.now())/86400000);
         value.status=value.daysUntilExpiration<0?"vencida":value.daysUntilExpiration<=30?"por_vencer":"vigente";
       }
-      return redact(value);
+      const visible = visibleServiceData(user, entity, value);
+      return redact((entity === "billingInvoices" && value.documentType !== "nota_venta") || fiscalCollections.has(entity) ? fiscalMetadata(visible) : visible);
     });
   }));
+  if (canAccessModule(user, "tickets") && can(user, "manage_tickets")) {
+    const directory = await db.collection("users").where("status", "==", "activo").select("displayName", "role", "permissions", "modulePermissions").get();
+    result.ticketAssignees = directory.docs.flatMap(doc => {
+      const data = doc.data() as UserProfile;
+      return data.displayName && canAccessModule({ ...data, status: "activo" }, "tickets") && can({ ...data, status: "activo" }, "manage_tickets")
+        ? [{ uid: doc.id, displayName: data.displayName, role: data.role }] : [];
+    });
+  } else result.ticketAssignees = [];
   return result;
 }
 export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number, database?: Firestore) {
@@ -82,23 +97,33 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
   requirePermission(user,permission);
   if (entity === "expenseCategories" && !canManageExpenseCategories(user)) throw new HttpError(403, "No tienes permiso para administrar las categorías de gastos.");
+  if (["tickets", "ticketSubjects", "ticketDepartments"].includes(entity) && !canAccessModule(user, "tickets")) throw new HttpError(403,"Acceso restringido a Soporte.");
+  if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
+  if (entity === "ticketDepartments" && !canManageTicketDepartments(user)) throw new HttpError(403,"No tienes permiso para administrar departamentos de soporte.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "save");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   if(entity==="systemUsers")throw new HttpError(400,"Utiliza la administración de cuentas autenticadas.");
   if(entity==="auditLogs")throw new HttpError(400,"La auditoría es generada por el servidor.");
+  if(entity==="billingInvoices" || fiscalCollections.has(entity)) throw new HttpError(400,"Utiliza el flujo comercial o de Facturación SRI para este comprobante.");
   const db = database || adminServices().db;
   const reference=db.collection(entity).doc(id || randomUUID());
   return db.runTransaction(async tx=>{
     const old=await tx.get(reference);
+    if (!canViewServicePrices(user) && (entity === "plans" || entity === "clientContracts" || entity === "hostingDomains")
+      && (!old.exists || servicePriceFields[entity].some(key => key in input && input[key] !== old.data()?.[key]))) {
+      throw new HttpError(403, "No tienes permiso para registrar o cambiar los valores del servicio.");
+    }
     if (entity === "arcotelFiles" && !old.exists && (!input.fileUrl || input.fileUrl === "#")) {
       throw new HttpError(400, "Carga el archivo original antes de registrar el documento regulatorio.");
     }
     if (["clientServices","inventoryProducts","inventoryKardex","inventoryTransfers","inventoryAdjustments","bankAccounts","financialMovements","clientAdvances","supplierPayments","supplierCreditNotes","supplierDebitNotes","supplierCredits","expenses"].includes(entity)) throw new HttpError(400,"Utiliza la operación comercial para preservar sus relaciones e historial.");
     if(entity==="clients"&&!old.exists)throw new HttpError(400,"Utiliza el alta de cliente con reserva de identificación.");
-    if(entity==="billingInvoices"&&input.documentType==="nota_venta"&&!old.exists)throw new HttpError(400,"Utiliza la emisión comercial.");
-    if(entity==="billingInvoices"&&old.data()?.documentType==="nota_venta") {
-      const permitted=new Set(["id","version","updatedAt","sriStatus","sriInvoiceId","sriDocumentNumber"]);
-      if(Object.keys(input).some(key=>!permitted.has(key)&&digest(input[key])!==digest(old.data()?.[key]??null)))throw new HttpError(400,"Utiliza edición o anulación comercial para cambiar esta venta.");
+    if (entity === "sriCompanyConfig") {
+      const sensitive = /^(ruc|razonSocial|nombreComercial|direccionMatriz|direccionEstablecimiento|ambiente|establecimiento|puntoEmision.*|secuencial(?!NotaVenta|Cotizacion).*|obligadoContabilidad|tipoContribuyente|resolucionAgenteRetencion|contribuyenteEspecial|rucProveedorFacturacion)$/;
+      if (Object.keys(input).some(key => sensitive.test(key) && digest(input[key]) !== digest(old.data()?.[key] ?? null))
+        && !canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
+      input = Object.fromEntries(Object.entries(input).filter(([key]) => !key.startsWith("certificado")));
+      if (input.rucProveedorFacturacion && !/^\d{13}$/.test(input.rucProveedorFacturacion)) throw new HttpError(400, "El RUC del proveedor debe tener 13 dígitos.");
     }
     if(entity==="monthlyCharges") {
       if(!old.exists||Object.keys(input).some(key=>!["id","version","maxPaymentDate","notes","updatedAt"].includes(key)))throw new HttpError(400,"Solo fecha de vencimiento y notas se editan desde este formulario.");
@@ -113,6 +138,30 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       const categories = expenseCategoriesWithDefaults(records.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ExpenseCategory));
       if (categories.some(category => category.id !== reference.id && expenseCategoryKey(category.name) === expenseCategoryKey(data.name))) {
         throw new HttpError(409, "Ya existe una categoría de gasto con ese nombre.");
+      }
+    }
+    if (entity === "userRoleTemplates") {
+      const templates = await tx.get(db.collection("userRoleTemplates"));
+      if (templates.docs.some(doc => doc.id !== reference.id && doc.data().name.toLocaleLowerCase("es") === data.name.toLocaleLowerCase("es"))) {
+        throw new HttpError(409, "Ya existe una plantilla de rol con ese nombre.");
+      }
+    }
+    if (entity === "ticketDepartments" || entity === "tickets" || entity === "ticketSubjects") {
+      const field = entity === "ticketSubjects" ? "defaultDepartment" : "department";
+      if (entity === "ticketDepartments" || !old.exists || data[field] !== old.data()?.[field]) {
+        const records = await tx.get(db.collection("ticketDepartments"));
+        const departments = resolveTicketDepartments(records.docs.map(doc => ({ ...doc.data(), id: doc.id }) as TicketDepartmentRecord));
+        if (entity === "ticketDepartments") {
+          const nameKey = (name: string) => name.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es");
+          if (departments.some(department => department.id !== reference.id && nameKey(department.name) === nameKey(data.name))) {
+            throw new HttpError(409, "Ya existe un departamento con ese nombre.");
+          }
+        } else {
+          if (!data[field] && entity === "tickets" && !old.exists) data[field] = departments.find(department => department.active)?.id;
+          if (!departments.some(department => department.id === data[field] && department.active)) {
+            throw new HttpError(400, "Selecciona un departamento de soporte activo.");
+          }
+        }
       }
     }
     if(entity==="clients") {data.currentBalance=old.data()?.currentBalance??0;data.totalActiveServices=old.data()?.totalActiveServices??0;}
@@ -130,7 +179,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     if (data.clientId) {
       const parent=await tx.get(db.collection("clients").doc(data.clientId));
       if (!parent.exists && data.clientId !== "cf-9999999999999") throw new HttpError(400,"Cliente inexistente.");
-      if (["billingQuotes", "clientQuotes", "billingInvoices"].includes(entity) && parent.data()?.status === "retirado") {
+      if (["billingQuotes", "clientQuotes"].includes(entity) && parent.data()?.status === "retirado") {
         throw new HttpError(409, "El cliente está retirado y no puede cotizar ni facturar.");
       }
     }
@@ -183,12 +232,26 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       if (!old.exists) data.quoteNumber="ORD-"+reference.id;
     }
     if (entity==="tickets") {
+      if (requiresPublicTicketReply(old.data()?.status, data.status)) {
+        throw new HttpError(400, "Resuelve o cierra el ticket desde el formulario de respuesta al cliente.");
+      }
+      for (const field of ["messages", "lastReplyAt", "lastReplier", "resolutionNotes", "resolvedAt"]) {
+        if (old.data()?.[field] !== undefined) data[field] = old.data()?.[field];
+        else delete data[field];
+      }
       if (!old.exists) {
-        data.ticketNumber="TCK-"+reference.id;
+        data.ticketNumber=await nextTicketNumber(db, tx);
+        delete data.previousTicketNumber;
         const hours:Record<string,number>={critica:4,alta:8,media:24,baja:72};
         data.slaDueAt=new Date(Date.now()+hours[data.priority]*3600000).toISOString();
       }
-      if (data.status==="resuelto" || data.status==="cerrado") data.resolvedAt=old.data()?.resolvedAt || now();
+      if (old.exists) {
+        for (const field of ["ticketNumber", "previousTicketNumber"]) {
+          if (old.data()?.[field] !== undefined) data[field] = old.data()?.[field];
+          else delete data[field];
+        }
+      }
+      if (!isClosedTicketStatus(data.status)) delete data.resolvedAt;
     }
     if (entity==="purchaseInvoices" && !old.exists) {
       const rucClean = String(data.supplierRuc || "").replace(/\D/g, "");
@@ -202,19 +265,10 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
         tx.create(dupRef, { createdAt: now(), invoiceId: reference.id });
       }
     }
-    if (entity==="billingInvoices" && !old.exists && data.claveAcceso) {
-      const claveClean = String(data.claveAcceso).trim();
-      const dupClave = db.collection("claveAccesoUniqueness").doc(claveClean);
-      const snap = await tx.get(dupClave);
-      if (snap.exists) {
-        throw new HttpError(409, `La clave de acceso SRI ${claveClean} ya fue registrada previamente.`);
-      }
-      tx.create(dupClave, { createdAt: now(), invoiceId: reference.id });
-    }
     const updated={...data,id:reference.id,version:(old.data()?.version||0)+1,createdAt:old.data()?.createdAt||now(),updatedAt:now()};
     tx.set(reference,updated);
     recordOperation(tx,db,user,old.exists?"UPDATE":"CREATE",[{collection:reference.parent.id,id:reference.id,beforeVersion:old.data()?.version ?? null,after:updated}]);
-    return redact(updated);
+    return redact(visibleServiceData(user, entity, updated));
   });
 }
 export async function remove(user:UserProfile,entity:Entity,id:string,version?:number,database?: Firestore) {
@@ -222,9 +276,12 @@ export async function remove(user:UserProfile,entity:Entity,id:string,version?:n
   if (entity === "expenseCategories") throw new HttpError(400, "Desactiva la categoría para conservar el historial de gastos.");
   if (entity === "expenses") throw new HttpError(400, "El gasto está vinculado a un movimiento de caja y requiere conciliación.");
   requirePermission(user,collectionPermissions[entity]);
+  if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
+  if (entity === "ticketDepartments") throw new HttpError(400,"Desactiva el departamento para conservar los tickets históricos.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "delete");
   if(user.role==="consulta")throw new HttpError(403,"Perfil de consulta.");
   if(entity==="systemUsers")throw new HttpError(400,"Desactiva la cuenta desde administración de usuarios.");
+  if (fiscalCollections.has(entity) || entity === "sriCompanyConfig") throw new HttpError(400,"Conserva el historial fiscal.");
   if(["monthlyCharges","clientServices","billingInvoices","purchaseInvoices","clientAdvances","bankAccounts","financialMovements","inventoryProducts","inventoryKardex","inventoryTransfers","inventoryAdjustments","supplierPayments"].includes(entity))throw new HttpError(400,"Conserva el historial mediante retiro, ajuste o anulación comercial.");
   const db = database || adminServices().db;
   await db.runTransaction(async tx=>{

@@ -1,4 +1,4 @@
-import { addMonthsSafely, diffInCalendarDays } from "./date-utils.ts";
+import { addMonthsSafely, diffInCalendarDays, getEcuadorDate } from "./date-utils.ts";
 
 export type RecordData = Record<string, any>;
 export class CommercialValidationError extends Error {}
@@ -37,7 +37,7 @@ export function dateOnDay(month: string, day: number) {
   return `${month.slice(0, 7)}-${String(Math.min(day, new Date(Date.UTC(y, m, 0)).getUTCDate())).padStart(2, "0")}`;
 }
 
-export function planServicePeriod(service: RecordData, month: number, year: number, today: string, options: { allowFuture?: boolean } = {}) {
+export function planServicePeriod(service: RecordData, month: number, year: number, today: string) {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2020 || year > 2100) throw new CommercialValidationError("Período inválido.");
   const skip = (reason: string) => ({ eligible: false as const, serviceId: String(service.id), reason });
   if (service.status !== "activo" || service.isBillableInCurrentCycle === false) return skip("Servicio no activo o no facturable.");
@@ -61,9 +61,7 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
   if(service.creditDays===undefined&&service.billingDay){dueDate=dateOnDay(issueDate,Number(service.billingDay));if(dueDate<issueDate)dueDate=dateOnDay(addMonthsSafely(issueDate,1),Number(service.billingDay));}
   let noticeDate=dueDate;
   if(service.advanceNoticeDay){noticeDate=dateOnDay(dueDate,Number(service.advanceNoticeDay));if(noticeDate>dueDate)noticeDate=dateOnDay(addMonthsSafely(dueDate,-1),Number(service.advanceNoticeDay));}
-  // El alta de servicio emite su primer período por anticipado (documento posfechado),
-  // por eso solo el flujo de asignación habilita explícitamente allowFuture.
-  if (!options.allowFuture && issueDate > today) return skip("El período todavía no es exigible.");
+  if (issueDate > today) return skip("El período todavía no es exigible.");
   const unitPrice = service.customPrice ?? service.basePrice;
   const rate = service.ivaRate;
   if (unitPrice === undefined || rate === undefined) return skip("Revisa la tarifa y el impuesto del servicio.");
@@ -76,6 +74,24 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
       sku: service.inventorySku || "SRV", name: service.planName, description: `${billingStart} al ${addDays(periodEnd, -1)} (${prepaid ? "PREPAGO" : "POSTPAGO"})`,
       unit: "servicio", quantity: 1, unitPrice: money(cents(Number(unitPrice) * ratio)), ivaRate: Number(rate), discount: 0, periodStart, periodEnd, zeroPriceReason:service.zeroPriceReason||"" },
   };
+}
+
+export type EligibleServicePeriod = Extract<ReturnType<typeof planServicePeriod>, { eligible: true }>;
+
+export function scheduledServicePeriods(service: RecordData, today: string): EligibleServicePeriod[] {
+  if (!validDate(today) || !today.endsWith("-01")) return [];
+  const previousRun = addMonthsSafely(today, -1);
+  const registeredDate = typeof service.createdAt === "string" && Number.isFinite(Date.parse(service.createdAt))
+    ? getEcuadorDate(service.createdAt) : "";
+  const periods: EligibleServicePeriod[] = [];
+  // Un ciclo anual pospago puede haberse iniciado hasta trece meses antes de la corrida.
+  for (let offset = 13; offset >= 0; offset--) {
+    const [year, month] = addMonthsSafely(today, -offset).split("-").map(Number);
+    if (year < 2020) continue;
+    const plan = planServicePeriod(service, month, year, today);
+    if (plan.eligible && (plan.issueDate > previousRun || (plan.issueDate === previousRun && registeredDate >= previousRun))) periods.push(plan);
+  }
+  return periods;
 }
 export function addDays(value: string, days: number) {
   if (!validDate(value) || !Number.isInteger(days) || Math.abs(days) > 3650) throw new CommercialValidationError("Fecha o plazo inválido.");

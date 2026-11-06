@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Client,
   SriInvoice,
@@ -11,13 +12,12 @@ import {
   ServiceContractDuration,
   ServiceCategory,
   ServicePaymentMethod,
-  InvoiceItem,
 } from "@/types";
 import { InventoryProduct } from "@/types/inventory";
+import { canAccessRoute, canAccessSubmodule, canUser, canViewServicePrices } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
-import { dateOnDay } from "@/lib/commercial-core";
 import {
   getEcuadorDate,
   addMonthsSafely,
@@ -26,7 +26,6 @@ import {
   calculateContractEndDate,
   calculateNextRenewalDate,
 } from "@/lib/date-utils";
-import { NewSaleView } from "../billing/NewSaleView";
 import { ProductModal } from "../inventory/ProductModal";
 import { RidePreviewModal } from "../billing/RidePreviewModal";
 import {
@@ -54,6 +53,7 @@ import {
 
 export function ClientContractTab({ client }: { client: Client }) {
   const {
+    currentUser,
     clientServices,
     billingInvoices,
     inventoryProducts,
@@ -63,11 +63,11 @@ export function ClientContractTab({ client }: { client: Client }) {
     deleteClientService,
     renewClientService,
   } = useApp();
-  const { showError, showSuccess, showWarning, showConfirm } = useToast();
+  const showPrices = canViewServicePrices(currentUser);
+  const canAssign = showPrices && canUser(currentUser, "clientes", "canEditClient");
+  const canEditPrices = canAssign && canUser(currentUser, "clientes", "canEditServicePrices");
+  const { showError, showSuccess, showConfirm } = useToast();
 
-  // Mode: Sale Emission / Add service via sale
-  const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
-  const [saleInitialItems, setSaleInitialItems] = useState<InvoiceItem[] | undefined>(undefined);
   const [rideInvoiceToPreview, setRideInvoiceToPreview] = useState<SriInvoice | null>(null);
 
   // Quick form to add a service strictly from INVENTARIO DE SERVICIOS
@@ -436,28 +436,10 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   const handleBillingDayChange = (day: number) => {
     setNewSvcBillingDay(day);
-    if (newSvcRenewalDate) {
-      const parts = newSvcRenewalDate.split("-");
-      if (parts.length === 3) {
-        const year = parts[0];
-        const month = parts[1];
-        const dayStr = String(day).padStart(2, "0");
-        setNewSvcRenewalDate(dateOnDay(`${year}-${month}`, day));
-      }
-    }
   };
 
   const handleEditBillingDayChange = (day: number) => {
     setEditBillingDay(day);
-    if (editRenewalDate) {
-      const parts = editRenewalDate.split("-");
-      if (parts.length === 3) {
-        const year = parts[0];
-        const month = parts[1];
-        const dayStr = String(day).padStart(2, "0");
-        setEditRenewalDate(dateOnDay(`${year}-${month}`, day));
-      }
-    }
   };
 
   // Add new service handler taking exclusively from INVENTARIO DE SERVICIOS
@@ -479,7 +461,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
     setSavingService(true);
     try {
-      const created = await addClientService({
+      await addClientService({
         clientId: client.id,
         planId: selectedService.id,
         planName: finalName,
@@ -519,23 +501,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         installationAddress: client.address || "Dirección Principal",
         installationDate: newSvcStartDate || getEcuadorDate(),
       });
-      const issued = created?.invoice;
-      if (issued) {
-        showSuccess(
-          "Servicio Asignado y Facturado",
-          `Nota de venta ${issued.documentNumber} por $${safeNumber(issued.total)} con fecha ${issued.date}. Ya está registrada en cobranzas.`
-        );
-      } else if (created?.firstInvoiceSkipped) {
-        showWarning(
-          "Servicio Asignado sin Nota",
-          `No se emitió el comprobante: ${created.firstInvoiceSkipped} Corrígelo desde la ficha antes del próximo ciclo.`
-        );
-      } else {
-        showSuccess(
-          "Servicio Asignado",
-          `Se vinculó "${finalName}" (${getFreqLabel(newSvcFreq)} / Contrato: ${getDurationLabel(newSvcDuration)}) a la ficha del cliente.`
-        );
-      }
+      showSuccess("Servicio asignado", "La nota de venta se generará en el ciclo elegible del día 1 o por emisión manual en Ventas recurrentes.");
       setSelectedService(null);
       setServiceSearchQuery("");
       setNewSvcName("");
@@ -674,36 +640,6 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
-  // Launch New Sale pre-configured with this client service
-  const handleGenerateNotaVentaForService = (svc: ClientService) => {
-    const price = svc.customPrice ?? svc.basePrice ?? 0;
-    const ivaRate = svc.ivaRate ?? 15;
-    const ivaAmount = Math.round(price * (ivaRate / 100) * 100) / 100;
-    const total = svc.priceConIva ?? Math.round((price + ivaAmount) * 100) / 100;
-
-    const item: InvoiceItem = {
-      id: `it-${Date.now()}`,
-      productId: svc.inventoryProductId || svc.planId,
-      sku: svc.inventorySku || "SRV-001",
-      name: svc.planName,
-      description:
-        svc.description ||
-        svc.notes ||
-        `Servicio contratado: ${svc.planName} (${svc.billingFrequency === "anual" ? "Anual" : "Mensual"})`,
-      unit: "servicio",
-      quantity: 1,
-      unitPrice: price,
-      discount: 0,
-      ivaRate,
-      subtotal: price,
-      ivaAmount,
-      total,
-    };
-
-    setSaleInitialItems([item]);
-    setIsNewSaleOpen(true);
-  };
-
   // View linked sales document RIDE / Ticket
   const handleOpenSaleDoc = (svc: ClientService) => {
     const inv = billingInvoices.find(
@@ -835,30 +771,6 @@ export function ClientContractTab({ client }: { client: Client }) {
     }
   };
 
-  if (isNewSaleOpen) {
-    return (
-      <div className="animate-in fade-in duration-200">
-        <NewSaleView
-          initialClientId={client.id}
-          initialDocType="nota_venta"
-          initialItems={saleInitialItems}
-          onBack={() => {
-            setIsNewSaleOpen(false);
-            setSaleInitialItems(undefined);
-          }}
-          onSuccess={(invoice) => {
-            setIsNewSaleOpen(false);
-            setSaleInitialItems(undefined);
-            showSuccess(
-              "Venta Registrada",
-              `${invoice.documentType === "nota_venta" ? "Nota de Venta" : "Factura"} ${invoice.documentNumber} emitida con éxito. El servicio quedó vinculado y al día.`
-            );
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Banner de alerta cuando existen servicios a punto de caducar o vencidos */}
@@ -892,7 +804,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         {/* 1.1 Si no hay servicios creados en inventario: Aviso guiado con acceso directo */}
-        {isAddingService && availableServices.length === 0 && (
+        {canAssign && isAddingService && availableServices.length === 0 && (
           <div className="p-4 px-6 bg-amber-50 border-b border-amber-200 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
@@ -928,7 +840,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         )}
 
         {/* 1.2 Formulario de asignación exclusiva desde INVENTARIO DE SERVICIOS */}
-        {isAddingService && availableServices.length > 0 && (
+        {canAssign && isAddingService && availableServices.length > 0 && (
           <form
             onSubmit={handleCreateService}
             className="p-5 px-6 bg-[#f8f9ff] border-b border-[#e2e8f0] space-y-4 animate-in fade-in"
@@ -1176,7 +1088,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </span>
               </div>
 
-              {/* Fila 1: Modalidad, Día Facturación, Anticipo Cobranza, Tipo */}
+              {/* Fila 1: Modalidad, día de cobro, anticipo de cobranza y tipo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Modalidad: PREPAGO / POSTPAGO */}
                 <div>
@@ -1196,10 +1108,9 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </span>
                 </div>
 
-                {/* Día de Facturación */}
                 <div>
                   <label htmlFor="client-contract-tab-field-5" className="block text-xs font-bold text-[#434655] mb-1">
-                    Día de Facturación *
+                    Día de cobro *
                   </label>
                   <select id="client-contract-tab-field-5"
                     value={newSvcBillingDay}
@@ -1216,7 +1127,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <option value={28}>Día 28 de cada mes</option>
                     <option value={30}>Día 30 de cada mes</option>
                   </select>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Emisión periódica</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Vencimiento de la cuenta por cobrar</span>
                 </div>
 
                 {/* Anticipo de Cobranza */}
@@ -1318,7 +1229,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 {/* Próximo Cobro */}
                 <div>
                   <label htmlFor="client-contract-tab-field-10" className="block text-xs font-bold text-[#434655] mb-1">
-                    Próximo Cobro / Facturación *
+                    Próxima renovación *
                   </label>
                   <input id="client-contract-tab-field-10"
                     type="date"
@@ -1455,7 +1366,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
         {/* Barra de búsqueda y filtro rápido de estado con botones de acción alineados a la derecha */}
         <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <div className="relative min-w-0 w-full sm:flex-1 sm:max-w-xs">
             <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
             <input
               type="text"
@@ -1504,6 +1415,14 @@ export function ClientContractTab({ client }: { client: Client }) {
 
             <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
 
+            {canAccessRoute(currentUser, "/ventas") && canAccessSubmodule(currentUser, "ventas", "recurrentes") && canUser(currentUser, "facturacion", "canCreateInvoice") && (
+              <Link href={`/ventas?sub=recurrentes&cliente=${encodeURIComponent(client.id)}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-semibold text-[#004ac6] hover:bg-blue-50">
+                <ExternalLink className="w-3.5 h-3.5" />
+                Ventas recurrentes
+              </Link>
+            )}
+            {canAssign && (
             <button
               type="button"
               onClick={() => setIsAddingService((prev) => !prev)}
@@ -1512,33 +1431,32 @@ export function ClientContractTab({ client }: { client: Client }) {
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingService ? "Cerrar" : "Agregar Servicio"}</span>
             </button>
+            )}
           </div>
         </div>
 
         {/* Tabla de Control Individual de Servicios Contratados */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[850px] table-fixed">
+        <div role="region" aria-label="Tabla de servicios contratados" tabIndex={0} className="max-w-full overflow-x-auto overscroll-x-contain">
+          <table className={`w-full text-left text-xs table-fixed ${showPrices ? "min-w-[63rem]" : "min-w-[56rem]"}`}>
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5 w-4/12">Servicio</th>
-                <th className="py-3 px-4 w-1/12">Ciclo</th>
-                <th className="py-3 px-4 w-2/12">Renovación</th>
-                <th className="py-3 px-4 w-1/12 text-center">Estado</th>
-                <th className="py-3 px-4 w-1/12 text-center">Facturar</th>
-                <th className="py-3 px-4 w-1/12 text-right">Tarifa</th>
-                <th className="py-3 px-5 w-2/12 text-right">Acciones</th>
+                <th className="py-3 px-5">Servicio</th>
+                <th className="py-3 px-4 w-[7rem]">Ciclo</th>
+                <th className="py-3 px-4 w-[10rem]">Renovación</th>
+                <th className="py-3 px-4 w-[7rem] text-center">Estado</th>
+                <th className="py-3 px-4 w-[8rem] text-center">Facturar</th>
+                {showPrices && <th className="py-3 px-4 w-[7rem] text-right">Tarifa</th>}
+                <th className="py-3 px-5 w-[10rem] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
               {filteredServices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-10 text-center text-xs text-[#737686]">
+                  <td colSpan={showPrices ? 7 : 6} className="py-10 text-center text-xs text-[#737686]">
                     <p className="font-bold text-[#434655]">
                       No hay servicios registrados con este filtro.
                     </p>
-                    <p className="text-xs text-[#64748b] mt-1">
-                      Usa el botón <strong>&quot;Agregar Servicio&quot;</strong> para asignar servicios del Inventario de Servicios al cliente.
-                    </p>
+                    {canAssign && <p className="text-xs text-[#64748b] mt-1">Usa Agregar Servicio para asignar un servicio del inventario.</p>}
                   </td>
                 </tr>
               ) : (
@@ -1704,44 +1622,44 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 6. Tarifa Base */}
-                      <td className="py-3.5 px-4 text-right font-mono text-xs">
+                      {showPrices && <td className="py-3.5 px-4 text-right font-mono text-xs">
                         <span className={`block font-bold ${isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}`}>
                           ${safeNumber(price)}
                         </span>
                         <span className="block text-[10px] text-slate-500 font-medium">
                           ${safeNumber(svc.priceConIva || Math.round(price * 1.15 * 100) / 100)} c/IVA
                         </span>
-                      </td>
+                      </td>}
 
                       {/* 7. Acciones: WhatsApp, Correo, Editar, Renovar, Eliminar */}
                       <td className="py-3.5 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {showPrices && <button
                             type="button"
                             onClick={() => handleNotifyWhatsApp(svc)}
                             className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
                             title="Notificar renovación por WhatsApp"
                           >
                             <MessageCircle className="w-4 h-4" />
-                          </button>
+                          </button>}
 
-                          <button
+                          {showPrices && <button
                             type="button"
                             onClick={() => handleNotifyEmail(svc)}
                             className="p-1.5 text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                             title="Notificar renovación por Correo Electrónico"
                           >
                             <Mail className="w-4 h-4" />
-                          </button>
+                          </button>}
 
-                          <button
+                          {canEditPrices && <button
                             type="button"
                             onClick={() => handleOpenEditService(svc)}
                             className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
                             title="Editar nombre, descripción o tarifa del servicio"
                           >
                             <Pencil className="w-3.5 h-3.5" />
-                          </button>
+                          </button>}
 
                           <button
                             type="button"
@@ -1799,7 +1717,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       )}
 
       {/* MODAL 3: EDITAR SERVICIO DEL CLIENTE */}
-      {editingService && (
+      {canEditPrices && editingService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Cabecera Master Modal */}
@@ -1949,7 +1867,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                   <div>
                     <label htmlFor="client-contract-tab-field-16" className="block text-xs font-bold text-[#434655] mb-1">
-                      Día Facturación *
+                      Día de cobro *
                     </label>
                     <select id="client-contract-tab-field-16"
                       value={editBillingDay}
@@ -2044,7 +1962,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                   <div>
                     <label htmlFor="client-contract-tab-field-21" className="block text-xs font-bold text-[#434655] mb-1">
-                      Próximo Cobro / Facturación *
+                      Próxima renovación *
                     </label>
                     <input id="client-contract-tab-field-21"
                       type="date"

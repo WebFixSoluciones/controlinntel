@@ -2,19 +2,18 @@
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import { useApp } from "@/lib/state";
 import { canTradeWithClient } from "@/lib/sales-policy";
 import { api } from "@/lib/api-client";
 import { getEcuadorDate } from "@/lib/date-utils";
+import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
 import { canUser } from "@/lib/permissions";
 import { Plus, Trash2, Search, UserPlus, CheckCircle2, Zap, Building2, CreditCard, Banknote, Landmark, Clock, FileCode2, Terminal, ShieldCheck, FolderArchive, Package, AlertCircle, X, UserCheck, Sparkles, Loader2, Receipt, Printer, Download, Copy, Check, Share2, Mail, Send, ChevronDown, ChevronUp, Save, Ban, Percent, DollarSign, Calendar, Tag, ExternalLink } from "lucide-react";
 import {
-  generarFacturaXml,
-  generarXmlFirmado,
-  enviarComprobanteAlSri,
-  descargarXmlArchivo,
+
   validarIdentificacionEcuador,
   formatearSecuencialSRI,
   consultarRucSri,
@@ -100,6 +99,7 @@ export function NewSaleView({
 }: NewSaleViewProps) {
   const {
     clients,
+    clientServices,
     suppliers,
     addClient,
     updateClient,
@@ -552,6 +552,21 @@ export function NewSaleView({
     }
     return clients.find((c) => c.id === selectedClientId && canTradeWithClient(c)) || null;
   }, [clients, selectedClientId, isConsumidorFinal]);
+
+  const recurringServicesInCart = selectedClient ? clientServices.filter(service =>
+    service.clientId === selectedClient.id && service.status !== "retirado" &&
+    cartItems.some(item => item.productId === service.inventoryProductId || item.productId === service.planId)
+  ) : [];
+  const recurringServiceIds = new Set(recurringServicesInCart.map(service => service.id));
+  const lastCancelledPeriod = billingInvoices
+    .filter(invoice => invoice.clientId === selectedClientId && invoice.documentType === "nota_venta" && invoice.status === "anulada")
+    .flatMap(invoice => (invoice.items || []).filter(item => item.serviceId && recurringServiceIds.has(item.serviceId) && item.periodStart)
+      .map(item => item.periodStart!.slice(0, 7)))
+    .sort().at(-1);
+  const recurringParams = new URLSearchParams({ sub: "recurrentes", cliente: selectedClientId });
+  if (lastCancelledPeriod) recurringParams.set("periodo", lastCancelledPeriod);
+  for (const id of recurringServiceIds) recurringParams.append("servicio", id);
+  const recurringHref = `/ventas?${recurringParams}`;
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -1130,6 +1145,11 @@ export function NewSaleView({
       return true;
     }
 
+    if (recurringServicesInCart.length) {
+      showWarning("Servicio recurrente", "Abre Ventas recurrentes desde el aviso para emitir o reemitir el período del servicio.");
+      return false;
+    }
+
     const cleanSelectedRuc = limpiarIdentificacion(selectedClient.identificationNumber);
 
     // Regla SRI Ecuador: Consumidor Final > $50 SOLO bloquea en Factura Electrónica
@@ -1410,8 +1430,7 @@ export function NewSaleView({
           orderNumber: orderNumber.trim() || undefined,
           sriPaymentCode,
           paymentTermDays: activeMethods.credito ? paymentTermDays : 0,
-          status: "autorizada",
-          authorizationDate: new Date().toISOString(),
+          status: "registrado",
           warehouseId: wh ? wh.id : warehouseId,
           warehouseName: wh ? wh.name : "Bodega Central",
           notes: notes.trim() || undefined,
@@ -1432,95 +1451,7 @@ export function NewSaleView({
         return;
       }
 
-      // FLUJO OFICIAL: FACTURA ELECTRÓNICA SRI
-      pushLog("Iniciando motor de facturación electrónica SRI v2.1.0...");
-      pushLog("Validando RUC Emisor y estructura tributaria sin espacios...");
-
-      const newInvoice = await createInvoice({
-        documentType: "factura",
-        date: issueDate,
-        time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
-        clientId: selectedClient.id,
-        clientName: cleanClientName,
-        clientRuc: cleanClientRuc,
-        clientEmail: cleanClientEmail,
-        clientPhone: selectedClient.phone,
-        clientAddress: cleanClientAddress,
-        tipoIdentificacion,
-        items: calculatedTotals.items,
-        subtotal15: calculatedTotals.subtotal15,
-        subtotal0: calculatedTotals.subtotal0,
-        subtotalNoObjeto: 0,
-        subtotalExento: 0,
-        discountTotal: calculatedTotals.discountTotal,
-        ivaTotal: calculatedTotals.ivaTotal,
-        total: calculatedTotals.total,
-        paymentMethod: primaryMethod,
-        paymentsBreakdown: {
-          efectivo: Math.max(0, paymentSummary.efectivo - paymentSummary.change),
-          transferencia: paymentSummary.transferencia,
-          tarjeta: paymentSummary.tarjeta,
-          credito: paymentSummary.credito,
-        },
-        transferenciaRef: transferenciaRef.trim() || undefined,
-        tarjetaRef: tarjetaRef.trim() || undefined,
-        bankAccountId: selectedBankAccountId || undefined,
-        creditDueDate: activeMethods.credito ? creditDueDate : undefined,
-        orderNumber: orderNumber.trim() || undefined,
-        sriPaymentCode,
-        paymentTermDays: activeMethods.credito ? paymentTermDays : 0,
-        status: "emitida",
-        warehouseId: wh ? wh.id : warehouseId,
-        warehouseName: wh ? wh.name : "Bodega Central",
-        notes: notes.trim() || undefined,
-      });
-
-      pushLog(`Secuencial asignado: ${newInvoice.documentNumber}`);
-      pushLog(`Clave de Acceso Módulo 11 (49 dígitos): ${newInvoice.claveAcceso}`);
-
-      const rawXml = generarFacturaXml(newInvoice, sriCompanyConfig);
-      pushLog("Aplicando firma electrónica XAdES-BES con certificado PKCS#12 (.p12)...");
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-
-      pushLog(
-        `Transmitiendo comprobante a WS SRI (${
-          sriCompanyConfig.ambiente === "2" ? "PRODUCCIÓN" : "PRUEBAS"
-        })...`
-      );
-      const wsResult = await enviarComprobanteAlSri(
-        signedXml,
-        newInvoice.claveAcceso,
-        sriCompanyConfig.ambiente
-      );
-
-      let finalInvoice: SriInvoice = newInvoice;
-      if (wsResult.estado === "AUTORIZADO") {
-        const authDate = wsResult.fechaAutorizacion || new Date().toISOString();
-        pushLog(`Respuesta SRI: [AUTORIZADO] Fecha: ${authDate}`);
-        await updateInvoiceStatus(newInvoice.id, "autorizada", authDate);
-        finalInvoice = {
-          ...newInvoice,
-          status: "autorizada",
-          authorizationDate: authDate,
-        };
-        showSuccess(
-          "Factura Autorizada por el SRI",
-          `Comprobante ${newInvoice.documentNumber} autorizado y Kardex actualizado.`
-        );
-      } else {
-        const msg = wsResult.mensajes?.[0]?.mensaje || "Comprobante en procesamiento";
-        pushLog(`Estado SRI: [${wsResult.estado}] - ${msg}`);
-        showWarning("Comprobante Emitido", `Estado SRI: ${wsResult.estado}. ${msg}`);
-      }
-
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(SALE_DRAFT_STORAGE_KEY);
-      }
-      setRestoredDraftInfo(null);
-      setLastSavedTime(null);
-      setIsProcessing(false);
-      setEmittedInvoice(finalInvoice);
-      setCurrentStep(2);
+      throw new Error("Para emitir una factura electrónica, convierte una nota registrada en Facturación SRI.");
     } catch (err: any) {
       pushLog(`ERROR: ${err?.message || "Fallo en proceso de emisión"}`);
       showError("Error al Procesar Venta", err?.message || "Revisa los datos del comprobante.");
@@ -1561,12 +1492,10 @@ export function NewSaleView({
   // ==========================================
   // ACCIONES PASO 2 (XML, WHATSAPP, CORREO, IMPRESIÓN)
   // ==========================================
-  const handleDownloadEmittedXml = () => {
+  const handleDownloadEmittedXml = async () => {
     if (!emittedInvoice || emittedInvoice.documentType === "nota_venta") return;
     try {
-      const rawXml = generarFacturaXml(emittedInvoice, sriCompanyConfig);
-      const signedXml = generarXmlFirmado(rawXml, sriCompanyConfig);
-      descargarXmlArchivo(signedXml, `SRI-FACTURA-${emittedInvoice.documentNumber}.xml`);
+      await downloadAuthorizedFiscalXml("factura", emittedInvoice.id, emittedInvoice.documentNumber);
       showSuccess("XML Descargado", `Archivo SRI-FACTURA-${emittedInvoice.documentNumber}.xml guardado.`);
     } catch (e: any) {
       showError("Error XML", e?.message || "No se pudo descargar el XML.");
@@ -2118,6 +2047,14 @@ export function NewSaleView({
         </div>
       )}
 
+      {recurringServicesInCart.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-slate-700">
+          <span>Este borrador incluye servicios ya asignados. Su nota se genera por período en Ventas recurrentes.</span>
+          <Link href={recurringHref} className="inline-flex items-center gap-1.5 font-bold text-[#004ac6] hover:underline">
+            Ir a Ventas recurrentes <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
       {/* Layout Principal: 12 Columnas (8 Izquierda Operativa + 4 Derecha Resumen y Pago) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* =======================================================

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { canAccessSubmodule, canUser } from "@/lib/permissions";
+import { canAccessSubmodule, canUser, canViewServicePrices } from "@/lib/permissions";
 import {
   InventoryProduct,
   Warehouse,
@@ -255,7 +255,9 @@ export function InventoryManager() {
   const hasAccess = canAccessSubmodule(currentUser, "inventarios", activeTab);
   const canViewCosts = canUser(currentUser, "inventarios", "canViewCosts");
   const canCreateProduct = canUser(currentUser, "inventarios", "canCreateProduct");
-  const canCreateService = canUser(currentUser, "inventarios", "canCreateService");
+  const showServicePrices = canViewServicePrices(currentUser);
+  const canCreateService = showServicePrices && canUser(currentUser, "inventarios", "canCreateService");
+  const canEditService = showServicePrices && canUser(currentUser, "inventarios", "canEditProduct");
 
   // ==========================================
   // Filtered Products
@@ -550,7 +552,7 @@ export function InventoryManager() {
         `"${p.categoryName || ""}"`,
         p.stock,
         `"${p.unit}"`,
-        p.baseCost.toFixed(2),
+        canViewCosts ? (p.baseCost ?? 0).toFixed(2) : "",
         p.salePrice.toFixed(2),
         p.salePriceConIva.toFixed(2),
       ]);
@@ -597,14 +599,14 @@ export function InventoryManager() {
         `"${k.concept.replace(/"/g, '""')}"`,
         `"${k.referenceDocNumber || k.referenceId || ""}"`,
         k.entryQuantity || 0,
-        (k.entryUnitCost || 0).toFixed(2),
-        (k.entryTotalCost || 0).toFixed(2),
+        canViewCosts ? (k.entryUnitCost || 0).toFixed(2) : "",
+        canViewCosts ? (k.entryTotalCost || 0).toFixed(2) : "",
         k.exitQuantity || 0,
-        (k.exitUnitCost || 0).toFixed(2),
-        (k.exitTotalCost || 0).toFixed(2),
+        canViewCosts ? (k.exitUnitCost || 0).toFixed(2) : "",
+        canViewCosts ? (k.exitTotalCost || 0).toFixed(2) : "",
         k.balanceQuantity || 0,
-        (k.balanceAverageCost || 0).toFixed(2),
-        (k.balanceTotalCost || 0).toFixed(2),
+        canViewCosts ? (k.balanceAverageCost || 0).toFixed(2) : "",
+        canViewCosts ? (k.balanceTotalCost || 0).toFixed(2) : "",
       ]);
       const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
       const encodedUri = encodeURI(csvContent);
@@ -635,7 +637,7 @@ export function InventoryManager() {
   // =========================================================
   // PANTALLAS PROPIAS (EMBEDDED) - SIN POPUPS NI MODALES
   // =========================================================
-  if (isProductModalOpen) {
+  if (isProductModalOpen && (productModalDefaultType !== "servicio" || (productToEdit ? canEditService : canCreateService))) {
     return (
       <div className="animate-in fade-in duration-200">
         <ProductModal
@@ -1013,9 +1015,9 @@ export function InventoryManager() {
                     <th className="py-3 px-4 w-3/12">Servicio</th>
                     <th className="py-3 px-4 w-2/12">Categoría</th>
                     <th className="py-3 px-4 w-1/12 text-center">Unidad</th>
-                    <th className="py-3 px-4 w-1/12 text-right">{canViewCosts ? "Costo" : "—"}</th>
-                    <th className="py-3 px-4 w-1/12 text-right">Precio sin IVA</th>
-                    <th className="py-3 px-4 w-1/12 text-right">Precio con IVA</th>
+                    {showServicePrices && canViewCosts && <th className="py-3 px-4 w-1/12 text-right">Costo</th>}
+                    {showServicePrices && <th className="py-3 px-4 w-1/12 text-right">Precio sin IVA</th>}
+                    {showServicePrices && <th className="py-3 px-4 w-1/12 text-right">Precio con IVA</th>}
                     <th className="py-3 px-4 w-1/12 text-center">Estado</th>
                     <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
                   </tr>
@@ -1023,7 +1025,7 @@ export function InventoryManager() {
                 <tbody className="divide-y divide-[#e2e8f0]">
                   {filteredServices.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-12 text-center text-xs text-[#737686]">
+                      <td colSpan={6 + (showServicePrices ? 2 + Number(canViewCosts) : 0)} className="py-12 text-center text-xs text-[#737686]">
                         <Wrench className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
                         <p className="font-semibold text-[#434655]">No se encontraron servicios</p>
                         <p className="text-[11px] text-[#737686] mt-0.5">
@@ -1047,9 +1049,9 @@ export function InventoryManager() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center capitalize font-medium text-[#434655]">{s.unit}</td>
-                        <td className="py-3 px-4 text-right font-medium text-[#434655]">{canViewCosts ? `$${s.baseCost.toFixed(2)}` : "—"}</td>
-                        <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">${s.salePrice.toFixed(2)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-700">${s.salePriceConIva.toFixed(2)}</td>
+                        {showServicePrices && canViewCosts && <td className="py-3 px-4 text-right font-medium text-[#434655]">${(s.baseCost ?? 0).toFixed(2)}</td>}
+                        {showServicePrices && <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">${(s.salePrice ?? 0).toFixed(2)}</td>}
+                        {showServicePrices && <td className="py-3 px-4 text-right font-bold text-emerald-700">${(s.salePriceConIva ?? 0).toFixed(2)}</td>}
                         <td className="py-3 px-4 text-center">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -1063,7 +1065,7 @@ export function InventoryManager() {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button
+                            {canEditService && <button
                               onClick={() => {
                                 setProductToEdit(s);
                                 setProductModalDefaultType("servicio");
@@ -1073,14 +1075,14 @@ export function InventoryManager() {
                               className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            </button>}
+                            {canUser(currentUser, "inventarios", "canDeleteItems") && <button
                               onClick={() => handleDeleteProduct(s)}
                               title="Eliminar Servicio"
                               className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            </button>}
                           </div>
                         </td>
                       </tr>
@@ -1491,10 +1493,10 @@ export function InventoryManager() {
                           {k.balanceQuantity}
                         </td>
                         <td className="py-2.5 px-3 text-right font-bold text-[#434655] bg-sky-50/20">
-                          ${k.balanceAverageCost.toFixed(2)}
+                          {canViewCosts ? `$${k.balanceAverageCost.toFixed(2)}` : "—"}
                         </td>
                         <td className="py-2.5 px-3 text-right font-black text-[#004ac6] bg-sky-50/20">
-                          ${k.balanceTotalCost.toFixed(2)}
+                          {canViewCosts ? `$${k.balanceTotalCost.toFixed(2)}` : "—"}
                         </td>
                       </tr>
                     ))
@@ -1594,7 +1596,7 @@ export function InventoryManager() {
                             {t.quantity}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-[#434655]">${t.totalCost.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-[#434655]">{canViewCosts ? `$${t.totalCost.toFixed(2)}` : "—"}</td>
                         <td className="py-3 px-4 text-[#737686] max-w-xs truncate" title={t.reason}>
                           {t.reason}
                         </td>
@@ -1687,7 +1689,7 @@ export function InventoryManager() {
                         if (p.tracksStock) {
                           const qty = Number(p.stockByWarehouse?.[w.id] || 0);
                           totalUnitsInWh += qty;
-                          totalValueInWh += qty * p.baseCost;
+                          totalValueInWh += qty * (p.baseCost ?? 0);
                         }
                       });
 
@@ -1713,7 +1715,7 @@ export function InventoryManager() {
                             {totalUnitsInWh.toLocaleString()}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-emerald-700">
-                            ${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {canViewCosts ? `$${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span

@@ -1,6 +1,11 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { canManageTicketDepartments } from "@/lib/permissions";
+import { departmentLabel, DEFAULT_TICKET_DEPARTMENT } from "@/lib/ticket-departments";
+import { TicketDepartmentsModal } from "./TicketDepartmentsModal";
+import { api } from "@/lib/api-client";
+import { isClosedTicketStatus } from "@/lib/ticket-status";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Ticket, TicketStatus, TicketDepartment } from "@/types";
@@ -14,6 +19,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ListChecks,
+  Building2,
 } from "lucide-react";
 import { TicketDetail } from "./TicketDetail";
 import { TicketSubjectsModal } from "./TicketSubjectsModal";
@@ -23,10 +29,12 @@ interface TicketsBoardProps {
 }
 
 export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
-  const { tickets, updateTicketStatus } = useApp();
-  const { showSuccess, showInfo } = useToast();
+  const { tickets, updateTicketStatus, ticketDepartments, currentUser, refresh } = useApp();
+  const { showSuccess, showInfo, showError, showConfirm } = useToast();
 
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [numbering, setNumbering] = useState(false);
+  const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const [isSubjectsOpen, setIsSubjectsOpen] = useState(false);
 
   // Filters
@@ -73,7 +81,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
         // Department filter
         if (filterDepartment !== "todos") {
-          const dept = t.department || "soporte_tecnico";
+          const dept = t.department || DEFAULT_TICKET_DEPARTMENT;
           if (dept !== filterDepartment) return false;
         }
 
@@ -88,6 +96,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           const q = query.toLowerCase();
           const matches =
             t.ticketNumber.toLowerCase().includes(q) ||
+            t.previousTicketNumber?.toLowerCase().includes(q) ||
             t.clientName.toLowerCase().includes(q) ||
             t.title.toLowerCase().includes(q) ||
             (t.description && t.description.toLowerCase().includes(q)) ||
@@ -100,16 +109,34 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   }, [tickets, query, filterStatus, filterDepartment, filterPriority, filterAssignee]);
 
+  const numberPreviousTickets = () => {
+    showConfirm("Numerar tickets anteriores", "Se asignarán números TK consecutivos y podrás seguir buscando por el número anterior.",
+      async () => {
+        setNumbering(true);
+        try {
+          let updated = 0;
+          let remaining = 0;
+          do {
+            const result = await api<{ updated: number; remaining: number }>("/api/tickets/numeracion", {});
+            updated += result.updated;
+            remaining = result.remaining;
+          } while (remaining > 0);
+          await refresh();
+          showSuccess("Numeración actualizada", `${updated} tickets anteriores numerados.`);
+        } catch (error) {
+          showError("Numeración de tickets", error instanceof Error ? error.message : "No se pudo completar la numeración.");
+        } finally {
+          setNumbering(false);
+        }
+      }, "Numerar tickets");
+  };
+
   const handleStatusChange = async (t: Ticket, newStatus: TicketStatus) => {
     try {
       await updateTicketStatus(t.id, newStatus);
-      if (newStatus === "resuelto") {
-        showSuccess("Ticket Resuelto", `Incidencia ${t.ticketNumber} marcada como resuelta.`);
-      } else {
-        showInfo("Estado Actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
-      }
-    } catch (error: any) {
-      showSuccess("Error", error?.message || "No se pudo actualizar.");
+      showInfo("Estado actualizado", `Ticket ${t.ticketNumber} cambiado a '${newStatus.toUpperCase()}'.`);
+    } catch (error) {
+      showError("Error", error instanceof Error ? error.message : "No se pudo actualizar.");
     }
   };
 
@@ -187,7 +214,16 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {currentUser.role === "superadmin" && tickets.some(ticket => !/^TK-\d{3,}$/.test(ticket.ticketNumber)) &&
+              <button type="button" disabled={numbering} onClick={numberPreviousTickets}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#004ac6]">
+                {numbering ? "Numerando…" : "Numerar anteriores"}
+              </button>}
+            {canManageTicketDepartments(currentUser) && <button type="button" onClick={() => setDepartmentsOpen(true)}
+              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-[#004ac6]">
+              <Building2 className="h-4 w-4" /> Departamentos
+            </button>}
             <button
               type="button"
               onClick={() => setIsSubjectsOpen(true)}
@@ -206,6 +242,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             </button>
           </div>
         </div>
+        {departmentsOpen && <TicketDepartmentsModal onClose={() => setDepartmentsOpen(false)} />}
         <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
 
         {/* Filter Inputs Bar */}
@@ -229,10 +266,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
           >
             <option value="todos">Todos los Departamentos</option>
-            <option value="soporte_tecnico">Soporte Técnico NOC</option>
-            <option value="facturacion">Facturación & Cobranzas</option>
-            <option value="noc_redes">NOC / Planta Externa</option>
-            <option value="ventas">Ventas & Comercial</option>
+            {ticketDepartments.map(row => <option key={row.id} value={row.id}>{row.name}{row.active ? "" : " (inactivo)"}</option>)}
           </select>
 
           {/* Priority Filter */}
@@ -323,13 +357,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
-                          {t.department === "facturacion"
-                            ? "Facturación"
-                            : t.department === "noc_redes"
-                            ? "NOC / Redes"
-                            : t.department === "ventas"
-                            ? "Ventas"
-                            : "Soporte Técnico"}
+                          {departmentLabel(ticketDepartments, t.department)}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-[#434655] font-medium whitespace-nowrap">
@@ -369,8 +397,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                           <option value="en_progreso">En Progreso</option>
                           <option value="respondido">Respondido</option>
                           <option value="en_espera">En Espera</option>
-                          <option value="resuelto">Resuelto</option>
-                          <option value="cerrado">Cerrado</option>
+                          {isClosedTicketStatus(t.status) && <option value={t.status} disabled>{t.status === "resuelto" ? "Resuelto" : "Cerrado"}</option>}
                         </select>
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-[11px] text-[#737686] whitespace-nowrap">

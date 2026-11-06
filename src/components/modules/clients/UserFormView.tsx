@@ -4,8 +4,12 @@ import { BackButton } from "@/components/ui/BackButton";
 import React, { useState } from "react";
 import { Save, Shield, ShieldAlert, ShieldCheck, Lock, Eye, EyeOff, Boxes, Receipt, Users, ShoppingBag, DollarSign, Network, Kanban, Ticket, FileText, Radio, Settings, ChevronDown, ChevronUp, Check, RotateCcw, AlertCircle, Loader2 } from "lucide-react";
 import { SystemUser, UserRole, UserModulePermissions } from "@/types";
+import { useApp } from "@/lib/state";
+import { useToast } from "@/lib/toast-context";
 import {
   DEFAULT_MODULE_PERMISSIONS_BY_ROLE,
+  canAccessModule,
+  canViewServicePrices,
   DEFAULT_INVENTORY_ACTIONS,
   DEFAULT_BILLING_ACTIONS,
   DEFAULT_CLIENT_ACTIONS,
@@ -22,6 +26,10 @@ interface UserFormViewProps {
 }
 
 export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
+  const { currentUser, userRoleTemplates, saveRecord } = useApp();
+  const { showSuccess } = useToast();
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
   // Form State
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -34,11 +42,15 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
   // Permissions State
   const [permissions, setPermissions] = useState<UserModulePermissions>(() => {
-    if (user?.modulePermissions) {
-      return JSON.parse(JSON.stringify(user.modulePermissions));
-    }
-    const defaultPerm = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user?.role || "tecnico"];
-    return JSON.parse(JSON.stringify(defaultPerm || DEFAULT_MODULE_PERMISSIONS_BY_ROLE.tecnico));
+    const selectedRole = user?.role || "tecnico";
+    const profile = { ...user, uid: user?.uid || "", email: user?.email || "", displayName: user?.displayName || "",
+      role: selectedRole, status: "activo" as const };
+    return {
+      ...DEFAULT_MODULE_PERMISSIONS_BY_ROLE[selectedRole],
+      ...user?.modulePermissions,
+      dashboard: { enabled: canAccessModule(profile, "dashboard") },
+      visibility: { canViewServicePrices: canViewServicePrices(profile) },
+    };
   });
 
   // Accordion open/close state
@@ -64,7 +76,11 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   const handleApplyRolePreset = (selectedRole: UserRole) => {
     const preset = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[selectedRole];
     if (preset) {
-      setPermissions(JSON.parse(JSON.stringify(preset)));
+      setPermissions({
+        ...preset,
+        dashboard: { enabled: selectedRole !== "tecnico" },
+        visibility: { canViewServicePrices: selectedRole !== "tecnico" },
+      });
     }
   };
 
@@ -72,6 +88,21 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
     setRole(newRole);
     handleApplyRolePreset(newRole);
   };
+
+  async function saveRoleTemplate() {
+    if (role === "superadmin" || templateName.trim().length < 2 || savingTemplate) return;
+    setSavingTemplate(true);
+    setErrorMessage("");
+    try {
+      await saveRecord("userRoleTemplates", { name: templateName.trim(), baseRole: role, modulePermissions: permissions }, `role-${crypto.randomUUID()}`);
+      showSuccess("Plantilla guardada", "Puedes aplicarla al crear o editar otro usuario.");
+      setTemplateName("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar la plantilla.");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
 
   // Toggle Module
   const handleToggleModule = (modKey: keyof UserModulePermissions) => {
@@ -88,7 +119,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   };
 
   // Toggle Submodule
-  const handleToggleSubmodule = (modKey: keyof UserModulePermissions, subKey: string) => {
+  const handleToggleSubmodule = (modKey: keyof UserModulePermissions, subKey: string, defaultValue = false) => {
     setPermissions((prev) => {
       const cur = (prev[modKey] as any) || {};
       const currentSubs = cur.submodules || {};
@@ -98,7 +129,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           ...cur,
           submodules: {
             ...currentSubs,
-            [subKey]: !currentSubs[subKey],
+            [subKey]: !(currentSubs[subKey] ?? defaultValue),
           },
         },
       };
@@ -129,7 +160,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   };
 
   const handleDisableAllModules = () => {
-    setPermissions(JSON.parse(JSON.stringify(DEFAULT_MODULE_PERMISSIONS_BY_ROLE.consulta)));
+    setPermissions(prev => ({
+      ...Object.fromEntries(Object.entries(prev).map(([key, value]) =>
+        [key, "enabled" in value ? { ...value, enabled: false } : value])),
+      dashboard: { enabled: false },
+      visibility: { canViewServicePrices: false },
+    }));
   };
 
   // Submit Handler
@@ -145,12 +181,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       setErrorMessage("Ingresa un correo electrónico corporativo válido.");
       return;
     }
-    if (!user && password.trim().length < 6) {
-      setErrorMessage("La contraseña inicial debe tener al menos 6 caracteres.");
+    if (!user && password.trim().length < 12) {
+      setErrorMessage("La contraseña inicial debe tener al menos 12 caracteres.");
       return;
     }
-    if (user && password.trim().length > 0 && password.trim().length < 6) {
-      setErrorMessage("Si deseas actualizar la contraseña, debe tener al menos 6 caracteres.");
+    if (user && password.trim().length > 0 && password.trim().length < 12) {
+      setErrorMessage("Si deseas actualizar la contraseña, debe tener al menos 12 caracteres.");
       return;
     }
 
@@ -165,7 +201,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
         status,
       };
 
-      if (password.trim().length >= 6) {
+      if (password.trim().length >= 12) {
         updates.passwordHash = password.trim();
       }
 
@@ -180,6 +216,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   // Helper counts
   const countActiveModules = () => {
     const keys: (keyof UserModulePermissions)[] = [
+      "dashboard",
       "inventarios",
       "facturacion",
       "personas",
@@ -428,6 +465,55 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
               </button>
             </div>
           </div>
+
+          <section className="rounded-xl border border-[#e2e8f0] bg-white p-4 px-5 space-y-3">
+            {currentUser.role === "superadmin" && role !== "superadmin" && (
+              <div className="space-y-2 border-b border-slate-200 pb-3 text-xs">
+                <label className="block font-semibold">Aplicar plantilla de rol
+                  <select className="mt-1 block w-full rounded-lg border border-slate-200 p-2" value="" onChange={event => {
+                    const template = userRoleTemplates.find(row => row.id === event.target.value);
+                    if (!template) return;
+                    setRole(template.baseRole);
+                    setPermissions(template.modulePermissions);
+                  }}>
+                    <option value="">Seleccionar una plantilla guardada</option>
+                    {userRoleTemplates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
+                  </select>
+                </label>
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="min-w-0 flex-1 basis-40 font-semibold">Nombre de la nueva plantilla
+                    <input className="mt-1 block w-full rounded-lg border border-slate-200 p-2" maxLength={80}
+                      value={templateName} onChange={event => setTemplateName(event.target.value)} />
+                  </label>
+                  <button type="button" disabled={savingTemplate || templateName.trim().length < 2} onClick={() => void saveRoleTemplate()}
+                    className="rounded-lg border border-blue-200 px-3 py-2 font-semibold text-[#004ac6] disabled:opacity-50">Guardar como plantilla</button>
+                </div>
+              </div>
+            )}
+            <h3 className="font-bold text-xs text-[#0b1c30]">Pantallas y visibilidad de datos</h3>
+            <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={permissions.dashboard?.enabled ?? role !== "tecnico"}
+                disabled={role === "superadmin"} onChange={() => handleToggleModule("dashboard")} />
+              <span><strong>Ver Dashboard</strong><span className="block text-slate-500">Acceso a la pantalla de inicio.</span></span>
+            </label>
+            <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={permissions.visibility?.canViewServicePrices ?? role !== "tecnico"}
+                disabled={role === "superadmin"} onChange={event => {
+                  const canViewServicePrices = event.target.checked;
+                  setPermissions(prev => ({ ...prev, visibility: { ...prev.visibility, canViewServicePrices } }));
+                }} />
+              <span><strong>Ver valores de servicios</strong><span className="block text-slate-500">Tarifas del catálogo y de los servicios contratados.</span></span>
+            </label>
+            <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={permissions.tickets?.actions?.canManageDepartments ?? (role === "admin" || role === "superadmin")}
+                disabled={role === "superadmin" || !permissions.tickets?.enabled} onChange={event => {
+                  const canManageDepartments = event.target.checked;
+                  setPermissions(prev => ({ ...prev, tickets: { enabled: prev.tickets?.enabled ?? false,
+                    actions: { ...prev.tickets?.actions, canManageDepartments } } }));
+                }} />
+              <span><strong>Administrar departamentos de soporte</strong><span className="block text-slate-500">Crear, renombrar y desactivar departamentos.</span></span>
+            </label>
+          </section>
 
           {/* Module 1: INVENTARIOS */}
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
@@ -705,6 +791,17 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
             {openAccordions.clientes && permissions.abonados?.enabled !== false && (
               <div className="p-5 text-xs">
+                <p className="mb-2 font-bold text-[#434655]">Pestañas de la ficha 360°</p>
+                <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {Object.entries({ fiscal: "Identificación", red: "Nodos", boveda: "Bóveda", contratos: "Servicios",
+                    archivos: "Archivos", cotizaciones: "Cotizaciones", facturacion: "Facturación", finanzas: "Cobros",
+                    tickets: "Tickets", proyectos: "Tareas", tramites: "Trámites", arcotel: "ARCOTEL", dossier: "Informes" }).map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2">
+                      <input type="checkbox" checked={permissions.abonados?.submodules?.[key] !== false}
+                        onChange={() => handleToggleSubmodule("abonados", key, true)} />{label}
+                    </label>
+                  ))}
+                </div>
                 <span className="font-bold text-[#434655] text-[11px] uppercase tracking-wider block mb-2">
                   Acciones en Ficha de Clientes:
                 </span>

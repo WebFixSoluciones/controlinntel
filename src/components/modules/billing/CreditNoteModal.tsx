@@ -11,6 +11,7 @@ import {
   Trash2,
   Package,
 } from "lucide-react";
+import { isFiscalAuthorized } from "@/lib/sri-service";
 import { useApp } from "@/lib/state";
 import { CreditNote, InvoiceItem, SriInvoice } from "@/types";
 
@@ -18,6 +19,7 @@ interface CreditNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialInvoice?: SriInvoice | null;
+  correction?: CreditNote;
   onSuccess?: (nc: CreditNote) => void;
 }
 
@@ -25,6 +27,7 @@ export function CreditNoteModal({
   isOpen,
   onClose,
   initialInvoice,
+  correction,
   onSuccess,
 }: CreditNoteModalProps) {
   const {
@@ -36,8 +39,7 @@ export function CreditNoteModal({
   const sriInvoices = billingInvoices.filter(
     (inv) =>
       (inv.documentType || "factura") === "factura" &&
-      inv.status !== "anulada" &&
-      inv.status !== "borrador"
+      isFiscalAuthorized(inv)
   );
 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
@@ -49,7 +51,12 @@ export function CreditNoteModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (initialInvoice) {
+      if (correction) {
+        setSelectedInvoiceId(correction.invoiceId);
+        setWarehouseId(correction.warehouseId || "");
+        setItems(correction.items);
+        setReason(correction.reason);
+      } else if (initialInvoice) {
         setSelectedInvoiceId(initialInvoice.id);
         setWarehouseId(initialInvoice.warehouseId || inventoryWarehouses[0]?.id || "");
         setItems(JSON.parse(JSON.stringify(initialInvoice.items || [])));
@@ -62,7 +69,7 @@ export function CreditNoteModal({
       setErrorMsg("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialInvoice, billingInvoices, inventoryWarehouses]);
+  }, [isOpen, initialInvoice, correction, billingInvoices, inventoryWarehouses]);
 
   if (!isOpen) return null;
 
@@ -86,10 +93,13 @@ export function CreditNoteModal({
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
-        const subtotal = it.unitPrice * newQty - it.discount;
-        const ivaAmount = subtotal * (it.ivaRate / 100);
+        const original = selectedInvoice?.items.find(item => item.id === itemId);
+        if (!original || newQty > original.quantity) return it;
+        const discount = Math.round(original.discount * newQty / original.quantity * 100) / 100;
+        const subtotal = Math.round((original.unitPrice * newQty - discount) * 100) / 100;
+        const ivaAmount = Math.round(subtotal * it.ivaRate) / 100;
         const total = subtotal + ivaAmount;
-        return { ...it, quantity: newQty, subtotal, ivaAmount, total };
+        return { ...it, quantity: newQty, discount, subtotal, ivaAmount, total };
       })
     );
   };
@@ -101,7 +111,7 @@ export function CreditNoteModal({
   const subtotal15 = items.filter((it) => it.ivaRate === 15).reduce((sum, it) => sum + it.subtotal, 0);
   const subtotal0 = items.filter((it) => it.ivaRate === 0).reduce((sum, it) => sum + it.subtotal, 0);
   const ivaTotal = items.reduce((sum, it) => sum + it.ivaAmount, 0);
-  const total = subtotal15 + subtotal0 + ivaTotal;
+  const total = items.reduce((sum, item) => sum + item.subtotal, 0) + ivaTotal;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,8 +146,8 @@ export function CreditNoteModal({
         total,
         warehouseId,
         warehouseName: currentWarehouse?.name || "Bodega Central",
-        status: "autorizada",
-      });
+        status: "emitida",
+      }, correction?.id);
 
       if (onSuccess) onSuccess(nc);
       onClose();
@@ -191,6 +201,7 @@ export function CreditNoteModal({
               </label>
               <select
                 value={selectedInvoiceId}
+                disabled={!!correction}
                 onChange={(e) => handleInvoiceChange(e.target.value)}
                 className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2.5 bg-white text-slate-900 focus:outline-hidden focus:border-[#004ac6]"
               >

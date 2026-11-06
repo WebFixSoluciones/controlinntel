@@ -21,6 +21,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (max-width: 639px) {
+  .app-header + main {
+    padding: 0.75rem;
+  }
+}
+
 /* Selección y copiado natural de texto en todo el sistema (IPs, credenciales, boveda, tablas) */
 body,
 main,

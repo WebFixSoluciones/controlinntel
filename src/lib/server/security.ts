@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { adminServices } from "./admin.ts";
-import { can } from "../permissions.ts";
+import { can, effectiveAccountPermissions } from "../permissions.ts";
 import type { UserProfile } from "@/types";
 
 export class HttpError extends Error {
@@ -112,7 +112,7 @@ export async function actor(request: NextRequest): Promise<UserProfile> {
     displayName: profile.displayName || "Usuario Corporativo",
     role: profile.role,
     status: profile.status,
-    permissions: profile.permissions || [],
+    permissions: effectiveAccountPermissions(profile.role, profile.permissions || []),
     modulePermissions: profile.modulePermissions
   };
 }

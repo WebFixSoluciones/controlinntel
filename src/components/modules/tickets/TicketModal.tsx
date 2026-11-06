@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { canManageTicketDepartments } from "@/lib/permissions";
+import { TicketDepartmentsModal } from "./TicketDepartmentsModal";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { X, Headphones, Building2, Wifi, ShieldAlert, UserCheck, Search, ChevronDown, Check, Settings2 } from "lucide-react";
@@ -16,7 +18,7 @@ interface TicketModalProps {
 const CUSTOM_TOPIC = "__custom__";
 
 export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalProps) {
-  const { addTicket, clients, clientServices, systemUsers, ticketSubjects } = useApp();
+  const { addTicket, clients, clientServices, ticketAssignees, ticketSubjects, ticketDepartments, currentUser } = useApp();
   const { showError, showSuccess } = useToast();
 
   const [clientId, setClientId] = useState(() => initialClientId || clients[0]?.id || "");
@@ -48,16 +50,17 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
     };
   }, [isClientSearchOpen]);
   const [selectedTopic, setSelectedTopic] = useState<string>(ticketSubjects[0]?.id || CUSTOM_TOPIC);
+  const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const [isSubjectsOpen, setIsSubjectsOpen] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
-  const [department, setDepartment] = useState<TicketDepartment>("soporte_tecnico");
+  const [department, setDepartment] = useState<TicketDepartment>("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TicketPriority>("media");
   const [assignedToName, setAssignedToName] = useState(
-    systemUsers.find((u) => u.role === "tecnico" || u.role === "soporte" || u.role === "admin")?.displayName ||
-    systemUsers[0]?.displayName ||
-    "Ing. Santiago Morales"
+    ticketAssignees.find((u) => u.role === "tecnico" || u.role === "soporte" || u.role === "admin")?.displayName ||
+    ticketAssignees[0]?.displayName ||
+    ""
   );
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
@@ -93,6 +96,11 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
     }
   }, [ticketSubjects, selectedTopic]);
 
+  const activeDepartments = ticketDepartments.filter(row => row.active);
+  const selectedDepartment = activeDepartments.some(row => row.id === department)
+    ? department : activeDepartments.find(row => row.id === ticketSubjects.find(subject => subject.id === selectedTopic)?.defaultDepartment)?.id
+      || activeDepartments[0]?.id || "";
+
   if (!isOpen) return null;
 
   const currentSubject = ticketSubjects.find((s) => s.id === selectedTopic);
@@ -126,9 +134,13 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
         return;
       }
 
+      if (!selectedDepartment) {
+        showError("Departamento requerido", "Configura un departamento activo antes de crear el ticket.");
+        return;
+      }
       const client = selectedClient;
       const service = availableServices.find((s) => s.id === selectedServiceId);
-      const assignedUser = systemUsers.find((u) => u.displayName === assignedToName);
+      const assignedUser = ticketAssignees.find((u) => u.displayName === assignedToName);
 
       await addTicket({
         clientId,
@@ -139,7 +151,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
         serviceId: service?.id,
         serviceName: service ? service.planName : undefined,
         nodeName: service?.nodeName,
-        department,
+        department: selectedDepartment,
         title: effectiveTitle,
         description,
         priority,
@@ -158,7 +170,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[90vh] my-auto">
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] my-auto">
         {/* Header Clean Enterprise */}
         <div className="px-6 py-4 bg-[#004ac6] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -280,16 +292,18 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
           {/* Departamento WHMCS & Prioridad SLA */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="font-bold text-[#434655] block mb-1">Departamento Destino *</label>
-              <select
-                value={department}
+              <div className="flex flex-wrap items-center justify-between gap-x-1 mb-1">
+                <label htmlFor="ticket-destination" className="font-bold text-[#434655]">Departamento destino *</label>
+                {canManageTicketDepartments(currentUser) && <button type="button" onClick={() => setDepartmentsOpen(true)}
+                  className="text-[11px] font-semibold text-[#004ac6]">Administrar</button>}
+              </div>
+              <select id="ticket-destination" required
+                value={selectedDepartment}
                 onChange={(e) => setDepartment(e.target.value as TicketDepartment)}
                 className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
-                <option value="soporte_tecnico">Soporte Técnico NOC</option>
-                <option value="noc_redes">NOC / Planta Externa</option>
-                <option value="facturacion">Facturación & Cobranzas</option>
-                <option value="ventas">Ventas & Nuevos Servicios</option>
+                {!activeDepartments.length && <option value="">Sin departamentos activos</option>}
+                {activeDepartments.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}
               </select>
             </div>
 
@@ -320,7 +334,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                 onChange={(e) => setAssignedToName(e.target.value)}
                 className="w-full bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-none"
               >
-                {systemUsers.map((u) => (
+                {ticketAssignees.map((u) => (
                   <option key={u.uid} value={u.displayName}>
                     {u.displayName} ({u.role.toUpperCase()})
                   </option>
@@ -398,7 +412,8 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
           </div>
         </form>
       </div>
-      <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
+      {departmentsOpen && <TicketDepartmentsModal onClose={() => setDepartmentsOpen(false)} />}
+        <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
     </div>
   );
 }

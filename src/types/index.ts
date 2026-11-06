@@ -83,7 +83,7 @@ export interface ClientService {
   basePrice: number;
   customPrice: number;
   billingType: ServiceBillingType;
-  billingDay?: number;                        // Día del mes de facturación / emisión (ej: 1, 2, 5...)
+  billingDay?: number;                        // Día del mes de vencimiento del cobro.
   advanceNoticeDay?: number;                  // Día del mes de anticipo de cobranza / aviso (ej: 26...)
   billingFrequency?: ServiceBillingFrequency; // "mensual" | "trimestral" | "semestral" | "anual"
   contractDuration?: ServiceContractDuration; // "mensual" | "trimestral" | "semestral" | "anual" | "bianual" | "indefinido"
@@ -368,11 +368,14 @@ export type TicketStatus =
   | "resuelto"
   | "cerrado";
 
-export type TicketDepartment =
-  | "soporte_tecnico"
-  | "facturacion"
-  | "noc_redes"
-  | "ventas";
+export type TicketDepartment = string;
+
+export interface TicketDepartmentRecord {
+  id: string;
+  name: string;
+  active: boolean;
+  version?: number;
+}
 
 export type TicketCategory = "corte_fibra" | "atenuacion_alta" | "configuracion_ip" | "facturacion" | "otro";
 
@@ -399,6 +402,7 @@ export interface TicketMessage {
 export interface Ticket {
   id: string;
   ticketNumber: string;
+  previousTicketNumber?: string;
   messages?: TicketMessage[];
   clientId: string;
   clientName: string;
