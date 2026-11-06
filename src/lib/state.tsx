@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ToastProvider } from "./toast-context";
+import type { ExpenseCategory } from "./expense-categories";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { ModalFocusGuard } from "@/components/layout/ModalFocusGuard";
 import { BackButton } from "@/components/ui/BackButton";
@@ -178,6 +179,7 @@ interface AppContextType {
   updateTicketSubject: (id: string, updates: Partial<TicketSubject>) => Promise<void>;
   deleteTicketSubject: (id: string) => Promise<void>;
   expenses: Expense[];
+  expenseCategories: ExpenseCategory[];
   monthlyCharges: MonthlyCharge[];
   auditLogs: AuditLog[];
 
@@ -473,6 +475,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
   const [ticketSubjects, setTicketSubjects] = useState<TicketSubject[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
   const [clientAdvances, setClientAdvances] = useState<ClientAdvance[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
@@ -876,6 +879,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
       { name: "ticketSubjects", setter: setTicketSubjects, initialData: [] },
       { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
+      { name: "expenseCategories", setter: setExpenseCategories, initialData: [] },
       { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
       { name: "clientAdvances", setter: setClientAdvances, initialData: [] },
       { name: "projects", setter: setProjects, initialData: INITIAL_PROJECTS },
@@ -995,6 +999,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const exists = prev.some((t) => t.id === targetId);
           return exists ? prev.map((t) => (t.id === targetId ? ({ ...t, ...recordWithId } as Ticket) : t)) : [...prev, recordWithId as Ticket];
         });
+        break;
+      case "expenseCategories":
+        setExpenseCategories(prev => [...prev.filter(category => category.id !== targetId), recordWithId as unknown as ExpenseCategory]);
         break;
       case "expenses":
         setExpenses((prev) => {
@@ -3581,6 +3588,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           tickets,
           ticketSubjects,
           expenses,
+          expenseCategories,
           monthlyCharges,
           clientAdvances,
           auditLogs,

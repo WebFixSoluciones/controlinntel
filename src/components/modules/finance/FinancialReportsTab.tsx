@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
-import { externalCash } from "@/lib/commercial-core";
-import { summarizeReceivables, summarizeCash } from "@/lib/financial-summary";
+import { chargeBalance, externalCash, money } from "@/lib/commercial-core";
+import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "@/lib/financial-summary";
 import { getEcuadorDate, addMonthsSafely } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { safeFloat, safeNumber } from "@/lib/print-service";
@@ -39,6 +39,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { formatFinanceCategory } from "./FinanceDashboard";
+import { expenseCategoriesWithDefaults, expenseCategoryKey } from "@/lib/expense-categories";
 
 type ReportTab = "resumen" | "cobranzas" | "gastos" | "cxc" | "cxp" | "bancos";
 
@@ -46,6 +47,7 @@ export function FinancialReportsTab() {
   const {
     monthlyCharges = [],
     expenses = [],
+    expenseCategories,
     financialMovements = [],
     bankAccounts = [],
     purchaseInvoices = [],
@@ -68,23 +70,20 @@ export function FinancialReportsTab() {
 
   // Cash flow has one source: confirmed external financial movements.
   const cashMovements = useMemo(() => externalCash(financialMovements), [financialMovements]);
-  const gastosMetrics = useMemo(() => {
-    const outgoing = cashMovements.filter(m => m.type === "egreso");
-    const byCategory: Record<string, number> = {};
-    outgoing.forEach(m => { byCategory[m.category || "otro"] = (byCategory[m.category || "otro"] || 0) + safeFloat(m.amount); });
-    const totalEgresos = outgoing.reduce((sum, m) => sum + safeFloat(m.amount), 0);
-    return { totalOpex: expenses.reduce((sum,e) => sum + safeFloat(e.amount),0), movEgresos: totalEgresos, totalEgresos, byCategory };
-  }, [expenses, cashMovements]);
+  const gastosMetrics = useMemo(() => summarizeOperatingExpenses(expenses), [expenses]);
+  const categoryNames = new Map(expenseCategoriesWithDefaults(expenseCategories).map(item => [item.id, item.name]));
+  const expenseLabel = (id: string) => categoryNames.get(id) || formatFinanceCategory(id);
+  const expenseFilters = new Set([...categoryNames.keys(), ...expenses.map(expense => expense.category)]);
+  const filteredExpenses = expenses.filter(expense => (filterCategory === "todas" || expense.category === filterCategory) &&
+    [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
+      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(searchQuery))));
 
   const flujoMetrics = useMemo(() => summarizeCash(financialMovements), [financialMovements]);
 
   // 4. CÁLCULO DE CUENTAS POR COBRAR (CxC)
   const cxcList = useMemo(() => {
-    return monthlyCharges
-      .filter((c) => {
-        const bal = c.balanceRemaining !== undefined ? c.balanceRemaining : c.status === "pagado" ? 0 : c.total;
-        return bal > 0 && c.status !== "pagado" && c.status !== "anulado";
-      })
+    return activeReceivables(monthlyCharges)
+      .filter(c => chargeBalance(c) > 0)
       .map((c) => ({
         id: c.id,
         invoiceNumber: c.invoiceNumber || "S/N",
@@ -94,7 +93,7 @@ export function FinancialReportsTab() {
         dueDate: c.maxPaymentDate || c.saleDate || "-",
         total: safeFloat(c.total),
         paidAmount: safeFloat(c.paidAmount || 0),
-        balanceRemaining: safeFloat(c.balanceRemaining !== undefined ? c.balanceRemaining : c.total),
+        balanceRemaining: money(chargeBalance(c)),
         status: c.status,
       }));
   }, [monthlyCharges]);
@@ -179,14 +178,15 @@ export function FinancialReportsTab() {
         c.status,
       ]);
     } else if (activeTab === "gastos") {
-      headers = ["Fecha", "Proveedor", "Categoria", "Concepto", "Metodo", "Monto USD"];
-      rows = expenses.map((e) => [
+      headers = ["Fecha", "Proveedor", "Categoria", "Concepto", "Metodo", "Monto USD", "Referencia"];
+      rows = filteredExpenses.map((e) => [
         e.expenseDate,
         `"${e.supplierName.replace(/"/g, '""')}"`,
-        `"${formatFinanceCategory(e.category)}"`,
+        `"${expenseLabel(e.category).replace(/"/g, '""')}"`,
         `"${(e.description || "").replace(/"/g, '""')}"`,
         e.paymentMethod,
         safeNumber(e.amount),
+        `"${(e.invoiceNumber || "").replace(/"/g, '""')}"`,
       ]);
     } else if (activeTab === "cxc") {
       headers = ["Cliente", "RUC", "Comprobante", "Fecha Emision", "Fecha Vencimiento", "Total Factura", "Saldo Pendiente"];
@@ -228,6 +228,7 @@ export function FinancialReportsTab() {
         ["Anticipos disponibles", safeNumber(clientAdvances.filter(a => a.status === "vigente").reduce((sum, a) => sum + safeFloat(a.remaining), 0))],
         ["Egresos de caja", safeNumber(flujoMetrics.totalEgresos)],
         ["Devoluciones de anticipos", safeNumber(flujoMetrics.devoluciones)],
+        ["Gastos operativos registrados", safeNumber(gastosMetrics.total)],
         ["Flujo de Caja Neto", safeNumber(flujoMetrics.saldoNeto)],
         ["Comprobantes anulados (excluidos de cobranzas)", cobranzasMetrics.anuladosCount],
         ["Cuentas por Cobrar (Cartera Abierta)", safeNumber(totalCxCPendiente)],
@@ -239,7 +240,6 @@ export function FinancialReportsTab() {
     const q = searchQuery.toLowerCase().trim();
     if (q) rows = rows.filter(row => row.some(value => String(value).toLowerCase().includes(q)));
     if (activeTab === "cobranzas" && filterStatus !== "todos") rows = rows.filter(row => row[7] === filterStatus);
-    if (activeTab === "gastos" && filterCategory !== "todas") rows = rows.filter(row => String(row[2]).includes(formatFinanceCategory(filterCategory)));
     const cleanRows = rows.map(row => row.map((value,index) => {
       if (typeof value === "number") return value;
       const text = String(value).replace(/^"([\s\S]*)"$/, "$1").replace(/""/g, '"');
@@ -327,7 +327,7 @@ export function FinancialReportsTab() {
           </div>
         </div>
 
-        {/* Gastos Totales OPEX */}
+        {/* Egresos de caja, incluidas devoluciones */}
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs hover:border-rose-300 transition">
           <div className="flex items-center justify-between text-[11px] font-bold text-[#737686] uppercase tracking-wider">
             <span>Egresos de caja</span>
@@ -562,14 +562,14 @@ export function FinancialReportsTab() {
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
                     <PieChart className="w-4 h-4 text-purple-600" />
-                    Distribución de egresos por categoría
+                    Gastos operativos por categoría
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Inversión en conectividad, infraestructura y mantenimiento
+                    Gastos registrados en Finanzas → Gastos
                   </p>
                 </div>
                 <span className="font-mono font-bold text-xs text-rose-600">
-                  Total: ${safeNumber(gastosMetrics.totalEgresos)}
+                  Total: ${safeNumber(gastosMetrics.total)}
                 </span>
               </div>
 
@@ -580,11 +580,11 @@ export function FinancialReportsTab() {
                   </div>
                 ) : (
                   Object.entries(gastosMetrics.byCategory).map(([cat, val]) => {
-                    const pct = gastosMetrics.totalEgresos > 0 ? (val / gastosMetrics.totalEgresos) * 100 : 0;
+                    const pct = gastosMetrics.total > 0 ? (val / gastosMetrics.total) * 100 : 0;
                     return (
                       <div key={cat} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-800">{formatFinanceCategory(cat)}</span>
+                          <span className="font-semibold text-slate-800">{expenseLabel(cat)}</span>
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-slate-500 text-[11px]">{pct.toFixed(1)}%</span>
                             <span className="font-mono font-bold text-slate-900">${safeNumber(val)}</span>
@@ -842,7 +842,7 @@ export function FinancialReportsTab() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Buscar por proveedor o detalle..."
+                placeholder="Buscar por proveedor, RUC, referencia o detalle..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] text-xs text-[#0b1c30] rounded-lg border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
@@ -855,11 +855,7 @@ export function FinancialReportsTab() {
               className="text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg px-3 py-2 text-[#434655] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
             >
               <option value="todas">Todas las Categorías</option>
-              <option value="enlace_transito">Tránsito IP & Conectividad</option>
-              <option value="alquiler_nodo">Alquiler de Nodo / Torres</option>
-              <option value="mantenimiento">Mantenimiento</option>
-              <option value="equipos">Equipos & Materiales</option>
-              <option value="servicios_basicos">Servicios Básicos</option>
+              {[...expenseFilters].map(id => <option key={id} value={id}>{expenseLabel(id)}</option>)}
             </select>
           </div>
 
@@ -875,26 +871,18 @@ export function FinancialReportsTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {expenses
-                  .filter((e) => {
-                    const q = searchQuery.toLowerCase();
-                    const matchesQuery =
-                      e.supplierName.toLowerCase().includes(q) ||
-                      (e.description || "").toLowerCase().includes(q);
-                    const matchesCategory = filterCategory === "todas" || e.category === filterCategory;
-                    return matchesQuery && matchesCategory;
-                  })
-                  .map((e) => (
+                {filteredExpenses.map((e) => (
                     <tr key={e.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3 px-4 font-mono text-slate-600">{e.expenseDate}</td>
                       <td className="py-3 px-4 font-bold text-slate-900">{e.supplierName}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                          {formatFinanceCategory(e.category)}
+                          {expenseLabel(e.category)}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-700 truncate" title={e.description}>
                         {e.description || "Gasto Operativo"}
+                        {e.invoiceNumber && <span className="block text-slate-500">{e.invoiceNumber}</span>}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-rose-600">
                         ${safeNumber(e.amount)}

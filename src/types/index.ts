@@ -428,8 +428,10 @@ export interface Expense {
   bankAccountId?: string;
   movementId?: string;
   id: string;
+  supplierId?: string;
+  supplierRuc?: string;
   supplierName: string;
-  category: "alquiler_nodo" | "enlace_transito" | "fibra_equipos" | "mantenimiento" | "seguros" | "otro";
+  category: string;
   amount: number;
   description: string;
   expenseDate: string;

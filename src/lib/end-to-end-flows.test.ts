@@ -1537,8 +1537,8 @@ test("Flujo E2E 27: Validación Clean Enterprise Fase 4 en Finanzas y Modales de
   const expPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
   const expContent = fs.readFileSync(expPath, "utf8");
   assert.ok(
-    expContent.includes("table-fixed") && expContent.includes("bg-[#f8f9ff] text-[#004ac6]"),
-    "ExpensesManager debe implementar table-fixed y thead corporativo"
+    expContent.includes("overflow-x-auto") && expContent.includes("bg-[#f8f9ff] uppercase text-[#004ac6]"),
+    "ExpensesManager debe mantener la tabla desplazable con cabecera corporativa"
   );
   assert.ok(!expContent.includes("rounded-2xl"), "ExpensesManager no debe tener rounded-2xl");
 
@@ -1879,8 +1879,10 @@ test("Flujo E2E 31: Submódulo Bancos Anti-Cuelgue, Cobranzas OPEX y Blindaje In
   const cxcPath = path.resolve(rootDir, "src/components/modules/finance/AccountsReceivableTab.tsx");
   const cxcContent = fs.readFileSync(cxcPath, "utf8");
   assert.ok(
-    cxcContent.includes("safeFloat") && cxcContent.includes("safeNumber"),
-    "AccountsReceivableTab debe calcular saldos con safeFloat y safeNumber"
+    cxcContent.includes("activeReceivables(monthlyCharges)") &&
+      cxcContent.includes("summarizeReceivables(monthlyCharges)") &&
+      cxcContent.includes("chargeBalance(c)"),
+    "Por Cobrar debe mostrar la cartera vigente y usar los mismos saldos que Reportes"
   );
 
   const cxpPath = path.resolve(rootDir, "src/components/modules/finance/AccountsPayableTab.tsx");
@@ -2434,7 +2436,8 @@ test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutiva
   assert.ok(
     reportsContent.includes("ResponsiveContainer") &&
       reportsContent.includes("ComposedChart") &&
-      reportsContent.includes("Distribución de egresos por categoría") &&
+      reportsContent.includes("Gastos operativos por categoría") &&
+      reportsContent.includes("summarizeOperatingExpenses(expenses)") &&
       reportsContent.includes("Efectividad y Recuperación de Cartera"),
     "FinancialReportsTab debe incluir gráficas visuales y barras de distribución analítica"
   );
@@ -2501,11 +2504,11 @@ test("Flujo E2E 43: Botones Específicos por Pantalla (Registrar Gasto, Registra
   const expensesPath = path.resolve(rootDir, "src/components/modules/finance/ExpensesManager.tsx");
   const expensesContent = fs.readFileSync(expensesPath, "utf8");
   assert.ok(
-    expensesContent.includes("Registrar Gasto") &&
+    expensesContent.includes("Registrar gasto") && expensesContent.includes("Categorías de gastos") &&
       !expensesContent.includes("Registrar Gasto OPEX") &&
       !expensesContent.includes("Total Egresos OPEX") &&
       !expensesContent.includes("Tránsito IP & Conectividad"),
-    "ExpensesManager debe tener solo el botón 'Registrar Gasto' en su barra y no tener tarjetas de métricas"
+    "ExpensesManager debe ofrecer registro y gestión de categorías en una barra sencilla"
   );
 
   // 2. Cobranzas: botón Registrar Cobro en barra de herramientas junto a Exportar Excel y sin métricas

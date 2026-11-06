@@ -13,9 +13,12 @@ import {
   X,
 } from "lucide-react";
 import { formatFinanceCategory } from "./FinanceDashboard";
+import { expenseCategoriesWithDefaults } from "@/lib/expense-categories";
 
 export function MovementsTab() {
-  const { financialMovements, bankAccounts, addFinancialMovement } = useApp();
+  const { financialMovements, bankAccounts, addFinancialMovement, expenseCategories } = useApp();
+  const categoryNames = new Map(expenseCategoriesWithDefaults(expenseCategories).map(item => [item.id, item.name]));
+  const categoryLabel = (id: string) => categoryNames.get(id) || formatFinanceCategory(id);
   const { showSuccess, showError } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +83,7 @@ export function MovementsTab() {
     if (!m) return false;
     const q = (searchQuery || "").toLowerCase();
     const desc = (m.description || "").toLowerCase();
-    const cat = formatFinanceCategory(m.category).toLowerCase();
+    const cat = categoryLabel(m.category).toLowerCase();
     const ref = (m.referenceNumber ? String(m.referenceNumber) : "").toLowerCase();
 
     const matchSearch = desc.includes(q) || cat.includes(q) || ref.includes(q);
@@ -192,7 +195,7 @@ export function MovementsTab() {
                       {m.description}
                     </td>
                     <td className="py-3 px-4 text-slate-600 truncate">
-                      {formatFinanceCategory(m.category)}
+                      {categoryLabel(m.category)}
                     </td>
                     <td className="py-3 px-4 font-medium text-slate-800 whitespace-nowrap truncate">
                       {m.bankAccountName}

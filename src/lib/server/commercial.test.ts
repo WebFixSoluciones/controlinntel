@@ -1,3 +1,4 @@
+import { save } from "./operations.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -6,7 +7,8 @@ import { schemas } from "./schemas.ts";
 import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
 import { planServicePeriod, calculateLines } from "../commercial-core.ts";
-import { summarizeReceivables, summarizeCash } from "../financial-summary.ts";
+import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "../financial-summary.ts";
+import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 
@@ -151,6 +153,23 @@ test("refunding unused advance preserves its already applied payment and can be 
   assert.equal(db.row("bankAccounts", "bank").currentBalance, 1100);
 });
 
+test("El gasto vincula al proveedor, conserva la referencia y usa solo categorías activas", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-06T17:00:00Z") });
+  const db = new Database({ ...initial(), suppliers: [{ id: "supplier-qa", razonSocial: "Proveedor guardado", ruc: "1700000000001", status: "activo" }] });
+  const firestore = db as unknown as Firestore;
+  await save(user, "expenseCategories", { name: "Movilización", active: true }, "travel", undefined, firestore);
+  const expense = await run(db, "expense", { supplierId: "supplier-qa", supplierName: "Texto no canónico", expenseDate: "2026-11-06",
+    description: "Visita técnica", invoiceNumber: "REF-12", category: "travel", amount: 30, bankAccountId: "bank", paymentMethod: "transferencia" });
+  assert.equal(expense.supplierName, "Proveedor guardado");
+  assert.equal(expense.supplierRuc, "1700000000001");
+  assert.equal(db.row("financialMovements", expense.movementId).referenceNumber, "REF-12");
+  await save(user, "expenseCategories", { name: "Movilización técnica", active: false }, "travel", undefined, firestore);
+  assert.equal(expenseCategoriesWithDefaults(db.list("expenseCategories")).find(item => item.id === "travel")?.name, "Movilización técnica");
+  assert.equal(db.row("expenses", expense.id).category, "travel");
+  await assert.rejects(run(db, "expense", { ...expense, amount: 5 }), /categoría de gasto activa/);
+  assert.equal(db.list("financialMovements").length, 1);
+});
+
 test("reports remove a cancelled paid sale from collections, retain its credit, and reflect the subsequent refund", async () => {
   const db = new Database(initial());
   const first = await run(db, "issueSale", sale("a", { items: [{ productId: "srv", name: "Servicio QA", quantity: 1, unitPrice: 500, ivaRate: 15 }] }));
@@ -163,14 +182,20 @@ test("reports remove a cancelled paid sale from collections, retain its credit, 
   assert.equal(report.totalRecaudado, 100); assert.equal(report.totalFacturado, 150);
   assert.equal(report.totalPendiente, 50); assert.equal(report.pendientesCount, 1);
   assert.equal(report.pagadosCount, 0); assert.equal(report.anuladosCount, 1);
+  assert.deepEqual(activeReceivables(db.list("monthlyCharges")).map(charge => charge.invoiceId), [second.id]);
   assert.equal(summarizeCash(db.list("financialMovements")).saldoNeto, 675);
   const credit = db.list("clientAdvances")[0];
   assert.equal(credit.remaining, 575);
   await run(db, "cancelAdvance", { id: credit.id });
   assert.equal(db.row("clientAdvances", credit.id).status, "anulado");
   assert.deepEqual(summarizeCash(db.list("financialMovements")), { totalIngresos: 675, totalEgresos: 575, devoluciones: 575, saldoNeto: 100 });
+  assert.deepEqual(summarizeOperatingExpenses(db.list("expenses")), { total: 0, byCategory: {} });
   assert.equal(summarizeReceivables(db.list("monthlyCharges")).totalRecaudado, 100);
   assert.equal(db.row("monthlyCharges", `chg-inv-${second.id}`).paidAmount, 100);
+  await run(db, "expense", { supplierName: "Proveedor QA", expenseDate: "2026-11-06", description: "Mantenimiento",
+    category: "mantenimiento", amount: 20.25, bankAccountId: "bank", paymentMethod: "transferencia" });
+  assert.deepEqual(summarizeOperatingExpenses(db.list("expenses")), { total: 20.25, byCategory: { mantenimiento: 20.25 } });
+  assert.equal(summarizeCash(db.list("financialMovements")).totalEgresos, 595.25);
 });
 test("R17: transfer commits both legs, and an injected commit failure commits neither",async()=>{
   const db=new Database(initial());db.failCommit=true;await assert.rejects(run(db,"transfer",{fromId:"bank",toId:"bank2",amount:100}),/Injected/);

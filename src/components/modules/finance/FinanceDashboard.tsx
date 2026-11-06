@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   AlertCircle,
   CheckCircle2,
+  Undo2,
 } from "lucide-react";
 import { generateBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
 import { MonthlyCharge, ChargePayment, ClientAdvance } from "@/types";
@@ -55,6 +56,8 @@ export const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   seguros: "Seguros y Pólizas",
   opex_servicios: "Servicios y Operación",
   cobro_cliente: "Cobro a Cliente",
+  anticipo_cliente: "Anticipo de cliente",
+  devolucion_anticipo: "Devolución de anticipo",
   pago_proveedor: "Pago a Proveedor",
   transferencia_interna: "Transferencia entre Cuentas",
   ingreso_extraordinario: "Otros Ingresos",
@@ -883,18 +886,19 @@ export function FinanceDashboard({
                             {!isCancelled && adv.remaining > 0 && (
                               <button
                                 type="button"
-                                title="Devolver saldo disponible del anticipo"
-                                onClick={() => showConfirm("Devolver saldo del anticipo", `¿Devolver $${adv.remaining.toFixed(2)} disponibles de ${adv.clientName} a través de su cuenta de origen? Se registrará un egreso y se conservará el historial.`, async () => {
+                                title="Registrar devolución de dinero"
+                                aria-label="Registrar devolución de dinero"
+                                onClick={() => showConfirm("Registrar devolución de dinero", `¿Confirmas que ya devolviste $${adv.remaining.toFixed(2)} a ${adv.clientName} desde su cuenta de origen? Esta acción registra la salida de dinero en el sistema.`, async () => {
                                     try {
                                       await deleteClientAdvance(adv.id);
-                                      showSuccess("Devolución registrada", "Se devolvió el saldo disponible y se conservó su historial.");
+                                      showSuccess("Devolución registrada", "La salida quedó registrada como devolución de anticipo.");
                                     } catch (err) {
                                       showError("Error", err instanceof Error ? err.message : "No se pudo eliminar.");
                                     }
                                 }, "Registrar devolución")}
                                 className="p-1 text-rose-500 hover:text-rose-700 rounded transition cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Undo2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>

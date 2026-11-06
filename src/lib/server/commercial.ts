@@ -6,6 +6,7 @@ import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
 import { calculateLines, cents, money, chargeBalance, planServicePeriod, validDate, addDays, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
+import { defaultExpenseCategories } from "../expense-categories.ts";
 import { schemas } from "./schemas.ts";
 import { canUser, canPerformAction } from "../permissions.ts";
 
@@ -228,8 +229,17 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "expense": {
       const input=schemas.expenses.parse(data),id=randomUUID(),amount=checkedAmount(input.amount),date=checkedDate(input.expenseDate);
-      const movementId=await c.bank(-amount,input.bankAccountId,id,{date,category:input.category,description:input.description||input.supplierName,paymentMethod:input.paymentMethod,expenseId:id});
-      const expense={...input,id,amount:money(amount),expenseDate:date,movementId};c.put("expenses",expense);return expense;
+      if(date>getEcuadorDate()) throw new HttpError(400,"La fecha del gasto no puede ser futura.");
+      const configuredCategory = await c.get("expenseCategories", input.category, false);
+      const category = configuredCategory.id ? configuredCategory : defaultExpenseCategories.find(item => item.id === input.category);
+      if (!category?.active) throw new HttpError(400, "Selecciona una categoría de gasto activa.");
+      const supplier = input.supplierId ? await c.get("suppliers", input.supplierId) : undefined;
+      if (supplier && supplier.status === "inactivo") throw new HttpError(400, "El proveedor seleccionado está inactivo.");
+      const supplierName = supplier?.razonSocial || input.supplierName;
+      const reference = input.invoiceNumber ? { referenceNumber: input.invoiceNumber } : {};
+      const movementId=await c.bank(-amount,input.bankAccountId,id,{date,category:input.category,description:input.description,paymentMethod:input.paymentMethod,expenseId:id,...reference});
+      const expense={...input,id,supplierName,supplierRuc:supplier?.ruc,amount:money(amount),expenseDate:date,movementId};
+      c.put("expenses",expense);return expense;
     }
     case "startRun": {
       if(!Array.isArray(data.units)||!data.units.length||data.units.length>100)throw new HttpError(400,"Selecciona entre 1 y 100 clientes por lote.");

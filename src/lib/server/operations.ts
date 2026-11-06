@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { adminServices } from "./admin.ts";
 import { audit, HttpError, requirePermission } from "./security.ts";
-import { can, canAccessModule, canUser, collectionPermissions, type Entity } from "../permissions.ts";
+import { can, canAccessModule, canAccessSubmodule, canUser, collectionPermissions, type Entity } from "../permissions.ts";
 import { schemas } from "./schemas.ts";
 import { seal, unseal, initializeVaultKey } from "./vault.ts";
 import { requireVaultAccess } from "./vault-access.ts";
@@ -11,6 +11,7 @@ import { recordOperation, redact, digest } from "./operation-log.ts";
 import { simpleDecrypt } from "../crypto-vault.ts";
 import { canReadCollection,storageName } from "../persistence-contracts.ts";
 import { quoteCompanyDetails } from "../quote-company.ts";
+import { canManageExpenseCategories, expenseCategoriesWithDefaults, expenseCategoryKey, type ExpenseCategory } from "../expense-categories.ts";
 
 const now = () => new Date().toISOString();
 export async function snapshot(user: UserProfile) {
@@ -20,9 +21,13 @@ export async function snapshot(user: UserProfile) {
     if(entity==="operationLog") {result[entity]=[];return;}
     const readable=canReadCollection(user,entity as Entity);
     const commercialIssuer = entity === "sriCompanyConfig" && !readable && (canAccessModule(user, "ventas") || canAccessModule(user, "abonados"));
-    if (!readable && !commercialIssuer) { result[entity]=[]; return; }
+    const expenseSupplierDirectory = entity === "suppliers" && !readable &&
+      canAccessSubmodule(user, "finanzas", "gastos") && canUser(user, "finanzas", "canRegisterExpenses");
+    if (!readable && !commercialIssuer && !expenseSupplierDirectory) { result[entity]=[]; return; }
     const name = storageName(entity as Entity);
-    const query = db.collection(name).orderBy("__name__").limit(500);
+    const collection = db.collection(name);
+    const query = (expenseSupplierDirectory ? collection.select("razonSocial", "nombreComercial", "ruc", "status") : collection)
+      .orderBy("__name__").limit(500);
     const documents = [];
     try {
       let page = await query.get();
@@ -76,6 +81,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   const permission=collectionPermissions[entity];
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
   requirePermission(user,permission);
+  if (entity === "expenseCategories" && !canManageExpenseCategories(user)) throw new HttpError(403, "No tienes permiso para administrar las categorías de gastos.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "save");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   if(entity==="systemUsers")throw new HttpError(400,"Utiliza la administración de cuentas autenticadas.");
@@ -102,6 +108,13 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     const merged={...old.data(),...input};
     for(const [key,value] of Object.entries(merged)) if(value===null) delete merged[key];
     const data=schemas[entity].parse(merged);
+    if (entity === "expenseCategories") {
+      const records = await tx.get(db.collection("expenseCategories"));
+      const categories = expenseCategoriesWithDefaults(records.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ExpenseCategory));
+      if (categories.some(category => category.id !== reference.id && expenseCategoryKey(category.name) === expenseCategoryKey(data.name))) {
+        throw new HttpError(409, "Ya existe una categoría de gasto con ese nombre.");
+      }
+    }
     if(entity==="clients") {data.currentBalance=old.data()?.currentBalance??0;data.totalActiveServices=old.data()?.totalActiveServices??0;}
     if(entity==="clients" && old.exists && (data.identificationNumber!==old.data()?.identificationNumber || data.identificationType!==old.data()?.identificationType)) throw new HttpError(400,"La identificación registrada no puede cambiarse desde este formulario.");
     if(entity==="clientServices") {
@@ -206,6 +219,8 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
 }
 export async function remove(user:UserProfile,entity:Entity,id:string,version?:number,database?: Firestore) {
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
+  if (entity === "expenseCategories") throw new HttpError(400, "Desactiva la categoría para conservar el historial de gastos.");
+  if (entity === "expenses") throw new HttpError(400, "El gasto está vinculado a un movimiento de caja y requiere conciliación.");
   requirePermission(user,collectionPermissions[entity]);
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "delete");
   if(user.role==="consulta")throw new HttpError(403,"Perfil de consulta.");

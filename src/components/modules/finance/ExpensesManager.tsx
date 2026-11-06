@@ -1,226 +1,211 @@
 "use client";
 
-import React, { useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { Plus, Settings2, X } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { validateMonetaryAmount } from "@/lib/validation-engine";
 import { getEcuadorDate } from "@/lib/date-utils";
-import { Receipt, Plus, Check, X } from "lucide-react";
+import { canUser } from "@/lib/permissions";
+import { canManageExpenseCategories, expenseCategoriesWithDefaults, expenseCategoryKey, type ExpenseCategory } from "@/lib/expense-categories";
+import { summarizeOperatingExpenses } from "@/lib/financial-summary";
+
+const field = "block w-full mt-1 rounded-lg border border-slate-300 bg-white px-3 py-2";
+const primary = "rounded-lg bg-[#004ac6] px-4 py-2 font-semibold text-white hover:bg-[#003da6] disabled:opacity-50";
+const secondary = "rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold hover:bg-slate-50 disabled:opacity-50";
 
 export function ExpensesManager() {
-  const { expenses, addExpense, bankAccounts } = useApp();
-  const { showError, showSuccess } = useToast();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [supplierName, setSupplierName] = useState("");
-  const [amount, setAmount] = useState(0);
+  const { currentUser, expenses, expenseCategories, suppliers, addExpense, bankAccounts, saveRecord } = useApp();
+  const { showSuccess } = useToast();
+  const canRegister = canUser(currentUser, "finanzas", "canRegisterExpenses");
+  const canManage = canManageExpenseCategories(currentUser);
+  const categories = expenseCategoriesWithDefaults(expenseCategories);
+  const categoryNames = new Map(categories.map(item => [item.id, item.name]));
+  const activeCategories = categories.filter(item => item.active);
+  const activeAccounts = bankAccounts.filter(account => account.status === "activa");
+  const [modal, setModal] = useState<"expense" | "categories" | null>(null);
+  const [supplierQuery, setSupplierQuery] = useState("");
+  const [supplierId, setSupplierId] = useState("");
+  const [showSuppliers, setShowSuppliers] = useState(false);
+  const [amount, setAmount] = useState("");
   const [bankAccountId, setBankAccountId] = useState("");
-  const [category, setCategory] = useState<any>("enlace_transito");
+  const [category, setCategory] = useState("");
+  const [expenseDate, setExpenseDate] = useState(getEcuadorDate);
+  const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
+  const [categoryDraft, setCategoryDraft] = useState<ExpenseCategory | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const [filterQuery, setFilterQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
-  const handleCreate = async (e: React.FormEvent) => {
-    try {
+  const selectedSupplier = suppliers.find(supplier => supplier.id === supplierId);
+  const supplierKey = expenseCategoryKey(supplierQuery);
+  const supplierMatches = suppliers.filter(supplier => supplier.status !== "inactivo" && supplierKey.length >= 2 &&
+    [supplier.razonSocial, supplier.nombreComercial, supplier.ruc].some(value => value && expenseCategoryKey(value).includes(supplierKey))
+  ).slice(0, 8);
 
-    e.preventDefault();
+  const filteredExpenses = expenses.filter(expense => (!categoryFilter || expense.category === categoryFilter) &&
+    [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
+      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(filterQuery)))
+  ).sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
+  const accountNames = new Map(bankAccounts.map(account => [account.id, account.bankName]));
+  const filterCategories = new Map([...expenses.map(expense => [expense.category, expense.category.replaceAll("_", " ")] as const), ...categoryNames]);
 
-    if (!supplierName || supplierName.trim().length < 3) {
-      showError("Proveedor Requerido", "Ingresa la razón social o beneficiario del gasto.");
-      return;
-    }
-
-    const amountVal = validateMonetaryAmount(amount, "Valor del gasto");
-    if (!amountVal.isValid) {
-      showError("Monto Inválido", amountVal.error || "El monto debe ser mayor a cero.");
-      return;
-    }
-
-    await addExpense({
-      supplierName,
-      amount: Number(amount),
-      category,
-      description,
-      expenseDate: getEcuadorDate(),
-      bankAccountId,
-      paymentMethod: bankAccounts.find(b => b.id === bankAccountId)?.accountType === "caja_efectivo" ? "efectivo" : "transferencia",
-    });
-
-    showSuccess("Gasto Registrado", `Efectivo/Transferencia por $${Number(amount).toFixed(2)} USD para ${supplierName} asentado.`);
-    setIsModalOpen(false);
-    setSupplierName("");
-    setDescription("");
-  
-    } catch (error) { window.dispatchEvent(new CustomEvent("inntel:error", { detail: error instanceof Error ? error.message : "No se pudo guardar." })); }
+  const openExpense = () => {
+    setSupplierQuery(""); setSupplierId(""); setShowSuppliers(false);
+    setAmount(""); setCategory(""); setBankAccountId(activeAccounts.length === 1 ? activeAccounts[0].id : "");
+    setExpenseDate(getEcuadorDate()); setReference(""); setDescription(""); setError(""); setModal("expense");
   };
 
-  const [filterQuery, setFilterQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("todas");
+  const save = async (action: () => Promise<void>) => {
+    if (saving.current) return;
+    saving.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar el registro.");
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  };
 
-  const filteredExpenses = expenses.filter((e) => {
-    const matchesText =
-      e.supplierName.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      e.description.toLowerCase().includes(filterQuery.toLowerCase());
-    const matchesCat = categoryFilter === "todas" || e.category === categoryFilter;
-    return matchesText && matchesCat;
+  const registerExpense = async (event: FormEvent) => {
+    event.preventDefault();
+    const account = activeAccounts.find(item => item.id === bankAccountId);
+    const validation = validateMonetaryAmount(Number(amount), "Valor del gasto");
+    if (!account || !validation.isValid || !activeCategories.some(item => item.id === category) || !supplierQuery.trim() || !description.trim()) {
+      setError(!validation.isValid ? validation.error || "Ingresa un importe válido." : "Completa los campos obligatorios.");
+      return;
+    }
+    await save(async () => {
+      await addExpense({
+        supplierName: selectedSupplier?.razonSocial || supplierQuery.trim(),
+        ...(selectedSupplier ? { supplierId: selectedSupplier.id } : {}),
+        category, amount: Number(amount), expenseDate, bankAccountId,
+        invoiceNumber: reference.trim() || undefined,
+        description: description.trim(),
+        paymentMethod: account.accountType === "caja_efectivo" ? "efectivo" : "transferencia",
+      });
+      setModal(null);
+      showSuccess("Gasto registrado", `Se registró la salida de $${Number(amount).toFixed(2)} en ${account.bankName}.`);
+    });
+  };
+
+  const saveCategory = (item: ExpenseCategory) => save(async () => {
+    const name = item.name.trim();
+    if (name.length < 2) throw new Error("Escribe un nombre de al menos dos caracteres.");
+    await saveRecord("expenseCategories", { name, active: item.active }, item.id || crypto.randomUUID());
+    setCategoryDraft(null);
+    showSuccess("Categoría actualizada", name);
   });
 
-  const totalOpex = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-
   return (
-    <div className="w-full space-y-4">
-      {/* Main Table Card */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-        {/* Search & Filters */}
-        <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 bg-[#fcfdff]">
-          <div className="relative flex-1 max-w-sm">
-            <input
-              type="text"
-              placeholder="Buscar por proveedor o detalle..."
-              value={filterQuery}
-              onChange={(e) => setFilterQuery(e.target.value)}
-              className="w-full bg-[#f8f9ff] text-xs text-[#0b1c30] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-[#f8f9ff] text-xs font-semibold text-[#434655] rounded-lg px-3 py-2 border border-[#e2e8f0] focus:bg-white focus:outline-hidden cursor-pointer"
-            >
-              <option value="todas">Todas las Categorías</option>
-              <option value="enlace_transito">Tránsito IP</option>
-              <option value="alquiler_nodo">Alquiler Torre / Nodo</option>
-              <option value="fibra_equipos">Fibra & Equipos</option>
-              <option value="mantenimiento">Mantenimiento</option>
-            </select>
-
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Registrar Gasto</span>
-            </button>
-          </div>
+    <div className="space-y-4 text-xs">
+      <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4">
+          <input aria-label="Buscar gastos" placeholder="Proveedor, RUC, referencia o detalle" value={filterQuery} onChange={e => setFilterQuery(e.target.value)} className={`${field} max-w-sm flex-1 min-w-44`} />
+          <select aria-label="Filtrar por categoría" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className={`${field} w-auto`}>
+            <option value="">Todas las categorías</option>
+            {[...filterCategories].map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
+          <span className="mr-auto font-semibold">Total filtrado: ${summarizeOperatingExpenses(filteredExpenses).total.toFixed(2)}</span>
+          {canManage && <button type="button" className={`inline-flex items-center gap-1.5 ${secondary}`} onClick={() => { setCategoryDraft(null); setError(""); setModal("categories"); }}><Settings2 className="size-4" /> Categorías</button>}
+          {canRegister && <button type="button" className={`inline-flex items-center gap-1.5 ${primary}`} onClick={openExpense}><Plus className="size-4" /> Registrar gasto</button>}
         </div>
-
-        {/* Expenses Table */}
         <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-              <tr>
-                <th className="w-2/12 py-3 px-4">Fecha</th>
-                <th className="w-3/12 py-3 px-4">Proveedor / Beneficiario</th>
-                <th className="w-2/12 py-3 px-4">Categoría</th>
-                <th className="w-3/12 py-3 px-4">Descripción / Concepto</th>
-                <th className="w-1/12 py-3 px-4 text-center">Método de Pago</th>
-                <th className="w-1/12 py-3 px-4 text-right font-mono font-bold">Monto ($ USD)</th>
-              </tr>
+          <table className="w-full min-w-[46rem] text-left">
+            <thead className="bg-[#f8f9ff] uppercase text-[#004ac6]">
+              <tr><th className="p-3">Fecha</th><th className="p-3">Proveedor / Beneficiario</th><th className="p-3">Categoría</th><th className="p-3">Concepto / Referencia</th><th className="p-3">Cuenta</th><th className="p-3 text-right">Monto</th></tr>
             </thead>
-            <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
-              {filteredExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-[#737686] italic">
-                    No se encontraron gastos registrados con los filtros aplicados.
-                  </td>
+            <tbody className="divide-y divide-slate-100">
+              {filteredExpenses.map(expense => (
+                <tr key={expense.id}>
+                  <td className="p-3 whitespace-nowrap">{expense.expenseDate}</td>
+                  <td className="p-3 font-semibold">{expense.supplierName}{expense.supplierRuc && <span className="block font-normal text-slate-500">{expense.supplierRuc}</span>}</td>
+                  <td className="p-3">{categoryNames.get(expense.category) || expense.category.replaceAll("_", " ")}</td>
+                  <td className="p-3">{expense.description}{expense.invoiceNumber && <span className="block text-slate-500">{expense.invoiceNumber}</span>}</td>
+                  <td className="p-3">{accountNames.get(expense.bankAccountId || "") || "—"}</td>
+                  <td className="p-3 text-right font-mono font-semibold">${expense.amount.toFixed(2)}</td>
                 </tr>
-              ) : (
-                filteredExpenses.map((exp) => (
-                  <tr key={exp.id} className="hover:bg-[#f8f9ff] transition-colors">
-                    <td className="py-3 px-4 font-mono text-slate-600 whitespace-nowrap">{exp.expenseDate}</td>
-                    <td className="py-3 px-4 font-bold text-[#0b1c30] truncate">{exp.supplierName}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] border border-[#dce9ff] text-[#004ac6]">
-                        {exp.category.replace("_", " ")}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-[#434655] truncate">{exp.description}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        {exp.paymentMethod || "Transferencia"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-[#ef4444] whitespace-nowrap">
-                      ${exp.amount.toFixed(2)} USD
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
+              {!filteredExpenses.length && <tr><td colSpan={6} className="p-10 text-center text-slate-500">Sin gastos con los filtros seleccionados.</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-[#e2e8f0] overflow-hidden">
-            <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <h3 className="font-bold text-[#0b1c30] text-sm">Registrar Gasto</h3>
-              <button aria-label="Cerrar" onClick={() => setIsModalOpen(false)} className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="p-4 space-y-3 text-xs">
-              <label className="block font-semibold">Cuenta de salida<select required value={bankAccountId} onChange={e => setBankAccountId(e.target.value)} className="block w-full border rounded px-3 py-2 mt-1"><option value="">Seleccionar banco o caja</option>{bankAccounts.filter(b => b.status === "activa").map(b => <option key={b.id} value={b.id}>{b.bankName} · {b.accountNumber}</option>)}</select></label>
-              <div>
-                <label htmlFor="expenses-manager-field-1" className="font-bold text-[#434655] block mb-1">Proveedor / Beneficiario *</label>
-                <input id="expenses-manager-field-1"
-                  type="text"
-                  required
-                  placeholder="Telconet / Torrecuador / OptiCom"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-semibold text-[#0b1c30]"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="expenses-manager-field-2" className="font-bold text-[#434655] block mb-1">Categoría</label>
-                  <select id="expenses-manager-field-2"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
-                  >
-                    <option value="enlace_transito">Tránsito IP</option>
-                    <option value="alquiler_nodo">Alquiler Torre/Nodo</option>
-                    <option value="fibra_equipos">Fibra & Equipos</option>
-                    <option value="mantenimiento">Mantenimiento</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="expenses-manager-field-3" className="font-bold text-[#434655] block mb-1">Valor ($ USD) *</label>
-                  <input id="expenses-manager-field-3"
-                    type="number"
-                    step="0.01"
-                    required
-                    value={amount}
-                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 font-bold text-[#ef4444]"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="expenses-manager-field-4" className="font-bold text-[#434655] block mb-1">Descripción</label>
-                <textarea id="expenses-manager-field-4"
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalle del comprobante..."
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-[#0b1c30]"
-                />
-              </div>
-              <div className="pt-2 flex justify-end gap-2 border-t border-[#e2e8f0]">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-[#737686] hover:bg-[#f8f9ff] rounded-lg font-bold cursor-pointer">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-4 py-2 bg-[#712ae2] hover:bg-[#8a4cfc] text-white rounded-lg font-bold cursor-pointer shadow-xs">
-                  Guardar Gasto
-                </button>
-              </div>
-            </form>
+      {modal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+        <section role="dialog" aria-modal="true" aria-labelledby="expenses-dialog-title" className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-[#f8f9ff] p-4">
+            <h2 id="expenses-dialog-title" className="text-sm font-bold">{modal === "expense" ? "Registrar gasto" : "Categorías de gastos"}</h2>
+            <button type="button" aria-label="Cerrar" disabled={busy} onClick={() => setModal(null)} className="p-1"><X className="size-4" /></button>
           </div>
-        </div>
-      )}
+          {modal === "expense" ? <form onSubmit={registerExpense} className="space-y-3 p-4">
+            <p className="text-slate-600">Registra aquí una salida ya pagada. Las facturas de proveedores con saldo pendiente se gestionan en Compras.</p>
+            <div>
+              <label htmlFor="expense-supplier" className="font-semibold">Proveedor / Beneficiario *</label>
+              <input id="expense-supplier" required maxLength={500} value={supplierQuery} autoComplete="off" placeholder="Buscar por nombre, razón social o RUC" className={field}
+                onFocus={() => setShowSuppliers(true)} onChange={e => { setSupplierQuery(e.target.value); setSupplierId(""); setShowSuppliers(true); }} />
+              {selectedSupplier ? <p className="mt-1 text-slate-600">Proveedor vinculado · {selectedSupplier.ruc}</p> :
+                showSuppliers && supplierKey.length >= 2 ? <div aria-label="Resultados de proveedores" className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-slate-200">
+                  {supplierMatches.map(supplier => <button key={supplier.id} type="button" className="block w-full px-3 py-2 text-left hover:bg-blue-50"
+                    onClick={() => { setSupplierId(supplier.id); setSupplierQuery(supplier.razonSocial); setShowSuppliers(false); }}>
+                    <strong>{supplier.razonSocial}</strong> <span className="text-slate-600">{supplier.ruc}</span>{supplier.nombreComercial && <span className="block text-slate-500">{supplier.nombreComercial}</span>}
+                  </button>)}
+                  <button type="button" className="block w-full border-t border-slate-200 px-3 py-2 text-left text-[#004ac6]" onClick={() => setShowSuppliers(false)}>Usar como beneficiario manual</button>
+                </div> : <p className="mt-1 text-slate-500">También puedes escribir un beneficiario ocasional.</p>}
+            </div>
+            <label className="block font-semibold">Cuenta de salida *
+              <select required value={bankAccountId} onChange={e => setBankAccountId(e.target.value)} className={field}>
+                <option value="">Seleccionar banco o caja</option>
+                {activeAccounts.map(account => <option key={account.id} value={account.id}>{account.bankName} · {account.accountNumber}</option>)}
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="font-semibold">Fecha de pago *<input type="date" required max={getEcuadorDate()} value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className={field} /></label>
+              <label className="font-semibold">Importe ($) *<input type="number" min="0.01" step="0.01" required value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className={field} /></label>
+              <label className="font-semibold">Categoría *
+                <select required value={category} onChange={e => setCategory(e.target.value)} className={field}>
+                  <option value="">Seleccionar categoría</option>
+                  {activeCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="font-semibold">Referencia o comprobante<input value={reference} maxLength={100} onChange={e => setReference(e.target.value)} className={field} /></label>
+            </div>
+            <label className="block font-semibold">Concepto *<textarea required rows={2} maxLength={500} value={description} onChange={e => setDescription(e.target.value)} className={field} /></label>
+            {error && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-rose-700">{error}</p>}
+            <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
+              <button type="button" disabled={busy} onClick={() => setModal(null)} className={secondary}>Cancelar</button>
+              <button type="submit" disabled={busy || !activeAccounts.length || !activeCategories.length} className={primary}>{busy ? "Guardando…" : "Guardar gasto"}</button>
+            </div>
+            {!activeAccounts.length && <p className="text-slate-600">Agrega una cuenta activa en Finanzas → Bancos.</p>}
+            {!activeCategories.length && <p className="text-slate-600">Activa una categoría para registrar gastos.</p>}
+          </form> : <div className="space-y-3 p-4">
+            <p className="text-slate-600">Las categorías inactivas conservan su historial y salen del formulario de nuevos gastos.</p>
+            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+              {categories.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 p-2.5">
+                <span className="font-semibold">{item.name}{!item.active && <span className="ml-2 font-normal text-slate-500">Inactiva</span>}</span>
+                <div className="flex gap-2">
+                  <button type="button" disabled={busy} className={secondary} onClick={() => { setError(""); setCategoryDraft(item); }}>Renombrar</button>
+                  <button type="button" disabled={busy} className={secondary} onClick={() => { void saveCategory({ ...item, active: !item.active }); }}>{item.active ? "Desactivar" : "Activar"}</button>
+                </div>
+              </li>)}
+            </ul>
+            {categoryDraft ? <form className="flex items-end gap-2" onSubmit={event => { event.preventDefault(); void saveCategory(categoryDraft); }}>
+              <label className="flex-1 font-semibold">Nombre de la categoría
+                <input required minLength={2} maxLength={80} value={categoryDraft.name} onChange={event => setCategoryDraft({ ...categoryDraft, name: event.target.value })} className={field} />
+              </label>
+              <button type="submit" disabled={busy} className={primary}>Guardar</button>
+            </form> : <button type="button" disabled={busy} className={primary} onClick={() => { setError(""); setCategoryDraft({ id: "", name: "", active: true }); }}>Nueva categoría</button>}
+            {error && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-rose-700">{error}</p>}
+          </div>}
+        </section>
+      </div>}
     </div>
   );
 }

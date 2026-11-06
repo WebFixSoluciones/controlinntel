@@ -1,8 +1,12 @@
 import { cents, money, chargeBalance, externalCash, type RecordData } from "./commercial-core.ts";
 
+export function activeReceivables<T extends RecordData>(charges: T[]): T[] {
+  return charges.filter(charge => charge.status !== "anulado");
+}
+
 /** Sale collections and physical cash are separate: cancellation releases credit, not cash. */
 export function summarizeReceivables(charges: RecordData[]) {
-  const active = charges.filter((charge) => charge.status !== "anulado");
+  const active = activeReceivables(charges);
   const total = active.reduce((sum, charge) => sum + cents(charge.total), 0);
   const paid = active.reduce((sum, charge) => sum + cents(charge.paidAmount ?? (charge.status === "pagado" ? charge.total : 0)), 0);
   const pending = active.reduce((sum, charge) => sum + chargeBalance(charge), 0);
@@ -15,6 +19,18 @@ export function summarizeReceivables(charges: RecordData[]) {
     pendientesCount: active.filter((charge) => chargeBalance(charge) > 0).length,
     anuladosCount: charges.length - active.length,
   };
+}
+
+export function summarizeOperatingExpenses(expenses: RecordData[]) {
+  const byCategory: Record<string, number> = Object.create(null);
+  let total = 0;
+  for (const expense of expenses) {
+    const category = expense.category || "otro";
+    const amount = cents(expense.amount);
+    byCategory[category] = (byCategory[category] || 0) + amount;
+    total += amount;
+  }
+  return { total: money(total), byCategory: Object.fromEntries(Object.entries(byCategory).map(([category, amount]) => [category, money(amount)])) };
 }
 
 export function summarizeCash(movements: RecordData[]) {

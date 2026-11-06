@@ -16,7 +16,7 @@ export const collectionPermissions = {
   projects: "manage_network", clientProjects: "manage_clients", clientContracts: "manage_clients",
   clientQuotes: "manage_finance", nodes: "manage_network", ipPools: "manage_network",
   policies: "manage_policies", tickets: "manage_tickets", ticketSubjects: "manage_tickets", expenses: "manage_finance",
-  monthlyCharges: "manage_finance", clientAdvances: "manage_finance", vault: "manage_vault", clientVaultItems: "manage_vault",
+  expenseCategories: "manage_finance", monthlyCharges: "manage_finance", clientAdvances: "manage_finance", vault: "manage_vault", clientVaultItems: "manage_vault",
   systemUsers: "manage_users", auditLogs: "manage_users",
   arcotelFiles: "manage_policies", clientDocuments: "manage_clients",
   inventoryProducts: "manage_network", inventoryWarehouses: "manage_network",
