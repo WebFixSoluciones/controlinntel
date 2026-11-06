@@ -18,6 +18,7 @@ import { canAccessRoute, canAccessSubmodule, canUser, canViewServicePrices } fro
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
+import { addDays, calculateLines, previewScheduledService, validDate } from "@/lib/commercial-core";
 import {
   getEcuadorDate,
   addMonthsSafely,
@@ -50,6 +51,25 @@ import {
   Server,
   Sparkles,
 } from "lucide-react";
+
+function suggestedContractEnd(start: string, duration: ServiceContractDuration) {
+  return validDate(start) && duration !== "indefinido" ? addDays(calculateContractEndDate(start, duration), -1) : "";
+}
+
+function ServiceBillingPreview({ preview }: { preview: ReturnType<typeof previewScheduledService> }) {
+  return (
+    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-slate-800" aria-live="polite">
+      <p className="font-semibold text-[#004ac6]">Vista previa de la próxima emisión automática</p>
+      {preview.plans ? <>
+        <ul className="mt-1 font-semibold">
+          {preview.plans.map(plan => <li key={plan.key}>{plan.line.description}</li>)}
+        </ul>
+        <p className="mt-1">Emisión prevista {formatDateEC(preview.emissionDate)} · Vence el {formatDateEC(preview.dueDate)} · Total estimado ${safeNumber(calculateLines(preview.plans.map(plan => plan.line)).total)}</p>
+      </> : <p className="mt-1">{preview.reason}</p>}
+      <p className="mt-1 text-[11px] text-slate-600">La corrida programada es el día 1 de cada mes. Guardar el servicio solo registra la asignación.</p>
+    </div>
+  );
+}
 
 export function ClientContractTab({ client }: { client: Client }) {
   const {
@@ -88,7 +108,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcAdvanceNoticeDay, setNewSvcAdvanceNoticeDay] = useState<number>(26);
   const [newSvcStartDate, setNewSvcStartDate] = useState(() => getEcuadorDate());
   const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => addMonthsSafely(getEcuadorDate(), 1));
-  const [newSvcEndDate, setNewSvcEndDate] = useState(() => addMonthsSafely(getEcuadorDate(), 12));
+  const [newSvcEndDate, setNewSvcEndDate] = useState(() => suggestedContractEnd(getEcuadorDate(), "anual"));
   const [newSvcAutoRenew, setNewSvcAutoRenew] = useState(true);
   const [newSvcPaymentMethod, setNewSvcPaymentMethod] = useState<ServicePaymentMethod>("credito");
   const [newCycleAnchor, setNewCycleAnchor] = useState<"calendario" | "aniversario">("aniversario");
@@ -114,10 +134,26 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [editRenewalDate, setEditRenewalDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editAutoRenew, setEditAutoRenew] = useState(true);
+  const [editPaymentMethod, setEditPaymentMethod] = useState<ServicePaymentMethod>("credito");
   const [editCycleAnchor, setEditCycleAnchor] = useState<"calendario" | "aniversario">("aniversario");
   const [editPartialPolicy, setEditPartialPolicy] = useState<"prorrateo" | "completo">("prorrateo");
   const [editZeroReason, setEditZeroReason] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const today = getEcuadorDate();
+  const assignmentPreview = isAddingService && selectedService ? previewScheduledService({
+    id: selectedService.id, planName: newSvcName || selectedService.name, status: client.status,
+    createdAt: `${today}T12:00:00-05:00`, contractStartDate: newSvcStartDate, contractEndDate: newSvcEndDate,
+    billingType: newSvcBillingType, billingFrequency: newSvcFreq, cycleAnchor: newCycleAnchor,
+    firstPeriodPolicy: newPartialPolicy, billingDay: newSvcBillingDay, advanceNoticeDay: newSvcAdvanceNoticeDay,
+    customPrice: newSvcPriceSinIva === "" ? undefined : Number(newSvcPriceSinIva), ivaRate: newSvcIvaRate, zeroPriceReason: newZeroReason.trim(),
+  }, today) : null;
+  const editPreview = editingService ? previewScheduledService({
+    ...editingService, contractStartDate: editStartDate, contractEndDate: editEndDate,
+    billingType: editBillingType, billingFrequency: editFreq, cycleAnchor: editCycleAnchor,
+    firstPeriodPolicy: editPartialPolicy, billingDay: editBillingDay, advanceNoticeDay: editAdvanceNoticeDay,
+    basePrice: undefined, customPrice: editPriceSinIva === "" ? undefined : Number(editPriceSinIva), ivaRate: editIvaRate, zeroPriceReason: editZeroReason.trim(),
+  }, today) : null;
 
   const searchDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -381,7 +417,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcDuration("anual");
     setNewSvcStartDate(getEcuadorDate());
     setNewSvcRenewalDate(addMonthsSafely(getEcuadorDate(), 1));
-    setNewSvcEndDate(addMonthsSafely(getEcuadorDate(), 12));
+    setNewSvcEndDate(suggestedContractEnd(getEcuadorDate(), "anual"));
     setNewSvcAutoRenew(true);
     setNewSvcPaymentMethod("credito");
     setShowServiceDropdown(true);
@@ -394,13 +430,13 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   const handleDurationChange = (dur: ServiceContractDuration) => {
     setNewSvcDuration(dur);
-    setNewSvcEndDate(calculateContractEndDate(newSvcStartDate, dur));
+    setNewSvcEndDate(suggestedContractEnd(newSvcStartDate, dur));
   };
 
   const handleStartDateChange = (startDate: string) => {
     setNewSvcStartDate(startDate);
     setNewSvcRenewalDate(calculateNextRenewalDate(startDate, newSvcFreq));
-    setNewSvcEndDate(calculateContractEndDate(startDate, newSvcDuration));
+    setNewSvcEndDate(suggestedContractEnd(startDate, newSvcDuration));
   };
 
   const handlePriceSinIvaChange = (val: string) => {
@@ -535,15 +571,16 @@ export function ClientContractTab({ client }: { client: Client }) {
       svc.billingType === "pospago" || svc.billingType === "postpago" ? "postpago" : "prepago"
     );
     setEditBillingDay(svc.billingDay ?? 1);
+    setEditPaymentMethod(svc.paymentMethod || "credito");
     setEditAdvanceNoticeDay(svc.advanceNoticeDay ?? 26);
     setEditFreq(svc.billingFrequency || "mensual");
-    setEditDuration(svc.contractDuration || "anual");
+    setEditDuration(svc.contractDuration || (svc.contractEndDate ? "anual" : "indefinido"));
     const lower = (svc.planName + " " + (svc.notes || "")).toLowerCase();
     const defaultCat: ServiceCategory =
       svc.serviceCategory || (lower.includes("hosting") ? "hosting" : lower.includes("dominio") ? "dominio" : "internet");
     setEditCategory(defaultCat);
     setEditStartDate(svc.contractStartDate || svc.installationDate || getEcuadorDate());
-    setEditRenewalDate(svc.nextRenewalDate || "");
+    setEditRenewalDate(svc.nextRenewalDate || calculateNextRenewalDate(svc.contractStartDate || svc.installationDate || getEcuadorDate(), svc.billingFrequency || "mensual"));
     setEditEndDate(svc.contractEndDate || "");
     setEditAutoRenew(svc.autoRenew ?? true);
     setEditCycleAnchor(svc.cycleAnchor || "aniversario");
@@ -561,7 +598,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const handleEditDurationChange = (dur: ServiceContractDuration) => {
     setEditDuration(dur);
     if (editStartDate) {
-      setEditEndDate(calculateContractEndDate(editStartDate, dur));
+      setEditEndDate(suggestedContractEnd(editStartDate, dur));
     }
   };
 
@@ -623,8 +660,9 @@ export function ClientContractTab({ client }: { client: Client }) {
         billingFrequency: editFreq,
         contractDuration: editDuration,
         contractStartDate: editStartDate,
-        contractEndDate: editEndDate || undefined,
+        contractEndDate: editEndDate,
         autoRenew: editAutoRenew,
+        paymentMethod: editPaymentMethod,
         cycleAnchor: editCycleAnchor,
         firstPeriodPolicy: editPartialPolicy,
         zeroPriceReason: editZeroReason.trim(),
@@ -1104,7 +1142,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <option value="postpago">POSTPAGO (Mes vencido)</option>
                   </select>
                   <span className="text-[10px] text-slate-400 mt-0.5 block">
-                    {newSvcBillingType === "prepago" ? "Facturación anticipada" : "Facturación a mes vencido"}
+                    {newSvcBillingType === "prepago" ? "El período es exigible desde su inicio" : "El período es exigible después de que termina"}
                   </span>
                 </div>
 
@@ -1149,7 +1187,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <option value={10}>Día 10 de cada mes</option>
                     <option value={15}>Día 15 de cada mes</option>
                   </select>
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Aviso previo de cobro</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">Referencia para los avisos de cobro</span>
                 </div>
 
                 {/* Forma de Pago pactada para las facturas de este servicio */}
@@ -1197,7 +1235,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 {/* Duración del Contrato */}
                 <div>
                   <label htmlFor="client-contract-tab-field-8" className="block text-xs font-bold text-[#434655] mb-1">
-                    Período de Contrato *
+                    Duración del contrato *
                   </label>
                   <select id="client-contract-tab-field-8"
                     value={newSvcDuration}
@@ -1220,6 +1258,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </label>
                   <input id="client-contract-tab-field-9"
                     type="date"
+                    required
                     value={newSvcStartDate}
                     onChange={(e) => handleStartDateChange(e.target.value)}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
@@ -1229,7 +1268,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 {/* Próximo Cobro */}
                 <div>
                   <label htmlFor="client-contract-tab-field-10" className="block text-xs font-bold text-[#434655] mb-1">
-                    Próxima renovación *
+                    Fecha de seguimiento *
                   </label>
                   <input id="client-contract-tab-field-10"
                     type="date"
@@ -1238,7 +1277,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     onChange={(e) => setNewSvcRenewalDate(e.target.value)}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Fecha de la siguiente emisión</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">Fecha para revisar la renovación del servicio</span>
                 </div>
               </div>
 
@@ -1246,9 +1285,9 @@ export function ClientContractTab({ client }: { client: Client }) {
                 <label className="text-xs font-semibold">Ciclo de prestación
                   <select value={newCycleAnchor} onChange={e => setNewCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde la fecha de alta</option><option value="calendario">Mes calendario</option></select>
                 </label>
-                <label className="text-xs font-semibold">Primer período parcial
+                {newCycleAnchor === "calendario" && newSvcStartDate && !newSvcStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial
                   <select value={newPartialPolicy} onChange={e => setNewPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select>
-                </label>
+                </label>}
                 <label className="text-xs font-semibold">Motivo de gratuidad, si la tarifa es cero<input value={newZeroReason} onChange={e => setNewZeroReason(e.target.value)} className="block w-full border rounded p-2 mt-1" /></label>
               </div>
               {/* Fila 3: Fin Contrato y Switch Auto-Renovación */}
@@ -1260,6 +1299,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </label>
                   <input id="client-contract-tab-field-11"
                     type="date"
+                    required={newSvcDuration !== "indefinido"}
+                    min={newSvcStartDate || undefined}
                     value={newSvcEndDate}
                     onChange={(e) => setNewSvcEndDate(e.target.value)}
                     disabled={newSvcDuration === "indefinido"}
@@ -1280,15 +1321,17 @@ export function ClientContractTab({ client }: { client: Client }) {
                       className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6] w-4 h-4 cursor-pointer"
                     />
                     <div>
-                      <span className="text-xs font-bold text-[#0b1c30] block">Preferencia de renovación</span>
+                      <span className="text-xs font-bold text-[#0b1c30] block">Marcar para revisión de renovación</span>
                       <span className="text-[10px] text-slate-500 block">
-                        Requiere revisión al vencer. Las notas se emiten desde Ventas recurrentes.
+                        Identifica el servicio para revisar su continuidad al vencer.
                       </span>
                     </div>
                   </label>
                 </div>
               </div>
             </div>
+
+            {assignmentPreview && <ServiceBillingPreview preview={assignmentPreview} />}
 
             {/* Ficha Resumen del Servicio de Inventario Seleccionado */}
             {selectedService && (
@@ -1926,7 +1969,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                   <div>
                     <label htmlFor="client-contract-tab-field-19" className="block text-xs font-bold text-[#434655] mb-1">
-                      Período de Contrato *
+                      Duración del contrato *
                     </label>
                     <select id="client-contract-tab-field-19"
                       value={editDuration}
@@ -1950,11 +1993,12 @@ export function ClientContractTab({ client }: { client: Client }) {
                     </label>
                     <input id="client-contract-tab-field-20"
                       type="date"
+                      required
                       value={editStartDate}
                       onChange={(e) => {
                         setEditStartDate(e.target.value);
                         setEditRenewalDate(calculateNextRenewalDate(e.target.value, editFreq));
-                        setEditEndDate(calculateContractEndDate(e.target.value, editDuration));
+                        setEditEndDate(suggestedContractEnd(e.target.value, editDuration));
                       }}
                       className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                     />
@@ -1962,7 +2006,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                   <div>
                     <label htmlFor="client-contract-tab-field-21" className="block text-xs font-bold text-[#434655] mb-1">
-                      Próxima renovación *
+                      Fecha de seguimiento *
                     </label>
                     <input id="client-contract-tab-field-21"
                       type="date"
@@ -1980,6 +2024,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </label>
                   <input id="client-contract-tab-field-22"
                     type="date"
+                    required={editDuration !== "indefinido"}
+                    min={editStartDate || undefined}
                     value={editEndDate}
                     onChange={(e) => setEditEndDate(e.target.value)}
                     disabled={editDuration === "indefinido"}
@@ -1992,7 +2038,15 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="text-xs font-semibold">Ciclo de prestación<select value={editCycleAnchor} onChange={e => setEditCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde la fecha de alta</option><option value="calendario">Mes calendario</option></select></label>
-                  <label className="text-xs font-semibold">Primer período parcial<select value={editPartialPolicy} onChange={e => setEditPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select></label>
+                  {editCycleAnchor === "calendario" && editStartDate && !editStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial<select value={editPartialPolicy} onChange={e => setEditPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select></label>}
+                  <label className="text-xs font-semibold">Forma de pago preferida
+                    <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value as ServicePaymentMethod)} className="block w-full border rounded p-2 mt-1">
+                      <option value="credito">Crédito (a cuenta)</option>
+                      <option value="efectivo">Efectivo</option>
+                      <option value="transferencia">Transferencia bancaria</option>
+                      <option value="tarjeta">Tarjeta de crédito</option>
+                    </select>
+                  </label>
                   <label className="text-xs font-semibold">Motivo de gratuidad, si la tarifa es cero<input value={editZeroReason} onChange={e => setEditZeroReason(e.target.value)} className="block w-full border rounded p-2 mt-1" /></label>
                 </div>
                 <div className="pt-1">
@@ -2004,15 +2058,16 @@ export function ClientContractTab({ client }: { client: Client }) {
                       className="rounded border-[#cbd5e1] text-[#004ac6] focus:ring-[#004ac6] w-4 h-4 cursor-pointer"
                     />
                     <div>
-                      <span className="text-xs font-bold text-[#0b1c30] block">Preferencia de renovación</span>
+                      <span className="text-xs font-bold text-[#0b1c30] block">Marcar para revisión de renovación</span>
                       <span className="text-[10px] text-slate-500 block">
-                        Requiere revisión al vencer. Las notas se emiten desde Ventas recurrentes.
+                        Identifica el servicio para revisar su continuidad al vencer.
                       </span>
                     </div>
                   </label>
                 </div>
               </div>
 
+              {editPreview && <ServiceBillingPreview preview={editPreview} />}
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
                 <button
                   type="button"

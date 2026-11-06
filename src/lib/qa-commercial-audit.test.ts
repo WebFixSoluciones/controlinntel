@@ -472,8 +472,9 @@ test("QA TEST 7: Verificación de Remediación de Inconsistencias UX/UI y Proces
   const commercialContent = fs.readFileSync(path.resolve(rootDir, "src/lib/server/commercial.ts"), "utf8");
   const coreContent = fs.readFileSync(path.resolve(rootDir, "src/lib/commercial-core.ts"), "utf8");
   const hasModalityNotes =
-    coreContent.includes('"PREPAGO" : "POSTPAGO"') &&
+    coreContent.includes('"PREPAGO" : "POSPAGO"') &&
+    coreContent.includes("Período del") &&
     commercialContent.includes("maxPaymentDate:") &&
     coreContent.includes("dueDate");
-  assert.ok(hasModalityNotes, "VERIFICACIÓN: la emisión recurrente rotula la modalidad PREPAGO/POSTPAGO en la línea y asigna la fecha máxima de pago");
+  assert.ok(hasModalityNotes, "La nota recurrente muestra el período, la modalidad y la fecha máxima de pago");
 });

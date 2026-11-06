@@ -4,7 +4,7 @@ import type { UserProfile } from "@/types";
 import { adminServices } from "./admin.ts";
 import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
-import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
+import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, paymentDueOnIssue, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
 import { schemas } from "./schemas.ts";
@@ -270,10 +270,9 @@ async function cancelSalePeriods(c: Context, invoice: Row) {
 }
 
 async function issueRecurringSale(c: Context, clientId: string, plans: EligibleServicePeriod[], expectedPaymentMethod?: string) {
-  const firstDueDate = plans.map(plan => plan.dueDate).sort()[0];
   return issueSale(c, { documentType: "nota_venta", status: "registrado", clientId, date: c.today,
     items: plans.map(plan => plan.line), saleChannel: "servicio", paymentMethod: "credito",
-    creditDueDate: firstDueDate < c.today ? c.today : firstDueDate, expectedPaymentMethod, recurring: true });
+    creditDueDate: paymentDueOnIssue(plans, c.today), expectedPaymentMethod, recurring: true });
 }
 
 async function execute(c:Context, action:CommercialCommand["action"], data:Row):Promise<any> {
@@ -429,11 +428,11 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const rate=source.ivaRate??product.ivaRate;
       if(rate===undefined) throw new HttpError(400,"Configura el impuesto del servicio.");
       const { emitFirstInvoice: _emitFirstInvoice, ...serviceFields } = source;
-      const service=schemas.clientServices.parse({...serviceFields,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:product.name||plan.name,inventoryProductId:product.id||null,
+      const service=schemas.clientServices.parse({...serviceFields,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:String(source.planName||"").trim()||product.name||plan.name,inventoryProductId:product.id||null,
         saleStatus: old.saleStatus || (old.saleInvoiceId || old.saleDocNumber ? "emitida" : "pendiente_venta"), saleInvoiceId: old.saleInvoiceId, saleDocNumber: old.saleDocNumber,
         lastBilledPeriod: old.lastBilledPeriod, lastBilledInvoiceId: old.lastBilledInvoiceId,
         status:source.status||"activo",billingType:source.billingType||"pospago",billingFrequency:source.billingFrequency||"mensual",cycleAnchor:source.cycleAnchor||"aniversario",
-        contractStartDate:source.contractStartDate||source.installationDate||getEcuadorDate(),installationDate:source.installationDate||getEcuadorDate(),nodeId:source.nodeId||"",nodeName:source.nodeName||"Sin configurar",ipv4Address:source.ipv4Address||"",pppoeUser:source.pppoeUser||""});
+        contractStartDate:source.contractStartDate||source.installationDate||getEcuadorDate(),contractEndDate:source.contractEndDate||undefined,installationDate:source.installationDate||getEcuadorDate(),nodeId:source.nodeId||"",nodeName:source.nodeName||"Sin configurar",ipv4Address:source.ipv4Address||"",pppoeUser:source.pppoeUser||""});
       if(cents(price)===0&&!source.zeroPriceReason)throw new HttpError(400,"Registra el motivo de gratuidad.");
       if(!validDate(service.contractStartDate)||service.contractEndDate&&!validDate(service.contractEndDate)||service.contractEndDate&&service.contractEndDate<service.contractStartDate)throw new HttpError(400,"Vigencia inválida.");
       if(service.billingDay && (!Number.isInteger(service.billingDay)||service.billingDay<1||service.billingDay>31))throw new HttpError(400,"Día de cobro inválido.");

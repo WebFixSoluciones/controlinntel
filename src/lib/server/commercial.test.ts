@@ -9,7 +9,7 @@ import { requiresPublicTicketReply } from "../ticket-status.ts";
 import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
 import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
-import { planServicePeriod, calculateLines, scheduledServicePeriods } from "../commercial-core.ts";
+import { planServicePeriod, calculateLines, scheduledServicePeriods, previewScheduledService } from "../commercial-core.ts";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "../financial-summary.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
@@ -322,6 +322,35 @@ test("Los ciclos aniversario se programan para el primer día disponible y conse
   assert.deepEqual(scheduledServicePeriods(annual, "2027-12-01").map(plan => plan.periodStart), ["2026-11-05"]);
   const newAfterRun = { ...service, contractStartDate: "2026-11-01", createdAt: "2026-11-01T15:00:00Z" };
   assert.deepEqual(scheduledServicePeriods(newAfterRun, "2026-12-01").map(plan => plan.periodStart), ["2026-11-01", "2026-12-01"]);
+});
+
+test("La vista previa comparte fechas, descripción y cálculo con la emisión programada", () => {
+  const service = { id: "qa", ...servicePayload({ contractStartDate: "2026-11-05", cycleAnchor: "aniversario", createdAt: "2026-11-05T18:00:00Z" }) };
+  const prepaid = previewScheduledService(service, "2026-11-06");
+  assert.equal(prepaid.emissionDate, "2026-12-01");
+  assert.equal(prepaid.dueDate, "2026-12-01");
+  assert.equal(prepaid.plans?.[0].line.description, "Período del 05/11/2026 al 04/12/2026 (PREPAGO)");
+  assert.deepEqual(prepaid.plans, scheduledServicePeriods(service, "2026-12-01"));
+
+  const postpaid = previewScheduledService({ ...service, billingType: "pospago" }, "2026-11-06");
+  assert.equal(postpaid.emissionDate, "2027-01-01");
+  assert.equal(postpaid.plans?.[0].line.description, "Período del 05/11/2026 al 04/12/2026 (POSPAGO)");
+
+  const calendar = previewScheduledService({ ...service, cycleAnchor: "calendario", firstPeriodPolicy: "prorrateo" }, "2026-11-06");
+  assert.equal(calendar.plans?.[0].line.description, "Período del 05/11/2026 al 30/11/2026 (PREPAGO)");
+  assert.equal(calendar.plans?.[0].line.unitPrice, 86.67);
+  assert.equal(previewScheduledService({ ...service, contractEndDate: "2026-11-09" }, "2026-11-06").reason, "El ciclo excede el contrato; requiere ajuste o renovación.");
+});
+
+test("Editar un servicio conserva su nombre elegido y permite quitar la vigencia al pasar a indefinido", async () => {
+  const db = new Database(initial());
+  const service = await run(db, "assignService", servicePayload({ planName: "Servicio acordado", contractEndDate: "2027-10-31" }));
+  assert.equal(db.row("clientServices", service.id).planName, "Servicio acordado");
+  await run(db, "editService", { id: service.id, planName: "Servicio actualizado", contractDuration: "indefinido", contractEndDate: "", paymentMethod: "transferencia" });
+  const edited = db.row("clientServices", service.id);
+  assert.equal(edited.planName, "Servicio actualizado");
+  assert.equal(edited.contractEndDate, undefined);
+  assert.equal(edited.paymentMethod, "transferencia");
 });
 
 test("Anular cancela el cobro y permite reemitir manualmente con otro número, una sola vez", async t => {

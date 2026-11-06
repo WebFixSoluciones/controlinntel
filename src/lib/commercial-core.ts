@@ -1,4 +1,4 @@
-import { addMonthsSafely, diffInCalendarDays, getEcuadorDate } from "./date-utils.ts";
+import { addMonthsSafely, diffInCalendarDays, formatDateEC, getEcuadorDate } from "./date-utils.ts";
 
 export type RecordData = Record<string, any>;
 export class CommercialValidationError extends Error {}
@@ -64,19 +64,27 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
   if (issueDate > today) return skip("El período todavía no es exigible.");
   const unitPrice = service.customPrice ?? service.basePrice;
   const rate = service.ivaRate;
-  if (unitPrice === undefined || rate === undefined) return skip("Revisa la tarifa y el impuesto del servicio.");
+  if (unitPrice === undefined || !Number.isFinite(Number(unitPrice)) || Number(unitPrice) < 0 ||
+    rate === undefined || !Number.isFinite(Number(rate)) || Number(rate) < 0 || Number(rate) > 100) {
+    return skip("Revisa la tarifa y el impuesto del servicio.");
+  }
   if (cents(unitPrice) === 0 && !service.zeroPriceReason) return skip("La gratuidad requiere motivo.");
   const ratio = billingStart !== periodStart && service.firstPeriodPolicy === "prorrateo" ? diffInCalendarDays(billingStart, periodEnd) / diffInCalendarDays(periodStart, periodEnd) : 1;
-  return { eligible: true as const, serviceId: String(service.id), periodStart, periodEnd, issueDate,
+  return { eligible: true as const, serviceId: String(service.id), periodStart, periodEnd, billingStart, issueDate,
     dueDate,noticeDate,
     key: `${service.id}_${periodStart}_${periodEnd}`,
     line: { id: `period-${service.id}`, serviceId: service.id, productId: service.inventoryProductId || service.planId,
-      sku: service.inventorySku || "SRV", name: service.planName, description: `${billingStart} al ${addDays(periodEnd, -1)} (${prepaid ? "PREPAGO" : "POSTPAGO"})`,
+      sku: service.inventorySku || "SRV", name: service.planName, description: `Período del ${formatDateEC(billingStart)} al ${formatDateEC(addDays(periodEnd, -1))} (${prepaid ? "PREPAGO" : "POSPAGO"})`,
       unit: "servicio", quantity: 1, unitPrice: money(cents(Number(unitPrice) * ratio)), ivaRate: Number(rate), discount: 0, periodStart, periodEnd, zeroPriceReason:service.zeroPriceReason||"" },
   };
 }
 
 export type EligibleServicePeriod = Extract<ReturnType<typeof planServicePeriod>, { eligible: true }>;
+
+export function paymentDueOnIssue(plans: EligibleServicePeriod[], emissionDate: string): string {
+  const earliestDue = plans.map(plan => plan.dueDate).sort()[0];
+  return earliestDue < emissionDate ? emissionDate : earliestDue;
+}
 
 export function scheduledServicePeriods(service: RecordData, today: string): EligibleServicePeriod[] {
   if (!validDate(today) || !today.endsWith("-01")) return [];
@@ -87,11 +95,37 @@ export function scheduledServicePeriods(service: RecordData, today: string): Eli
   // Un ciclo anual pospago puede haberse iniciado hasta trece meses antes de la corrida.
   for (let offset = 13; offset >= 0; offset--) {
     const [year, month] = addMonthsSafely(today, -offset).split("-").map(Number);
-    if (year < 2020) continue;
+    if (year < 2020 || year > 2100) continue;
     const plan = planServicePeriod(service, month, year, today);
     if (plan.eligible && (plan.issueDate > previousRun || (plan.issueDate === previousRun && registeredDate >= previousRun))) periods.push(plan);
   }
   return periods;
+}
+
+export function previewScheduledService(service: RecordData, today: string) {
+  const start = service.contractStartDate || service.installationDate;
+  if (!start || !validDate(start)) return { reason: "Selecciona la fecha de inicio del servicio." };
+  const [year, month] = start.split("-").map(Number);
+  if (year < 2020 || year > 2100) return { reason: "La fecha de inicio debe estar entre 2020 y 2100." };
+  if (service.contractEndDate && (!validDate(service.contractEndDate) || service.contractEndDate < start)) {
+    return { reason: "La vigencia debe terminar en la fecha de inicio o después." };
+  }
+  const startMonth = start.slice(0, 7) + "-01";
+  const nextRun = addMonthsSafely(today.slice(0, 7) + "-01", 1);
+  const from = startMonth > nextRun ? startMonth : nextRun;
+  for (let index = 0; index <= 13; index++) {
+    const emissionDate = addMonthsSafely(from, index);
+    const plans = scheduledServicePeriods(service, emissionDate).filter(plan => {
+      const periodMonth = plan.periodStart.slice(0, 7);
+      const annualAlreadyBilled = service.billingFrequency === "anual" && service.lastBilledPeriod === periodMonth.slice(0, 4);
+      return !annualAlreadyBilled && (!service.lastBilledPeriod || periodMonth > service.lastBilledPeriod);
+    });
+    if (plans.length) {
+      return { emissionDate, plans, dueDate: paymentDueOnIssue(plans, emissionDate) };
+    }
+  }
+  const first = planServicePeriod(service, month, year, addMonthsSafely(start, 13));
+  return { reason: first.eligible ? "No hay un período pendiente para las próximas corridas. Revisa la vigencia en Ventas recurrentes." : first.reason };
 }
 export function addDays(value: string, days: number) {
   if (!validDate(value) || !Number.isInteger(days) || Math.abs(days) > 3650) throw new CommercialValidationError("Fecha o plazo inválido.");
