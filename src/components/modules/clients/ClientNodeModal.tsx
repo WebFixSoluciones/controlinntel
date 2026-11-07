@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useId } from "react";
 import dynamic from "next/dynamic";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { nodeSchema, nodeField } from "@/lib/node-schema";
 import { validationIssues, type FieldError } from "@/lib/validation-issues";
 import { ApiError } from "@/lib/api-error";
+import { NodeSystemCredentials } from "./NodeSystemCredentials";
 import {
   Client,
   NodeLocation,
@@ -23,11 +24,7 @@ import {
   Plus,
   Trash2,
   Pencil,
-  Eye,
-  EyeOff,
   Building2,
-  Copy,
-  Check,
   ShieldCheck,
   Globe,
 } from "lucide-react";
@@ -93,50 +90,13 @@ export function ClientNodeModal({
 
   // Servicios y Credenciales del Sistema (Separación de Usuario y Clave con temporizador de 20s)
   const [services, setServices] = useState<NodeSystemService[]>([]);
+  const systemFieldId = useId();
+  const [activeCredentialField, setActiveCredentialField] = useState<"user" | "password" | null>(null);
   const [newSysName, setNewSysName] = useState("");
   const [newSysLink, setNewSysLink] = useState("");
   const [newSysUsername, setNewSysUsername] = useState("");
   const [newSysPassword, setNewSysPassword] = useState("");
   const [newSysNotes, setNewSysNotes] = useState("");
-
-  // Visualización temporal de contraseñas (20s)
-  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, number>>({});
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (Object.keys(revealedPasswords).length === 0) return;
-
-    const timer = setInterval(() => {
-      setRevealedPasswords((prev) => {
-        const next: Record<string, number> = {};
-        let changed = false;
-        for (const [id, count] of Object.entries(prev)) {
-          if (count > 1) {
-            next[id] = count - 1;
-            changed = true;
-          } else {
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [revealedPasswords]);
-
-  const handleRevealPasswordFor20s = (serviceId: string) => {
-    setRevealedPasswords((prev) => ({
-      ...prev,
-      [serviceId]: 20,
-    }));
-  };
-
-  const handleCopyText = (text: string, keyId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(keyId);
-    showSuccess("Copiado", "Texto copiado al portapapeles.");
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -193,6 +153,12 @@ export function ClientNodeModal({
     setNewProvCircuit("");
     setNewProvIpv4List([""]);
     setNewProvIpv6("");
+    setNewSysName("");
+    setActiveCredentialField(null);
+    setNewSysLink("");
+    setNewSysUsername("");
+    setNewSysPassword("");
+    setNewSysNotes("");
     setActiveTab("general");
   }, [isOpen, nodeToEdit]);
 
@@ -332,8 +298,7 @@ export function ClientNodeModal({
       systemName: newSysName.trim(),
       linkOrIp: newSysLink.trim(),
       username: newSysUsername.trim(),
-      password: newSysPassword.trim(),
-      credentials: `${newSysUsername.trim()} / ${newSysPassword.trim()}`,
+      password: newSysPassword,
       notes: newSysNotes.trim() || undefined,
     };
     setServices([...services, newSrv]);
@@ -441,11 +406,11 @@ export function ClientNodeModal({
         </div>
 
         {/* Pestañas internas */}
-        <div className="flex items-center gap-1 px-6 pt-3 border-b border-slate-100 bg-white">
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-4 sm:px-6 pt-3 border-b border-slate-100 bg-white">
           <button
             type="button"
             onClick={() => setActiveTab("general")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === "general"
                 ? "border-[#004ac6] text-[#004ac6]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -458,7 +423,7 @@ export function ClientNodeModal({
           <button
             type="button"
             onClick={() => setActiveTab("portadores")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === "portadores"
                 ? "border-[#004ac6] text-[#004ac6]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -471,7 +436,7 @@ export function ClientNodeModal({
           <button
             type="button"
             onClick={() => setActiveTab("servicios")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
               activeTab === "servicios"
                 ? "border-[#004ac6] text-[#004ac6]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -483,7 +448,7 @@ export function ClientNodeModal({
         </div>
 
         {/* Formulario */}
-        <form noValidate onSubmit={handleSubmit} aria-busy={saving} className="flex-1 overflow-y-auto p-6 space-y-5">
+        <form noValidate autoComplete="off" onSubmit={handleSubmit} aria-busy={saving} className="flex-1 overflow-y-auto p-6 space-y-5">
           {saveError && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
             <p className="font-bold">{saveError}</p>
             {fieldErrors.length > 0 && <ul className="mt-2 space-y-1">{fieldErrors.map((issue, index) => {
@@ -903,19 +868,34 @@ export function ClientNodeModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Usuario</label>
+                    <label htmlFor={`${systemFieldId}-user`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Usuario</label>
                     <input
                       type="text"
-                      placeholder="admin / usuario"
+                      id={`${systemFieldId}-user`}
+                      name="node-system-username"
+                      autoComplete="off"
+                      readOnly={activeCredentialField !== "user"}
+                      onFocus={() => setActiveCredentialField("user")}
+                      onBlur={() => setActiveCredentialField(null)}
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      placeholder="Usuario del sistema"
                       value={newSysUsername}
                       onChange={(e) => setNewSysUsername(e.target.value)}
                       className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Contraseña</label>
+                    <label htmlFor={`${systemFieldId}-secret`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Contraseña</label>
                     <input
                       type="password"
+                      id={`${systemFieldId}-secret`}
+                      name="node-system-secret"
+                      autoComplete="new-password"
+                      readOnly={activeCredentialField !== "password"}
+                      onFocus={() => setActiveCredentialField("password")}
+                      onBlur={() => setActiveCredentialField(null)}
+                      spellCheck={false}
                       placeholder="Contraseña del sistema"
                       value={newSysPassword}
                       onChange={(e) => setNewSysPassword(e.target.value)}
@@ -957,112 +937,16 @@ export function ClientNodeModal({
                     No hay sistemas ni credenciales asociadas a este nodo.
                   </div>
                 ) : (
-                  services.map((s) => {
-                    const timeLeft = revealedPasswords[s.id] || 0;
-                    const isRevealed = timeLeft > 0;
-                    const userVal = s.username || (s.credentials ? s.credentials.split("/")[0]?.trim() : "");
-                    const passVal = s.password || (s.credentials ? s.credentials.split("/").slice(1).join("/").trim() : "");
-
-                    return (
-                      <div
-                        key={s.id}
-                        className="p-3.5 bg-white rounded-lg border border-slate-200 space-y-2 shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Server className="w-4 h-4 text-[#004ac6]" />
-                            <span className="font-bold text-slate-900 text-xs">{s.systemName}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveService(s.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Eliminar sistema"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {s.linkOrIp && (
-                          <div className="text-[11px] text-slate-600 font-mono">
-                            <span className="font-bold text-slate-500 font-sans mr-1">Link / IP:</span>
-                            {s.linkOrIp}
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-xs">
-                          {/* Campo Usuario */}
-                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                            <div>
-                              <span className="text-[10px] text-slate-400 font-bold block uppercase">Usuario</span>
-                              <span className="font-mono font-semibold text-slate-800">{userVal || "(Sin usuario)"}</span>
-                            </div>
-                            {userVal && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(userVal, `user-${s.id}`)}
-                                className="p-1 text-slate-400 hover:text-[#004ac6] cursor-pointer"
-                                title="Copiar usuario"
-                              >
-                                {copiedKey === `user-${s.id}` ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Campo Clave cifrada con reveal por 20 segundos */}
-                          <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">Contraseña</span>
-                                {isRevealed && (
-                                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.2 rounded">
-                                    {timeLeft}s
-                                  </span>
-                                )}
-                              </div>
-                              <span className="font-mono font-semibold text-slate-800">
-                                {isRevealed ? passVal || "(Sin clave)" : "••••••••••••"}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleRevealPasswordFor20s(s.id)}
-                                className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                                  isRevealed ? "text-amber-600 bg-amber-100" : "text-slate-400 hover:text-slate-700"
-                                }`}
-                                title="Mostrar contraseña por 20 segundos"
-                              >
-                                {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                              </button>
-                              {passVal && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyText(passVal, `pass-${s.id}`)}
-                                  className="p-1 text-slate-400 hover:text-[#004ac6] cursor-pointer"
-                                  title="Copiar contraseña"
-                                >
-                                  {copiedKey === `pass-${s.id}` ? (
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {s.notes && (
-                          <p className="text-[11px] text-slate-500 italic pt-1">{s.notes}</p>
-                        )}
-                      </div>
-                    );
-                  })
+                  services.map(service => (
+                    <div key={service.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1">
+                      <NodeSystemCredentials service={service} nodeId={nodeToEdit?.id} />
+                      <button type="button" onClick={() => handleRemoveService(service.id)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                        title="Eliminar sistema" aria-label={`Eliminar sistema ${service.systemName}`}>
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
             </div>

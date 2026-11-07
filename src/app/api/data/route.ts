@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { actor, HttpError } from "@/lib/server/security";
-import { snapshot,save,remove,reveal } from "@/lib/server/operations";
+import { snapshot,save,remove,reveal,revealNodePassword } from "@/lib/server/operations";
 import { collectionPermissions, type Entity } from "@/lib/permissions";
 import { VaultConfigurationError } from "@/lib/server/vault-key";
 import { validationIssues } from "@/lib/validation-issues";
@@ -28,6 +28,7 @@ const command=z.object({
   service:z.record(z.unknown()).optional(),
   entity:z.enum(Object.keys(collectionPermissions) as [Entity,...Entity[]]).optional(),
   id:id.optional(),version:z.number().int().positive().optional(),data:z.record(z.unknown()).optional(),
+  serviceId: id.optional(),
   month:z.number().optional(),year:z.number().optional(),method:z.string().max(200).optional(),
 });
 function failure(error:unknown) {
@@ -63,7 +64,11 @@ export async function POST(request:NextRequest) {
         await remove(user,body.entity,body.id,body.version);break;
       case "reveal":
         if(!body.entity||!body.id) throw new HttpError(400,"Datos incompletos.");
-        result=await reveal(user,body.entity,body.id);break;
+        if (body.entity === "nodes") {
+          if (!body.serviceId) throw new HttpError(400, "Selecciona el sistema del nodo.");
+          result = await revealNodePassword(user, body.id, body.serviceId);
+        } else result=await reveal(user,body.entity,body.id);
+        break;
     }
     return NextResponse.json({result},{headers:{"Cache-Control":"no-store"}});
   } catch(error) {return failure(error);}

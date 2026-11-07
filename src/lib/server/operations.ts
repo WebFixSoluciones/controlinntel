@@ -20,6 +20,10 @@ import { isClosedTicketStatus, requiresPublicTicketReply } from "../ticket-statu
 import type { TicketDepartmentRecord } from "@/types";
 
 const now = () => new Date().toISOString();
+function nodeServicePassword(service?: DocumentData): string {
+  if (typeof service?.password === "string" && service.password) return service.password;
+  return typeof service?.credentials === "string" ? service.credentials.split("/").slice(1).join("/").trim() : "";
+}
 const fiscalCollections: ReadonlySet<string> = new Set(["billingCreditNotes", "billingDebitNotes", "billingWithholdings", "billingRemissionGuides", "purchaseWithholdings"]);
 export async function snapshot(user: UserProfile) {
   const {db} = adminServices();
@@ -46,9 +50,6 @@ export async function snapshot(user: UserProfile) {
     } catch (queryErr: any) {
       console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
     }
-    if (entity === "nodes" && canUser(user, "red", "canEditRouterCredentials") && documents.some(d => d.data().services?.some((service: DocumentData) => service.passwordSealed))) {
-      await initializeVaultKey().catch(() => {});
-    }
     result[entity] = documents.filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
       if (commercialIssuer) return redact(quoteCompanyDetails(value));
@@ -56,21 +57,13 @@ export async function snapshot(user: UserProfile) {
       if (entity==="systemUsers") value.uid=d.id;
       if (entity==="vault" || entity==="clientVaultItems") delete value.encryptedPassword;
       if (entity==="nodes" && Array.isArray(value.services)) {
-        // El secreto está sellado en el documento. Solo se descifra para quien puede
-        // revelar credenciales de router; para el resto se enmascara por completo.
-        const canReveal = canUser(user,"red","canEditRouterCredentials");
-        value.services = value.services.map((service:DocumentData, index:number) => {
+        value.services = value.services.map((service:DocumentData) => {
           const { passwordSealed, password, credentials, ...rest } = service;
-          const sealed = passwordSealed;
-          if (!canReveal) return { ...rest, hasPassword: Boolean(sealed) };
-          if (typeof sealed!=="string" || !sealed) return { ...rest, hasPassword: false };
-          try {
-            rest.password = unseal(sealed, `nodes/${d.id}/${rest.id ?? index}`);
-          } catch {
-            // Secreto ilegible: se informa sin filtrar el contenido.
-            return { ...rest, hasPassword: false, secretUnreadable: true };
-          }
-          return { ...rest, hasPassword: true };
+          return {
+            ...rest,
+            username: rest.username || (typeof credentials === "string" ? credentials.split("/")[0].trim() : ""),
+            hasPassword: Boolean(passwordSealed || nodeServicePassword(service)),
+          };
         });
       }
       if (entity==="clientProjects"&&!can(user,"manage_finance")) {delete value.estimatedBudget;delete value.executedCost;}
@@ -203,20 +196,17 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       delete data.encryptedPassword; delete data.password;
     }
     if (entity==="nodes" && Array.isArray(data.services)) {
-      // Las credenciales de los equipos se sellan aquí: nunca vuelven a viajar en claro
-      // al navegador ni quedan legibles en Firestore. El AAD las ata al nodo y al servicio.
+      // Las credenciales se sellan en Firestore. Su consulta explícita comprueba permisos.
+      // El AAD las ata al nodo y al servicio.
       // Al editar, si el formulario no trae contraseña nueva se conserva la sellada previa.
       const previousServices:DocumentData[] = old.data()?.services || [];
-      if (data.services.some((service: DocumentData) => service.password || service.credentials?.includes("/"))) await initializeVaultKey();
+      if (data.services.some((service: DocumentData) => nodeServicePassword(service) ||
+        nodeServicePassword(previousServices.find(item => item.id === service.id)))) await initializeVaultKey();
       data.services = data.services.map((service:DocumentData, index:number) => {
         const { password, credentials, passwordSealed, ...rest } = service;
-        const plain = typeof password==="string" && password
-          ? password
-          : typeof credentials==="string" && credentials.includes("/")
-          ? credentials.split("/").slice(1).join("/").trim()
-          : "";
         const context = `nodes/${reference.id}/${rest.id ?? index}`;
         const previous = previousServices.find((item)=>String(item.id)===String(rest.id));
+        const plain = nodeServicePassword(service) || (!previous?.passwordSealed ? nodeServicePassword(previous) : "");
         if (plain) rest.passwordSealed = seal(plain, context);
         else if (typeof passwordSealed==="string" && passwordSealed) rest.passwordSealed = passwordSealed;
         else if (previous?.passwordSealed) rest.passwordSealed = previous.passwordSealed;
@@ -309,5 +299,28 @@ export async function reveal(user:UserProfile,entity:string,id:string,database?:
   const log=audit(user,"VIEW_VAULT_PASSWORD",entity+"/"+id);
   await db.collection("auditLogs").doc(log.id).create(log);
   return value;
+}
+
+export async function revealNodePassword(user: UserProfile, nodeId: string, serviceId: string, database?: Firestore) {
+  requirePermission(user, "manage_network");
+  if (!canAccessModule(user, "red") || !canUser(user, "red", "canEditRouterCredentials")) {
+    throw new HttpError(403, "No tienes permiso para ver las contraseñas de los sistemas.");
+  }
+  const db = database || adminServices().db;
+  const node = await db.collection("nodes").doc(nodeId).get();
+  const service = node.data()?.services?.find((item: DocumentData) => item.id === serviceId);
+  if (!service) throw new HttpError(404, "El sistema no existe en este nodo.");
+  let password: string;
+  if (service.passwordSealed) {
+    await initializeVaultKey();
+    try { password = unseal(service.passwordSealed, `nodes/${nodeId}/${serviceId}`); }
+    catch { throw new HttpError(409, "No se pudo abrir la contraseña de este sistema. Revisa su recuperación antes de reemplazarla."); }
+  } else {
+    password = nodeServicePassword(service);
+  }
+  if (!password) throw new HttpError(404, "Este sistema no tiene una contraseña guardada.");
+  const log = audit(user, "VIEW_NODE_PASSWORD", `nodes/${nodeId}/services/${serviceId}`);
+  await db.collection("auditLogs").doc(log.id).create(log);
+  return password;
 }
 

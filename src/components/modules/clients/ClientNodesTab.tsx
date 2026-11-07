@@ -1,24 +1,19 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, NodeLocation } from "@/types";
 import { ClientNodeModal } from "./ClientNodeModal";
 import { ClientTabHeader } from "./ClientTabHeader";
+import { NodeSystemCredentials } from "./NodeSystemCredentials";
 import {
   Radio,
   Plus,
   MapPin,
-  Server,
-  Layers,
   Edit2,
   Trash2,
-  Copy,
-  Check,
-  Eye,
-  EyeOff,
   ShieldCheck,
   Search,
   ExternalLink,
@@ -50,39 +45,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nodeToEdit, setNodeToEdit] = useState<NodeLocation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "map">("table");
-
-  // Revelación temporal de 20s para credenciales
-  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (Object.keys(revealedPasswords).length === 0) return;
-
-    const timer = setInterval(() => {
-      setRevealedPasswords((prev) => {
-        const next: Record<string, number> = {};
-        let changed = false;
-        for (const [id, count] of Object.entries(prev)) {
-          if (count > 1) {
-            next[id] = count - 1;
-            changed = true;
-          } else {
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [revealedPasswords]);
-
-  const handleRevealPasswordFor20s = (serviceId: string) => {
-    setRevealedPasswords((prev) => ({
-      ...prev,
-      [serviceId]: 20,
-    }));
-  };
 
   // Filtrar exclusivamente los nodos pertenecientes a este cliente
   const clientNodes = useMemo(() => {
@@ -98,16 +61,11 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
       const matchCant = (n.canton || "").toLowerCase().includes(q);
       const matchParr = (n.parish || "").toLowerCase().includes(q);
       const matchAddr = (n.detailedAddress || n.address || "").toLowerCase().includes(q);
-      return matchName || matchProv || matchCant || matchParr || matchAddr;
+      const matchSystem = n.services?.some(service =>
+        [service.systemName, service.linkOrIp, service.username].some(value => value?.toLowerCase().includes(q)));
+      return matchName || matchProv || matchCant || matchParr || matchAddr || matchSystem;
     });
   }, [clientNodes, searchQuery]);
-
-  const handleCopy = (text: string, keyId: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(keyId);
-    showSuccess("Copiado", "Texto copiado al portapapeles.");
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
 
   const handleOpenCreate = () => {
     setNodeToEdit(null);
@@ -187,7 +145,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Buscar sede..."
+                  placeholder="Buscar sede, sistema o IP..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#004ac6] w-44 shadow-2xs"
@@ -234,15 +192,14 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
       ) : (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div role="region" aria-label="Tabla de nodos" tabIndex={0} className="max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="table-fixed w-full min-w-[68rem] text-left text-xs border-collapse">
+            <table className="table-fixed w-full min-w-[60rem] text-left text-xs border-collapse">
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-4 w-[20%]">Nodo / Sede</th>
-                  <th className="py-3 px-4 w-[22%]">Ubicación Geográfica</th>
-                  <th className="py-3 px-4 w-[13%] text-center">Estado / ARCOTEL</th>
-                  <th className="py-3 px-4 w-[21%]">Proveedores Portadores</th>
-                  <th className="py-3 px-4 w-[16%]">Sistemas & Credenciales</th>
-                  <th className="py-3 px-4 w-[8%] text-right">Acciones</th>
+                  <th className="py-3 px-3 w-[15%]">Nodo / Sede</th>
+                  <th className="py-3 px-3 w-[18%]">Ubicación</th>
+                  <th className="py-3 px-3 w-[25%]">Proveedores Portadores</th>
+                  <th className="py-3 px-3 w-[34%]">Sistemas & Credenciales</th>
+                  <th className="py-3 px-2 w-[8%] text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-slate-800 align-top">
@@ -254,32 +211,26 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
 
                   return (
                     <tr key={node.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* 1. Nodo / Sede */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center shrink-0 mt-0.5">
-                            <Radio className="w-4 h-4" />
-                          </div>
-                          <div className="space-y-1 min-w-0">
-                            <div className="font-bold text-slate-900 text-xs leading-snug">
-                              {node.name}
-                            </div>
-                            {node.totalCapacityMbps > 0 && (
-                              <span className="inline-block text-[10px] font-bold text-[#004ac6] bg-blue-50 border border-blue-200/70 px-2 py-0.5 rounded-md">
-                                {node.totalCapacityMbps} Mbps
-                              </span>
-                            )}
-                            {node.notes && (
-                              <p className="text-[10px] text-slate-500 italic max-w-[180px] leading-snug pt-0.5 truncate">
-                                {node.notes}
-                              </p>
-                            )}
-                          </div>
+                      {/* Nodo, estado y reporte regulatorio */}
+                      <td className="py-3 px-3">
+                        <div className="flex items-start gap-1.5">
+                          <span className={`mt-1 size-1.5 shrink-0 rounded-full ${isSuspended ? "bg-amber-500" : isRetired ? "bg-rose-500" : "bg-emerald-500"}`} aria-hidden="true" />
+                          <span className="min-w-0 break-words font-semibold text-slate-900">{node.name}</span>
                         </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[9px]">
+                          <span className={`rounded px-1.5 py-0.5 font-semibold ${isSuspended ? "bg-amber-50 text-amber-700" : isRetired ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                            {isSuspended ? "Suspendido" : isRetired ? "Retirado" : "Activo"}
+                          </span>
+                          {isReported && <span title="Reportado ARCOTEL" className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-[#004ac6]">
+                            <ShieldCheck className="size-2.5" /> ARCOTEL
+                          </span>}
+                        </div>
+                        {node.totalCapacityMbps > 0 && <p className="mt-1 text-[10px] font-semibold text-[#004ac6]">{node.totalCapacityMbps} Mbps</p>}
+                        {node.notes && <p className="mt-1 break-words text-[10px] text-slate-500">{node.notes}</p>}
                       </td>
 
                       {/* 2. Ubicación Geográfica */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <div className="space-y-1 text-xs">
                           <div className="flex flex-wrap items-center gap-1 font-semibold text-slate-800">
                             <MapPin className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
@@ -294,7 +245,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                             )}
                           </div>
                           {(node.detailedAddress || node.address) && (
-                            <p className="text-[11px] text-slate-500 pl-4 leading-snug truncate">
+                            <p className="text-[11px] text-slate-500 pl-4 leading-snug break-words">
                               {node.detailedAddress || node.address}
                             </p>
                           )}
@@ -315,37 +266,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                         </div>
                       </td>
 
-                      {/* 3. Estado / ARCOTEL */}
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border ${
-                              isSuspended
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
-                                : isRetired
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isSuspended ? "bg-amber-500" : isRetired ? "bg-rose-500" : "bg-emerald-500"
-                              }`}
-                            />
-                            {isSuspended ? "SUSPENDIDO" : isRetired ? "RETIRADO" : "ACTIVO"}
-                          </span>
-
-                          {isReported && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-[#004ac6] border border-blue-200 rounded-md text-[10px] font-bold">
-                              <ShieldCheck className="w-3 h-3" />
-                              Reportado ARCOTEL
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
                       {/* 4. Proveedores Portadores */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         {node.providers && node.providers.length > 0 ? (
                           <div className="space-y-1.5">
                             {node.providers.map((p, idx) => (
@@ -358,7 +280,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                     <span className="w-4 h-4 rounded-md bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px]">
                                       {idx + 1}
                                     </span>
-                                    <span className="font-bold text-slate-900 truncate">{p.providerName}</span>
+                                    <span className="min-w-0 break-words font-bold text-slate-900">{p.providerName}</span>
                                   </div>
                                   {p.capacityMbps > 0 && (
                                     <span className="text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
@@ -367,7 +289,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                   )}
                                 </div>
                                 {(p.circuitId || p.ipv4Subnet || p.ipv4Subnets?.length || p.ipv6Prefix) && (
-                                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-mono text-slate-500 pl-5">
+                                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] font-mono text-slate-500 break-all">
                                     {p.circuitId && (
                                       <span>ID: <strong className="text-slate-700">{p.circuitId}</strong></span>
                                     )}
@@ -403,126 +325,25 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                         )}
                       </td>
 
-                      {/* 5. Sistemas & Credenciales */}
-                      <td className="py-3 px-4">
-                        {node.services && node.services.length > 0 ? (
+                      {/* Sistemas con IP y credenciales legibles */}
+                      <td className="py-3 px-3">
+                        {node.services?.length ? (
                           <div className="space-y-1.5">
-                            {node.services.map((srv) => {
-                              const timeLeft = revealedPasswords[srv.id] || 0;
-                              const isRevealed = timeLeft > 0;
-                              const userVal =
-                                srv.username ||
-                                (srv.credentials ? srv.credentials.split("/")[0]?.trim() : "");
-                              const passVal =
-                                srv.password ||
-                                (srv.credentials
-                                  ? srv.credentials.split("/").slice(1).join("/").trim()
-                                  : "");
-
-                              return (
-                                <div
-                                  key={srv.id}
-                                  className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1.5 text-[11px]"
-                                >
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <Server className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                                      <span className="font-bold text-slate-900 truncate">
-                                        {srv.systemName}
-                                      </span>
-                                    </div>
-                                    {srv.linkOrIp && (
-                                      <span className="text-[10px] font-mono text-slate-500 truncate max-w-[140px]">
-                                        {srv.linkOrIp}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                                    {/* Usuario */}
-                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-md border border-slate-200 min-w-0">
-                                      <span className="font-mono text-slate-700 truncate">
-                                        User: <strong>{userVal || "—"}</strong>
-                                      </span>
-                                      {userVal && (
-                                        <button
-                                          onClick={() => handleCopy(userVal, `tab-user-${srv.id}`)}
-                                          className="p-0.5 text-slate-400 hover:text-[#004ac6] cursor-pointer shrink-0"
-                                          title="Copiar usuario"
-                                        >
-                                          {copiedKey === `tab-user-${srv.id}` ? (
-                                            <Check className="w-3 h-3 text-emerald-600" />
-                                          ) : (
-                                            <Copy className="w-3 h-3" />
-                                          )}
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    {/* Clave con revelación 20s */}
-                                    <div className="flex items-center justify-between px-2 py-1 bg-white rounded-md border border-slate-200 min-w-0">
-                                      <div className="flex items-center gap-1 truncate font-mono">
-                                        <span className="text-slate-500">Clave:</span>
-                                        <span className="text-slate-800 font-semibold truncate">
-                                          {isRevealed ? passVal || "—" : "••••••••"}
-                                        </span>
-                                        {isRevealed && (
-                                          <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 rounded-md">
-                                            {timeLeft}s
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-0.5 shrink-0">
-                                        <button
-                                          onClick={() => handleRevealPasswordFor20s(srv.id)}
-                                          className={`p-0.5 rounded-md cursor-pointer transition-colors ${
-                                            isRevealed
-                                              ? "text-amber-600 bg-amber-50"
-                                              : "text-slate-400 hover:text-slate-700"
-                                          }`}
-                                          title="Revelar por 20 segundos"
-                                        >
-                                          {isRevealed ? (
-                                            <EyeOff className="w-3 h-3" />
-                                          ) : (
-                                            <Eye className="w-3 h-3" />
-                                          )}
-                                        </button>
-                                        {passVal && (
-                                          <button
-                                            onClick={() => handleCopy(passVal, `tab-pass-${srv.id}`)}
-                                            className="p-0.5 text-slate-400 hover:text-[#004ac6] cursor-pointer"
-                                            title="Copiar contraseña"
-                                          >
-                                            {copiedKey === `tab-pass-${srv.id}` ? (
-                                              <Check className="w-3 h-3 text-emerald-600" />
-                                            ) : (
-                                              <Copy className="w-3 h-3" />
-                                            )}
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                            {node.services.map(service => <NodeSystemCredentials key={service.id} nodeId={node.id} service={service} />)}
                           </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">Sin sistemas</span>
-                        )}
+                        ) : <span className="text-[11px] text-slate-400 italic">Sin sistemas</span>}
                       </td>
 
                       {/* 6. Acciones */}
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <td className="py-3 px-2 text-right">
                         <div className="inline-flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenEdit(node)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#004ac6] hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 p-1.5 text-[11px] font-bold text-[#004ac6] hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
                             title="Editar Sede"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
-                            <span>Editar</span>
+                            <span className="hidden 2xl:inline">Editar</span>
                           </button>
                           <button
                             onClick={() => handleDelete(node)}

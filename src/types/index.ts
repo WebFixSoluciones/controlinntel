@@ -222,7 +222,7 @@ export interface NodeSystemService {
   /** Campo heredado; ya no se escribe ni se devuelve desde el servidor. */
   credentials?: string;
   username?: string;
-  /** Solo llega al cliente si el usuario puede revelar credenciales de router. */
+  /** Solo se envía al guardar una contraseña nueva o en la respuesta explícita de revelación. */
   password?: string;
   /** Indica que el nodo tiene una contraseña sellada, sin exponerla. */
   hasPassword?: boolean;

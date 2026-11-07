@@ -1,7 +1,7 @@
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { save, remove, reveal } from "./operations.ts";
+import { save, remove, reveal, revealNodePassword } from "./operations.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 
@@ -95,6 +95,30 @@ test("a customer node with estado activo is saved with encrypted service credent
   assert.equal(created.services[0].hasPassword, true);
   const encrypted = database.rows.get("nodes/node").services[0].passwordSealed;
   assert.match(encrypted, /^v1\./);
+  assert.equal(await revealNodePassword(admin, "node", "router", database.db), "NodeSecret#42");
+  const restricted: UserProfile = {
+    ...admin, role: "admin", modulePermissions: { red: { enabled: true, actions: { canEditRouterCredentials: false } } },
+  };
+  await assert.rejects(revealNodePassword(restricted, "node", "router", database.db), { status: 403 });
+  await assert.rejects(revealNodePassword({ ...admin, status: "inactivo" }, "node", "router", database.db), { status: 403 });
+  await assert.rejects(revealNodePassword(admin, "another-node", "router", database.db), { status: 404 });
+  await assert.rejects(revealNodePassword(admin, "node", "another-system", database.db), { status: 404 });
+  assert.ok([...database.rows].some(([path, row]) => path.startsWith("auditLogs/") && row.action === "VIEW_NODE_PASSWORD"));
+  assert.equal(JSON.stringify([...database.rows]).includes("NodeSecret#42"), false);
   await save(admin, "nodes", { name: "Sede renombrada" }, "node", 1, database.db);
   assert.equal(database.rows.get("nodes/node").services[0].passwordSealed, encrypted);
+});
+
+test("editing metadata of a legacy node retains its system password and seals it", async () => {
+  const database = new VaultDatabase();
+  database.rows.set("nodes/legacy", {
+    id: "legacy", name: "Nodo anterior", clientId: "a", address: "Quito",
+    status: "activo", totalCapacityMbps: 100, usedCapacityMbps: 0,
+    services: [{ id: "system", systemName: "Equipo anterior", credentials: "legacy-user / LegacyPassword#42" }],
+  });
+  assert.equal(await revealNodePassword(admin, "legacy", "system", database.db), "LegacyPassword#42");
+  await save(admin, "nodes", { services: [{ id: "system", systemName: "Equipo renombrado", username: "legacy-user", linkOrIp: "203.0.113.10" }] }, "legacy", undefined, database.db);
+  assert.match(database.rows.get("nodes/legacy").services[0].passwordSealed, /^v1\./);
+  assert.equal(database.rows.get("nodes/legacy").services[0].credentials, undefined);
+  assert.equal(await revealNodePassword(admin, "legacy", "system", database.db), "LegacyPassword#42");
 });
