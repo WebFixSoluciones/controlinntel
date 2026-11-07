@@ -18,7 +18,7 @@ import { canAccessRoute, canAccessSubmodule, canUser, canViewServicePrices } fro
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
-import { addDays, calculateLines, previewScheduledService, validDate } from "@/lib/commercial-core";
+import { addDays, calculateLines, previewScheduledService, initialServicePeriod, serviceBillingStart, validDate } from "@/lib/commercial-core";
 import {
   getEcuadorDate,
   addMonthsSafely,
@@ -56,17 +56,27 @@ function suggestedContractEnd(start: string, duration: ServiceContractDuration) 
   return validDate(start) && duration !== "indefinido" ? addDays(calculateContractEndDate(start, duration), -1) : "";
 }
 
-function ServiceBillingPreview({ preview }: { preview: ReturnType<typeof previewScheduledService> }) {
+function ServiceBillingPreview({ service, today }: { service: Record<string, unknown>; today: string }) {
+  const first = initialServicePeriod(service);
+  const scheduled = previewScheduledService(service, today);
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-slate-800" aria-live="polite">
-      <p className="font-semibold text-[#004ac6]">Vista previa de la próxima emisión automática</p>
-      {preview.plans ? <>
-        <ul className="mt-1 font-semibold">
-          {preview.plans.map(plan => <li key={plan.key}>{plan.line.description}</li>)}
-        </ul>
-        <p className="mt-1">Emisión prevista {formatDateEC(preview.emissionDate)} · Vence el {formatDateEC(preview.dueDate)} · Total estimado ${safeNumber(calculateLines(preview.plans.map(plan => plan.line)).total)}</p>
-      </> : <p className="mt-1">{preview.reason}</p>}
-      <p className="mt-1 text-[11px] text-slate-600">La corrida programada es el día 1 de cada mes. Guardar el servicio solo registra la asignación.</p>
+      <p className="font-semibold text-[#004ac6]">Resumen del contrato y facturación</p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-4">
+        <div><dt className="text-[10px] text-slate-500">Inicio del contrato</dt><dd className="font-semibold">{formatDateEC(String(service.contractStartDate || ""))}</dd></div>
+        <div><dt className="text-[10px] text-slate-500">Fin del contrato</dt><dd className="font-semibold">{service.contractEndDate ? formatDateEC(String(service.contractEndDate)) : "Indefinido"}</dd></div>
+        {first.eligible && <>
+          <div><dt className="text-[10px] text-slate-500">Inicio del período</dt><dd className="font-semibold">{formatDateEC(first.billingStart)}</dd></div>
+          <div><dt className="text-[10px] text-slate-500">Fin del período</dt><dd className="font-semibold">{formatDateEC(addDays(first.periodEnd, -1))}</dd></div>
+        </>}
+      </dl>
+      {first.eligible ? <p className="mt-2 font-semibold">{first.line.description} · Total del período ${safeNumber(calculateLines([first.line]).total)}</p> :
+        <p role="alert" className="mt-2 text-amber-800">{first.reason}</p>}
+      {scheduled.plans ? <>
+        <p className="mt-2">Próxima emisión automática prevista {formatDateEC(scheduled.emissionDate)} · Vencimiento previsto {formatDateEC(scheduled.dueDate)} · Total de la emisión ${safeNumber(calculateLines(scheduled.plans.map(plan => plan.line)).total)}</p>
+        <ul className="mt-1 text-[11px] text-slate-600">{scheduled.plans.map(plan => <li key={plan.key}>{plan.line.description}</li>)}</ul>
+      </> : <p className="mt-2 text-amber-800">{scheduled.reason}</p>}
+      <p className="mt-2 text-[11px] text-slate-600">El fin del período se calcula con la frecuencia elegida. En prepago se cobra desde el inicio; en pospago, después del fin. La emisión automática se procesa el día 1.</p>
     </div>
   );
 }
@@ -107,7 +117,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcBillingDay, setNewSvcBillingDay] = useState<number>(1);
   const [newSvcAdvanceNoticeDay, setNewSvcAdvanceNoticeDay] = useState<number>(26);
   const [newSvcStartDate, setNewSvcStartDate] = useState(() => getEcuadorDate());
-  const [newSvcRenewalDate, setNewSvcRenewalDate] = useState(() => addMonthsSafely(getEcuadorDate(), 1));
+  const [newSvcPeriodStartDate, setNewSvcPeriodStartDate] = useState(() => getEcuadorDate());
   const [newSvcEndDate, setNewSvcEndDate] = useState(() => suggestedContractEnd(getEcuadorDate(), "anual"));
   const [newSvcAutoRenew, setNewSvcAutoRenew] = useState(true);
   const [newSvcPaymentMethod, setNewSvcPaymentMethod] = useState<ServicePaymentMethod>("credito");
@@ -131,7 +141,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [editBillingDay, setEditBillingDay] = useState<number>(1);
   const [editAdvanceNoticeDay, setEditAdvanceNoticeDay] = useState<number>(26);
   const [editStartDate, setEditStartDate] = useState("");
-  const [editRenewalDate, setEditRenewalDate] = useState("");
+  const [editPeriodStartDate, setEditPeriodStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editAutoRenew, setEditAutoRenew] = useState(true);
   const [editPaymentMethod, setEditPaymentMethod] = useState<ServicePaymentMethod>("credito");
@@ -141,21 +151,29 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const today = getEcuadorDate();
-  const assignmentPreview = isAddingService && selectedService ? previewScheduledService({
+  const assignmentSchedule = isAddingService && selectedService ? {
     id: selectedService.id, planName: newSvcName || selectedService.name, status: client.status,
-    createdAt: `${today}T12:00:00-05:00`, contractStartDate: newSvcStartDate, contractEndDate: newSvcEndDate,
+    createdAt: `${today}T12:00:00-05:00`, contractStartDate: newSvcStartDate, contractEndDate: newSvcEndDate, billingPeriodStartDate: newSvcPeriodStartDate,
     billingType: newSvcBillingType, billingFrequency: newSvcFreq, cycleAnchor: newCycleAnchor,
     firstPeriodPolicy: newPartialPolicy, billingDay: newSvcBillingDay, advanceNoticeDay: newSvcAdvanceNoticeDay,
     customPrice: newSvcPriceSinIva === "" ? undefined : Number(newSvcPriceSinIva), ivaRate: newSvcIvaRate, zeroPriceReason: newZeroReason.trim(),
-  }, today) : null;
-  const editPreview = editingService ? previewScheduledService({
-    ...editingService, contractStartDate: editStartDate, contractEndDate: editEndDate,
+  } : null;
+  const editSchedule = editingService ? {
+    ...editingService, contractStartDate: editStartDate, contractEndDate: editEndDate, billingPeriodStartDate: editPeriodStartDate,
     billingType: editBillingType, billingFrequency: editFreq, cycleAnchor: editCycleAnchor,
     firstPeriodPolicy: editPartialPolicy, billingDay: editBillingDay, advanceNoticeDay: editAdvanceNoticeDay,
     basePrice: undefined, customPrice: editPriceSinIva === "" ? undefined : Number(editPriceSinIva), ivaRate: editIvaRate, zeroPriceReason: editZeroReason.trim(),
-  }, today) : null;
+  } : null;
 
   const searchDropdownRef = useRef<HTMLDivElement>(null);
+
+  const saveInlineService = async (id: string, changes: Partial<ClientService>) => {
+    try {
+      await updateClientService(id, changes);
+    } catch (error) {
+      showError("No se pudo actualizar el servicio", error instanceof Error ? error.message : "Revisa los datos e inténtalo nuevamente.");
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -416,7 +434,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcFreq("mensual");
     setNewSvcDuration("anual");
     setNewSvcStartDate(getEcuadorDate());
-    setNewSvcRenewalDate(addMonthsSafely(getEcuadorDate(), 1));
+    setNewSvcPeriodStartDate(getEcuadorDate());
     setNewSvcEndDate(suggestedContractEnd(getEcuadorDate(), "anual"));
     setNewSvcAutoRenew(true);
     setNewSvcPaymentMethod("credito");
@@ -425,7 +443,6 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   const handleFreqChange = (freq: ServiceBillingFrequency) => {
     setNewSvcFreq(freq);
-    setNewSvcRenewalDate(calculateNextRenewalDate(newSvcStartDate, freq));
   };
 
   const handleDurationChange = (dur: ServiceContractDuration) => {
@@ -435,7 +452,6 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   const handleStartDateChange = (startDate: string) => {
     setNewSvcStartDate(startDate);
-    setNewSvcRenewalDate(calculateNextRenewalDate(startDate, newSvcFreq));
     setNewSvcEndDate(suggestedContractEnd(startDate, newSvcDuration));
   };
 
@@ -494,6 +510,11 @@ export function ClientContractTab({ client }: { client: Client }) {
     const priceConIvaNum =
       parseFloat(newSvcPriceConIva) ||
       Math.round(priceSinIvaNum * (1 + newSvcIvaRate / 100) * 100) / 100;
+    const period = initialServicePeriod({ ...assignmentSchedule, status: "activo", isBillableInCurrentCycle: true });
+    if (!period.eligible) {
+      showError("Revisa el período", period.reason);
+      return;
+    }
 
     setSavingService(true);
     try {
@@ -520,7 +541,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         serviceCategory: newSvcCategory,
         paymentMethod: newSvcPaymentMethod,
         isBillableInCurrentCycle: true,
-        nextRenewalDate: newSvcRenewalDate,
+        billingPeriodStartDate: newSvcPeriodStartDate,
         basePrice: selectedService.salePrice,
         customPrice: priceSinIvaNum,
         priceConIva: priceConIvaNum,
@@ -580,7 +601,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       svc.serviceCategory || (lower.includes("hosting") ? "hosting" : lower.includes("dominio") ? "dominio" : "internet");
     setEditCategory(defaultCat);
     setEditStartDate(svc.contractStartDate || svc.installationDate || getEcuadorDate());
-    setEditRenewalDate(svc.nextRenewalDate || calculateNextRenewalDate(svc.contractStartDate || svc.installationDate || getEcuadorDate(), svc.billingFrequency || "mensual"));
+    setEditPeriodStartDate(serviceBillingStart(svc) || getEcuadorDate());
     setEditEndDate(svc.contractEndDate || "");
     setEditAutoRenew(svc.autoRenew ?? true);
     setEditCycleAnchor(svc.cycleAnchor || "aniversario");
@@ -590,9 +611,6 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   const handleEditFreqChange = (freq: ServiceBillingFrequency) => {
     setEditFreq(freq);
-    if (editStartDate) {
-      setEditRenewalDate(calculateNextRenewalDate(editStartDate, freq));
-    }
   };
 
   const handleEditDurationChange = (dur: ServiceContractDuration) => {
@@ -644,6 +662,11 @@ export function ClientContractTab({ client }: { client: Client }) {
     const priceConIvaNum =
       parseFloat(editPriceConIva) ||
       Math.round(priceSinIvaNum * (1 + editIvaRate / 100) * 100) / 100;
+    const period = initialServicePeriod({ ...editSchedule, status: "activo", isBillableInCurrentCycle: true });
+    if (!period.eligible) {
+      showError("Revisa el período", period.reason);
+      return;
+    }
 
     setSavingEdit(true);
     try {
@@ -667,7 +690,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         firstPeriodPolicy: editPartialPolicy,
         zeroPriceReason: editZeroReason.trim(),
         serviceCategory: editCategory,
-        nextRenewalDate: editRenewalDate,
+        billingPeriodStartDate: editPeriodStartDate,
       });
       showSuccess("Servicio Actualizado", "Los cambios y el ciclo de renovación se guardaron correctamente.");
       setEditingService(null);
@@ -1268,24 +1291,26 @@ export function ClientContractTab({ client }: { client: Client }) {
                 {/* Próximo Cobro */}
                 <div>
                   <label htmlFor="client-contract-tab-field-10" className="block text-xs font-bold text-[#434655] mb-1">
-                    Fecha de seguimiento *
+                    Inicio del período *
                   </label>
                   <input id="client-contract-tab-field-10"
                     type="date"
                     required
-                    value={newSvcRenewalDate}
-                    onChange={(e) => setNewSvcRenewalDate(e.target.value)}
+                    min={newSvcStartDate || undefined}
+                    value={newSvcPeriodStartDate}
+                    onChange={(e) => setNewSvcPeriodStartDate(e.target.value)}
                     className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                   />
-                  <span className="text-[10px] text-slate-500 mt-0.5 block">Fecha para revisar la renovación del servicio</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5 block">Fecha desde la que se cuenta el servicio que se cobrará</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="text-xs font-semibold">Ciclo de prestación
-                  <select value={newCycleAnchor} onChange={e => setNewCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde la fecha de alta</option><option value="calendario">Mes calendario</option></select>
+                <label className="text-xs font-semibold">Cómo se calcula el período
+                  <select value={newCycleAnchor} onChange={e => setNewCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde el inicio del período</option><option value="calendario">Mes calendario (del 1 al último día)</option></select>
+                  <span className="mt-1 block text-[10px] font-normal text-slate-500">{newCycleAnchor === "calendario" ? "Los ciclos se alinean al día 1. Si comienzas a mitad de mes, elige cómo cobrar ese primer tramo." : "La frecuencia cuenta desde el inicio del período que seleccionaste."}</span>
                 </label>
-                {newCycleAnchor === "calendario" && newSvcStartDate && !newSvcStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial
+                {newCycleAnchor === "calendario" && newSvcPeriodStartDate && !newSvcPeriodStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial
                   <select value={newPartialPolicy} onChange={e => setNewPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select>
                 </label>}
                 <label className="text-xs font-semibold">Motivo de gratuidad, si la tarifa es cero<input value={newZeroReason} onChange={e => setNewZeroReason(e.target.value)} className="block w-full border rounded p-2 mt-1" /></label>
@@ -1331,7 +1356,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               </div>
             </div>
 
-            {assignmentPreview && <ServiceBillingPreview preview={assignmentPreview} />}
+            {assignmentSchedule && <ServiceBillingPreview service={assignmentSchedule} today={today} />}
 
             {/* Ficha Resumen del Servicio de Inventario Seleccionado */}
             {selectedService && (
@@ -1480,16 +1505,25 @@ export function ClientContractTab({ client }: { client: Client }) {
 
         {/* Tabla de Control Individual de Servicios Contratados */}
         <div role="region" aria-label="Tabla de servicios contratados" tabIndex={0} className="max-w-full overflow-x-auto overscroll-x-contain">
-          <table className={`w-full text-left text-xs table-fixed ${showPrices ? "min-w-[63rem]" : "min-w-[56rem]"}`}>
+          <table className={`w-full text-left text-xs table-fixed ${showPrices ? "min-w-[70rem]" : "min-w-[62rem]"}`}>
+            <colgroup>
+              <col style={{ width: showPrices ? "33%" : "42%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "11%" }} />
+              <col style={{ width: "11%" }} />
+              {showPrices && <col style={{ width: "9%" }} />}
+              <col style={{ width: "11%" }} />
+            </colgroup>
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5">Servicio</th>
-                <th className="py-3 px-4 w-[7rem]">Ciclo</th>
-                <th className="py-3 px-4 w-[10rem]">Renovación</th>
-                <th className="py-3 px-4 w-[7rem] text-center">Estado</th>
-                <th className="py-3 px-4 w-[8rem] text-center">Facturar</th>
-                {showPrices && <th className="py-3 px-4 w-[7rem] text-right">Tarifa</th>}
-                <th className="py-3 px-5 w-[10rem] text-right">Acciones</th>
+                <th className="py-3 px-3">Servicio</th>
+                <th className="py-3 px-2">Ciclo</th>
+                <th className="py-3 px-2">Renovación</th>
+                <th className="py-3 px-2 text-center">Estado</th>
+                <th className="py-3 px-2 text-center">Facturar</th>
+                {showPrices && <th className="py-3 px-2 text-right">Tarifa</th>}
+                <th className="py-3 px-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
@@ -1516,9 +1550,9 @@ export function ClientContractTab({ client }: { client: Client }) {
                       }`}
                     >
                       {/* 1. Servicio Contratado */}
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 px-3">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`font-bold text-xs ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
+                          <span className={`font-bold text-xs break-words ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
                             {svc.planName}
                           </span>
                           <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
@@ -1564,51 +1598,51 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <span>
                             {svc.lastBilledPeriod
                               ? `• Últ. facturado: ${svc.lastBilledPeriod}`
-                              : `• Alta: ${svc.installationDate || "2026-01-15"}`}
+                              : `• Alta: ${svc.installationDate || "—"}`}
                           </span>
                           {svc.lastNotificationSentAt && <span>• Avisado: {svc.lastNotificationSentAt}</span>}
                         </div>
                       </td>
 
                       {/* 2. Frecuencia (Mensual / Trimestral / Semestral / Anual) */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-2">
                         <select
                           value={svc.billingFrequency || "mensual"}
                           onChange={(e) => {
                             const freq = e.target.value as ServiceBillingFrequency;
-                            const baseDate = svc.contractStartDate || svc.installationDate || getEcuadorDate();
+                            const baseDate = serviceBillingStart(svc) || getEcuadorDate();
                             const nextDate = calculateNextRenewalDate(baseDate, freq);
-                            updateClientService(svc.id, {
+                            void saveInlineService(svc.id, {
                               billingFrequency: freq,
                               nextRenewalDate: nextDate,
                             });
                           }}
-                          className="bg-white border border-[#e2e8f0] rounded-lg px-2 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                          className="w-full min-w-0 max-w-full bg-white border border-[#e2e8f0] rounded-lg px-2 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
                         >
-                          <option value="mensual">Mensual (1m)</option>
-                          <option value="trimestral">Trimestral (3m)</option>
-                          <option value="semestral">Semestral (6m)</option>
-                          <option value="anual">Anual (12m)</option>
+                          <option value="mensual">Mensual</option>
+                          <option value="trimestral">Trimestral</option>
+                          <option value="semestral">Semestral</option>
+                          <option value="anual">Anual</option>
                         </select>
                       </td>
 
                       {/* 3. Próxima Renovación + Semáforo */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-2">
                         <div className="flex flex-col gap-1">
                           <input
                             type="date"
                             value={svc.nextRenewalDate || ""}
                             onChange={(e) =>
-                              updateClientService(svc.id, { nextRenewalDate: e.target.value })
+                              void saveInlineService(svc.id, { nextRenewalDate: e.target.value })
                             }
-                            className="bg-white border border-[#e2e8f0] rounded-lg px-2 py-0.5 text-xs font-mono text-[#0b1c30] w-32 cursor-pointer focus:outline-hidden focus:border-[#004ac6]"
+                            className="w-full min-w-0 max-w-full bg-white border border-[#e2e8f0] rounded-lg px-2 py-0.5 text-xs font-mono text-[#0b1c30] cursor-pointer focus:outline-hidden focus:border-[#004ac6]"
                           />
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold w-fit ${
                               renewal.tone === "rose"
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : renewal.tone === "amber"
-                                ? "bg-amber-50 text-amber-800 border border-amber-300 font-extrabold shadow-2xs animate-pulse"
+                                ? "bg-amber-50 text-amber-800 border border-amber-300"
                                 : "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             }`}
                           >
@@ -1619,11 +1653,11 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 4. Estado Operativo */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-2 text-center">
                         <select
                           value={svc.status}
                           onChange={(e) => handleStatusChange(svc, e.target.value as ServiceStatus)}
-                          className={`rounded-md px-2.5 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
+                          className={`w-full min-w-0 max-w-full rounded-md px-1 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
                             svc.status === "activo"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                               : svc.status === "por_renovar"
@@ -1639,16 +1673,16 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 5. Switch Facturable vs No Facturado en el ciclo actual */}
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-2 text-center">
                         <button
                           type="button"
                           onClick={() => handleToggleBillable(svc)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase transition cursor-pointer ${
+                          className={`inline-flex w-full min-w-0 max-w-full justify-center items-center gap-1 px-1 py-1 rounded-md text-[10px] font-bold uppercase transition cursor-pointer ${
                             isBillable
                               ? "bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] hover:bg-blue-100"
                               : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
                           }`}
-                          title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
+                          aria-label="Clic para incluir o excluir este servicio de la factura del ciclo actual" title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
                         >
                           {isBillable ? (
                             <>
@@ -1658,14 +1692,14 @@ export function ClientContractTab({ client }: { client: Client }) {
                           ) : (
                             <>
                               <Ban className="w-3.5 h-3.5 text-amber-700" />
-                              <span>No Facturado</span>
+                              <span>Excluido</span>
                             </>
                           )}
                         </button>
                       </td>
 
                       {/* 6. Tarifa Base */}
-                      {showPrices && <td className="py-3.5 px-4 text-right font-mono text-xs">
+                      {showPrices && <td className="py-3.5 px-2 text-right font-mono text-xs">
                         <span className={`block font-bold ${isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}`}>
                           ${safeNumber(price)}
                         </span>
@@ -1675,13 +1709,13 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>}
 
                       {/* 7. Acciones: WhatsApp, Correo, Editar, Renovar, Eliminar */}
-                      <td className="py-3.5 px-5 text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-1">
+                      <td className="py-3.5 px-3 text-right">
+                        <div className="grid grid-cols-3 items-center justify-items-center gap-1">
                           {showPrices && <button
                             type="button"
                             onClick={() => handleNotifyWhatsApp(svc)}
                             className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
-                            title="Notificar renovación por WhatsApp"
+                            aria-label="Notificar renovación por WhatsApp" title="Notificar renovación por WhatsApp"
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button>}
@@ -1690,7 +1724,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                             type="button"
                             onClick={() => handleNotifyEmail(svc)}
                             className="p-1.5 text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                            title="Notificar renovación por Correo Electrónico"
+                            aria-label="Notificar renovación por Correo Electrónico" title="Notificar renovación por Correo Electrónico"
                           >
                             <Mail className="w-4 h-4" />
                           </button>}
@@ -1699,7 +1733,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                             type="button"
                             onClick={() => handleOpenEditService(svc)}
                             className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                            title="Editar nombre, descripción o tarifa del servicio"
+                            aria-label="Editar nombre, descripción o tarifa del servicio" title="Editar nombre, descripción o tarifa del servicio"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>}
@@ -1707,8 +1741,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <button
                             type="button"
                             onClick={() => handleRenewService(svc)}
-                            className="px-2.5 py-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer"
-                            title="Renovar por +1 periodo y activar servicio"
+                            className="col-span-2 w-full justify-center px-1 py-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            aria-label="Renovar por +1 periodo y activar servicio" title="Renovar por +1 periodo y activar servicio"
                           >
                             <RefreshCw className="w-3 h-3" />
                             <span>Renovar</span>
@@ -1725,7 +1759,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                               )
                             }
                             className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="Eliminar servicio"
+                            aria-label="Eliminar servicio" title="Eliminar servicio"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1761,17 +1795,17 @@ export function ClientContractTab({ client }: { client: Client }) {
 
       {/* MODAL 3: EDITAR SERVICIO DEL CLIENTE */}
       {canEditPrices && editingService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60">
+          <section role="dialog" aria-modal="true" aria-labelledby="client-service-edit-title" className="flex max-h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-2xl">
             {/* Cabecera Master Modal */}
-            <div className="bg-[#004ac6] text-white px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+            <div className="bg-[#004ac6] text-white px-4 py-3 sm:px-5 shrink-0 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">
                   <Pencil className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold leading-tight">Editar Servicio del Cliente</h3>
-                  <p className="text-[11px] text-white/80">
+                  <h3 id="client-service-edit-title" className="text-sm font-semibold text-balance leading-tight">Editar Servicio del Cliente</h3>
+                  <p className="text-[11px] text-white/80 break-words">
                     {editingService.inventorySku ? `[${editingService.inventorySku}] ` : ""}
                     {editingService.planName}
                   </p>
@@ -1779,6 +1813,7 @@ export function ClientContractTab({ client }: { client: Client }) {
               </div>
               <button aria-label="Cerrar"
                 type="button"
+                disabled={savingEdit}
                 onClick={() => setEditingService(null)}
                 className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
               >
@@ -1787,7 +1822,7 @@ export function ClientContractTab({ client }: { client: Client }) {
             </div>
 
             {/* Formulario de Edición */}
-            <form onSubmit={handleSaveEditService} className="p-5 space-y-4 text-xs">
+            <form id="client-service-edit-form" onSubmit={handleSaveEditService} className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div>
                 <label htmlFor="client-contract-tab-field-12" className="block text-xs font-bold text-[#434655] mb-1">
                   Nombre del Servicio *
@@ -1797,7 +1832,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                  className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs font-semibold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                 />
               </div>
 
@@ -1810,11 +1845,11 @@ export function ClientContractTab({ client }: { client: Client }) {
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   placeholder="Detalles técnicos, SLA, alcance o notas..."
-                  className="w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
+                  className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-3 py-2 text-xs text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden resize-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#434655] mb-1">
                     Tarifa sin IVA ($) *
@@ -1826,11 +1861,11 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <input
                       type="number"
                       step="0.01"
-                      min="0.01"
+                      min="0"
                       required
                       value={editPriceSinIva}
                       onChange={(e) => handleEditPriceSinIvaChange(e.target.value)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                     />
                   </div>
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Base imponible</span>
@@ -1847,17 +1882,17 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <input
                       type="number"
                       step="0.01"
-                      min="0.01"
+                      min="0"
                       value={editPriceConIva}
                       onChange={(e) => handleEditPriceConIvaChange(e.target.value)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg pl-6 pr-3 py-2 text-xs font-mono font-bold text-emerald-700 focus:border-[#004ac6] focus:outline-hidden"
                     />
                   </div>
                   <span className="text-[10px] text-slate-400 mt-0.5 block">Total cliente</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="client-contract-tab-field-14" className="block text-xs font-bold text-[#434655] mb-1">
                     IVA Aplicable
@@ -1865,7 +1900,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   <select id="client-contract-tab-field-14"
                     value={editIvaRate}
                     onChange={(e) => handleEditIvaRateChange(Number(e.target.value))}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                    className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                   >
                     <option value={15}>15% (Vigente SRI)</option>
                     <option value={5}>5% (Materiales)</option>
@@ -1887,13 +1922,13 @@ export function ClientContractTab({ client }: { client: Client }) {
               </div>
 
               {/* Ciclo, Período de Contrato y Renovación */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+              <div className="md:col-span-2 min-w-0 p-3 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2 flex items-center gap-1.5 text-slate-800 font-bold">
                   <Clock className="w-3.5 h-3.5 text-[#004ac6]" />
                   <span>Ciclo de Facturación y Vigencia</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid min-w-0 grid-cols-1 sm:grid-cols-3 gap-3 md:col-span-2">
                   <div>
                     <label htmlFor="client-contract-tab-field-15" className="block text-xs font-bold text-[#434655] mb-1">
                       Modalidad *
@@ -1901,7 +1936,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <select id="client-contract-tab-field-15"
                       value={editBillingType}
                       onChange={(e) => setEditBillingType(e.target.value as ServiceBillingType)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                     >
                       <option value="prepago">PREPAGO</option>
                       <option value="postpago">POSTPAGO</option>
@@ -1915,7 +1950,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <select id="client-contract-tab-field-16"
                       value={editBillingDay}
                       onChange={(e) => handleEditBillingDayChange(Number(e.target.value))}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                     >
                       <option value={1}>Día 1 de cada mes</option>
                       <option value={2}>Día 2 de cada mes</option>
@@ -1936,7 +1971,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <select id="client-contract-tab-field-17"
                       value={editAdvanceNoticeDay}
                       onChange={(e) => setEditAdvanceNoticeDay(Number(e.target.value))}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                     >
                       <option value={26}>Día 26 de cada mes</option>
                       <option value={25}>Día 25 de cada mes</option>
@@ -1950,7 +1985,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="client-contract-tab-field-18" className="block text-xs font-bold text-[#434655] mb-1">
                       Frecuencia de Facturación *
@@ -1958,7 +1993,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <select id="client-contract-tab-field-18"
                       value={editFreq}
                       onChange={(e) => handleEditFreqChange(e.target.value as ServiceBillingFrequency)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                     >
                       <option value="mensual">Mensual (Factura mes a mes)</option>
                       <option value="trimestral">Trimestral (Cada 3 meses)</option>
@@ -1974,7 +2009,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     <select id="client-contract-tab-field-19"
                       value={editDuration}
                       onChange={(e) => handleEditDurationChange(e.target.value as ServiceContractDuration)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-bold text-[#0b1c30] cursor-pointer focus:border-[#004ac6] focus:outline-hidden"
                     >
                       <option value="mensual">1 Mes</option>
                       <option value="trimestral">3 Meses (Trimestral)</option>
@@ -1986,7 +2021,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label htmlFor="client-contract-tab-field-20" className="block text-xs font-bold text-[#434655] mb-1">
                       Fecha Inicio de Contrato
@@ -1997,23 +2032,24 @@ export function ClientContractTab({ client }: { client: Client }) {
                       value={editStartDate}
                       onChange={(e) => {
                         setEditStartDate(e.target.value);
-                        setEditRenewalDate(calculateNextRenewalDate(e.target.value, editFreq));
                         setEditEndDate(suggestedContractEnd(e.target.value, editDuration));
                       }}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                     />
                   </div>
 
                   <div>
                     <label htmlFor="client-contract-tab-field-21" className="block text-xs font-bold text-[#434655] mb-1">
-                      Fecha de seguimiento *
+                      Inicio del período *
                     </label>
                     <input id="client-contract-tab-field-21"
                       type="date"
                       required
-                      value={editRenewalDate}
-                      onChange={(e) => setEditRenewalDate(e.target.value)}
-                      className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
+                      min={editStartDate || undefined}
+                      max={editEndDate || undefined}
+                      value={editPeriodStartDate}
+                      onChange={(e) => setEditPeriodStartDate(e.target.value)}
+                      className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] focus:border-[#004ac6] focus:outline-hidden"
                     />
                   </div>
                 </div>
@@ -2029,7 +2065,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     value={editEndDate}
                     onChange={(e) => setEditEndDate(e.target.value)}
                     disabled={editDuration === "indefinido"}
-                    className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] disabled:bg-slate-100 disabled:text-slate-400 focus:border-[#004ac6] focus:outline-hidden"
+                    className="min-w-0 w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-2 text-xs font-mono text-[#0b1c30] disabled:bg-slate-100 disabled:text-slate-400 focus:border-[#004ac6] focus:outline-hidden"
                   />
                   <span className="text-[10px] text-slate-400 mt-0.5 block">
                     {editDuration === "indefinido" ? "Sin fecha límite de vigencia" : "Fecha límite del compromiso contratado"}
@@ -2037,8 +2073,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-xs font-semibold">Ciclo de prestación<select value={editCycleAnchor} onChange={e => setEditCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde la fecha de alta</option><option value="calendario">Mes calendario</option></select></label>
-                  {editCycleAnchor === "calendario" && editStartDate && !editStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial<select value={editPartialPolicy} onChange={e => setEditPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select></label>}
+                  <label className="text-xs font-semibold">Cómo se calcula el período<select value={editCycleAnchor} onChange={e => setEditCycleAnchor(e.target.value as "calendario" | "aniversario")} className="block w-full border rounded p-2 mt-1"><option value="aniversario">Desde el inicio del período</option><option value="calendario">Mes calendario (del 1 al último día)</option></select></label>
+                  {editCycleAnchor === "calendario" && editPeriodStartDate && !editPeriodStartDate.endsWith("-01") && <label className="text-xs font-semibold">Primer período parcial<select value={editPartialPolicy} onChange={e => setEditPartialPolicy(e.target.value as "prorrateo" | "completo")} className="block w-full border rounded p-2 mt-1"><option value="prorrateo">Prorratear por días reales</option><option value="completo">Cobrar período completo</option></select></label>}
                   <label className="text-xs font-semibold">Forma de pago preferida
                     <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value as ServicePaymentMethod)} className="block w-full border rounded p-2 mt-1">
                       <option value="credito">Crédito (a cuenta)</option>
@@ -2047,9 +2083,9 @@ export function ClientContractTab({ client }: { client: Client }) {
                       <option value="tarjeta">Tarjeta de crédito</option>
                     </select>
                   </label>
-                  <label className="text-xs font-semibold">Motivo de gratuidad, si la tarifa es cero<input value={editZeroReason} onChange={e => setEditZeroReason(e.target.value)} className="block w-full border rounded p-2 mt-1" /></label>
+                  {Number(editPriceSinIva) === 0 && <label className="text-xs font-semibold">Motivo de gratuidad<input value={editZeroReason} onChange={e => setEditZeroReason(e.target.value)} className="block w-full border rounded p-2 mt-1" /></label>}
                 </div>
-                <div className="pt-1">
+                <div className="pt-1 md:col-span-2">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -2067,10 +2103,12 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </div>
               </div>
 
-              {editPreview && <ServiceBillingPreview preview={editPreview} />}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              {editSchedule && <div className="md:col-span-2"><ServiceBillingPreview service={editSchedule} today={today} /></div>}
+            </form>
+              <footer className="shrink-0 flex items-center justify-end gap-2 border-t border-[#e2e8f0] bg-white px-4 py-3 sm:px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <button
                   type="button"
+                  disabled={savingEdit}
                   onClick={() => setEditingService(null)}
                   className="px-3.5 py-2 rounded-lg border border-[#cbd5e1] bg-white text-[#434655] text-xs font-semibold hover:bg-slate-50 cursor-pointer"
                 >
@@ -2078,14 +2116,14 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </button>
                 <button
                   type="submit"
+                  form="client-service-edit-form"
                   disabled={savingEdit}
                   className="px-4 py-2 rounded-lg bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                 >
                   {savingEdit ? "Guardando..." : "Guardar Cambios"}
                 </button>
-              </div>
-            </form>
-          </div>
+              </footer>
+          </section>
         </div>
       )}
     </div>

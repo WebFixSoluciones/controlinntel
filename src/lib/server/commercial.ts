@@ -4,7 +4,7 @@ import type { UserProfile } from "@/types";
 import { adminServices } from "./admin.ts";
 import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
-import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, paymentDueOnIssue, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
+import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, paymentDueOnIssue, serviceBillingStart, initialServicePeriod, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
 import { schemas } from "./schemas.ts";
@@ -429,12 +429,30 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(rate===undefined) throw new HttpError(400,"Configura el impuesto del servicio.");
       const { emitFirstInvoice: _emitFirstInvoice, ...serviceFields } = source;
       const service=schemas.clientServices.parse({...serviceFields,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:String(source.planName||"").trim()||product.name||plan.name,inventoryProductId:product.id||null,
+        billingPeriodStartDate: source.billingPeriodStartDate ?? serviceBillingStart(old) ?? serviceBillingStart(source) ?? getEcuadorDate(),
         saleStatus: old.saleStatus || (old.saleInvoiceId || old.saleDocNumber ? "emitida" : "pendiente_venta"), saleInvoiceId: old.saleInvoiceId, saleDocNumber: old.saleDocNumber,
         lastBilledPeriod: old.lastBilledPeriod, lastBilledInvoiceId: old.lastBilledInvoiceId,
         status:source.status||"activo",billingType:source.billingType||"pospago",billingFrequency:source.billingFrequency||"mensual",cycleAnchor:source.cycleAnchor||"aniversario",
         contractStartDate:source.contractStartDate||source.installationDate||getEcuadorDate(),contractEndDate:source.contractEndDate||undefined,installationDate:source.installationDate||getEcuadorDate(),nodeId:source.nodeId||"",nodeName:source.nodeName||"Sin configurar",ipv4Address:source.ipv4Address||"",pppoeUser:source.pppoeUser||""});
       if(cents(price)===0&&!source.zeroPriceReason)throw new HttpError(400,"Registra el motivo de gratuidad.");
       if(!validDate(service.contractStartDate)||service.contractEndDate&&!validDate(service.contractEndDate)||service.contractEndDate&&service.contractEndDate<service.contractStartDate)throw new HttpError(400,"Vigencia inválida.");
+      if (service.billingPeriodStartDate < service.contractStartDate || service.contractEndDate && service.billingPeriodStartDate > service.contractEndDate) {
+        throw new HttpError(400, "El inicio del período debe estar dentro de la vigencia del contrato.");
+      }
+      const firstPeriod = initialServicePeriod(service);
+      const scheduleChanged = action === "assignService" || service.billingPeriodStartDate !== serviceBillingStart(old)
+        || ["billingFrequency", "cycleAnchor", "firstPeriodPolicy"].some(key => service[key] !== old[key]);
+      if (scheduleChanged) {
+        const validation = initialServicePeriod({ ...service, status: "activo", isBillableInCurrentCycle: true });
+        if (!validation.eligible) throw new HttpError(400, validation.reason);
+      }
+      if (old.lastBilledInvoiceId && service.billingPeriodStartDate !== serviceBillingStart(old)) {
+        const lastInvoice = await c.get("billingInvoices", old.lastBilledInvoiceId, false);
+        const overlapping = lastInvoice.status !== "anulada" && lastInvoice.items?.some((item: Row) =>
+          item.serviceId === old.id && item.periodEnd > service.billingPeriodStartDate);
+        if (overlapping) throw new HttpError(409, "El nuevo inicio se cruza con un período ya emitido. Elige una fecha posterior al último período facturado.");
+      }
+      if (scheduleChanged && !old.lastBilledPeriod && firstPeriod.eligible) service.nextRenewalDate = firstPeriod.periodEnd;
       if(service.billingDay && (!Number.isInteger(service.billingDay)||service.billingDay<1||service.billingDay>31))throw new HttpError(400,"Día de cobro inválido.");
       const services=await c.list("clientServices","clientId",client.id);
       c.put("clientServices",service);

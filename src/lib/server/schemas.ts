@@ -49,6 +49,7 @@ export const schemas: Record<string, z.ZodTypeAny> = {
       clientId: text,
       planId: text,
       customPrice: money,
+      billingPeriodStartDate: date.optional(),
       status: z.enum(["activo", "inactivo", "por_renovar", "suspendido", "retirado", "en_instalacion"]),
     })
     .passthrough(),

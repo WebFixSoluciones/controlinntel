@@ -88,6 +88,7 @@ export interface ClientService {
   billingFrequency?: ServiceBillingFrequency; // "mensual" | "trimestral" | "semestral" | "anual"
   contractDuration?: ServiceContractDuration; // "mensual" | "trimestral" | "semestral" | "anual" | "bianual" | "indefinido"
   contractStartDate?: string;                 // YYYY-MM-DD: Fecha de inicio del contrato
+  billingPeriodStartDate?: string;            // YYYY-MM-DD: Inicio del ciclo de facturación, independiente del contrato.
   contractEndDate?: string;                   // YYYY-MM-DD: Fecha de fin de vigencia del contrato
   autoRenew?: boolean;                        // true = auto-facturación recurrente durante el periodo contratado
   paymentMethod?: ServicePaymentMethod;       // Forma de pago preferida del cliente para las facturas de este servicio

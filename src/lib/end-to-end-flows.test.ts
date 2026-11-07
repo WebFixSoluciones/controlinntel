@@ -1330,7 +1330,7 @@ test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas 
   const contractContent = fs.readFileSync(contractPath, "utf8");
   assert.ok(
     contractContent.includes("table-fixed") &&
-      contractContent.includes("min-w-[63rem]") &&
+      contractContent.includes("<colgroup>") &&
       contractContent.includes('aria-label="Tabla de servicios contratados"') &&
       contractContent.includes("overflow-x-auto"),
     "ClientContractTab debe estructurar la tabla de servicios con layout fijo y columnas balanceadas"

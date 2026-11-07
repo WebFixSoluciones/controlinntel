@@ -9,7 +9,7 @@ import { requiresPublicTicketReply } from "../ticket-status.ts";
 import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
 import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
-import { planServicePeriod, calculateLines, scheduledServicePeriods, previewScheduledService } from "../commercial-core.ts";
+import { planServicePeriod, calculateLines, scheduledServicePeriods, previewScheduledService, initialServicePeriod, serviceBillingStart } from "../commercial-core.ts";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "../financial-summary.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
@@ -267,6 +267,71 @@ const servicePayload=(extra={})=>({clientId:"a",inventoryProductId:"srv",planId:
   contractStartDate:"2026-11-01",billingDay:1,advanceNoticeDay:26,status:"activo",...extra});
 
 const runSchedule = (db: Database, date: string) => runScheduledRecurringBilling(db as unknown as Firestore, date);
+
+test("El inicio de período es independiente del contrato y la modalidad cambia la exigibilidad", () => {
+  const service = { id: "separate-dates", ...servicePayload({ contractStartDate: "2026-11-01", billingPeriodStartDate: "2026-12-07", cycleAnchor: "aniversario" }) };
+  const prepaid = initialServicePeriod(service);
+  assert.ok(prepaid.eligible);
+  assert.equal(prepaid.billingStart, "2026-12-07");
+  assert.equal(prepaid.periodEnd, "2027-01-07");
+  assert.equal(prepaid.issueDate, "2026-12-07");
+  assert.equal(prepaid.line.description, "Período del 07/12/2026 al 06/01/2027 (PREPAGO)");
+  const postpaid = initialServicePeriod({ ...service, billingType: "pospago" });
+  assert.ok(postpaid.eligible);
+  assert.equal(postpaid.periodEnd, prepaid.periodEnd);
+  assert.equal(postpaid.issueDate, "2027-01-07");
+  assert.equal(planServicePeriod(service, 12, 2026, "2026-12-06").eligible, false);
+  assert.equal(planServicePeriod(service, 12, 2026, "2026-12-07").eligible, true);
+  for (const [frequency, end] of [["trimestral", "2027-03-07"], ["semestral", "2027-06-07"], ["anual", "2027-12-07"]]) {
+    const period = initialServicePeriod({ ...service, billingFrequency: frequency });
+    assert.ok(period.eligible);
+    assert.equal(period.periodEnd, end);
+  }
+  const calendar = initialServicePeriod({ ...service, cycleAnchor: "calendario", firstPeriodPolicy: "prorrateo" });
+  assert.ok(calendar.eligible);
+  assert.equal(calendar.billingStart, "2026-12-07");
+  assert.equal(calendar.periodEnd, "2027-01-01");
+  assert.equal(calendar.line.unitPrice, 80.65);
+  assert.equal(initialServicePeriod({ ...service, billingPeriodStartDate: "2026-10-31" }).eligible, false);
+  assert.equal(initialServicePeriod({ ...service, contractEndDate: "2026-12-31" }).eligible, false);
+  assert.equal(initialServicePeriod({ ...service, billingPeriodStartDate: "2026-02-30" }).eligible, false);
+});
+
+test("La fecha elegida persiste y la corrida emite el mismo período de la vista previa", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T17:00:00Z") });
+  const db = new Database(initial());
+  const assigned = await run(db, "assignService", servicePayload({ billingPeriodStartDate: "2026-12-07", cycleAnchor: "aniversario" }));
+  assert.equal(assigned.contractStartDate, "2026-11-01");
+  assert.equal(assigned.billingPeriodStartDate, "2026-12-07");
+  assert.equal(assigned.nextRenewalDate, "2027-01-07");
+  assert.equal(db.list("billingInvoices").length, 0);
+  assert.equal((await runSchedule(db, "2026-12-01")).issued, 0);
+  const preview = previewScheduledService(assigned, "2026-11-07");
+  assert.equal(preview.emissionDate, "2027-01-01");
+  assert.equal((await runSchedule(db, "2027-01-01")).issued, 1);
+  const invoice = db.list("billingInvoices")[0];
+  assert.equal(invoice.items[0].description, preview.plans?.[0].line.description);
+  assert.equal(invoice.items[0].periodStart, "2026-12-07");
+  assert.equal(invoice.total, 115);
+  assert.equal((await runSchedule(db, "2027-01-01")).issued, 0);
+  await assert.rejects(run(db, "editService", { id: assigned.id, billingPeriodStartDate: "2026-12-20" }), /se cruza/);
+  await run(db, "editService", { id: assigned.id, billingPeriodStartDate: "2027-01-07" });
+  assert.equal(db.row("clientServices", assigned.id).billingPeriodStartDate, "2027-01-07");
+  await assert.rejects(run(db, "assignService", servicePayload({ billingPeriodStartDate: "2026-10-31" })), /vigencia/);
+  await assert.rejects(run(db, "assignService", servicePayload({ billingPeriodStartDate: "" })));
+});
+
+test("Los servicios anteriores conservan su origen de facturación al editar el contrato", async () => {
+  const old = { id: "legacy-origin", ...servicePayload({ installationDate: "2026-11-01" }) };
+  assert.equal(serviceBillingStart(old), "2026-11-01");
+  assert.deepEqual(initialServicePeriod(old), initialServicePeriod({ ...old, billingPeriodStartDate: "2026-11-01" }));
+  const db = new Database({ ...initial(), clientServices: [old] });
+  await run(db, "editService", { id: old.id, contractStartDate: "2026-10-01", planName: "Nombre actualizado" });
+  assert.equal(db.row("clientServices", old.id).billingPeriodStartDate, "2026-11-01");
+  await run(db, "editService", { id: old.id, nextRenewalDate: "2027-02-01" });
+  assert.equal(db.row("clientServices", old.id).nextRenewalDate, "2027-02-01");
+  assert.equal(db.row("clientServices", old.id).billingPeriodStartDate, "2026-11-01");
+});
 
 test("El alta del cliente y del servicio no genera nota, cartera ni reserva de secuencial", async () => {
   const db = new Database(initial());

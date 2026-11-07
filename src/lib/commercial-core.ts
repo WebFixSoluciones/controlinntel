@@ -37,12 +37,18 @@ export function dateOnDay(month: string, day: number) {
   return `${month.slice(0, 7)}-${String(Math.min(day, new Date(Date.UTC(y, m, 0)).getUTCDate())).padStart(2, "0")}`;
 }
 
-export function planServicePeriod(service: RecordData, month: number, year: number, today: string) {
+export function serviceBillingStart(service: RecordData): string | undefined {
+  return service.billingPeriodStartDate || service.contractStartDate || service.installationDate;
+}
+
+function servicePeriod(service: RecordData, month: number, year: number) {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2020 || year > 2100) throw new CommercialValidationError("Período inválido.");
   const skip = (reason: string) => ({ eligible: false as const, serviceId: String(service.id), reason });
   if (service.status !== "activo" || service.isBillableInCurrentCycle === false) return skip("Servicio no activo o no facturable.");
-  const start = service.contractStartDate || service.installationDate;
+  const start = serviceBillingStart(service);
   if (!start || !validDate(start)) return skip("Falta fecha válida de activación.");
+  if (service.contractStartDate && start < service.contractStartDate) return skip("El inicio del período debe coincidir con el inicio del contrato o ser posterior.");
+  if (service.contractEndDate && (!validDate(service.contractEndDate) || start > service.contractEndDate)) return skip("El inicio del período debe estar dentro de la vigencia del contrato.");
   const months = frequencies[service.billingFrequency || "mensual"];
   if (!months) return skip("Frecuencia no válida.");
   const selected = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -61,7 +67,6 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
   if(service.creditDays===undefined&&service.billingDay){dueDate=dateOnDay(issueDate,Number(service.billingDay));if(dueDate<issueDate)dueDate=dateOnDay(addMonthsSafely(issueDate,1),Number(service.billingDay));}
   let noticeDate=dueDate;
   if(service.advanceNoticeDay){noticeDate=dateOnDay(dueDate,Number(service.advanceNoticeDay));if(noticeDate>dueDate)noticeDate=dateOnDay(addMonthsSafely(dueDate,-1),Number(service.advanceNoticeDay));}
-  if (issueDate > today) return skip("El período todavía no es exigible.");
   const unitPrice = service.customPrice ?? service.basePrice;
   const rate = service.ivaRate;
   if (unitPrice === undefined || !Number.isFinite(Number(unitPrice)) || Number(unitPrice) < 0 ||
@@ -77,6 +82,22 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
       sku: service.inventorySku || "SRV", name: service.planName, description: `Período del ${formatDateEC(billingStart)} al ${formatDateEC(addDays(periodEnd, -1))} (${prepaid ? "PREPAGO" : "POSPAGO"})`,
       unit: "servicio", quantity: 1, unitPrice: money(cents(Number(unitPrice) * ratio)), ivaRate: Number(rate), discount: 0, periodStart, periodEnd, zeroPriceReason:service.zeroPriceReason||"" },
   };
+}
+
+export function planServicePeriod(service: RecordData, month: number, year: number, today: string) {
+  const period = servicePeriod(service, month, year);
+  return period.eligible && period.issueDate > today
+    ? { eligible: false as const, serviceId: String(service.id), reason: "El período todavía no es exigible." }
+    : period;
+}
+
+export function initialServicePeriod(service: RecordData) {
+  const start = serviceBillingStart(service);
+  if (!start || !validDate(start)) return { eligible: false as const, serviceId: String(service.id), reason: "Selecciona el inicio del período." };
+  if (Number(start.slice(0, 4)) < 2020 || Number(start.slice(0, 4)) > 2100) {
+    return { eligible: false as const, serviceId: String(service.id), reason: "El inicio del período debe estar entre 2020 y 2100." };
+  }
+  return servicePeriod(service, Number(start.slice(5, 7)), Number(start.slice(0, 4)));
 }
 
 export type EligibleServicePeriod = Extract<ReturnType<typeof planServicePeriod>, { eligible: true }>;
@@ -103,8 +124,8 @@ export function scheduledServicePeriods(service: RecordData, today: string): Eli
 }
 
 export function previewScheduledService(service: RecordData, today: string) {
-  const start = service.contractStartDate || service.installationDate;
-  if (!start || !validDate(start)) return { reason: "Selecciona la fecha de inicio del servicio." };
+  const start = serviceBillingStart(service);
+  if (!start || !validDate(start)) return { reason: "Selecciona el inicio del período." };
   const [year, month] = start.split("-").map(Number);
   if (year < 2020 || year > 2100) return { reason: "La fecha de inicio debe estar entre 2020 y 2100." };
   if (service.contractEndDate && (!validDate(service.contractEndDate) || service.contractEndDate < start)) {
