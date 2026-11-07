@@ -11,7 +11,7 @@ import { schemas } from "./schemas.ts";
 import { canUser, canPerformAction, canViewServicePrices } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
 class Context {
@@ -81,6 +81,29 @@ class Context {
 
 function checkedAmount(value: unknown) { const amount=cents(value); if(amount<=0) throw new HttpError(400,"El importe debe ser mayor que cero."); return amount; }
 function checkedDate(value: string | undefined) { const date=value || getEcuadorDate(); if(!validDate(date)) throw new HttpError(400,"Fecha inválida."); return date; }
+
+async function expenseInput(c: Context, data: Row, old?: Row) {
+  const fields = ["supplierId", "supplierName", "bankAccountId", "category", "amount", "expenseDate", "description", "invoiceNumber", "paymentMethod"];
+  const input = schemas.expenses.parse(Object.fromEntries(fields.map(key => [key, data[key]])));
+  const amount = checkedAmount(input.amount), date = checkedDate(input.expenseDate);
+  if (date > c.today) throw new HttpError(400, "La fecha del gasto no puede ser futura.");
+  const configured = await c.get("expenseCategories", input.category, false);
+  const category = configured.id ? configured : defaultExpenseCategories.find(item => item.id === input.category);
+  if (!category?.active && input.category !== old?.category) throw new HttpError(400, "Selecciona una categoría de gasto activa.");
+  const supplier = input.supplierId ? await c.get("suppliers", input.supplierId) : undefined;
+  if (supplier?.status === "inactivo" && supplier.id !== old?.supplierId) throw new HttpError(400, "El proveedor seleccionado está inactivo.");
+  return { ...input, supplierName: supplier?.razonSocial || input.supplierName, supplierRuc: supplier?.ruc, amount: money(amount), expenseDate: date };
+}
+
+async function expenseMovement(c: Context, expense: Row) {
+  const movement = expense.movementId ? await c.get("financialMovements", expense.movementId, false) : {};
+  if (!movement.id || movement.status === "anulado" || movement.type !== "egreso"
+    || movement.expenseId !== expense.id || movement.relatedEntityId !== expense.id
+    || movement.bankAccountId !== expense.bankAccountId || cents(movement.amount) !== cents(expense.amount)) {
+    throw new HttpError(409, "El movimiento vinculado al gasto requiere conciliación antes de corregirlo. No se modificó el saldo.");
+  }
+  return movement;
+}
 
 async function billingPeriodState(c: Context, service: Row, plan: EligibleServicePeriod) {
   const period = await c.get("billingPeriods", plan.key, false);
@@ -288,18 +311,49 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       await c.clientBalance(charge.clientId);return payment.id;
     }
     case "expense": {
-      const input=schemas.expenses.parse(data),id=randomUUID(),amount=checkedAmount(input.amount),date=checkedDate(input.expenseDate);
-      if(date>getEcuadorDate()) throw new HttpError(400,"La fecha del gasto no puede ser futura.");
-      const configuredCategory = await c.get("expenseCategories", input.category, false);
-      const category = configuredCategory.id ? configuredCategory : defaultExpenseCategories.find(item => item.id === input.category);
-      if (!category?.active) throw new HttpError(400, "Selecciona una categoría de gasto activa.");
-      const supplier = input.supplierId ? await c.get("suppliers", input.supplierId) : undefined;
-      if (supplier && supplier.status === "inactivo") throw new HttpError(400, "El proveedor seleccionado está inactivo.");
-      const supplierName = supplier?.razonSocial || input.supplierName;
+      const input = await expenseInput(c, data), id = randomUUID();
       const reference = input.invoiceNumber ? { referenceNumber: input.invoiceNumber } : {};
-      const movementId=await c.bank(-amount,input.bankAccountId,id,{date,category:input.category,description:input.description,paymentMethod:input.paymentMethod,expenseId:id,...reference});
-      const expense={...input,id,supplierName,supplierRuc:supplier?.ruc,amount:money(amount),expenseDate:date,movementId};
+      const movementId=await c.bank(-cents(input.amount),input.bankAccountId,id,{date:input.expenseDate,category:input.category,description:input.description,paymentMethod:input.paymentMethod,expenseId:id,...reference});
+      const expense={...input,id,movementId,status:"registrado"};
       c.put("expenses",expense);return expense;
+    }
+    case "editExpense":
+    case "deleteExpense": {
+      const old = await c.get("expenses", data.id);
+      if (old.status === "anulado") {
+        if (action === "deleteExpense") return old;
+        throw new HttpError(409, "El gasto ya fue eliminado. Actualiza el listado.");
+      }
+      if (data.expectedVersion !== undefined && data.expectedVersion !== (old.version || 0)) {
+        throw new HttpError(409, "Otro usuario modificó este gasto. Actualiza el listado antes de continuar.");
+      }
+      const movement = await expenseMovement(c, old);
+      const bank = await c.get("bankAccounts", old.bankAccountId);
+      const restored = cents(bank.currentBalance) + cents(old.amount);
+      if (action === "deleteExpense") {
+        const cancellation = { status: "anulado", cancelledAt: new Date().toISOString(), cancelledBy: c.user.uid };
+        c.put("bankAccounts", { ...bank, currentBalance: money(restored) });
+        c.put("financialMovements", { ...movement, ...cancellation });
+        const expense = { ...old, ...cancellation };
+        c.put("expenses", expense);
+        return expense;
+      }
+      const input = await expenseInput(c, data, old);
+      const sameAccount = input.bankAccountId === bank.id;
+      const destination = sameAccount ? bank : await c.get("bankAccounts", input.bankAccountId);
+      if (destination.status !== "activa" && (!sameAccount || cents(input.amount) !== cents(old.amount))) {
+        throw new HttpError(400, "Selecciona una cuenta de salida activa.");
+      }
+      const balance = (sameAccount ? restored : cents(destination.currentBalance)) - cents(input.amount);
+      if (balance < 0 && !destination.allowOverdraft) throw new HttpError(409, "Saldo insuficiente en la cuenta de salida.");
+      if (!sameAccount) c.put("bankAccounts", { ...bank, currentBalance: money(restored) });
+      c.put("bankAccounts", { ...destination, currentBalance: money(balance) });
+      c.put("financialMovements", { ...movement, bankAccountId: destination.id, bankAccountName: destination.bankName,
+        amount: input.amount, date: input.expenseDate, category: input.category, description: input.description,
+        paymentMethod: input.paymentMethod, referenceNumber: input.invoiceNumber || "" });
+      const expense = { ...old, ...input, status: "registrado" };
+      c.put("expenses", expense);
+      return expense;
     }
     case "startRun": {
       if(!Array.isArray(data.units)||!data.units.length||data.units.length>100)throw new HttpError(400,"Selecciona entre 1 y 100 clientes por lote.");
@@ -671,7 +725,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     issueSale:["facturacion","canCreateInvoice"],editSale:["facturacion","canEditPrices"],recur:["facturacion","canCreateInvoice"],
     payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],adjustBank:["finanzas","canRegisterExpenses"],transfer:["finanzas","canRegisterExpenses"],
-    expense:["finanzas","canRegisterExpenses"],startRun:["facturacion","canCreateInvoice"],processRun:["facturacion","canCreateInvoice"],
+    expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["facturacion","canCreateInvoice"],processRun:["facturacion","canCreateInvoice"],
     reverseApplication:["finanzas","canCancelPayments"],
     purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],

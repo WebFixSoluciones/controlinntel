@@ -37,6 +37,87 @@ const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificatio
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
 
+const expensePayload = (extra = {}) => ({ supplierName: "BENEFICIARIO QA", bankAccountId: "bank", category: "mantenimiento",
+  amount: 100, expenseDate: "2026-11-07", description: "Gasto manual QA", paymentMethod: "transferencia", ...extra });
+
+test("Editar gastos corrige banco, movimiento y reportes sin duplicar ingresos ni salidas", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T17:00:00Z") });
+  const seed = initial();
+  seed.bankAccounts[1].currentBalance = 300;
+  const db = new Database(seed);
+  const expense = await run(db, "expense", expensePayload());
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 900);
+  await run(db, "editExpense", { ...expensePayload({ amount: 60, supplierId: "supplier", invoiceNumber: "REF-1", expenseDate: "2026-11-06", description: "Valor corregido" }), id: expense.id, expectedVersion: 1 });
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 940);
+  assert.equal(db.row("expenses", expense.id).supplierName, "PROVEEDOR QA");
+  assert.equal(db.row("expenses", expense.id).supplierRuc, "QA-111");
+  const movement = db.row("financialMovements", expense.movementId);
+  assert.equal(movement.amount, 60);
+  assert.equal(movement.date, "2026-11-06");
+  assert.equal(movement.referenceNumber, "REF-1");
+  assert.equal(movement.description, "Valor corregido");
+  const operationId = randomUUID();
+  const changes = { ...expensePayload({ bankAccountId: "bank2", amount: 80.25 }), id: expense.id, expectedVersion: 2 };
+  await run(db, "editExpense", changes, operationId);
+  await run(db, "editExpense", changes, operationId);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1000);
+  assert.equal(db.row("bankAccounts", "bank2").currentBalance, 219.75);
+  assert.equal(db.list("financialMovements").length, 1);
+  assert.equal(db.row("financialMovements", expense.movementId).bankAccountId, "bank2");
+  assert.equal(db.row("financialMovements", expense.movementId).referenceNumber, "");
+  assert.equal(db.row("expenses", expense.id).supplierId, undefined);
+  assert.equal(db.row("expenses", expense.id).supplierRuc, undefined);
+  assert.equal(summarizeOperatingExpenses(db.list("expenses")).total, 80.25);
+  assert.equal(summarizeCash(db.list("financialMovements")).totalIngresos, 0);
+  assert.equal(summarizeCash(db.list("financialMovements")).totalEgresos, 80.25);
+  assert.equal(db.row("operationLog", operationId).type, "editExpense");
+  assert.equal(db.row("operationLog", operationId).effects.length, 4);
+});
+
+test("Eliminar un gasto restaura una sola vez su cuenta y lo excluye de caja y gastos conservando auditoría", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T17:00:00Z") });
+  const db = new Database(initial());
+  const expense = await run(db, "expense", expensePayload());
+  db.row("bankAccounts", "bank").status = "inactiva";
+  const operationId = randomUUID();
+  await Promise.all([run(db, "deleteExpense", { id: expense.id, expectedVersion: 1 }, operationId), run(db, "deleteExpense", { id: expense.id, expectedVersion: 1 })]);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1000);
+  assert.equal(db.row("expenses", expense.id).status, "anulado");
+  assert.equal(db.row("financialMovements", expense.movementId).status, "anulado");
+  assert.equal(db.list("financialMovements").length, 1);
+  assert.equal(summarizeOperatingExpenses(db.list("expenses")).total, 0);
+  assert.equal(summarizeCash(db.list("financialMovements")).totalIngresos, 0);
+  assert.equal(summarizeCash(db.list("financialMovements")).totalEgresos, 0);
+  assert.ok(db.row("operationLog", operationId));
+  assert.equal(db.row("expenses", expense.id).cancelledBy, user.uid);
+  await assert.rejects(run(db, "editExpense", { ...expensePayload(), id: expense.id }), /ya fue eliminado/);
+});
+
+test("La corrección de gastos valida permisos, versión, saldo y vínculo y revierte fallos de forma atómica", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T17:00:00Z") });
+  const db = new Database(initial());
+  const expense = await run(db, "expense", expensePayload());
+  const edit = (extra = {}) => run(db, "editExpense", { ...expensePayload(), id: expense.id, expectedVersion: 1, ...extra });
+  await assert.rejects(edit({ expectedVersion: 0 }), /Otro usuario/);
+  await assert.rejects(edit({ amount: 1001 }), /Saldo insuficiente/);
+  await assert.rejects(edit({ amount: 0 }), /mayor que cero/);
+  await assert.rejects(edit({ expenseDate: "2026-11-08" }), /futura/);
+  await assert.rejects(edit({ bankAccountId: "missing" }), /inexistente/);
+  const restricted: UserProfile = { ...user, role: "finanzas", permissions: ["manage_finance"], modulePermissions: { finanzas: { enabled: true, actions: { canRegisterExpenses: false } } } };
+  for (const action of ["editExpense", "deleteExpense"] as const) {
+    await assert.rejects(executeCommercial(restricted, { action, operationId: randomUUID(), data: { ...expensePayload(), id: expense.id } }, db as unknown as Firestore), /autorización/);
+  }
+  const before = structuredClone([...db.rows]);
+  db.failCommit = true;
+  await assert.rejects(edit({ amount: 50 }), /Injected/);
+  await assert.rejects(run(db, "deleteExpense", { id: expense.id }), /Injected/);
+  assert.deepEqual([...db.rows], before);
+  db.failCommit = false;
+  db.row("financialMovements", expense.movementId).amount = 5;
+  await assert.rejects(edit(), /conciliación/);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 900);
+});
+
 test("El gasto vincula al proveedor, conserva la referencia y usa solo categorías activas", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-06T17:00:00Z") });
   const db = new Database({ ...initial(), suppliers: [{ id: "supplier-qa", razonSocial: "Proveedor guardado", ruc: "1700000000001", status: "activo" }] });

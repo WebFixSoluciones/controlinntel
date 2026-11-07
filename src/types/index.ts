@@ -430,6 +430,8 @@ export interface Ticket {
 }
 
 export interface Expense {
+  version?: number;
+  status?: "registrado" | "anulado";
   bankAccountId?: string;
   movementId?: string;
   id: string;

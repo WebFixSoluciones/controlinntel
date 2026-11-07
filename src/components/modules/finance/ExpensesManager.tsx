@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { Plus, Settings2, X } from "lucide-react";
+import { Plus, Settings2, Pencil, Trash2, X } from "lucide-react";
+import type { Expense } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { validateMonetaryAmount } from "@/lib/validation-engine";
@@ -15,8 +16,8 @@ const primary = "rounded-lg bg-[#004ac6] px-4 py-2 font-semibold text-white hove
 const secondary = "rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold hover:bg-slate-50 disabled:opacity-50";
 
 export function ExpensesManager() {
-  const { currentUser, expenses, expenseCategories, suppliers, addExpense, bankAccounts, saveRecord } = useApp();
-  const { showSuccess } = useToast();
+  const { currentUser, expenses, expenseCategories, suppliers, addExpense, updateExpense, deleteExpense, bankAccounts, saveRecord } = useApp();
+  const { showSuccess, showError, showConfirm } = useToast();
   const canRegister = canUser(currentUser, "finanzas", "canRegisterExpenses");
   const canManage = canManageExpenseCategories(currentUser);
   const categories = expenseCategoriesWithDefaults(expenseCategories);
@@ -24,6 +25,7 @@ export function ExpensesManager() {
   const activeCategories = categories.filter(item => item.active);
   const activeAccounts = bankAccounts.filter(account => account.status === "activa");
   const [modal, setModal] = useState<"expense" | "categories" | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [showSuppliers, setShowSuppliers] = useState(false);
@@ -46,7 +48,7 @@ export function ExpensesManager() {
     [supplier.razonSocial, supplier.nombreComercial, supplier.ruc].some(value => value && expenseCategoryKey(value).includes(supplierKey))
   ).slice(0, 8);
 
-  const filteredExpenses = expenses.filter(expense => (!categoryFilter || expense.category === categoryFilter) &&
+  const filteredExpenses = expenses.filter(expense => expense.status !== "anulado" && (!categoryFilter || expense.category === categoryFilter) &&
     [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
       .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(filterQuery)))
   ).sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
@@ -54,10 +56,33 @@ export function ExpensesManager() {
   const filterCategories = new Map([...expenses.map(expense => [expense.category, expense.category.replaceAll("_", " ")] as const), ...categoryNames]);
 
   const openExpense = () => {
+    setEditingExpense(null);
     setSupplierQuery(""); setSupplierId(""); setShowSuppliers(false);
     setAmount(""); setCategory(""); setBankAccountId(activeAccounts.length === 1 ? activeAccounts[0].id : "");
     setExpenseDate(getEcuadorDate()); setReference(""); setDescription(""); setError(""); setModal("expense");
   };
+
+  const editExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    setSupplierQuery(expense.supplierName); setSupplierId(expense.supplierId || ""); setShowSuppliers(false);
+    setAmount(String(expense.amount)); setCategory(expense.category); setBankAccountId(expense.bankAccountId || "");
+    setExpenseDate(expense.expenseDate); setReference(expense.invoiceNumber || ""); setDescription(expense.description);
+    setError(""); setModal("expense");
+  };
+
+  const removeExpense = (expense: Expense) => showConfirm(
+    "¿Eliminar gasto?",
+    `Se retirará el gasto de $${expense.amount.toFixed(2)} de ${expense.supplierName} y se restaurará ese importe en la cuenta de salida. El historial de la corrección quedará guardado.`,
+    () => { void save(async () => {
+      try {
+        await deleteExpense(expense.id, expense.version || 0);
+        showSuccess("Gasto eliminado", "El saldo de la cuenta y los reportes fueron actualizados.");
+      } catch (err) {
+        showError("No se pudo eliminar el gasto", err instanceof Error ? err.message : "Inténtalo nuevamente.");
+      }
+    }); },
+    "Eliminar gasto",
+  );
 
   const save = async (action: () => Promise<void>) => {
     if (saving.current) return;
@@ -76,23 +101,25 @@ export function ExpensesManager() {
 
   const registerExpense = async (event: FormEvent) => {
     event.preventDefault();
-    const account = activeAccounts.find(item => item.id === bankAccountId);
+    const account = bankAccounts.find(item => item.id === bankAccountId && (item.status === "activa" || item.id === editingExpense?.bankAccountId));
     const validation = validateMonetaryAmount(Number(amount), "Valor del gasto");
-    if (!account || !validation.isValid || !activeCategories.some(item => item.id === category) || !supplierQuery.trim() || !description.trim()) {
+    if (!account || !validation.isValid || !(activeCategories.some(item => item.id === category) || category === editingExpense?.category) || !supplierQuery.trim() || !description.trim()) {
       setError(!validation.isValid ? validation.error || "Ingresa un importe válido." : "Completa los campos obligatorios.");
       return;
     }
     await save(async () => {
-      await addExpense({
+      const input = {
         supplierName: selectedSupplier?.razonSocial || supplierQuery.trim(),
-        ...(selectedSupplier ? { supplierId: selectedSupplier.id } : {}),
+        supplierId: supplierId || undefined,
         category, amount: Number(amount), expenseDate, bankAccountId,
         invoiceNumber: reference.trim() || undefined,
         description: description.trim(),
-        paymentMethod: account.accountType === "caja_efectivo" ? "efectivo" : "transferencia",
-      });
+        paymentMethod: editingExpense?.bankAccountId === bankAccountId ? editingExpense.paymentMethod : account.accountType === "caja_efectivo" ? "efectivo" as const : "transferencia" as const,
+      };
+      if (editingExpense) await updateExpense(editingExpense.id, input, editingExpense.version || 0);
+      else await addExpense(input);
       setModal(null);
-      showSuccess("Gasto registrado", `Se registró la salida de $${Number(amount).toFixed(2)} en ${account.bankName}.`);
+      showSuccess(editingExpense ? "Gasto actualizado" : "Gasto registrado", editingExpense ? "El gasto, el saldo de la cuenta y los reportes fueron actualizados." : `Se registró la salida de $${Number(amount).toFixed(2)} en ${account.bankName}.`);
     });
   };
 
@@ -120,7 +147,7 @@ export function ExpensesManager() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[46rem] text-left">
             <thead className="bg-[#f8f9ff] uppercase text-[#004ac6]">
-              <tr><th className="p-3">Fecha</th><th className="p-3">Proveedor / Beneficiario</th><th className="p-3">Categoría</th><th className="p-3">Concepto / Referencia</th><th className="p-3">Cuenta</th><th className="p-3 text-right">Monto</th></tr>
+              <tr><th className="p-3">Fecha</th><th className="p-3">Proveedor / Beneficiario</th><th className="p-3">Categoría</th><th className="p-3">Concepto / Referencia</th><th className="p-3">Cuenta</th><th className="p-3 text-right">Monto</th>{canRegister && <th className="p-3 text-right">Acciones</th>}</tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredExpenses.map(expense => (
@@ -131,9 +158,13 @@ export function ExpensesManager() {
                   <td className="p-3">{expense.description}{expense.invoiceNumber && <span className="block text-slate-500">{expense.invoiceNumber}</span>}</td>
                   <td className="p-3">{accountNames.get(expense.bankAccountId || "") || "—"}</td>
                   <td className="p-3 text-right font-mono font-semibold">${expense.amount.toFixed(2)}</td>
+                  {canRegister && <td className="p-3"><div className="flex justify-end gap-2">
+                    <button type="button" disabled={busy} aria-label={`Editar gasto de ${expense.supplierName}`} onClick={() => editExpense(expense)} className={`inline-flex items-center gap-1 ${secondary}`}><Pencil className="size-3.5" />Editar</button>
+                    <button type="button" disabled={busy} aria-label={`Eliminar gasto de ${expense.supplierName}`} onClick={() => removeExpense(expense)} className={`inline-flex items-center gap-1 text-rose-700 ${secondary}`}><Trash2 className="size-3.5" />Eliminar</button>
+                  </div></td>}
                 </tr>
               ))}
-              {!filteredExpenses.length && <tr><td colSpan={6} className="p-10 text-center text-slate-500">Sin gastos con los filtros seleccionados.</td></tr>}
+              {!filteredExpenses.length && <tr><td colSpan={canRegister ? 7 : 6} className="p-10 text-center text-slate-500">Sin gastos con los filtros seleccionados.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -142,11 +173,11 @@ export function ExpensesManager() {
       {modal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
         <section role="dialog" aria-modal="true" aria-labelledby="expenses-dialog-title" className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 bg-[#f8f9ff] p-4">
-            <h2 id="expenses-dialog-title" className="text-sm font-bold">{modal === "expense" ? "Registrar gasto" : "Categorías de gastos"}</h2>
+            <h2 id="expenses-dialog-title" className="text-sm font-bold">{modal === "expense" ? editingExpense ? "Editar gasto" : "Registrar gasto" : "Categorías de gastos"}</h2>
             <button type="button" aria-label="Cerrar" disabled={busy} onClick={() => setModal(null)} className="p-1"><X className="size-4" /></button>
           </div>
           {modal === "expense" ? <form onSubmit={registerExpense} className="space-y-3 p-4">
-            <p className="text-slate-600">Registra aquí una salida ya pagada. Las facturas de proveedores con saldo pendiente se gestionan en Compras.</p>
+            <p className="text-slate-600">{editingExpense ? "Corrige los datos del gasto. Si cambias el importe o la cuenta, se ajustará el saldo correspondiente al guardar." : "Registra aquí una salida ya pagada. Las facturas de proveedores con saldo pendiente se gestionan en Compras."}</p>
             <div>
               <label htmlFor="expense-supplier" className="font-semibold">Proveedor / Beneficiario *</label>
               <input id="expense-supplier" required maxLength={500} value={supplierQuery} autoComplete="off" placeholder="Buscar por nombre, razón social o RUC" className={field}
@@ -163,6 +194,7 @@ export function ExpensesManager() {
             <label className="block font-semibold">Cuenta de salida *
               <select required value={bankAccountId} onChange={e => setBankAccountId(e.target.value)} className={field}>
                 <option value="">Seleccionar banco o caja</option>
+                {editingExpense && !activeAccounts.some(item => item.id === editingExpense.bankAccountId) && <option value={editingExpense.bankAccountId}>{accountNames.get(editingExpense.bankAccountId || "") || "Cuenta original"} (inactiva)</option>}
                 {activeAccounts.map(account => <option key={account.id} value={account.id}>{account.bankName} · {account.accountNumber}</option>)}
               </select>
             </label>
@@ -172,6 +204,7 @@ export function ExpensesManager() {
               <label className="font-semibold">Categoría *
                 <select required value={category} onChange={e => setCategory(e.target.value)} className={field}>
                   <option value="">Seleccionar categoría</option>
+                  {editingExpense && !activeCategories.some(item => item.id === editingExpense.category) && <option value={editingExpense.category}>{categoryNames.get(editingExpense.category) || editingExpense.category} (inactiva)</option>}
                   {activeCategories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
@@ -181,7 +214,7 @@ export function ExpensesManager() {
             {error && <p role="alert" className="rounded-lg bg-rose-50 p-2 text-rose-700">{error}</p>}
             <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
               <button type="button" disabled={busy} onClick={() => setModal(null)} className={secondary}>Cancelar</button>
-              <button type="submit" disabled={busy || !activeAccounts.length || !activeCategories.length} className={primary}>{busy ? "Guardando…" : "Guardar gasto"}</button>
+              <button type="submit" disabled={busy || !editingExpense && (!activeAccounts.length || !activeCategories.length)} className={primary}>{busy ? "Guardando…" : editingExpense ? "Guardar cambios" : "Guardar gasto"}</button>
             </div>
             {!activeAccounts.length && <p className="text-slate-600">Agrega una cuenta activa en Finanzas → Bancos.</p>}
             {!activeCategories.length && <p className="text-slate-600">Activa una categoría para registrar gastos.</p>}

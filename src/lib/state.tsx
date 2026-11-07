@@ -251,6 +251,8 @@ interface AppContextType {
   replyToTicket: (id: string, body: string, isInternal?: boolean, newStatus?: TicketStatus) => Promise<void>;
 
   addExpense: (expense: Omit<Expense, "id">) => Promise<void>;
+  updateExpense: (id: string, expense: Omit<Expense, "id">, expectedVersion?: number) => Promise<void>;
+  deleteExpense: (id: string, expectedVersion?: number) => Promise<void>;
   generateMonthlyBillingBatch: (month: number, year: number) => Promise<void>;
   markChargeAsPaid: (
     chargeId: string,
@@ -1536,6 +1538,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("expense", expenseData);
   };
 
+  const updateExpense = async (id: string, expense: Omit<Expense, "id">, expectedVersion?: number) => {
+    await runCommercial("editExpense", { ...expense, id, expectedVersion });
+  };
+
+  const deleteExpense = async (id: string, expectedVersion?: number) => {
+    await runCommercial("deleteExpense", { id, expectedVersion });
+  };
+
   const generateMonthlyBillingBatch = async (month: number, year: number) => {
     throw new Error("La emisión de " + month + "/" + year + " requiere revisar y seleccionar los servicios en Ventas recurrentes.");
   };
@@ -2041,6 +2051,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateTicketDetails,
           replyToTicket,
           addExpense,
+          updateExpense,
+          deleteExpense,
           generateMonthlyBillingBatch,
           markChargeAsPaid,
           addMonthlyCharge,

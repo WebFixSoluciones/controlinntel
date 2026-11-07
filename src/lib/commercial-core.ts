@@ -159,7 +159,7 @@ export function chargeBalance(charge: RecordData) {
   return charge.balanceRemaining === undefined ? Math.max(0, cents(charge.total) - cents(charge.paidAmount ?? (charge.status === "pagado" ? charge.total : 0))) : cents(charge.balanceRemaining);
 }
 export function externalCash(movements: RecordData[]) {
-  return movements.filter(m => !m.transferId && !String(m.category).startsWith("transferencia") && !["apertura","ajuste_conciliacion"].includes(m.category));
+  return movements.filter(m => m.status !== "anulado" && !m.transferId && !String(m.category).startsWith("transferencia") && !["apertura","ajuste_conciliacion"].includes(m.category));
 }
 
 export function monthlyCashSummary(movements: RecordData[], today: string) {

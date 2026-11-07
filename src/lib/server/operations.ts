@@ -50,7 +50,8 @@ export async function snapshot(user: UserProfile) {
     } catch (queryErr: any) {
       console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
     }
-    result[entity] = documents.filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
+    result[entity] = documents.filter(d => !(entity === "expenses" || entity === "financialMovements") || d.data().status !== "anulado")
+      .filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
       if (commercialIssuer) return redact(quoteCompanyDetails(value));
       delete value.passwordHash; delete value.secret; delete value.totpSecret; delete value.pppoePassword;

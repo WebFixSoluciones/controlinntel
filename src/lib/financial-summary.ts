@@ -25,6 +25,7 @@ export function summarizeOperatingExpenses(expenses: RecordData[]) {
   const byCategory: Record<string, number> = Object.create(null);
   let total = 0;
   for (const expense of expenses) {
+    if (expense.status === "anulado") continue;
     const category = expense.category || "otro";
     const amount = cents(expense.amount);
     byCategory[category] = (byCategory[category] || 0) + amount;
