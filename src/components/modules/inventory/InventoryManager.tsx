@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -916,24 +917,12 @@ export function InventoryManager() {
                               >
                                 <SlidersHorizontal className="w-3.5 h-3.5" />
                               </button>
-                              <button
-                                onClick={() => {
+                              <ActionIconButton action="edit" onClick={() => {
                                   setProductToEdit(p);
                                   setProductModalDefaultType("producto");
                                   setIsProductModalOpen(true);
-                                }}
-                                title="Editar Producto"
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteProduct(p)}
-                                title="Eliminar Producto"
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                                }} title="Editar Producto" />
+                              <ActionIconButton action="delete" onClick={() => handleDeleteProduct(p)} title="Eliminar Producto" />
                             </div>
                           </td>
                         </tr>
@@ -1065,24 +1054,12 @@ export function InventoryManager() {
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {canEditService && <button
-                              onClick={() => {
+                            {canEditService && <ActionIconButton action="edit" onClick={() => {
                                 setProductToEdit(s);
                                 setProductModalDefaultType("servicio");
                                 setIsProductModalOpen(true);
-                              }}
-                              title="Editar Servicio"
-                              className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>}
-                            {canUser(currentUser, "inventarios", "canDeleteItems") && <button
-                              onClick={() => handleDeleteProduct(s)}
-                              title="Eliminar Servicio"
-                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>}
+                              }} title="Editar Servicio" />}
+                            {canUser(currentUser, "inventarios", "canDeleteItems") && <ActionIconButton action="delete" onClick={() => handleDeleteProduct(s)} title="Eliminar Servicio" />}
                           </div>
                         </td>
                       </tr>
@@ -1226,13 +1203,7 @@ export function InventoryManager() {
                               {count}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => handleDeleteCategory(c)}
-                                title="Eliminar Categoría"
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <ActionIconButton action="delete" onClick={() => handleDeleteCategory(c)} title="Eliminar Categoría" />
                             </td>
                           </tr>
                         );
@@ -1277,13 +1248,7 @@ export function InventoryManager() {
                               {count}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => handleDeleteBrand(b)}
-                                title="Eliminar Marca"
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <ActionIconButton action="delete" onClick={() => handleDeleteBrand(b)} title="Eliminar Marca" />
                             </td>
                           </tr>
                         );
@@ -1741,24 +1706,12 @@ export function InventoryManager() {
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              <button
-                                onClick={() => {
+                              <ActionIconButton action="edit" onClick={() => {
                                   setWarehouseToEdit(w);
                                   setIsWarehouseModalOpen(true);
-                                }}
-                                title="Editar Bodega"
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition-colors cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
+                                }} title="Editar Bodega" />
                               {!w.isDefault && (
-                                <button
-                                  onClick={() => handleDeleteWarehouse(w)}
-                                  title="Eliminar Bodega"
-                                  className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <ActionIconButton action="delete" onClick={() => handleDeleteWarehouse(w)} title="Eliminar Bodega" />
                               )}
                             </div>
                           </td>

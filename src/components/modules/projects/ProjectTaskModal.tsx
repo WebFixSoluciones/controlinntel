@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -965,14 +966,7 @@ export function ProjectTaskModal({
                           {item.text}
                         </span>
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveChecklistItem(item.id)}
-                        className="text-slate-300 hover:text-rose-600 p-1 rounded-sm transition-colors cursor-pointer"
-                        title="Eliminar ítem"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <ActionIconButton action="delete" type="button" onClick={() => handleRemoveChecklistItem(item.id)} title="Eliminar ítem" />
                     </div>
                   ))
                 )}
@@ -1107,28 +1101,14 @@ export function ProjectTaskModal({
                         </div>
 
                         <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => {
+                          <ActionIconButton action="edit" type="button" onClick={() => {
                               setTramiteToEditInTask(t);
                               setIsTramiteModalOpen(true);
-                            }}
-                            className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Editar trámite"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
+                            }} title="Editar trámite" />
+                          <ActionIconButton action="delete" type="button" onClick={() => {
                               setTramiteIds(tramiteIds.filter((id) => id !== t.id));
                               showSuccess("Desvinculado", `Trámite ${t.documentNumber} desvinculado de la tarea.`);
-                            }}
-                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Desvincular trámite de esta tarea"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            }} title="Desvincular trámite de esta tarea" />
                         </div>
                       </div>
                     ))}

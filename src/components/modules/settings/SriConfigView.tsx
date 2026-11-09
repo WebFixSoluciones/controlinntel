@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
@@ -1301,15 +1302,7 @@ export function SriConfigView() {
               <span>Enviar Prueba</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleRemoveEmailPassword}
-              disabled={emailBusy || !emailHasPassword}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 disabled:opacity-40 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold transition cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Borrar Clave</span>
-            </button>
+            <ActionIconButton action="delete" label="Borrar Clave" type="button" onClick={handleRemoveEmailPassword} disabled={emailBusy || !emailHasPassword} />
           </div>
         </div>
 

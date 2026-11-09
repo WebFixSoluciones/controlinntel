@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { getEcuadorDate } from "@/lib/date-utils";
 import React, { useState, useEffect } from "react";
@@ -404,13 +405,7 @@ export function RemissionGuideModal({
                       <td className="py-2 px-2 text-center font-bold text-slate-800">{it.quantity}</td>
                       <td className="py-2 px-2 text-center text-slate-600">{it.unit}</td>
                       <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ActionIconButton action="delete" label="Eliminar registro" type="button" onClick={() => handleRemoveItem(idx)} />
                       </td>
                     </tr>
                   ))}

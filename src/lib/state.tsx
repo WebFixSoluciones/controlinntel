@@ -284,7 +284,9 @@ interface AppContextType {
   ) => Promise<ClientAdvance>;
   applyClientAdvance: (advanceId: string, chargeId: string, amount: number) => Promise<void>;
   applyClientCredit: (chargeId: string, amount: number, date?: string, notes?: string) => Promise<void>;
-  deleteClientAdvance: (id: string) => Promise<void>;
+  deleteClientAdvance: (id: string, expectedVersion?: number) => Promise<void>;
+  updateClientAdvance: (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number) => Promise<void>;
+  refundClientAdvance: (id: string) => Promise<void>;
 
   // Inventory Module
   inventoryProducts: InventoryProduct[];
@@ -1611,8 +1613,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("applyClientCredit", { chargeId, amount, date, notes });
   };
 
-  const deleteClientAdvance = async (id: string): Promise<void> => {
+  const refundClientAdvance = async (id: string): Promise<void> => {
     await runCommercial("cancelAdvance", { id });
+  };
+
+  const deleteClientAdvance = async (id: string, expectedVersion?: number): Promise<void> => {
+    await runCommercial("voidAdvance", { id, expectedVersion });
+  };
+  const updateClientAdvance = async (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number): Promise<void> => {
+    await runCommercial("editAdvance", { ...changes, id, expectedVersion });
   };
 
   // ==========================================
@@ -2068,6 +2077,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           applyClientAdvance,
           applyClientCredit,
           deleteClientAdvance,
+          updateClientAdvance,
+          refundClientAdvance,
           // Inventory Module
           inventoryProducts,
           inventoryWarehouses,

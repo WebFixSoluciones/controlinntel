@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -748,14 +749,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           </span>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveContact(contact.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                        title="Eliminar este contacto"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <ActionIconButton action="delete" type="button" onClick={() => handleRemoveContact(contact.id)} title="Eliminar este contacto" />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

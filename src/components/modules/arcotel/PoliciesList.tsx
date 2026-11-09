@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React from "react";
 import { useApp } from "@/lib/state";
@@ -100,9 +101,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     </span>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={() =>
+                    <ActionIconButton action="delete" type="button" onClick={() =>
                         showConfirm(
                           "¿Eliminar Póliza?",
                           `¿Deseas eliminar la póliza ${p.policyNumber}? Esta acción no se puede deshacer.`,
@@ -116,12 +115,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                           },
                           "Eliminar"
                         )
-                      }
-                      className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                      title="Eliminar póliza"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      } title="Eliminar póliza" />
                   </td>
                 </tr>
               );

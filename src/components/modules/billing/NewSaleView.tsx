@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -2644,13 +2645,7 @@ export function NewSaleView({
 
                             {/* Eliminar */}
                             <td className="py-2 px-2 text-center align-top pt-2.5">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCartItem(idx)}
-                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <ActionIconButton action="delete" label="Eliminar registro" type="button" onClick={() => handleRemoveCartItem(idx)} />
                             </td>
                           </tr>
                         );

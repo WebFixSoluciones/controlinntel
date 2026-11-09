@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
@@ -381,13 +382,7 @@ export function ProjectWorkspace({
                 <span>Ver Diagrama Gantt</span>
               </button>
 
-              <button
-                onClick={() => onEditProject(project)}
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer shadow-2xs"
-              >
-                <Edit2 className="w-4 h-4 text-slate-500" />
-                <span>Editar Proyecto</span>
-              </button>
+              <ActionIconButton action="edit" label="Editar Proyecto" onClick={() => onEditProject(project)} />
 
               <button
                 onClick={() => handleOpenCreateTask()}
@@ -589,13 +584,7 @@ export function ProjectWorkspace({
                         <Plus className="w-4 h-4" />
                       </button>
                       {project.columns.length > 1 && (
-                        <button
-                          onClick={() => handleDeleteColumn(column.id, column.label)}
-                          title="Eliminar columna"
-                          className="p-1 text-[#64748b] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ActionIconButton action="delete" onClick={() => handleDeleteColumn(column.id, column.label)} title="Eliminar columna" />
                       )}
                     </div>
                   </div>
@@ -647,26 +636,14 @@ export function ProjectWorkspace({
                                 </span>
 
                                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
-                                  <button
-                                    onClick={(e) => {
+                                  <ActionIconButton action="edit" onClick={(e) => {
                                       e.stopPropagation();
                                       handleOpenEditTask(task);
-                                    }}
-                                    className="p-1 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md"
-                                    title="Editar tarea"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
+                                    }} title="Editar tarea" />
+                                  <ActionIconButton action="delete" onClick={(e) => {
                                       e.stopPropagation();
                                       handleDeleteTask(task.id, task.title);
-                                    }}
-                                    className="p-1 text-[#64748b] hover:text-rose-600 hover:bg-rose-50 rounded-md"
-                                    title="Eliminar tarea"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                    }} title="Eliminar tarea" />
                                 </div>
                               </div>
                             </div>
@@ -910,20 +887,8 @@ export function ProjectWorkspace({
 
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleOpenEditTask(task)}
-                              title="Editar tarea"
-                              className="p-1.5 text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task.id, task.title)}
-                              title="Eliminar tarea"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="edit" onClick={() => handleOpenEditTask(task)} title="Editar tarea" />
+                            <ActionIconButton action="delete" onClick={() => handleDeleteTask(task.id, task.title)} title="Eliminar tarea" />
                           </div>
                         </td>
                       </tr>

@@ -6,6 +6,9 @@ import { canViewServicePrices } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { Client } from "@/types";
 import { ClientTabHeader } from "./ClientTabHeader";
+import { ClientCommercialReport } from "./ClientCommercialReport";
+import { clientCommercialRows } from "@/lib/company-reporting";
+import { canReadCollection } from "@/lib/persistence-contracts";
 import { printHtmlElement } from "@/lib/print-service";
 import {
   Printer,
@@ -25,7 +28,8 @@ interface ClientDossierTabProps {
 }
 
 export function ClientDossierTab({ client }: ClientDossierTabProps) {
-  const { currentUser, clientServices, clientProjects, clientQuotes, clientVaultItems, clientContracts, monthlyCharges, tickets } = useApp();
+  const source = useApp();
+  const { currentUser, clientServices, clientProjects, clientQuotes, clientVaultItems, clientContracts, monthlyCharges, tickets } = source;
 
   const services = clientServices.filter((s) => s.clientId === client.id);
   const projects = clientProjects.filter((p) => p.clientId === client.id);
@@ -36,7 +40,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
   const clientTickets = tickets.filter((t) => t.clientId === client.id);
 
   const showPrices = canViewServicePrices(currentUser);
-  const totalMonthlySpend = services.reduce((sum, s) => sum + (s.customPrice ?? s.basePrice ?? 0), 0);
+  const totalMonthlySpend = clientCommercialRows(source).find(row => row.id === client.id)?.monthlyFee || 0;
   const dossierPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -53,6 +57,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
 
   return (
     <div className="space-y-4">
+      {currentUser && canReadCollection(currentUser, "monthlyCharges") && <ClientCommercialReport clientId={client.id} />}
       {/* Header Print Button */}
       <div className="print:hidden">
         <ClientTabHeader

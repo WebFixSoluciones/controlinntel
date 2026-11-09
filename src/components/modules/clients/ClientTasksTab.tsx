@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useApp } from "@/lib/state";
@@ -671,23 +672,11 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                       {/* Top Action Buttons */}
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => {
+                        <ActionIconButton action="edit" onClick={() => {
                             setTaskToEdit(task);
                             setIsModalOpen(true);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-[#004ac6] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          title="Editar Tarea Completa"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTask(task)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar Tarea"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          }} title="Editar Tarea Completa" />
+                        <ActionIconButton action="delete" onClick={() => handleDeleteTask(task)} title="Eliminar Tarea" />
                       </div>
                     </div>
 
@@ -1032,23 +1021,11 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                               </span>
 
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={() => {
+                                <ActionIconButton action="edit" onClick={() => {
                                     setTaskToEdit(task);
                                     setIsModalOpen(true);
-                                  }}
-                                  className="text-[#64748b] hover:text-[#004ac6] p-1 rounded hover:bg-[#eff4ff] cursor-pointer"
-                                  title="Editar Tarea"
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTask(task)}
-                                  className="text-[#64748b] hover:text-rose-600 p-1 rounded hover:bg-rose-50 cursor-pointer"
-                                  title="Eliminar Tarea"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
+                                  }} title="Editar Tarea" />
+                                <ActionIconButton action="delete" onClick={() => handleDeleteTask(task)} title="Eliminar Tarea" />
                               </div>
                             </div>
                           </div>

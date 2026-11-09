@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
@@ -386,25 +387,10 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
               currentUser.permissions?.includes("all") ||
               currentUser.permissions?.includes("delete_clients") ||
               currentUser.modulePermissions?.clientes?.actions?.canDeleteClient) && (
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-                title="Eliminar Cliente Definitivamente"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Eliminar Cliente</span>
-              </button>
+              <ActionIconButton action="delete" type="button" onClick={() => setShowDeleteModal(true)} title="Eliminar Cliente Definitivamente" />
             )}
             {onEdit && (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>Editar</span>
-              </button>
+              <ActionIconButton action="edit" label="Editar" type="button" onClick={onEdit} />
             )}
           </div>
         </div>

@@ -497,6 +497,10 @@ export interface ChargePayment {
 
 /** Pago anticipado de un cliente (1, 2 o más meses por adelantado) */
 export interface ClientAdvance {
+  version?: number;
+  deletedAt?: string;
+  sourcePaymentId?: string;
+  sourceChargeId?: string;
   id: string;
   clientId: string;
   clientName: string;

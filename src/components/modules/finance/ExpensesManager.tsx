@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { useRef, useState, type FormEvent } from "react";
 import { Plus, Settings2, Pencil, Trash2, X } from "lucide-react";
@@ -159,8 +160,8 @@ export function ExpensesManager() {
                   <td className="p-3">{accountNames.get(expense.bankAccountId || "") || "—"}</td>
                   <td className="p-3 text-right font-mono font-semibold">${expense.amount.toFixed(2)}</td>
                   {canRegister && <td className="p-3"><div className="flex justify-end gap-2">
-                    <button type="button" disabled={busy} aria-label={`Editar gasto de ${expense.supplierName}`} onClick={() => editExpense(expense)} className={`inline-flex items-center gap-1 ${secondary}`}><Pencil className="size-3.5" />Editar</button>
-                    <button type="button" disabled={busy} aria-label={`Eliminar gasto de ${expense.supplierName}`} onClick={() => removeExpense(expense)} className={`inline-flex items-center gap-1 text-rose-700 ${secondary}`}><Trash2 className="size-3.5" />Eliminar</button>
+                    <ActionIconButton action="edit" type="button" disabled={busy} aria-label={`Editar gasto de ${expense.supplierName}`} onClick={() => editExpense(expense)} />
+                    <ActionIconButton action="delete" type="button" disabled={busy} aria-label={`Eliminar gasto de ${expense.supplierName}`} onClick={() => removeExpense(expense)} />
                   </div></td>}
                 </tr>
               ))}
@@ -224,7 +225,7 @@ export function ExpensesManager() {
               {categories.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 p-2.5">
                 <span className="font-semibold">{item.name}{!item.active && <span className="ml-2 font-normal text-slate-500">Inactiva</span>}</span>
                 <div className="flex gap-2">
-                  <button type="button" disabled={busy} className={secondary} onClick={() => { setError(""); setCategoryDraft(item); }}>Renombrar</button>
+                  <ActionIconButton action="edit" label="Renombrar" type="button" disabled={busy} onClick={() => { setError(""); setCategoryDraft(item); }} />
                   <button type="button" disabled={busy} className={secondary} onClick={() => { void saveCategory({ ...item, active: !item.active }); }}>{item.active ? "Desactivar" : "Activar"}</button>
                 </div>
               </li>)}

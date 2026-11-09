@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -759,20 +760,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                               </button>
 
                               {row.services.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
+                                <ActionIconButton action="delete" type="button" onClick={() =>
                                     handlePurgeAllClientServices(
                                       row.client.id,
                                       row.client.businessName,
                                       row.services.length
                                     )
-                                  }
-                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                  title={`Eliminar los ${row.services.length} servicios de ${row.client.businessName}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                  } title={`Eliminar los ${row.services.length} servicios de ${row.client.businessName}`} />
                               )}
                             </div>
                           </td>
@@ -889,20 +883,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                             ${price.toFixed(2)}
                                           </td>
                                           <td className="py-2.5 px-3 text-center">
-                                            <button
-                                              type="button"
-                                              onClick={() =>
+                                            <ActionIconButton action="delete" type="button" onClick={() =>
                                                 handleDeleteService(
                                                   svc.id,
                                                   svc.planName,
                                                   row.client.businessName
                                                 )
-                                              }
-                                              className="p-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                              title="Eliminar este servicio recurrente"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                                              } title="Eliminar este servicio recurrente" />
                                           </td>
                                         </tr>
                                       );
@@ -1107,16 +1094,9 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                               <span>Renovar</span>
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() =>
+                            <ActionIconButton action="delete" type="button" onClick={() =>
                                 handleDeleteService(svc.id, svc.planName, client.businessName)
-                              }
-                              className="p-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                              title="Eliminar este servicio recurrente"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              } title="Eliminar este servicio recurrente" />
                           </div>
                         </td>
                       </tr>

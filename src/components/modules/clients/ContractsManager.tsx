@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -419,14 +420,7 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                               <Download className="w-3.5 h-3.5 text-[#004ac6]" />
                               <span>Word</span>
                             </button>
-                            <button
-                              onClick={() => handleOpenForm(c)}
-                              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
-                              title="Editar contrato"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              <span>Editar</span>
-                            </button>
+                            <ActionIconButton action="edit" onClick={() => handleOpenForm(c)} title="Editar contrato" />
                           </div>
                         </td>
                       </tr>

@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import "leaflet/dist/leaflet.css";
@@ -306,14 +307,7 @@ export default function ClientNodesOverviewMap({
                 </a>
               )}
               {onEditNode && (
-                <button
-                  type="button"
-                  onClick={() => onEditNode(selectedNode)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#004ac6] hover:bg-[#003da6] text-white text-[11px] font-bold cursor-pointer transition-colors shadow-2xs"
-                >
-                  <Edit2 className="w-3 h-3" />
-                  <span>Editar Sede</span>
-                </button>
+                <ActionIconButton action="edit" label="Editar Sede" type="button" onClick={() => onEditNode(selectedNode)} />
               )}
             </div>
           </div>

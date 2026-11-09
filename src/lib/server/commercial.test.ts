@@ -40,6 +40,74 @@ const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:
 const expensePayload = (extra = {}) => ({ supplierName: "BENEFICIARIO QA", bankAccountId: "bank", category: "mantenimiento",
   amount: 100, expenseDate: "2026-11-07", description: "Gasto manual QA", paymentMethod: "transferencia", ...extra });
 
+test("Corregir y eliminar un anticipo ajusta su ingreso original sin registrar una devolución ficticia", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
+  const db = new Database(initial());
+  const advance = await run(db, "advance", { clientId: "a", amount: 100, date: "2026-11-01", bankAccountId: "bank", method: "Transferencia" });
+  const edit = { id: advance.id, clientId: "a", amount: 80, date: "2026-11-02", bankAccountId: "bank", method: "Transferencia", reference: "CORREGIDO", expectedVersion: 1 };
+  await run(db, "editAdvance", edit);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1080);
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 80);
+  await assert.rejects(run(db, "editAdvance", edit), /cambió/);
+  await run(db, "editAdvance", { ...edit, bankAccountId: "bank2", expectedVersion: 2 });
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1000);
+  assert.equal(db.row("bankAccounts", "bank2").currentBalance, 80);
+  assert.equal(db.list("financialMovements").length, 1);
+  const operationId = randomUUID();
+  await run(db, "voidAdvance", { id: advance.id, expectedVersion: 3 }, operationId);
+  await run(db, "voidAdvance", { id: advance.id, expectedVersion: 3 }, operationId);
+  assert.equal(db.row("bankAccounts", "bank2").currentBalance, 0);
+  assert.ok(db.row("clientAdvances", advance.id).deletedAt);
+  assert.equal(db.row("financialMovements", advance.movementId).status, "anulado");
+  assert.equal(summarizeCash(db.list("financialMovements")).totalIngresos, 0);
+  assert.equal(summarizeCash(db.list("financialMovements")).totalEgresos, 0);
+});
+
+test("La corrección conserva aplicaciones, bloquea reducir lo consumido y permite borrar tras revertir abonos", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
+  const db = new Database(initial());
+  const advance = await run(db, "advance", { clientId: "a", amount: 100, date: "2026-11-01", bankAccountId: "bank" });
+  await run(db, "issueSale", sale());
+  const charge = db.list("monthlyCharges")[0];
+  const payment = await run(db, "applyAdvance", { advanceId: advance.id, chargeId: charge.id, amount: 69, date: "2026-11-07" });
+  const edit = { id: advance.id, clientId: "a", amount: 110, date: "2026-11-01", bankAccountId: "bank" };
+  await assert.rejects(run(db, "voidAdvance", { id: advance.id }), /Revierte primero/);
+  await assert.rejects(run(db, "editAdvance", { ...edit, amount: 68 }), /ya aplicado/);
+  await assert.rejects(run(db, "editAdvance", { ...edit, clientId: "b" }), /cambiar el cliente/);
+  await assert.rejects(run(db, "editAdvance", { ...edit, date: "2026-11-08" }), /posterior a un abono/);
+  await run(db, "editAdvance", edit);
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 41);
+  assert.equal(db.row("monthlyCharges", charge.id).paidAmount, 69);
+  await run(db, "reverseApplication", { chargeId: charge.id, paymentId: payment.id });
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 110);
+  await run(db, "voidAdvance", { id: advance.id });
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1000);
+});
+
+test("Las correcciones de anticipos no permiten saldo negativo ni dejan efectos a medias al fallar", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
+  const db = new Database(initial());
+  const advance = await run(db, "advance", { clientId: "a", amount: 100, date: "2026-11-01", bankAccountId: "bank" });
+  const before = structuredClone([...db.rows]); db.failCommit = true;
+  await assert.rejects(run(db, "editAdvance", { id: advance.id, clientId: "a", amount: 90, date: "2026-11-01", bankAccountId: "bank" }), /Injected/);
+  await assert.rejects(run(db, "voidAdvance", { id: advance.id }), /Injected/);
+  assert.deepEqual([...db.rows], before); db.failCommit = false;
+  db.row("bankAccounts", "bank").currentBalance = 20;
+  await assert.rejects(run(db, "voidAdvance", { id: advance.id }), /sin saldo suficiente/);
+  assert.equal(db.row("clientAdvances", advance.id).remaining, 100);
+  await assert.rejects(run(db, "advance", { clientId: "a", amount: 50, date: "2026-11-10", bankAccountId: "bank" }), /futura/);
+});
+
+test("El costo de venta se captura en servidor y una edición no acepta costos falsificados", async () => {
+  const db = new Database(initial()); db.row("inventoryProducts", "srv").baseCost = 25;
+  const invoice = await run(db, "issueSale", sale("a", { items: [{ id: "line", productId: "srv", name: "Servicio QA", quantity: 2, unitPrice: 100, ivaRate: 15, costTotalSnapshot: 999 }] }));
+  assert.equal(invoice.items[0].costTotalSnapshot, 50);
+  db.row("inventoryProducts", "srv").baseCost = 40;
+  await run(db, "editSale", { id: invoice.id, updates: { items: [{ ...invoice.items[0], unitPrice: 110, costUnitSnapshot: 500, costTotalSnapshot: 1000 }] } });
+  assert.equal(db.row("billingInvoices", invoice.id).items[0].costUnitSnapshot, 25);
+  assert.equal(db.row("billingInvoices", invoice.id).items[0].costTotalSnapshot, 50);
+});
+
 test("El cobro aplica varios anticipos en una operación sin repetir el ingreso y la anulación restaura su saldo", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
   const db = new Database(initial());

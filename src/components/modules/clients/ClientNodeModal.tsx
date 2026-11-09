@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useRef, useId } from "react";
 import dynamic from "next/dynamic";
@@ -811,22 +812,8 @@ export function ClientNodeModal({
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleStartEditProvider(p)}
-                            className="text-slate-400 hover:text-[#004ac6] p-1.5 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
-                            title="Editar proveedor"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveProvider(p.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Eliminar proveedor"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="edit" type="button" onClick={() => handleStartEditProvider(p)} title="Editar proveedor" />
+                          <ActionIconButton action="delete" type="button" onClick={() => handleRemoveProvider(p.id)} title="Eliminar proveedor" />
                         </div>
                       </div>
                     );
@@ -940,11 +927,7 @@ export function ClientNodeModal({
                   services.map(service => (
                     <div key={service.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1">
                       <NodeSystemCredentials service={service} nodeId={nodeToEdit?.id} />
-                      <button type="button" onClick={() => handleRemoveService(service.id)}
-                        className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                        title="Eliminar sistema" aria-label={`Eliminar sistema ${service.systemName}`}>
-                        <Trash2 className="size-3.5" />
-                      </button>
+                      <ActionIconButton action="delete" type="button" onClick={() => handleRemoveService(service.id)} title="Eliminar sistema" aria-label={`Eliminar sistema ${service.systemName}`} />
                     </div>
                   ))
                 )}

@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -283,13 +284,7 @@ export function CreditNoteModal({
                         ${it.total.toFixed(2)}
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(it.id)}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ActionIconButton action="delete" label="Eliminar registro" type="button" onClick={() => handleRemoveItem(it.id)} />
                       </td>
                     </tr>
                   ))}

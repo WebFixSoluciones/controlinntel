@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -390,16 +391,10 @@ export function SalesManager() {
                             </button>
 
                             {/* Editar Nota de Venta */}
-                            {!sale.sriInvoiceId && (<button
-                              onClick={() => {
+                            {!sale.sriInvoiceId && (<ActionIconButton action="edit" onClick={() => {
                                 setSaleToEdit(sale);
                                 setIsEditSaleOpen(true);
-                              }}
-                              className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
-                              title="Editar Nota de Venta"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>)}
+                              }} title="Editar Nota de Venta" />)}
 
                             {/* Pasar a Factura Electrónica SRI */}
                             {!linkedSriInv && sale.status !== "borrador" && (
@@ -417,13 +412,7 @@ export function SalesManager() {
                             )}
 
                             {/* Eliminar Nota de Venta */}
-                            {!sale.sriInvoiceId && (<button
-                              onClick={() => handleDeleteSale(sale)}
-                              className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                              title="Eliminar Nota de Venta"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>)}
+                            {!sale.sriInvoiceId && (<ActionIconButton action="delete" onClick={() => handleDeleteSale(sale)} title="Eliminar Nota de Venta" />)}
                           </div>
                         </td>
                       </tr>
@@ -555,19 +544,12 @@ export function SalesManager() {
                             <Printer className="w-4 h-4" />
                           </button>
 
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="edit" onClick={() => {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
-                            }}
-                            className="p-1.5 text-[#737686] hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
-                            title="Editar Cotización"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                            }} title="Editar Cotización" />
 
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="delete" onClick={() => {
                               showConfirm(
                                 "¿Eliminar Cotización?",
                                 `¿Confirmas eliminar la cotización ${q.quoteNumber} (${q.clientName})?`,
@@ -577,12 +559,7 @@ export function SalesManager() {
                                 },
                                 "Eliminar"
                               );
-                            }}
-                            className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="Eliminar Cotización"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            }} title="Eliminar Cotización" />
                         </div>
                       </td>
                     </tr>

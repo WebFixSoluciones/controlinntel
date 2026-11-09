@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -107,19 +108,8 @@ export function RecordManager({
                   </td>
                 ))}
                 <td className="py-3 px-4 text-right space-x-2">
-                  <button
-                    onClick={() => setSelected(row)}
-                    className="inline-flex items-center gap-1 text-[#004ac6] hover:text-[#2563eb] font-bold cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span>Editar</span>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(String(row.id))}
-                    className="inline-flex items-center gap-1 text-[#737686] hover:text-red-600 font-bold cursor-pointer transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <ActionIconButton action="edit" label="Editar" onClick={() => setSelected(row)} />
+                  <ActionIconButton action="delete" label="Eliminar registro" onClick={() => handleDelete(String(row.id))} />
                 </td>
               </tr>
             ))}

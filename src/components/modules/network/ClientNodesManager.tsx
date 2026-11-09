@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -751,20 +752,8 @@ export function ClientNodesManager() {
                               >
                                 Ficha
                               </button>
-                              <button
-                                onClick={() => handleOpenEditModal(n)}
-                                className="px-2.5 py-1 text-[11px] font-bold text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                <span>Editar</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteNode(n)}
-                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                title="Eliminar Nodo"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <ActionIconButton action="edit" label="Editar" onClick={() => handleOpenEditModal(n)} />
+                              <ActionIconButton action="delete" onClick={() => handleDeleteNode(n)} title="Eliminar Nodo" />
                             </div>
                           </td>
                         </tr>
@@ -1366,14 +1355,7 @@ export function ClientNodesManager() {
                             Proveedor {pIdx + 1}
                           </span>
                           {providers.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveProvider(prov.id)}
-                              className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors"
-                              title="Eliminar este carrier"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" type="button" onClick={() => handleRemoveProvider(prov.id)} title="Eliminar este carrier" />
                           )}
                         </div>
 
@@ -1503,14 +1485,7 @@ export function ClientNodesManager() {
                           <span className="font-bold text-[11px] text-slate-800">
                             Equipo / Sistema {sIdx + 1}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveService(srv.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors"
-                            title="Eliminar este sistema"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="delete" type="button" onClick={() => handleRemoveService(srv.id)} title="Eliminar este sistema" />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">

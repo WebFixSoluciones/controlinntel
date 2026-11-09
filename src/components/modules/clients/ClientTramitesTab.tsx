@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -363,23 +364,11 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
                           >
                             <History className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="edit" onClick={() => {
                               setTramiteToEdit(t);
                               setIsModalOpen(true);
-                            }}
-                            title="Editar Trámite"
-                            className="p-1.5 text-[#434655] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(t.id, t.documentNumber)}
-                            title="Eliminar Trámite"
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            }} title="Editar Trámite" />
+                          <ActionIconButton action="delete" onClick={() => handleDelete(t.id, t.documentNumber)} title="Eliminar Trámite" />
                         </div>
                       </td>
                     </tr>

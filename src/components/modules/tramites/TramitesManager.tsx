@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -360,23 +361,11 @@ export function TramitesManager() {
                           >
                             <History className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="edit" onClick={() => {
                               setTramiteToEdit(t);
                               setIsModalOpen(true);
-                            }}
-                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
-                            title="Editar trámite"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(t.id, t.documentNumber)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Eliminar trámite"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            }} title="Editar trámite" />
+                          <ActionIconButton action="delete" onClick={() => handleDelete(t.id, t.documentNumber)} title="Eliminar trámite" />
                         </div>
                       </td>
                     </tr>

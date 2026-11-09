@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -796,16 +797,10 @@ export function BillingManager() {
                               </>
                             )}
                             {isNotaVenta && !inv.sriInvoiceId && inv.status !== "anulada" && (
-                              <button
-                                onClick={() => {
+                              <ActionIconButton action="edit" onClick={() => {
                                   setInvoiceToEdit(inv);
                                   setIsEditSaleModalOpen(true);
-                                }}
-                                className="p-1.5 rounded-lg text-[#737686] hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
-                                title="Editar Comprobante"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                                }} title="Editar Comprobante" />
                             )}
                           </div>
                         </td>
@@ -902,19 +897,12 @@ export function BillingManager() {
                             <Printer className="w-3.5 h-3.5" />
                           </button>
 
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="edit" onClick={() => {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
-                            }}
-                            className="p-1 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 cursor-pointer"
-                            title="Editar Cotización"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                          </button>
+                            }} title="Editar Cotización" />
 
-                          <button
-                            onClick={() => {
+                          <ActionIconButton action="delete" onClick={() => {
                               showConfirm(
                                 "¿Eliminar Cotización?",
                                 `¿Confirmas eliminar la cotización ${q.quoteNumber} (${q.clientName})?`,
@@ -924,12 +912,7 @@ export function BillingManager() {
                                 },
                                 "Eliminar"
                               );
-                            }}
-                            className="p-1 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                            title="Eliminar Cotización"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            }} title="Eliminar Cotización" />
                         </div>
                       </td>
                     </tr>

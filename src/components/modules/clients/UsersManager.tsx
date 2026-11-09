@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -267,14 +268,7 @@ export function UsersManager() {
 
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleOpenEdit(u)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dbeafe] text-[#004ac6] rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                            title="Editar usuario y matriz de permisos"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Permisos</span>
-                          </button>
+                          <ActionIconButton action="edit" onClick={() => handleOpenEdit(u)} title="Editar usuario y matriz de permisos" />
 
                           {u.uid !== currentUser?.uid && u.role !== "superadmin" && (
                             <>
@@ -290,13 +284,7 @@ export function UsersManager() {
                                 {isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                               </button>
 
-                              <button
-                                onClick={() => handleDeleteUser(u)}
-                                className="p-1.5 rounded-lg text-[#dc2626] hover:bg-[#fef2f2] transition-colors cursor-pointer"
-                                title="Eliminar colaborador"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <ActionIconButton action="delete" onClick={() => handleDeleteUser(u)} title="Eliminar colaborador" />
                             </>
                           )}
                         </div>

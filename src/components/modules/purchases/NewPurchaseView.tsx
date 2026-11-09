@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import { getEcuadorDate } from "@/lib/date-utils";
@@ -744,14 +745,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
                     </td>
 
                     <td className="py-2 px-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                        title="Eliminar Ítem"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <ActionIconButton action="delete" type="button" onClick={() => handleRemoveItem(idx)} title="Eliminar Ítem" />
                     </td>
                   </tr>
                 ))}

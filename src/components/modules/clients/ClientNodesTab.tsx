@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
@@ -337,21 +338,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       {/* 6. Acciones */}
                       <td className="py-3 px-2 text-right">
                         <div className="inline-flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleOpenEdit(node)}
-                            className="inline-flex items-center gap-1 p-1.5 text-[11px] font-bold text-[#004ac6] hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
-                            title="Editar Sede"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span className="hidden 2xl:inline">Editar</span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(node)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Eliminar Sede"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="edit" onClick={() => handleOpenEdit(node)} title="Editar Sede" />
+                          <ActionIconButton action="delete" onClick={() => handleDelete(node)} title="Eliminar Sede" />
                         </div>
                       </td>
                     </tr>

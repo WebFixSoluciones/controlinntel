@@ -1,7 +1,9 @@
 "use client";
 import { getEcuadorDate } from "@/lib/date-utils";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { canUser } from "@/lib/permissions";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { activeCommercialDocuments } from "@/lib/sales-policy";
@@ -74,6 +76,7 @@ export function FinanceDashboard({
     clients,
     bankAccounts,
     clientAdvances,
+    currentUser,
     addMonthlyCharge,
     updateMonthlyCharge,
     deleteMonthlyCharge,
@@ -81,6 +84,8 @@ export function FinanceDashboard({
     addClientAdvance,
     applyClientAdvance,
     deleteClientAdvance,
+    updateClientAdvance,
+    refundClientAdvance,
     reverseChargePayment,
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
@@ -124,6 +129,9 @@ export function FinanceDashboard({
 
   // Modal Registrar Pago Anticipado
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
+  const [editingAdvance, setEditingAdvance] = useState<ClientAdvance | null>(null);
+  const [savingAdvance, setSavingAdvance] = useState(false);
+  const advancePending = useRef(false);
   const [advClientId, setAdvClientId] = useState("");
   const [advAmount, setAdvAmount] = useState<number>(0);
   const [advMonths, setAdvMonths] = useState<number>(1);
@@ -213,7 +221,7 @@ export function FinanceDashboard({
 
   const filteredAdvances = useMemo(() => {
     return (clientAdvances || []).filter((adv) => {
-      if (!adv) return false;
+      if (!adv || adv.deletedAt) return false;
       const q = (advSearchQuery || "").toLowerCase().trim();
       if (!q) return true;
       const name = (adv.clientName || "").toLowerCase();
@@ -275,6 +283,7 @@ export function FinanceDashboard({
 
   const handleCreateAdvance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (advancePending.current) return;
     if (!advClientId) {
       showError("Cliente Requerido", "Selecciona el cliente que realiza el pago anticipado.");
       return;
@@ -288,7 +297,9 @@ export function FinanceDashboard({
     if (!clientObj) return;
 
     try {
-      await addClientAdvance({
+      advancePending.current = true;
+      setSavingAdvance(true);
+      const changes = {
         clientId: clientObj.id,
         clientName: clientObj.businessName || "Cliente",
         clientRuc: clientObj.identificationNumber || "",
@@ -300,11 +311,13 @@ export function FinanceDashboard({
         bankAccountId: advBankId || undefined,
         bankAccountName: advBankId ? bankAccounts.find((b) => b.id === advBankId)?.bankName : undefined,
         notes: advNotes.trim() || undefined,
-      });
+      };
+      if (editingAdvance) await updateClientAdvance(editingAdvance.id, changes, editingAdvance.version || 0);
+      else await addClientAdvance(changes);
 
       showSuccess(
-        "Pago Anticipado Registrado",
-        `Se registraron $${advAmount.toFixed(2)} (${advMonths} meses) a favor de ${clientObj.businessName}.`
+        editingAdvance ? "Anticipo corregido" : "Pago Anticipado Registrado",
+        editingAdvance ? "El saldo disponible y la cuenta bancaria se actualizaron conservando los abonos realizados." : `Se registraron $${advAmount.toFixed(2)} (${advMonths} meses) a favor de ${clientObj.businessName}.`
       );
       setIsAdvanceModalOpen(false);
       setAdvClientId("");
@@ -313,6 +326,9 @@ export function FinanceDashboard({
       setAdvNotes("");
     } catch (error) {
       showError("Error", error instanceof Error ? error.message : "No se pudo registrar el anticipo.");
+    } finally {
+      advancePending.current = false;
+      setSavingAdvance(false);
     }
   };
 
@@ -645,29 +661,13 @@ export function FinanceDashboard({
                               </button>
                             )}
 
-                            <button
-                              type="button"
-                              title="Editar Cobro"
-                              disabled={isCancelled}
-                              onClick={() => {
+                            <ActionIconButton action="edit" type="button" title="Editar Cobro" disabled={isCancelled} onClick={() => {
                                 setEditingCharge(charge);
                                 setEditDueDate(charge.maxPaymentDate || "");
                                 setEditNotes(charge.notes || "");
-                              }}
-                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
+                              }} />
 
-                            <button
-                              type="button"
-                              title="Revisar anulación comercial"
-                              disabled={isCancelled}
-                              onClick={() => setDeletingCharge(charge)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-md transition cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" type="button" title="Revisar anulación comercial" disabled={isCancelled} onClick={() => setDeletingCharge(charge)} />
                           </div>
                         </td>
                       </tr>
@@ -699,8 +699,10 @@ export function FinanceDashboard({
               type="button"
               onClick={() => {
                 setAdvDate(getEcuadorDate());
+                setAdvClientId(""); setAdvAmount(0); setAdvMonths(1); setAdvReference(""); setAdvNotes("");
                 setAdvBankId(bankAccounts.find((b) => b.status === "activa")?.id || bankAccounts[0]?.id || "");
                 setIsAdvanceModalOpen(true);
+                setEditingAdvance(null);
               }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
             >
@@ -767,6 +769,7 @@ export function FinanceDashboard({
                           {adv.reference && (
                             <span className="text-[10px] text-slate-400 font-mono block truncate">Ref: {adv.reference}</span>
                           )}
+                          {!adv.movementId && <span className="mt-1 block text-[10px] text-slate-500">{adv.sourcePaymentId ? "Saldo de un cobro revertido. La corrección se gestiona en el cobro de origen." : "Movimiento de origen no vinculado. Requiere conciliación."}</span>}
                         </td>
                         <td className="py-3 px-3 text-center">
                           <span
@@ -783,6 +786,14 @@ export function FinanceDashboard({
                         </td>
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {!isCancelled && adv.movementId && canUser(currentUser, "finanzas", "canRegisterReceipts") && <ActionIconButton action="edit" label={`Editar anticipo de ${adv.clientName}`} onClick={() => {
+                              setEditingAdvance(adv); setAdvClientId(adv.clientId); setAdvAmount(adv.amount); setAdvMonths(adv.monthsCovered || 1); setAdvDate(adv.date);
+                              setAdvMethod(adv.method); setAdvBankId(adv.bankAccountId || ""); setAdvReference(adv.reference || ""); setAdvNotes(adv.notes || ""); setIsAdvanceModalOpen(true);
+                            }} />}
+                            {!isCancelled && adv.movementId && canUser(currentUser, "finanzas", "canCancelPayments") && <ActionIconButton action="delete" label={`Eliminar anticipo de ${adv.clientName}`} onClick={() => showConfirm("Eliminar anticipo ingresado por error", "Se corregirá el registro y su efecto bancario; no representa una devolución de dinero. Si ya se utilizó, primero debes revertir sus abonos desde el historial de Cobros.", async () => {
+                              try { await deleteClientAdvance(adv.id, adv.version || 0); showSuccess("Anticipo eliminado", "El registro se retiró y su efecto bancario fue corregido."); }
+                              catch (error) { showError("No se pudo eliminar", error instanceof Error ? error.message : "Revisa el anticipo."); }
+                            }, "Eliminar anticipo")} />}
                             {isAvailable && (
                               <button
                                 type="button"
@@ -798,14 +809,14 @@ export function FinanceDashboard({
                               </button>
                             )}
 
-                            {!isCancelled && adv.remaining > 0 && (
+                            {!isCancelled && adv.remaining > 0 && canUser(currentUser, "finanzas", "canCancelPayments") && (
                               <button
                                 type="button"
                                 title="Registrar devolución de dinero"
                                 aria-label="Registrar devolución de dinero"
                                 onClick={() => showConfirm("Registrar devolución de dinero", `¿Confirmas que ya devolviste $${adv.remaining.toFixed(2)} a ${adv.clientName} desde su cuenta de origen? Esta acción registra la salida de dinero en el sistema.`, async () => {
                                     try {
-                                      await deleteClientAdvance(adv.id);
+                                      await refundClientAdvance(adv.id);
                                       showSuccess("Devolución registrada", "La salida quedó registrada como devolución de anticipo.");
                                     } catch (err) {
                                       showError("Error", err instanceof Error ? err.message : "No se pudo eliminar.");
@@ -1015,12 +1026,12 @@ export function FinanceDashboard({
       {/* MODAL 5: REGISTRAR PAGO ANTICIPADO */}
       {isAdvanceModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-amber-50/50">
+          <div role="dialog" aria-modal="true" aria-labelledby="advance-form-title" className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+            <div className="shrink-0 px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-amber-50/50">
               <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <h3 id="advance-form-title" className="font-bold text-slate-900 text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  Registrar Anticipo
+                  {editingAdvance ? "Editar anticipo" : "Registrar Anticipo"}
                 </h3>
                 <span className="text-[11px] text-slate-500">
                   Abono por adelantado para cubrir 1 o varios meses a futuro
@@ -1028,6 +1039,7 @@ export function FinanceDashboard({
               </div>
               <button aria-label="Cerrar"
                 type="button"
+                  disabled={savingAdvance}
                 onClick={() => setIsAdvanceModalOpen(false)}
                 className="p-1 rounded-md text-slate-400 hover:text-slate-700 cursor-pointer"
               >
@@ -1035,13 +1047,15 @@ export function FinanceDashboard({
               </button>
             </div>
 
-            <form onSubmit={handleCreateAdvance} className="p-5 space-y-3.5 text-xs">
+            <form onSubmit={handleCreateAdvance} className="min-h-0 overflow-y-auto p-5 space-y-3.5 text-xs">
+              {editingAdvance && <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">Disponible: ${safeNumber(editingAdvance.remaining)} · Ya aplicado o devuelto: ${safeNumber(editingAdvance.amount - editingAdvance.remaining)}. El nuevo importe debe cubrir lo ya utilizado. Esto corrige el registro; una devolución de dinero se registra con la flecha de devolución.</p>}
               <div>
                 <label htmlFor="finance-dashboard-field-10" className="text-[11px] font-bold text-slate-700 block mb-1">
                   Cliente *
                 </label>
                 <select id="finance-dashboard-field-10"
                   required
+                  disabled={Boolean(editingAdvance && editingAdvance.amount !== editingAdvance.remaining)}
                   value={advClientId}
                   onChange={(e) => setAdvClientId(e.target.value)}
                   className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
@@ -1063,7 +1077,7 @@ export function FinanceDashboard({
                   <input id="finance-dashboard-field-11"
                     type="number"
                     step="0.01"
-                    min="0.01"
+                    min={editingAdvance ? Math.max(0.01, editingAdvance.amount - editingAdvance.remaining) : 0.01}
                     required
                     placeholder="Ej: 50.00"
                     value={advAmount || ""}
@@ -1097,6 +1111,7 @@ export function FinanceDashboard({
                   </label>
                   <input id="finance-dashboard-field-13"
                     type="date"
+                    max={getEcuadorDate()}
                     required
                     value={advDate}
                     onChange={(e) => setAdvDate(e.target.value)}
@@ -1128,11 +1143,12 @@ export function FinanceDashboard({
                     Cuenta / Banco Destino
                   </label>
                   <select id="finance-dashboard-field-15"
+                    required
                     value={advBankId}
                     onChange={(e) => setAdvBankId(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                   >
-                    <option value="">Caja / Efectivo libre</option>
+                    <option value="">Seleccionar banco o caja</option>
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.bankName}
@@ -1171,6 +1187,7 @@ export function FinanceDashboard({
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200">
                 <button
                   type="button"
+                  disabled={savingAdvance}
                   onClick={() => setIsAdvanceModalOpen(false)}
                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-bold cursor-pointer"
                 >
@@ -1178,9 +1195,10 @@ export function FinanceDashboard({
                 </button>
                 <button
                   type="submit"
+                  disabled={savingAdvance}
                   className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-xs cursor-pointer transition"
                 >
-                  Guardar Pago Anticipado
+                  {savingAdvance ? "Guardando…" : editingAdvance ? "Guardar cambios" : "Guardar Pago Anticipado"}
                 </button>
               </div>
             </form>

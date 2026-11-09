@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -268,14 +269,7 @@ export function DebitNoteModal({
                     />
                   </div>
                   {reasons.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveReason(index)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 transition"
-                      title="Quitar motivo"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <ActionIconButton action="delete" type="button" onClick={() => handleRemoveReason(index)} title="Quitar motivo" />
                   )}
                 </div>
               ))}

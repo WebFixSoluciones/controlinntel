@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
@@ -776,13 +777,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteFile(file.id, file.fileName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar archivo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" onClick={() => handleDeleteFile(file.id, file.fileName)} title="Eliminar archivo" />
                           </div>
                         </td>
                       </tr>
@@ -862,12 +857,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteFile(f.id, f.fileName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" label="Eliminar registro" onClick={() => handleDeleteFile(f.id, f.fileName)} />
                           </div>
                         </td>
                       </tr>
@@ -944,12 +934,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteFile(f.id, f.fileName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" label="Eliminar registro" onClick={() => handleDeleteFile(f.id, f.fileName)} />
                           </div>
                         </td>
                       </tr>
@@ -1024,12 +1009,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteFile(f.id, f.fileName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" label="Eliminar registro" onClick={() => handleDeleteFile(f.id, f.fileName)} />
                           </div>
                         </td>
                       </tr>
@@ -1113,13 +1093,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteFile(f.id, f.fileName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar archivo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <ActionIconButton action="delete" onClick={() => handleDeleteFile(f.id, f.fileName)} title="Eliminar archivo" />
                           </div>
                         </td>
                       </tr>

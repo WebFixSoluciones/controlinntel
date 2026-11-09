@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
@@ -565,18 +566,10 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                         </button>
 
                         {/* Icono: Editar Cotización */}
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionIconButton action="edit" type="button" onClick={() => {
                             setQuoteToEdit(toClientQuote(q));
                             setIsModalOpen(true);
-                          }}
-                          className="p-2 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
-                          title="Editar Cotización Formal"
-                          aria-label="Editar Cotización Formal"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
+                          }} title="Editar Cotización Formal" aria-label="Editar Cotización Formal" />
 
                         {/* Icono: Imprimir / Ver cotización */}
                         <button
@@ -590,15 +583,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                         </button>
 
                         {/* Icono: Eliminar cotización */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteQuote(q)}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                          title="Eliminar Cotización"
-                          aria-label="Eliminar Cotización"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <ActionIconButton action="delete" type="button" onClick={() => handleDeleteQuote(q)} title="Eliminar Cotización" aria-label="Eliminar Cotización" />
                       </div>
                     </td>
                   </tr>

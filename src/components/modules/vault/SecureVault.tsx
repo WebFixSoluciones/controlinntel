@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { useEffect, useRef, useState, useId } from "react";
 import { useApp } from "@/lib/state";
@@ -394,27 +395,13 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                         <span>Copiar</span>
                       </button>
 
-                      {canManage && <button
-                        disabled={busy}
-                        onClick={() => {
+                      {canManage && <ActionIconButton action="edit" disabled={busy} onClick={() => {
                           setEditingId(item.id);
                           setEditing(true);
                           setError("");
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
-                        title="Editar credencial"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>}
+                        }} title="Editar credencial" />}
 
-                      {canDelete && <button
-                        disabled={deletingId === item.id}
-                        onClick={() => void handleDelete(item.id, item.serviceName)}
-                        className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                        title="Eliminar credencial"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>}
+                      {canDelete && <ActionIconButton action="delete" disabled={deletingId === item.id} onClick={() => void handleDelete(item.id, item.serviceName)} title="Eliminar credencial" />}
                     </div>
                   </td>
                 </tr>

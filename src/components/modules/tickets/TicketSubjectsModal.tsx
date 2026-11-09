@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { departmentLabel } from "@/lib/ticket-departments";
@@ -200,22 +201,8 @@ export function TicketSubjectsModal({ isOpen, onClose }: TicketSubjectsModalProp
                         {departmentLabel(ticketDepartments, s.defaultDepartment)}
                       </td>
                       <td className="py-2.5 px-4 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(s)}
-                          className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] cursor-pointer"
-                          title="Editar asunto"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(s)}
-                          className="p-1.5 rounded-lg text-[#737686] hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
-                          title="Eliminar asunto"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ActionIconButton action="edit" type="button" onClick={() => handleEdit(s)} title="Editar asunto" />
+                        <ActionIconButton action="delete" type="button" onClick={() => handleDelete(s)} title="Eliminar asunto" />
                       </td>
                     </tr>
                   ))

@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useCallback } from "react";
 import { canViewServicePrices } from "@/lib/permissions";
@@ -408,13 +409,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                           </button>
 
                           {/* 3. Eliminar Cliente con Validación */}
-                          <button
-                            onClick={(e) => handleRequestDelete(client, e)}
-                            className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Eliminar Cliente"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <ActionIconButton action="delete" onClick={(e) => handleRequestDelete(client, e)} title="Eliminar Cliente" />
                         </div>
                       </td>
                     </tr>

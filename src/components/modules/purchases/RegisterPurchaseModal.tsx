@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
@@ -705,13 +706,7 @@ export function RegisterPurchaseModal({
 
                         {/* Delete action */}
                         <td className="py-2 px-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(idx)}
-                            className="text-[#94a3b8] hover:text-[#ef4444] transition-colors p-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="delete" label="Eliminar registro" type="button" onClick={() => handleRemoveItem(idx)} />
                         </td>
                       </tr>
                     ))

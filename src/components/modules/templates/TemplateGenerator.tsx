@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -568,14 +569,7 @@ export function TemplateGenerator() {
                       </td>
                       <td className="py-3.5 px-4 w-1/12 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => openEditModal(item)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
-                            title="Editar plantilla y actualizar archivo"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-[#004ac6]" />
-                            <span>Editar</span>
-                          </button>
+                          <ActionIconButton action="edit" onClick={() => openEditModal(item)} title="Editar plantilla y actualizar archivo" />
                           <button
                             onClick={() => handleDownloadCustom(item)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
@@ -584,13 +578,7 @@ export function TemplateGenerator() {
                             <Download className="w-3.5 h-3.5" />
                             <span>Descargar</span>
                           </button>
-                          <button
-                            onClick={() => handleDeleteCustom(item.id, item.name)}
-                            className="p-1.5 text-[#737686] hover:text-[#ef4444] hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            title="Eliminar plantilla"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <ActionIconButton action="delete" onClick={() => handleDeleteCustom(item.id, item.name)} title="Eliminar plantilla" />
                         </div>
                       </td>
                     </tr>

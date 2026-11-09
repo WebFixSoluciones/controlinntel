@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -344,20 +345,8 @@ export function SuppliersManager() {
                     </td>
                     <td className="py-4 px-5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenModal(supplier)}
-                          className="p-1.5 text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
-                          title="Editar proveedor"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(supplier)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar proveedor"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <ActionIconButton action="edit" onClick={() => handleOpenModal(supplier)} title="Editar proveedor" />
+                        <ActionIconButton action="delete" onClick={() => handleDelete(supplier)} title="Eliminar proveedor" />
                       </div>
                     </td>
                   </tr>

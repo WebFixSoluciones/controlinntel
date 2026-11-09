@@ -40,19 +40,30 @@ import {
 } from "recharts";
 import { formatFinanceCategory } from "./FinanceDashboard";
 import { expenseCategoriesWithDefaults, expenseCategoryKey } from "@/lib/expense-categories";
+import { inReportPeriod, chargeReportDate } from "@/lib/company-reporting";
+import { CompanyReportsPanel } from "./CompanyReportsPanel";
 
 type ReportTab = "resumen" | "cobranzas" | "gastos" | "cxc" | "cxp" | "bancos";
 
 export function FinancialReportsTab() {
+  const [from, setFrom] = useState(""), [to, setTo] = useState("");
+  return <CompanyReportsPanel from={from} to={to} onPeriodChange={(start, end) => { setFrom(start); setTo(end); }}><FinancialReportsDetails from={from} to={to} /></CompanyReportsPanel>;
+}
+
+function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const {
-    monthlyCharges = [],
-    expenses = [],
+    monthlyCharges: allCharges = [],
+    expenses: allExpenses = [],
     expenseCategories,
-    financialMovements = [],
+    financialMovements: allMovements = [],
     bankAccounts = [],
-    purchaseInvoices = [],
+    purchaseInvoices: allPurchases = [],
     clientAdvances = [],
   } = useApp();
+  const monthlyCharges = allCharges.filter(row => inReportPeriod(chargeReportDate(row), from, to));
+  const expenses = allExpenses.filter(row => row.status !== "anulado" && inReportPeriod(row.expenseDate, from, to));
+  const financialMovements = allMovements.filter(row => inReportPeriod(row.date, from, to));
+  const purchaseInvoices = allPurchases.filter(row => inReportPeriod(row.date, from, to));
   const { showSuccess } = useToast();
 
   const [activeTab, setActiveTab] = useState<ReportTab>("resumen");
@@ -149,7 +160,7 @@ export function FinancialReportsTab() {
   }, [bankAccounts]);
 
   const chartData = useMemo(() => {
-    const current = getEcuadorDate().slice(0,7) + "-01";
+    const current = (to || getEcuadorDate()).slice(0,7) + "-01";
     return Array.from({length:6}, (_, index) => {
       const month=addMonthsSafely(current,index-5).slice(0,7);
       const movements=cashMovements.filter(m => String(m.date).startsWith(month));

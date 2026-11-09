@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -428,13 +429,7 @@ export function ProjectsManager() {
                           </button>
 
                           {/* ✏️ Editar Proyecto */}
-                          <button
-                            onClick={() => handleOpenEditProject(p)}
-                            title="Editar Datos del Proyecto"
-                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                          <ActionIconButton action="edit" onClick={() => handleOpenEditProject(p)} title="Editar Datos del Proyecto" />
 
                           {/* 🔄 Cambiar Estado */}
                           <button
@@ -461,13 +456,7 @@ export function ProjectsManager() {
                           </button>
 
                           {/* 🗑️ Eliminar Proyecto (Envía a Papelera) */}
-                          <button
-                            onClick={() => handleDeleteProject(p)}
-                            title="Enviar Proyecto a Papelera"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <ActionIconButton action="delete" onClick={() => handleDeleteProject(p)} title="Enviar Proyecto a Papelera" />
                         </div>
                       </td>
                     </tr>

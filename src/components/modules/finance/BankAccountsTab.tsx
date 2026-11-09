@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -280,14 +281,7 @@ export function BankAccountsTab() {
                       >
                         {account.status}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(account)}
-                        className="p-1.5 text-slate-400 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition cursor-pointer"
-                        title="Editar cuenta bancaria"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      <ActionIconButton action="edit" type="button" onClick={() => handleOpenEdit(account)} title="Editar cuenta bancaria" />
                       <button type="button" className="text-xs text-blue-700 px-2 py-1 border rounded" onClick={() => {setAdjustingAccount(account);setAdjustDelta("");setAdjustReason("");}}>Ajustar saldo</button>
                       <button
                         type="button"

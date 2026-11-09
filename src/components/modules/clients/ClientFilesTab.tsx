@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import { uploadStoredFile } from "@/lib/stored-file-upload";
@@ -637,14 +638,7 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
                     ) : null}
 
                     {/* Eliminar */}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(doc)}
-                      className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                      title="Eliminar Archivo"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <ActionIconButton action="delete" type="button" onClick={() => handleDelete(doc)} title="Eliminar Archivo" />
                   </div>
                 </div>
               </div>
@@ -725,14 +719,7 @@ export function ClientFilesTab({ client }: ClientFilesTabProps) {
                             <Download className="w-3.5 h-3.5" />
                           </a>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(doc)}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                          title="Eliminar Archivo"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <ActionIconButton action="delete" type="button" onClick={() => handleDelete(doc)} title="Eliminar Archivo" />
                       </div>
                     </td>
                   </tr>

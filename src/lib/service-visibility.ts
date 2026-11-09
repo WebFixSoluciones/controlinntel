@@ -12,6 +12,12 @@ export const servicePriceFields = {
 } as const;
 
 export function visibleServiceData(user: UserProfile, collection: string, row: Row): Row {
+  if (collection === "billingInvoices" && Array.isArray(row.items) && !canUser(user, "inventarios", "canViewCosts")) {
+    return { ...row, items: row.items.map(item => {
+      const { costUnitSnapshot, costTotalSnapshot, costKindSnapshot, ...visible } = item;
+      return visible;
+    }) };
+  }
   let hidden: readonly string[] = [];
   if (!canViewServicePrices(user)) {
     if (collection === "clientServices") hidden = servicePriceFields.clientServices;

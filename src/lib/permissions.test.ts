@@ -94,4 +94,7 @@ test("La proyección técnica conserva el servicio y omite sus importes del cat�
     { id: "srv", type: "servicio", name: "Internet" });
   assert.deepEqual(visibleServiceData(operadorActivo, "plans", { id: "p", name: "Plan", defaultPrice: 50 }), { id: "p", name: "Plan" });
   assert.equal(service.customPrice, 90);
+  const invoice = { id: "invoice", items: [{ name: "Servicio", quantity: 1, costUnitSnapshot: 25, costTotalSnapshot: 25 }] };
+  assert.deepEqual(visibleServiceData(operadorActivo, "billingInvoices", invoice), { id: "invoice", items: [{ name: "Servicio", quantity: 1 }] });
+  assert.deepEqual(visibleServiceData(superAdmin, "billingInvoices", invoice), invoice);
 });

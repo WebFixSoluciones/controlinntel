@@ -12,7 +12,7 @@ import { schemas } from "./schemas.ts";
 import { canUser, canPerformAction, canViewServicePrices } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
 class Context {
@@ -106,6 +106,15 @@ async function expenseMovement(c: Context, expense: Row) {
   return movement;
 }
 
+async function advanceMovement(c: Context, advance: Row) {
+  const movement = advance.movementId ? await c.get("financialMovements", advance.movementId, false) : {};
+  if (!movement.id || movement.status === "anulado" || movement.type !== "ingreso" || movement.relatedEntityId !== advance.id
+    || movement.bankAccountId !== advance.bankAccountId || cents(movement.amount) !== cents(advance.amount)) {
+    throw new HttpError(409, "Este saldo proviene de otro cobro o requiere conciliación. Corrige el cobro de origen; no se modificó el saldo bancario.");
+  }
+  return movement;
+}
+
 async function billingPeriodState(c: Context, service: Row, plan: EligibleServicePeriod) {
   const period = await c.get("billingPeriods", plan.key, false);
   const periodMonth = plan.periodStart.slice(0, 7);
@@ -193,8 +202,16 @@ async function issueSale(c: Context, input: Row) {
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
   const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
   for(const item of calculated.items) {
+    delete item.costUnitSnapshot;
+    delete item.costTotalSnapshot;
+    delete item.costKindSnapshot;
     if(!item.productId) continue;
     const product=await c.get("inventoryProducts",item.productId,false);
+    if (product.id && Number.isFinite(product.baseCost) && Number(product.baseCost) >= 0) {
+      item.costUnitSnapshot = Number(product.baseCost);
+      item.costTotalSnapshot = money(cents(Number(item.quantity) * Number(product.baseCost)));
+      item.costKindSnapshot = product.tracksStock && product.type !== "servicio" ? "inventario" : "referencia";
+    }
     if(!product.id && !item.serviceId) throw new HttpError(400,"Artículo inexistente.");
     if(product.status==="inactivo") throw new HttpError(400,"Artículo inactivo.");
     if(!isDraft&&item.serviceId){
@@ -524,6 +541,17 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(changes.documentType && changes.documentType !== old.documentType || changes.claveAcceso) throw new HttpError(400,"El tipo y la clave del documento se conservan.");
       if(changes.documentNumber&&changes.documentNumber!==old.documentNumber)throw new HttpError(400,"La numeración emitida no se modifica.");
       const calculated=calculateLines(changes.items||old.items);
+      for (const item of calculated.items) {
+        delete item.costUnitSnapshot; delete item.costTotalSnapshot; delete item.costKindSnapshot;
+        const previous = old.items.find((line: Row) => line.id === item.id && line.productId === item.productId);
+        const product = item.productId ? await c.get("inventoryProducts", item.productId, false) : {};
+        const cost = previous?.costUnitSnapshot ?? (previous && old.status !== "borrador" ? undefined : product.baseCost);
+        if (Number.isFinite(cost) && Number(cost) >= 0) {
+          item.costUnitSnapshot = Number(cost);
+          item.costTotalSnapshot = money(cents(Number(item.quantity) * Number(cost)));
+          item.costKindSnapshot = previous?.costKindSnapshot || (product.tracksStock && product.type !== "servicio" ? "inventario" : "referencia");
+        }
+      }
       if(old.status==="borrador") {
         if(changes.status&&changes.status!=="borrador") { const emitted=await issueSale(c,{...old,...changes,...calculated,documentType:"nota_venta",status:"registrado"});c.put("billingInvoices",{...old,status:"anulada",convertedToInvoiceId:emitted.id});return emitted; }
         const updated={...old,...changes,...calculated};c.put("billingInvoices",updated);return updated;
@@ -587,9 +615,59 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "advance": {
       const client=await c.get("clients",data.clientId), amount=checkedAmount(data.amount), id=randomUUID(), date=checkedDate(data.date);
+      if (date > c.today) throw new HttpError(400, "La fecha del anticipo no puede ser futura.");
       const movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"anticipo_cliente",description:`Anticipo ${client.businessName}`,paymentMethod:data.method||"transferencia",referenceNumber:data.reference||""});
-      const advance={...data,id,date,amount:money(amount),remaining:money(amount),clientName:client.businessName,clientRuc:client.identificationNumber,status:"vigente",applications:[],movementId};
+      const advance={id,clientId:client.id,date,amount:money(amount),remaining:money(amount),clientName:client.businessName,clientRuc:client.identificationNumber,status:"vigente",applications:[],movementId,
+        bankAccountId:data.bankAccountId,bankAccountName:(await c.get("bankAccounts",data.bankAccountId)).bankName,method:String(data.method||"transferencia").slice(0,100),
+        monthsCovered:Number(data.monthsCovered)||1,reference:String(data.reference||"").trim().slice(0,200),notes:String(data.notes||"").trim().slice(0,500)};
       c.put("clientAdvances",advance); return advance;
+    }
+    case "editAdvance":
+    case "voidAdvance": {
+      const old = await c.get("clientAdvances", data.id);
+      if (old.deletedAt) {
+        if (action === "voidAdvance") return old;
+        throw new HttpError(409, "El anticipo ya fue eliminado.");
+      }
+      if (old.status === "anulado") throw new HttpError(409, "El anticipo está anulado o devuelto.");
+      if (data.expectedVersion !== undefined && data.expectedVersion !== (old.version || 0)) throw new HttpError(409, "El anticipo cambió. Actualiza el listado antes de continuar.");
+      const used = cents(old.amount) - cents(old.remaining) - cents(old.refundedAmount || 0);
+      const applications = (old.applications || []).filter((item: Row) => item.status !== "reversed");
+      if (used < 0 || applications.reduce((sum: number, item: Row) => sum + cents(item.amount), 0) !== used) throw new HttpError(409, "El historial de aplicaciones requiere conciliación.");
+      const movement = await advanceMovement(c, old);
+      const sourceBank = await c.get("bankAccounts", old.bankAccountId);
+      if (action === "voidAdvance") {
+        if (cents(old.refundedAmount || 0)) throw new HttpError(409, "Este anticipo tiene una devolución de dinero registrada. Requiere conciliación; no se puede eliminar como un ingreso sin utilizar.");
+        if (used) throw new HttpError(409, "Este anticipo ya tiene aplicaciones. Revierte primero los abonos vinculados antes de eliminarlo.");
+        const balance = cents(sourceBank.currentBalance) - cents(old.amount);
+        if (balance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "La corrección dejaría la cuenta sin saldo suficiente. Concilia los movimientos antes de eliminar el anticipo.");
+        const cancellation = { status: "anulado", cancelledAt: new Date().toISOString(), cancelledBy: c.user.uid };
+        c.put("bankAccounts", { ...sourceBank, currentBalance: money(balance) });
+        c.put("financialMovements", { ...movement, ...cancellation });
+        const advance = { ...old, ...cancellation, remaining: 0, deletedAt: new Date().toISOString() };
+        c.put("clientAdvances", advance);
+        return advance;
+      }
+      const amount = checkedAmount(data.amount), date = checkedDate(data.date);
+      if (amount < used + cents(old.refundedAmount || 0)) throw new HttpError(409, "El importe no puede ser menor que lo ya aplicado o devuelto. Revierte los abonos para reducirlo más.");
+      if (date > c.today || applications.some((application: Row) => application.date && application.date < date)) throw new HttpError(400, "La fecha no puede ser futura ni posterior a un abono realizado con este anticipo.");
+      const client = await c.get("clients", data.clientId);
+      if (data.clientId !== old.clientId && (used || cents(old.refundedAmount || 0))) throw new HttpError(409, "No se puede cambiar el cliente de un anticipo ya aplicado o devuelto.");
+      const sameBank = data.bankAccountId === sourceBank.id;
+      const bank = sameBank ? sourceBank : await c.get("bankAccounts", data.bankAccountId);
+      if ((!sameBank || amount !== cents(old.amount)) && bank.status !== "activa") throw new HttpError(400, "Selecciona una cuenta activa para corregir el importe.");
+      const sourceBalance = cents(sourceBank.currentBalance) - cents(old.amount) + (sameBank ? amount : 0);
+      if (sourceBalance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "Saldo bancario insuficiente para corregir el anticipo.");
+      if ((!sameBank || amount < cents(old.amount)) && !canUser(c.user, "finanzas", "canCancelPayments")) throw new HttpError(403, "No tienes permiso para revertir importes recibidos.");
+      c.put("bankAccounts", { ...sourceBank, currentBalance: money(sourceBalance) });
+      if (!sameBank) c.put("bankAccounts", { ...bank, currentBalance: money(cents(bank.currentBalance) + amount) });
+      const method = String(data.method || old.method).slice(0, 100), reference = String(data.reference || "").trim().slice(0, 200);
+      c.put("financialMovements", { ...movement, amount: money(amount), date, bankAccountId: bank.id, bankAccountName: bank.bankName, paymentMethod: method, referenceNumber: reference, description: `Anticipo ${client.businessName}` });
+      const remaining = amount - used - cents(old.refundedAmount || 0);
+      const advance = { ...old, clientId: client.id, clientName: client.businessName, clientRuc: client.identificationNumber, date, amount: money(amount), remaining: money(remaining),
+        method, reference, bankAccountId: bank.id, bankAccountName: bank.bankName, monthsCovered: Number(data.monthsCovered) || 1, notes: String(data.notes || "").trim().slice(0, 500), status: remaining ? "vigente" : "aplicado" };
+      c.put("clientAdvances", advance);
+      return advance;
     }
     case "cancelAdvance": {
       const advance=await c.get("clientAdvances",data.id);
@@ -691,6 +769,7 @@ function visibleCommercialResult<T>(user: UserProfile, action: CommercialCommand
     return service as T;
   }
   if (action === "createProduct" || action === "editProduct") return visibleServiceData(user, "inventoryProducts", result as Row) as T;
+  if (["issueSale", "editSale", "recur"].includes(action)) return visibleServiceData(user, "billingInvoices", result as Row) as T;
   return result;
 }
 
@@ -745,6 +824,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],applyClientCredit:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],adjustBank:["finanzas","canRegisterExpenses"],transfer:["finanzas","canRegisterExpenses"],
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["facturacion","canCreateInvoice"],processRun:["facturacion","canCreateInvoice"],
+    editAdvance:["finanzas","canRegisterReceipts"],voidAdvance:["finanzas","canCancelPayments"],
     reverseApplication:["finanzas","canCancelPayments"],
     purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],

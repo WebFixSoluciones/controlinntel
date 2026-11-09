@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -1729,14 +1730,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                             <Mail className="w-4 h-4" />
                           </button>}
 
-                          {canEditPrices && <button
-                            type="button"
-                            onClick={() => handleOpenEditService(svc)}
-                            className="p-1.5 text-slate-600 hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                            aria-label="Editar nombre, descripción o tarifa del servicio" title="Editar nombre, descripción o tarifa del servicio"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>}
+                          {canEditPrices && <ActionIconButton action="edit" type="button" onClick={() => handleOpenEditService(svc)} aria-label="Editar nombre, descripción o tarifa del servicio" title="Editar nombre, descripción o tarifa del servicio" />}
 
                           <button
                             type="button"
@@ -1748,21 +1742,14 @@ export function ClientContractTab({ client }: { client: Client }) {
                             <span>Renovar</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
+                          <ActionIconButton action="delete" type="button" onClick={() =>
                               showConfirm(
                                 "¿Retirar Servicio?",
                                 `¿Deseas eliminar "${svc.planName}" de la lista de servicios de este cliente?`,
                                 () => deleteClientService(svc.id),
                                 "Eliminar"
                               )
-                            }
-                            className="p-1.5 text-[#737686] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            aria-label="Eliminar servicio" title="Eliminar servicio"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            } aria-label="Eliminar servicio" title="Eliminar servicio" />
                         </div>
                       </td>
                     </tr>

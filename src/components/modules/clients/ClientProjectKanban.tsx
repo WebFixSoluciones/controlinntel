@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
@@ -317,20 +318,8 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                             </span>
 
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleOpenEdit(task)}
-                                className="text-[#64748b] hover:text-[#004ac6] p-1 rounded hover:bg-[#eff4ff] cursor-pointer"
-                                title="Editar Ficha"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteTask(task)}
-                                className="text-[#64748b] hover:text-rose-600 p-1 rounded hover:bg-rose-50 cursor-pointer"
-                                title="Eliminar tarea"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                              <ActionIconButton action="edit" onClick={() => handleOpenEdit(task)} title="Editar Ficha" />
+                              <ActionIconButton action="delete" onClick={() => handleDeleteTask(task)} title="Eliminar tarea" />
                             </div>
                           </div>
                         </div>

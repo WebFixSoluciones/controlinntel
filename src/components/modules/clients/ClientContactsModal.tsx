@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect } from "react";
 import { Client, ClientContactPerson } from "@/types";
@@ -376,24 +377,8 @@ export function ClientContactsModal({
 
                     {/* Botones de acción individual */}
                     <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
-                      <button
-                        type="button"
-                        onClick={() => handleEditContact(c)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-slate-700 hover:text-[#004ac6] hover:bg-blue-50 rounded-md transition cursor-pointer"
-                        title="Editar datos del contacto"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteContact(c.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
-                        title="Quitar de la lista"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Eliminar</span>
-                      </button>
+                      <ActionIconButton action="edit" type="button" onClick={() => handleEditContact(c)} title="Editar datos del contacto" />
+                      <ActionIconButton action="delete" type="button" onClick={() => handleDeleteContact(c.id)} title="Quitar de la lista" />
                     </div>
                   </div>
                 ))}

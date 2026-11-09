@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -350,21 +351,9 @@ export function UserManager() {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleEdit(u)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors cursor-pointer"
-                            title="Editar usuario y permisos"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="edit" onClick={() => handleEdit(u)} title="Editar usuario y permisos" />
 
-                          <button
-                            onClick={() => handleDelete(u)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                            title="Eliminar usuario"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <ActionIconButton action="delete" onClick={() => handleDelete(u)} title="Eliminar usuario" />
                         </div>
                       </td>
                     </tr>

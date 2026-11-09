@@ -1,4 +1,5 @@
 "use client";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { useId, useState, type FormEvent } from "react";
 import { Building2, X } from "lucide-react";
@@ -65,8 +66,7 @@ export function TicketDepartmentsModal({ onClose }: { onClose: () => void }) {
                   <p className={row.active ? "text-emerald-700" : "text-slate-500"}>{row.active ? "Activo" : "Inactivo"}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={busy} onClick={() => { setEditing(row); setName(row.name); setError(""); }}
-                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-[#004ac6]">Renombrar</button>
+                  <ActionIconButton action="edit" label="Renombrar" type="button" disabled={busy} onClick={() => { setEditing(row); setName(row.name); setError(""); }} />
                   <button type="button" disabled={busy} onClick={() => void persist(row.name, !row.active, row)}
                     className="rounded-lg border border-slate-200 px-2 py-1.5">{row.active ? "Desactivar" : "Activar"}</button>
                 </div>
