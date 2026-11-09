@@ -151,7 +151,10 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
   // Quick Bulk Controls
   const handleEnableAllModules = () => {
-    setPermissions(JSON.parse(JSON.stringify(DEFAULT_MODULE_PERMISSIONS_BY_ROLE.superadmin)));
+    setPermissions({
+      ...JSON.parse(JSON.stringify(DEFAULT_MODULE_PERMISSIONS_BY_ROLE.superadmin)),
+      visibility: { canViewServicePrices: true, canViewProductPrices: true, canViewFinancialAmounts: true },
+    });
   };
 
   const handleDisableAllModules = () => {
