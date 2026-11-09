@@ -514,10 +514,10 @@ export function RidePreviewModal({
                       <span className="font-bold text-slate-900">Teléfono:</span>{" "}
                       {emisor.telefonoContacto || "+593 2 394 5000"}
                     </p>
-                    <p>
+                    {!isNotaVenta && <p>
                       <span className="font-bold text-slate-900">OBLIGADO A LLEVAR CONTABILIDAD:</span>{" "}
                       <span className="font-bold text-slate-900">{emisor.obligadoContabilidad ? "SI" : "NO"}</span>
-                    </p>
+                    </p>}
                     {!isNotaVenta && (
                       <p>
                         <span className="font-bold text-slate-900">Contribuyente Régimen:</span>{" "}
