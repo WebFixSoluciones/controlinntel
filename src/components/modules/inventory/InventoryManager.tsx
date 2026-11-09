@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { canAccessSubmodule, canUser, canViewServicePrices } from "@/lib/permissions";
+import { canAccessSubmodule, canUser, canViewServicePrices, canViewProductPrices } from "@/lib/permissions";
 import {
   InventoryProduct,
   Warehouse,
@@ -255,7 +255,8 @@ export function InventoryManager() {
   // Check sub-module permission
   const hasAccess = canAccessSubmodule(currentUser, "inventarios", activeTab);
   const canViewCosts = canUser(currentUser, "inventarios", "canViewCosts");
-  const canCreateProduct = canUser(currentUser, "inventarios", "canCreateProduct");
+  const showProductPrices = canViewProductPrices(currentUser);
+  const canCreateProduct = showProductPrices && canViewCosts && canUser(currentUser, "inventarios", "canCreateProduct");
   const showServicePrices = canViewServicePrices(currentUser);
   const canCreateService = showServicePrices && canUser(currentUser, "inventarios", "canCreateService");
   const canEditService = showServicePrices && canUser(currentUser, "inventarios", "canEditProduct");
@@ -554,8 +555,8 @@ export function InventoryManager() {
         p.stock,
         `"${p.unit}"`,
         canViewCosts ? (p.baseCost ?? 0).toFixed(2) : "",
-        p.salePrice.toFixed(2),
-        p.salePriceConIva.toFixed(2),
+        showProductPrices ? (p.salePrice ?? 0).toFixed(2) : "",
+        showProductPrices ? (p.salePriceConIva ?? 0).toFixed(2) : "",
       ]);
 
       const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
@@ -638,7 +639,7 @@ export function InventoryManager() {
   // =========================================================
   // PANTALLAS PROPIAS (EMBEDDED) - SIN POPUPS NI MODALES
   // =========================================================
-  if (isProductModalOpen && (productModalDefaultType !== "servicio" || (productToEdit ? canEditService : canCreateService))) {
+  if (isProductModalOpen && (productModalDefaultType !== "servicio" ? showProductPrices && canViewCosts && canUser(currentUser, "inventarios", "canEditProduct") : (productToEdit ? canEditService : canCreateService))) {
     return (
       <div className="animate-in fade-in duration-200">
         <ProductModal
@@ -878,10 +879,10 @@ export function InventoryManager() {
                             {canViewCosts ? `$${p.baseCost.toFixed(2)}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">
-                            ${p.salePrice.toFixed(2)}
+                            {showProductPrices ? `$${(p.salePrice ?? 0).toFixed(2)}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-emerald-700">
-                            ${p.salePriceConIva.toFixed(2)}
+                            {showProductPrices ? `$${(p.salePriceConIva ?? 0).toFixed(2)}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-center">
                             <span
@@ -917,7 +918,7 @@ export function InventoryManager() {
                               >
                                 <SlidersHorizontal className="w-3.5 h-3.5" />
                               </button>
-                              <ActionIconButton action="edit" onClick={() => {
+                              <ActionIconButton action="edit" disabled={!showProductPrices || !canViewCosts || !canUser(currentUser, "inventarios", "canEditProduct")} onClick={() => {
                                   setProductToEdit(p);
                                   setProductModalDefaultType("producto");
                                   setIsProductModalOpen(true);

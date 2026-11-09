@@ -9,7 +9,7 @@ import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
 import { allocateClientCredit } from "../client-credit.ts";
 import { schemas } from "./schemas.ts";
-import { canUser, canPerformAction, canViewServicePrices } from "../permissions.ts";
+import { canUser, canViewServicePrices, canAccessSubmodule, canViewFinancialAmounts } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 
 export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
@@ -817,20 +817,27 @@ export async function runScheduledRecurringBilling(db: Firestore, today = getEcu
 export async function executeCommercial(user:UserProfile, command:CommercialCommand, database?:Firestore) {
   const permission=["createClient","assignService","editService","retireClient","retireService"].includes(command.action)?"manage_clients":["createProduct","editProduct","inventoryTransfer","inventoryAdjustment"].includes(command.action)?"manage_network":"manage_finance";
   requirePermission(user,permission);
+  if (permission === "manage_finance" && !canViewFinancialAmounts(user)) throw new HttpError(403, "No tienes permiso para operar con importes comerciales o financieros.");
+  const salesScreen = command.action === "issueSale" ? "nueva_venta"
+    : ["editSale", "cancelSale"].includes(command.action) ? "notas_venta"
+    : ["recur", "startRun", "processRun"].includes(command.action) ? "recurrentes" : undefined;
+  if (salesScreen && !canAccessSubmodule(user, "ventas", salesScreen)) throw new HttpError(403, "No tienes acceso a esta función de Ventas.");
+  const purchaseScreen = command.action === "purchase" ? "registrar_compra" : command.action === "supplierCredit" ? "notas_credito" : command.action === "supplierDebit" ? "notas_debito" : undefined;
+  if (purchaseScreen && !canAccessSubmodule(user, "compras", purchaseScreen)) throw new HttpError(403, "No tienes acceso a esta función de Compras.");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={
     createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],
-    issueSale:["facturacion","canCreateInvoice"],editSale:["facturacion","canEditPrices"],recur:["facturacion","canCreateInvoice"],
+    issueSale:["ventas","canCreateInvoice"],editSale:["ventas","canEditPrices"],recur:["ventas","canCreateInvoice"],cancelSale:["ventas","canCancelInvoices"],
     payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],applyClientCredit:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],adjustBank:["finanzas","canRegisterExpenses"],transfer:["finanzas","canRegisterExpenses"],
-    expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["facturacion","canCreateInvoice"],processRun:["facturacion","canCreateInvoice"],
+    expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["ventas","canCreateInvoice"],processRun:["ventas","canCreateInvoice"],
     editAdvance:["finanzas","canRegisterReceipts"],voidAdvance:["finanzas","canCancelPayments"],
     reverseApplication:["finanzas","canCancelPayments"],
     purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],
   };
   const grant=grants[command.action];
-  if(grant&&!canUser(user,grant[0],grant[1])||command.action==="cancelSale"&&!canPerformAction(user,"canDeleteInvoices"))throw new HttpError(403,"No tienes autorización para esta acción comercial.");
+  if(grant&&!canUser(user,grant[0],grant[1]))throw new HttpError(403,"No tienes autorización para esta acción comercial.");
   const db=database||adminServices().db, requestHash=digest({action:command.action,data:command.data});
   return db.runTransaction(async tx=>{
     const existing=(await tx.get(db.collection("operationLog").doc(command.operationId))).data();

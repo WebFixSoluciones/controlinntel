@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { adminServices } from "./admin.ts";
 import { audit, HttpError, requirePermission } from "./security.ts";
-import { can, canAccessModule, canAccessSubmodule, canManageTicketDepartments, canUser, canViewServicePrices, collectionPermissions, type Entity } from "../permissions.ts";
+import { can, canAccessModule, canAccessSubmodule, canManageTicketDepartments, canManageTemplates, canUser, canViewServicePrices, canViewFinancialAmounts, collectionPermissions, type Entity } from "../permissions.ts";
 import { schemas } from "./schemas.ts";
 import { seal, unseal, initializeVaultKey } from "./vault.ts";
 import { requireVaultAccess } from "./vault-access.ts";
@@ -9,7 +9,7 @@ import type { UserProfile } from "@/types";
 import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { recordOperation, redact, digest } from "./operation-log.ts";
 import { simpleDecrypt } from "../crypto-vault.ts";
-import { canReadCollection,storageName } from "../persistence-contracts.ts";
+import { canReadCollection,canReadBillingDocument,storageName } from "../persistence-contracts.ts";
 import { quoteCompanyDetails } from "../quote-company.ts";
 import { canManageExpenseCategories, expenseCategoriesWithDefaults, expenseCategoryKey, type ExpenseCategory } from "../expense-categories.ts";
 import { fiscalMetadata } from "./sri-metadata.ts";
@@ -51,6 +51,7 @@ export async function snapshot(user: UserProfile) {
       console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
     }
     result[entity] = documents.filter(d => entity !== "clientAdvances" || !d.data().deletedAt)
+      .filter(d => entity !== "billingInvoices" || canReadBillingDocument(user, d.data()))
       .filter(d => !(entity === "expenses" || entity === "financialMovements") || d.data().status !== "anulado")
       .filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
@@ -90,7 +91,13 @@ export async function snapshot(user: UserProfile) {
 export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number, database?: Firestore) {
   const permission=collectionPermissions[entity];
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
-  requirePermission(user,permission);
+  if (entity !== "documentTemplates") requirePermission(user,permission);
+  if (entity === "documentTemplates" && !canManageTemplates(user)) throw new HttpError(403, "No tienes permiso para administrar plantillas.");
+  if (["projects", "clientProjects"].includes(entity) && !canViewFinancialAmounts(user)) {
+    input = { ...input }; delete input.estimatedBudget; delete input.executedCost;
+  }
+  if (entity === "suppliers" && !canAccessSubmodule(user, "personas", "proveedores")) throw new HttpError(403, "No tienes acceso a Proveedores en Personas.");
+  if (["clientQuotes", "billingQuotes"].includes(entity) && !((canAccessSubmodule(user, "ventas", "cotizaciones") && canUser(user, "ventas", "canCreateQuotes")) || (entity === "billingQuotes" && canAccessSubmodule(user, "facturacion", "cotizaciones") && canUser(user, "facturacion", "canCreateQuotes")))) throw new HttpError(403, "No tienes permiso para crear o editar cotizaciones.");
   if (entity === "expenseCategories" && !canManageExpenseCategories(user)) throw new HttpError(403, "No tienes permiso para administrar las categorías de gastos.");
   if (["tickets", "ticketSubjects", "ticketDepartments"].includes(entity) && !canAccessModule(user, "tickets")) throw new HttpError(403,"Acceso restringido a Soporte.");
   if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
@@ -128,6 +135,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     const merged={...old.data(),...input};
     for(const [key,value] of Object.entries(merged)) if(value===null) delete merged[key];
     const data=schemas[entity].parse(merged);
+    if (entity === "documentTemplates" && data.systemTemplateId && reference.id !== data.systemTemplateId) throw new HttpError(400, "La plantilla del sistema debe conservar su identificador.");
     if (entity === "expenseCategories") {
       const records = await tx.get(db.collection("expenseCategories"));
       const categories = expenseCategoriesWithDefaults(records.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ExpenseCategory));
@@ -267,7 +275,10 @@ export async function remove(user:UserProfile,entity:Entity,id:string,version?:n
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
   if (entity === "expenseCategories") throw new HttpError(400, "Desactiva la categoría para conservar el historial de gastos.");
   if (entity === "expenses") throw new HttpError(400, "El gasto está vinculado a un movimiento de caja y requiere conciliación.");
-  requirePermission(user,collectionPermissions[entity]);
+  if (entity !== "documentTemplates") requirePermission(user,collectionPermissions[entity]);
+  if (entity === "documentTemplates" && !canManageTemplates(user)) throw new HttpError(403, "No tienes permiso para administrar plantillas.");
+  if (entity === "suppliers" && !canAccessSubmodule(user, "personas", "proveedores")) throw new HttpError(403, "No tienes acceso a Proveedores en Personas.");
+  if (["clientQuotes", "billingQuotes"].includes(entity) && !(canAccessSubmodule(user, "ventas", "cotizaciones") && canUser(user, "ventas", "canCancelInvoices"))) throw new HttpError(403, "No tienes permiso para eliminar cotizaciones.");
   if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
   if (entity === "ticketDepartments") throw new HttpError(400,"Desactiva el departamento para conservar los tickets históricos.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "delete");

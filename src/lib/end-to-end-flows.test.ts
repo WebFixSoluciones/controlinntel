@@ -3174,7 +3174,7 @@ test("Flujo E2E 59: Creación de proyecto vinculada directamente al selector de 
   // 2. Selector directo de cliente para vincular a una cuenta de cliente
   assert.ok(
     projectModal.includes("Cliente Asignado") &&
-      projectModal.includes("-- Seleccionar Cuenta de Cliente --") &&
+      projectModal.includes("<ClientSearchSelect clients={clients} value={clientId} required") &&
       projectModal.includes("setClientId") &&
       projectModal.includes("setClientName"),
     "ProjectModal debe mostrar directamente el selector de cliente para vincular a una cuenta de cliente"

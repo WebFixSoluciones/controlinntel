@@ -245,7 +245,7 @@ export interface VaultActions {
 
 export interface UserModulePermissions {
   dashboard?: { enabled: boolean };
-  visibility?: { canViewServicePrices?: boolean };
+  visibility?: { canViewServicePrices?: boolean; canViewProductPrices?: boolean; canViewFinancialAmounts?: boolean };
   abonados?: { enabled: boolean; submodules?: Record<string, boolean> };
   personas?: {
     enabled: boolean;
@@ -284,6 +284,7 @@ export interface UserModulePermissions {
   };
   ventas?: {
     enabled: boolean;
+    actions?: Partial<BillingActions>;
     submodules: {
       notas_venta: boolean;
       nueva_venta: boolean;
@@ -331,7 +332,7 @@ export interface UserModulePermissions {
     enabled: boolean;
     actions?: VaultActions;
   };
-  plantillas?: { enabled: boolean };
+  plantillas?: { enabled: boolean; actions?: { canManageTemplates?: boolean } };
   configuracion?: {
     enabled: boolean;
     submodules?: {

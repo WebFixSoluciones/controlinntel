@@ -3,6 +3,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { activeCommercialDocuments } from "@/lib/sales-policy";
 import { summarizeReceivables } from "@/lib/financial-summary";
@@ -38,6 +39,7 @@ export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurre
 
 export function SalesManager() {
   const {
+    currentUser,
     billingInvoices,
     monthlyCharges,
     billingQuotes,
@@ -212,6 +214,9 @@ export function SalesManager() {
     }
   };
 
+  if (!canAccessSubmodule(currentUser, "ventas", activeTab)) return <p role="alert" className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">No tienes permiso para acceder a esta pantalla de Ventas.</p>;
+
+  if (activeTab === "nueva_venta" && !canUser(currentUser, "ventas", "canCreateInvoice")) return <p role="alert">No tienes permiso para registrar ventas.</p>;
   if (activeTab === "nueva_venta") {
     return (
       <NewSaleView
@@ -296,6 +301,7 @@ export function SalesManager() {
             </div>
 
             <button
+              disabled={!canAccessSubmodule(currentUser, "ventas", "nueva_venta") || !canUser(currentUser, "ventas", "canCreateInvoice")}
               onClick={() => {
                 setActiveTab("nueva_venta");
                 router.push("/ventas?sub=nueva_venta");
@@ -391,7 +397,7 @@ export function SalesManager() {
                             </button>
 
                             {/* Editar Nota de Venta */}
-                            {!sale.sriInvoiceId && (<ActionIconButton action="edit" onClick={() => {
+                            {!sale.sriInvoiceId && canUser(currentUser, "ventas", "canEditPrices") && (<ActionIconButton action="edit" onClick={() => {
                                 setSaleToEdit(sale);
                                 setIsEditSaleOpen(true);
                               }} title="Editar Nota de Venta" />)}
@@ -412,7 +418,7 @@ export function SalesManager() {
                             )}
 
                             {/* Eliminar Nota de Venta */}
-                            {!sale.sriInvoiceId && (<ActionIconButton action="delete" onClick={() => handleDeleteSale(sale)} title="Eliminar Nota de Venta" />)}
+                            {!sale.sriInvoiceId && canUser(currentUser, "ventas", "canCancelInvoices") && (<ActionIconButton action="delete" onClick={() => handleDeleteSale(sale)} title="Eliminar Nota de Venta" />)}
                           </div>
                         </td>
                       </tr>
@@ -459,6 +465,7 @@ export function SalesManager() {
             </div>
 
             <button
+              disabled={!canUser(currentUser, "ventas", "canCreateQuotes")}
               onClick={() => {
                 setQuoteToEdit(null);
                 setIsQuoteModalOpen(true);
@@ -519,7 +526,7 @@ export function SalesManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
-                          {q.status !== "facturada" ? (
+                          {q.status !== "facturada" && canUser(currentUser, "ventas", "canApproveQuotes") && canAccessSubmodule(currentUser, "ventas", "nueva_venta") ? (
                             <button
                               onClick={() => {
                                 setConvertDocType("nota_venta");
@@ -544,12 +551,12 @@ export function SalesManager() {
                             <Printer className="w-4 h-4" />
                           </button>
 
-                          <ActionIconButton action="edit" onClick={() => {
+                          <ActionIconButton action="edit" disabled={!canUser(currentUser, "ventas", "canCreateQuotes")} onClick={() => {
                               setQuoteToEdit(q);
                               setIsQuoteModalOpen(true);
                             }} title="Editar Cotización" />
 
-                          <ActionIconButton action="delete" onClick={() => {
+                          <ActionIconButton action="delete" disabled={!canUser(currentUser, "ventas", "canCancelInvoices")} onClick={() => {
                               showConfirm(
                                 "¿Eliminar Cotización?",
                                 `¿Confirmas eliminar la cotización ${q.quoteNumber} (${q.clientName})?`,

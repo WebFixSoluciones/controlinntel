@@ -1,13 +1,14 @@
 "use client";
 
 import React from "react";
+import { canAccessModule } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { monthlyCashSummary } from "@/lib/commercial-core";
 import { getEcuadorDate } from "@/lib/date-utils";
 import { Users, Banknote, Receipt, CreditCard, TrendingUp } from "lucide-react";
 
 export function MetricsCards() {
-  const { clients, financialMovements } = useApp();
+  const { clients, financialMovements, currentUser } = useApp();
 
   const activeClients = clients.filter((c) => c.status === "activo").length;
   const cash = monthlyCashSummary(financialMovements, getEcuadorDate()).slice(-1)[0];
@@ -38,6 +39,7 @@ export function MetricsCards() {
         </div>
       </div>
 
+      {canAccessModule(currentUser, "finanzas") && <>
       {/* 2. Ingresos Mensuales */}
       <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-lumina-card flex flex-col justify-between">
         <div className="flex items-center justify-between">
@@ -102,6 +104,7 @@ export function MetricsCards() {
           </span>
         </div>
       </div>
+      </>}
     </div>
   );
 }

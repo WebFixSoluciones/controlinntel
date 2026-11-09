@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { canAccessSubmodule } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -50,14 +51,14 @@ export default function DashboardPage() {
 
             {/* Accesos directos super minimalistas */}
             <div className="flex flex-wrap items-center gap-2">
-              <Link
+              {canAccessSubmodule(currentUser, "ventas", "nueva_venta") && (<Link
                 href="/ventas?sub=nueva_venta"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
                 title="Nueva Nota de Venta"
               >
                 <Receipt className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
                 <span>Venta</span>
-              </Link>
+              </Link>)}
 
               <button
                 type="button"
@@ -69,32 +70,32 @@ export default function DashboardPage() {
                 <span>Cliente</span>
               </button>
 
-              <Link
+              {canAccessSubmodule(currentUser, "inventarios", "productos") && (<Link
                 href="/inventarios?sub=productos&action=nuevo"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
                 title="Nuevo producto"
               >
                 <PackagePlus className="w-3.5 h-3.5 text-[#004ac6] group-hover:scale-110 transition-transform" />
                 <span>Producto</span>
-              </Link>
+              </Link>)}
 
-              <Link
+              {canAccessSubmodule(currentUser, "finanzas", "cuentas_por_cobrar") && (<Link
                 href="/finanzas?sub=cuentas_por_cobrar"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
                 title="Cuentas por Cobrar"
               >
                 <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
                 <span>Por Cobrar</span>
-              </Link>
+              </Link>)}
 
-              <Link
+              {canAccessSubmodule(currentUser, "finanzas", "cuentas_por_pagar") && (<Link
                 href="/finanzas?sub=cuentas_por_pagar"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#eff4ff] text-[#334155] hover:text-[#004ac6] rounded-lg border border-[#e2e8f0] hover:border-[#bfdbfe] text-xs font-semibold transition-all shadow-2xs cursor-pointer group"
                 title="Cuentas por Pagar"
               >
                 <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
                 <span>Por Pagar</span>
-              </Link>
+              </Link>)}
             </div>
           </div>
 
@@ -104,8 +105,8 @@ export default function DashboardPage() {
           {/* Middle Section (Grid 12 Cols: FinancialChart & RecentSales 8 Cols, Alertas & Tickets 4 Cols) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div className="lg:col-span-8 space-y-5">
-              <FinancialChart />
-              <RecentSalesCard />
+              {canAccessSubmodule(currentUser, "finanzas", "reportes") && <FinancialChart />}
+              {canAccessSubmodule(currentUser, "ventas", "notas_venta") && <RecentSalesCard />}
             </div>
             <div className="lg:col-span-4 space-y-5">
               <ExpirationsTimeline />

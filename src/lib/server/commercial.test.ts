@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { executeCommercial, runScheduledRecurringBilling, type CommercialCommand } from "./commercial.ts";
 import { schemas } from "./schemas.ts";
-import { save } from "./operations.ts";
+import { save, remove } from "./operations.ts";
 import { numberHistoricalTickets } from "./ticket-sequence.ts";
 import { requiresPublicTicketReply } from "../ticket-status.ts";
 import { expenseCategoriesWithDefaults } from "../expense-categories.ts";
@@ -24,10 +24,10 @@ class Database {
     get:async()=>({docs:this.list(name).filter(row=>!field||row[field]===value).map(row=>({get:(key:string)=>row[key]}))})});return query();}
   async runTransaction(fn:(tx:any)=>Promise<any>) {
     let release!:()=>void;const prior=this.tail;this.tail=new Promise<void>(r=>release=r);await prior;
-    const pending=new Map<string,any>();
+    const pending=new Map<string,any>(); const deleted=new Set<string>();
     const snap=(path:string)=>({id:path.split("/").pop(),ref:this.doc(path),exists:this.rows.has(path),data:()=>structuredClone(this.rows.get(path))});
-    const tx={get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...this.rows].filter(([key,row])=>key.startsWith(ref.name+"/")&&(!ref.field||row[ref.field]===ref.value)).map(([key])=>snap(key))},getAll:async(...refs:any[])=>refs.map(ref=>snap(ref.path)),set:(ref:any,row:any)=>pending.set(ref.path,structuredClone(row)),update:(ref:any,row:any)=>pending.set(ref.path,{...structuredClone(this.rows.get(ref.path)),...structuredClone(row)}),create:(ref:any,row:any)=>{if(this.rows.has(ref.path))throw Error("Already exists");pending.set(ref.path,structuredClone(row));}};
-    try {const result=await fn(tx);if(this.failCommit)throw Error("Injected commit failure");pending.forEach((row,key)=>this.rows.set(key,row));return result;} finally{release();}
+    const tx={delete:(ref:any)=>deleted.add(ref.path),get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...this.rows].filter(([key,row])=>key.startsWith(ref.name+"/")&&(!ref.field||row[ref.field]===ref.value)).map(([key])=>snap(key))},getAll:async(...refs:any[])=>refs.map(ref=>snap(ref.path)),set:(ref:any,row:any)=>pending.set(ref.path,structuredClone(row)),update:(ref:any,row:any)=>pending.set(ref.path,{...structuredClone(this.rows.get(ref.path)),...structuredClone(row)}),create:(ref:any,row:any)=>{if(this.rows.has(ref.path))throw Error("Already exists");pending.set(ref.path,structuredClone(row));}};
+    try {const result=await fn(tx);if(this.failCommit)throw Error("Injected commit failure");pending.forEach((row,key)=>this.rows.set(key,row));deleted.forEach(key=>this.rows.delete(key));return result;} finally{release();}
   }
   list(name:string){return [...this.rows].filter(([key])=>key.startsWith(name+"/")).map(([,row])=>row);}
   row(name:string,id:string){return this.rows.get(name+"/"+id);}
@@ -684,4 +684,38 @@ test("R29: the series honours the establishment chosen at the point of sale",asy
   const custom=await run(db,"issueSale",sale("a",{establishment:"007"}));
   assert.equal(custom.documentNumber,"007-001-000000001");
   assert.equal(db.row("sequences","nota_venta_007-001").value,1);
+});
+
+
+test("Plantillas compartidas permiten reemplazar el archivo, conservar identidad y rechazar ediciones concurrentes", async () => {
+  const db = new Database(initial());
+  const input = { name: "Contrato QA", description: "Modelo", category: "Contratos", systemTemplateId: "sys-contract",
+    fileName: "anterior.docx", fileSize: "2 KB", fileType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    fileData: "/api/blob/download?provider=gcs&pathname=templates%2Fanterior.docx", uploadedAt: "2026-11-09", uploadedBy: "QA" };
+  const created = await save(user, "documentTemplates", input, "sys-contract", 0, db as unknown as Firestore);
+  assert.equal(created.version, 1);
+  const edited = await save(user, "documentTemplates", { fileName: "correcto.docx", fileData: "/api/blob/download?provider=gcs&pathname=templates%2Fcorrecto.docx" }, "sys-contract", 1, db as unknown as Firestore);
+  assert.equal(edited.id, created.id); assert.equal(edited.version, 2);
+  assert.equal(db.row("documentTemplates", "sys-contract").fileName, "correcto.docx");
+  assert.equal(db.list("documentTemplates").length, 1);
+  await assert.rejects(save(user, "documentTemplates", { name: "Edición antigua" }, "sys-contract", 1, db as unknown as Firestore), { status: 409 });
+  assert.equal(db.row("documentTemplates", "sys-contract").name, "Contrato QA");
+  assert.equal(db.list("operationLog").length, 2);
+  await remove(user, "documentTemplates", "sys-contract", 2, db as unknown as Firestore);
+  assert.equal(db.list("documentTemplates").length, 0);
+  assert.equal(db.list("operationLog").length, 3);
+});
+
+test("La administración de plantillas se delega explícitamente y se bloquea sin permiso", async () => {
+  const db = new Database(initial());
+  const template = { name: "Plantilla QA", description: "Prueba", category: "Técnico / Red", fileName: "archivo.xlsx", fileSize: "2 KB", fileType: "application/octet-stream",
+    fileData: "/api/blob/download?provider=gcs&pathname=templates%2Farchivo.xlsx", uploadedAt: "2026-11-09", uploadedBy: "QA" };
+  const technician: UserProfile = { ...user, role: "tecnico", permissions: ["manage_network"], modulePermissions: { plantillas: { enabled: true, actions: { canManageTemplates: false } } } };
+  await assert.rejects(save(technician, "documentTemplates", template, "template", 0, db as unknown as Firestore), { status: 403 });
+  const delegated = { ...technician, modulePermissions: { plantillas: { enabled: true, actions: { canManageTemplates: true } } } };
+  await save(delegated, "documentTemplates", template, "template", 0, db as unknown as Firestore);
+  assert.equal(db.list("documentTemplates").length, 1);
+  await assert.rejects(remove(technician, "documentTemplates", "template", 1, db as unknown as Firestore), { status: 403 });
+  assert.equal(schemas.documentTemplates.safeParse({ ...template, fileData: "#" }).success, false);
+  assert.equal(schemas.documentTemplates.safeParse({ ...template, fileData: "javascript:alert(1)" }).success, false);
 });

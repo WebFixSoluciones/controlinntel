@@ -2,7 +2,9 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { canViewFinancialAmounts } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
+import { ClientSearchSelect } from "@/components/ui/ClientSearchSelect";
 import { useToast } from "@/lib/toast-context";
 import {
   ClientProjectTask,
@@ -92,6 +94,7 @@ export function ProjectTaskModal({
     updateClientProjectTask,
     addProjectTaskNote,
   } = useApp();
+  const showFinancialAmounts = canViewFinancialAmounts(currentUser);
   const { showSuccess, showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<"general" | "presupuesto" | "checklist" | "tramites" | "bitacora">("general");
@@ -458,7 +461,7 @@ export function ProjectTaskModal({
             <span>Datos</span>
           </button>
 
-          <button
+          {showFinancialAmounts && (<button
             type="button"
             onClick={() => setActiveTab("presupuesto")}
             className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
@@ -469,7 +472,7 @@ export function ProjectTaskModal({
           >
             <DollarSign className="w-4 h-4" />
             <span>Presupuestos</span>
-          </button>
+          </button>)}
 
           <button
             type="button"
@@ -643,21 +646,11 @@ export function ProjectTaskModal({
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Cliente Asignado <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    value={clientId}
-                    onChange={(e) => {
-                      setClientId(e.target.value);
-                      const c = clients.find((cl) => cl.id === e.target.value);
-                      if (c) setClientName(c.businessName);
-                    }}
-                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6] focus:ring-1 focus:ring-[#004ac6] transition-all"
-                  >
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.businessName} ({c.identificationNumber})
-                      </option>
-                    ))}
-                  </select>
+                  <ClientSearchSelect clients={clients} value={clientId} required
+                    onChange={selectedId => {
+                      setClientId(selectedId);
+                      setClientName(clients.find(client => client.id === selectedId)?.businessName || "");
+                    }} />
                 </div>
               ) : (
                 <div>
@@ -803,7 +796,7 @@ export function ProjectTaskModal({
           )}
 
           {/* TAB 2: PRESUPUESTO & COSTOS */}
-          {activeTab === "presupuesto" && (
+          {showFinancialAmounts && activeTab === "presupuesto" && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">

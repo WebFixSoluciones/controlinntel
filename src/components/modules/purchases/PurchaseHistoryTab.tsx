@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
+import { canAccessSubmodule, canUser } from "@/lib/permissions";
+import { inReportPeriod } from "@/lib/company-reporting";
+import { cents, money } from "@/lib/commercial-core";
 import {
   Search,
   Filter,
@@ -28,11 +31,14 @@ export function PurchaseHistoryTab({
   onOpenWithholdingForInvoice,
   onOpenCreditNoteForInvoice,
 }: PurchaseHistoryTabProps) {
-  const { purchaseInvoices, suppliers } = useApp();
+  const { purchaseInvoices, suppliers, currentUser } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSupplier, setFilterSupplier] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const invalidRange = !!dateFrom && !!dateTo && dateFrom > dateTo;
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
 
   // Filters
@@ -50,13 +56,13 @@ export function PurchaseHistoryTab({
     const matchStatus =
       filterStatus === "todos" || inv.paymentStatus === filterStatus;
 
-    return matchSearch && matchSupplier && matchStatus;
+    return !invalidRange && matchSearch && matchSupplier && matchStatus && inReportPeriod(inv.date, dateFrom, dateTo);
   });
 
   return (
     <div className="space-y-6">
       {/* Filter and Search Bar with Action Button */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
+      <div className="flex flex-wrap items-end justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
@@ -71,6 +77,7 @@ export function PurchaseHistoryTab({
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Supplier Filter */}
           <select
+            aria-label="Filtrar por proveedor"
             value={filterSupplier}
             onChange={(e) => setFilterSupplier(e.target.value)}
             className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
@@ -85,6 +92,7 @@ export function PurchaseHistoryTab({
 
           {/* Payment Status Filter */}
           <select
+            aria-label="Filtrar por estado de pago"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
@@ -95,7 +103,18 @@ export function PurchaseHistoryTab({
             <option value="pendiente">Pendiente</option>
           </select>
 
+          <label className="text-xs text-slate-600">Desde
+            <input type="date" value={dateFrom} max={dateTo || undefined} aria-invalid={invalidRange} aria-describedby={invalidRange ? "purchase-date-error" : undefined}
+              onChange={event => setDateFrom(event.target.value)} className="ml-2 rounded-lg border border-[#e2e8f0] bg-white px-2 py-2 text-xs" />
+          </label>
+          <label className="text-xs text-slate-600">Hasta
+            <input type="date" value={dateTo} min={dateFrom || undefined} aria-invalid={invalidRange} aria-describedby={invalidRange ? "purchase-date-error" : undefined}
+              onChange={event => setDateTo(event.target.value)} className="ml-2 rounded-lg border border-[#e2e8f0] bg-white px-2 py-2 text-xs" />
+          </label>
+          <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setSearchQuery(""); setFilterSupplier("todos"); setFilterStatus("todos"); }}
+            className="rounded-lg border border-[#e2e8f0] px-3 py-2 text-xs text-slate-600">Limpiar filtros</button>
           <button
+            disabled={!canAccessSubmodule(currentUser, "compras", "registrar_compra") || !canUser(currentUser, "compras", "canRegisterPurchase")}
             onClick={onOpenNewPurchase}
             className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
           >
@@ -105,10 +124,13 @@ export function PurchaseHistoryTab({
         </div>
       </div>
 
+      {invalidRange && <p id="purchase-date-error" role="alert" className="text-xs text-red-600">La fecha Desde no puede ser posterior a Hasta.</p>}
+      <p role="status" className="text-xs text-slate-600 tabular-nums">{filteredInvoices.length} de {purchaseInvoices.length} compras · Total filtrado: ${money(filteredInvoices.reduce((sum, invoice) => sum + cents(invoice.total), 0)).toFixed(2)}</p>
+
       {/* Table of Invoices */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse">
+          <table className="table-fixed w-full text-left text-xs border-collapse min-w-[1100px]">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
                 <th className="py-3 px-4 w-1/12">Fecha</th>
@@ -138,7 +160,7 @@ export function PurchaseHistoryTab({
                   return (
                     <tr key={inv.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3 px-4 font-medium text-[#0b1c30] whitespace-nowrap">
-                        {inv.date}
+                        {String(inv.date || "").slice(0, 10)}
                       </td>
 
                       <td className="py-3 px-4 font-mono font-bold text-[#004ac6] whitespace-nowrap">
@@ -214,7 +236,7 @@ export function PurchaseHistoryTab({
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {onOpenWithholdingForInvoice && (
+                          {onOpenWithholdingForInvoice && canAccessSubmodule(currentUser, "compras", "retenciones") && canUser(currentUser, "compras", "canEmitWithholding") && (
                             <button
                               onClick={() => onOpenWithholdingForInvoice(inv)}
                               className="p-1.5 rounded-lg text-[#059669] hover:bg-[#ecfdf5] transition-colors cursor-pointer"
@@ -224,7 +246,7 @@ export function PurchaseHistoryTab({
                             </button>
                           )}
 
-                          {onOpenCreditNoteForInvoice && (
+                          {onOpenCreditNoteForInvoice && canAccessSubmodule(currentUser, "compras", "notas_credito") && canUser(currentUser, "compras", "canRegisterPurchase") && (
                             <button
                               onClick={() => onOpenCreditNoteForInvoice(inv)}
                               className="p-1.5 rounded-lg text-[#b45309] hover:bg-[#fffbeb] transition-colors cursor-pointer"

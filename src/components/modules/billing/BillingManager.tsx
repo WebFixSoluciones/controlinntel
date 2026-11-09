@@ -3,6 +3,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { canAccessSubmodule } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -85,6 +86,7 @@ type BillingTab =
 export function BillingManager() {
   const router = useRouter();
   const {
+    currentUser,
     billingInvoices,
     billingQuotes,
     billingCreditNotes,
@@ -461,6 +463,11 @@ export function BillingManager() {
       setIsConverting(false);
     }
   };
+
+  const permitted = activeTab === "nueva_venta" ? canAccessSubmodule(currentUser, "ventas", "nueva_venta")
+    : activeTab === "recurrentes" ? canAccessSubmodule(currentUser, "ventas", "recurrentes")
+    : canAccessSubmodule(currentUser, "facturacion", activeTab);
+  if (!permitted) return <p role="alert" className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">No tienes permiso para acceder a esta pantalla de Facturación.</p>;
 
   if (activeTab === "nueva_venta") {
     return (

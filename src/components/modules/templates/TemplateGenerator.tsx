@@ -2,6 +2,8 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useMemo } from "react";
+import type { DocumentTemplate as CustomTemplate } from "@/types";
+import { canManageTemplates } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { uploadStoredFile } from "@/lib/stored-file-upload";
@@ -34,31 +36,16 @@ import {
   triggerBrowserDownload,
 } from "@/lib/doc-generator";
 
-interface CustomTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: "Contratos" | "Técnico / Red" | "Comercial / Ventas" | "Legal / ARCOTEL" | "Finanzas";
-  fileName: string;
-  fileSize: string;
-  fileType: string;
-  fileData?: string;
-  uploadedAt: string;
-  uploadedBy: string;
-  version?: number;
-  updatedAt?: string;
-  updatedBy?: string;
-}
 
 const STORAGE_TEMPLATES_KEY = "inntel_custom_templates_v1";
 
 const INITIAL_CUSTOM_TEMPLATES: CustomTemplate[] = [];
 
 export function TemplateGenerator() {
-  const { clients, clientServices, nodes, policies, monthlyCharges, currentUser } = useApp();
-  const { showSuccess, showError, showWarning } = useToast();
+  const { clients, clientServices, nodes, policies, monthlyCharges, currentUser, documentTemplates, saveRecord, deleteRecord } = useApp();
+  const { showSuccess, showError, showWarning, showConfirm } = useToast();
 
-  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [legacyTemplates, setLegacyTemplates] = useState<CustomTemplate[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("todas");
 
@@ -82,20 +69,30 @@ export function TemplateGenerator() {
     try {
       const stored = localStorage.getItem(STORAGE_TEMPLATES_KEY);
       if (stored) {
-        setCustomTemplates(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        setLegacyTemplates(Array.isArray(parsed) ? parsed : []);
       } else {
-        setCustomTemplates(INITIAL_CUSTOM_TEMPLATES);
+        setLegacyTemplates(INITIAL_CUSTOM_TEMPLATES);
         localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(INITIAL_CUSTOM_TEMPLATES));
       }
     } catch {
-      setCustomTemplates(INITIAL_CUSTOM_TEMPLATES);
+      setLegacyTemplates(INITIAL_CUSTOM_TEMPLATES);
     }
   }, []);
 
-  const saveCustomTemplates = (updated: CustomTemplate[]) => {
+  const canManage = canManageTemplates(currentUser);
+  const customTemplates = useMemo(() => [...documentTemplates, ...legacyTemplates.filter(template => !documentTemplates.some(saved => saved.id === template.id))], [documentTemplates, legacyTemplates]);
+  const saveLegacyTemplates = (updated: CustomTemplate[]) => {
     try { localStorage.setItem(STORAGE_TEMPLATES_KEY, JSON.stringify(updated)); }
     catch { throw new Error("No se pudieron guardar las referencias. Libera espacio del navegador y vuelve a intentar; no se eliminó el archivo anterior."); }
-    setCustomTemplates(updated);
+    setLegacyTemplates(updated);
+  };
+
+  const persistTemplate = async (record: CustomTemplate) => {
+    const shared = documentTemplates.find(template => template.id === record.id);
+    await saveRecord("documentTemplates", { ...record, version: shared ? record.version ?? shared.version : 0 }, record.id);
+    try { saveLegacyTemplates(legacyTemplates.filter(template => template.id !== record.id)); }
+    catch { /* The server record is already saved; retain the local recovery copy. */ }
   };
 
   const handleDownloadContract = async () => {
@@ -173,7 +170,7 @@ export function TemplateGenerator() {
       const sizeKb = Math.round(selectedFile.size / 1024);
 
       const newTmpl: CustomTemplate = {
-        id: "tmpl-" + Date.now(),
+        id: "tmpl-" + crypto.randomUUID(),
         name: newName.trim(),
         description: newDescription.trim() || "Plantilla institucional cargada por el personal.",
         category: newCategory,
@@ -186,7 +183,7 @@ export function TemplateGenerator() {
         version: 1,
       };
 
-      saveCustomTemplates([newTmpl, ...customTemplates]);
+      await persistTemplate(newTmpl);
       showSuccess("Plantilla Creada", `La plantilla "${newTmpl.name}" ha sido agregada con éxito.`);
       setIsUploadModalOpen(false);
       setNewName("");
@@ -209,7 +206,8 @@ export function TemplateGenerator() {
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingTemplate) return;
+    if (!editingTemplate || !canManage) return;
+    if (!editingTemplate.fileData && !editReplacementFile) { showError("Archivo requerido", "Selecciona el archivo correcto antes de guardar esta plantilla."); return; }
     if (!editName.trim()) {
       showError("Nombre Requerido", "Ingresa el nombre de la plantilla.");
       return;
@@ -238,27 +236,11 @@ export function TemplateGenerator() {
 
       }
 
-      const todayStr = new Date().toISOString().split("T")[0];
-      const updatedList = customTemplates.map((t) => {
-        if (t.id === editingTemplate.id) {
-          return {
-            ...t,
-            name: editName.trim(),
-            category: editCategory,
-            description: editDescription.trim(),
-            fileName: updatedFileName,
-            fileSize: updatedFileSize,
-            fileType: updatedFileType,
-            fileData: updatedFileData,
-            updatedAt: todayStr,
-            updatedBy: currentUser.displayName || "Administrador",
-            version: (t.version || 1) + (didReplaceFile ? 1 : 0),
-          };
-        }
-        return t;
+      await persistTemplate({
+        ...editingTemplate, name: editName.trim(), category: editCategory, description: editDescription.trim(),
+        fileName: updatedFileName, fileSize: updatedFileSize, fileType: updatedFileType, fileData: updatedFileData,
+        updatedBy: currentUser.displayName || "Administrador",
       });
-
-      saveCustomTemplates(updatedList);
       showSuccess(
         "Plantilla Actualizada",
         didReplaceFile
@@ -283,18 +265,17 @@ export function TemplateGenerator() {
     }
   };
 
-  const handleDeleteCustom = async (id: string, name: string) => {
-    try {
-      // Remove the local reference only after persisting the updated list.
-      saveCustomTemplates(customTemplates.filter(t => t.id !== id));
-      showSuccess("Plantilla retirada", `Se retiró "${name}" del listado de este navegador.`);
-    } catch (error) {
-      showError("No se pudo retirar", error instanceof Error ? error.message : "Intenta nuevamente.");
-    }
+  const handleDeleteCustom = (id: string, name: string) => {
+    showConfirm("Retirar plantilla", `¿Deseas retirar "${name}" del listado compartido?`, async () => {
+      try {
+        if (documentTemplates.some(template => template.id === id)) await deleteRecord("documentTemplates", id);
+        saveLegacyTemplates(legacyTemplates.filter(template => template.id !== id));
+        showSuccess("Plantilla retirada", "El listado fue actualizado.");
+      } catch (error) { showError("No se pudo retirar", error instanceof Error ? error.message : "Intenta nuevamente."); }
+    });
   };
 
-  const SYSTEM_TEMPLATES = useMemo(
-    () => [
+  const SYSTEM_TEMPLATES = [
       {
         id: "sys-contract",
         title: "Contrato de Adhesión para Servicio de Internet (SAI)",
@@ -339,23 +320,20 @@ export function TemplateGenerator() {
         action: handleDownloadRenewalLetter,
         buttonText: "Generar Word",
       },
-    ],
-    [clients, clientServices, nodes, policies, monthlyCharges]
-  );
+    ];
 
   // Filtered lists
-  const filteredSystemTemplates = useMemo(() => {
-    return SYSTEM_TEMPLATES.filter((tmpl) => {
+  const filteredSystemTemplates = SYSTEM_TEMPLATES.filter((tmpl) => {
       const matchSearch =
         tmpl.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tmpl.desc.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tmpl.module.toLowerCase().includes(searchTerm.toLowerCase());
       return matchSearch;
     });
-  }, [SYSTEM_TEMPLATES, searchTerm]);
 
   const filteredCustomTemplates = useMemo(() => {
     return customTemplates.filter((tmpl) => {
+      if (tmpl.systemTemplateId) return false;
       const matchSearch =
         tmpl.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tmpl.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -429,6 +407,7 @@ export function TemplateGenerator() {
 
         {/* Upload / New Template Button */}
         <button
+          disabled={!canManage}
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer shrink-0"
         >
@@ -466,24 +445,32 @@ export function TemplateGenerator() {
                 </tr>
               ) : (
                 filteredSystemTemplates.map((tmpl) => {
+                  const replacement = customTemplates.find(template => template.id === tmpl.id && template.systemTemplateId === tmpl.id);
                   return (
                     <tr key={tmpl.id} className="hover:bg-[#f8f9ff] transition-colors">
                       <td className="py-3.5 px-4 w-6/12">
-                        <p className="font-bold text-[#0b1c30] text-xs">{tmpl.title}</p>
+                        <p className="font-bold text-[#0b1c30] text-xs">{replacement?.name || tmpl.title}</p>
+                        {replacement && <p className="mt-1 text-xs text-slate-500">{replacement.fileName} · v{replacement.version || 1}</p>}
                       </td>
                       <td className="py-3.5 px-4 w-3/12 whitespace-nowrap">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${tmpl.badgeBg}`}>
-                          {tmpl.format}
+                          {replacement ? getFileBadge(replacement.fileName).label : tmpl.format}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 w-3/12 text-right whitespace-nowrap">
                         <button
-                          onClick={tmpl.action}
+                          onClick={() => replacement ? void handleDownloadCustom(replacement) : void tmpl.action()}
                           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          <span>{tmpl.buttonText}</span>
+                          <span>{replacement ? "Descargar plantilla" : tmpl.buttonText}</span>
                         </button>
+                        {canManage && <ActionIconButton action="edit" className="ml-2" label={`Editar plantilla ${replacement?.name || tmpl.title}`} onClick={() => openEditModal(replacement || {
+                          id: tmpl.id, systemTemplateId: tmpl.id, name: tmpl.title, description: tmpl.desc,
+                          category: tmpl.id === "sys-infra" ? "Técnico / Red" : tmpl.id === "sys-billing" ? "Finanzas" : tmpl.id === "sys-contract" ? "Contratos" : "Legal / ARCOTEL",
+                          fileName: "Sin archivo personalizado", fileSize: "—", fileType: "application/octet-stream",
+                          uploadedAt: new Date().toISOString().slice(0, 10), uploadedBy: currentUser.displayName,
+                        })} />}
                       </td>
                     </tr>
                   );
@@ -569,7 +556,7 @@ export function TemplateGenerator() {
                       </td>
                       <td className="py-3.5 px-4 w-1/12 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          <ActionIconButton action="edit" onClick={() => openEditModal(item)} title="Editar plantilla y actualizar archivo" />
+                          <ActionIconButton action="edit" disabled={!canManage} onClick={() => openEditModal(item)} title="Editar plantilla y actualizar archivo" />
                           <button
                             onClick={() => handleDownloadCustom(item)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
@@ -578,7 +565,7 @@ export function TemplateGenerator() {
                             <Download className="w-3.5 h-3.5" />
                             <span>Descargar</span>
                           </button>
-                          <ActionIconButton action="delete" onClick={() => handleDeleteCustom(item.id, item.name)} title="Eliminar plantilla" />
+                          <ActionIconButton action="delete" disabled={!canManage} onClick={() => handleDeleteCustom(item.id, item.name)} title="Eliminar plantilla" />
                         </div>
                       </td>
                     </tr>
@@ -782,7 +769,7 @@ export function TemplateGenerator() {
                 </div>
                 <p className="text-[11px] text-[#737686] leading-relaxed">
                   Si editaste el documento Word o Excel y deseas actualizar el formato, selecciona el nuevo archivo.
-                  Reemplazará la versión anterior manteniendo el historial de la plantilla.
+                  El archivo nuevo quedará compartido en el sistema. Los documentos ya generados se conservan. Si reemplazas una plantilla del sistema, se descargará el archivo que cargues.
                 </p>
 
                 <input

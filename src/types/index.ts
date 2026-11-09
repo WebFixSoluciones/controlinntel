@@ -39,6 +39,23 @@ export interface UserProfile {
   modulePermissions?: UserModulePermissions;
 }
 
+export interface DocumentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: "Contratos" | "Técnico / Red" | "Comercial / Ventas" | "Legal / ARCOTEL" | "Finanzas";
+  systemTemplateId?: string;
+  fileName: string;
+  fileSize: string;
+  fileType: string;
+  fileData?: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  version?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 export interface SystemUser extends UserProfile {
   passwordHash?: string;
   status: "activo" | "inactivo";

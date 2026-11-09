@@ -4,7 +4,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { useApp } from "@/lib/state";
 import { companyPeriodReport, reportNet } from "@/lib/company-reporting";
 import { getEcuadorDate } from "@/lib/date-utils";
-import { canUser } from "@/lib/permissions";
+import { canUser, canAccessModule } from "@/lib/permissions";
 import { downloadReport, type ReportColumn } from "@/lib/report-export";
 import { printHtmlElement } from "@/lib/print-service";
 import { useToast } from "@/lib/toast-context";
@@ -57,6 +57,8 @@ export function CompanyReportsPanel({ from, to, onPeriodChange, children }: { fr
   const exportBanks = async () => { try { await downloadReport(report.banks, [{ key: "bankName", label: "Cuenta" }, { key: "accountNumber", label: "Número" }, { key: "status", label: "Estado" }, { key: "opening", label: "Saldo al inicio", money: true }, { key: "closing", label: "Saldo al cierre", money: true }, { key: "current", label: "Saldo actual", money: true }], "Reporte_saldos_bancos", "xlsx", `Desde ${from || "inicio"} hasta ${to || "sin límite"}; todas las cuentas. Saldos reconstruidos con movimientos registrados.`); } catch { showError("No se pudo exportar", "Inténtalo nuevamente."); } };
   const invalid = Boolean(from && to && from > to);
   return <div ref={root} className="min-w-0 space-y-4 text-xs">
+    {!["ventas", "compras", "facturacion"].every(key => canAccessModule(source.currentUser, key as "ventas" | "compras" | "facturacion")) &&
+      <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">Vista limitada por tus permisos. Los documentos de módulos restringidos no se incluyen; este reporte no representa el estado completo de la empresa.</p>}
     <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold">Reportes de la empresa</h2><p className="mt-1 text-slate-500">Ventas, compras, gastos, clientes y movimiento de dinero para revisar el negocio.</p></div>
         {canExport && tab !== "clientes" && tab !== "detalle" && <div className="flex flex-wrap gap-2 print:hidden"><button disabled={invalid} className={button} onClick={() => void exportFile("xlsx")}>Excel</button><button disabled={invalid} className={button} onClick={() => void exportFile("csv")}>CSV</button><button disabled={invalid} className={button} onClick={() => printHtmlElement(root.current, "Reporte de empresa")}>Imprimir / PDF</button></div>}

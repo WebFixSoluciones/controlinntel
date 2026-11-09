@@ -3,6 +3,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useMemo } from "react";
+import { canViewFinancialAmounts } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -93,6 +94,7 @@ export function ProjectWorkspace({
   onEditProject,
 }: ProjectWorkspaceProps) {
   const {
+    currentUser,
     clientProjects,
     regulatoryTramites,
     updateProject,
@@ -100,6 +102,7 @@ export function ProjectWorkspace({
     moveProjectTaskColumn,
     deleteClientProjectTask,
   } = useApp();
+  const showFinancialAmounts = canViewFinancialAmounts(currentUser);
   const { showSuccess, showConfirm, showError } = useToast();
 
   // Internal view tabs: kanban, list, gantt
@@ -421,6 +424,7 @@ export function ProjectWorkspace({
                 <div className="text-[10px] text-slate-400 mt-2">En curso y revisión</div>
               </div>
 
+              {showFinancialAmounts && <>
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
                 <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Presupuesto Estimado</div>
                 <div className="flex items-baseline gap-2 mt-1">
@@ -453,6 +457,7 @@ export function ProjectWorkspace({
                   Saldo: ${financialStats.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </div>
               </div>
+              </>}
             </div>
         </div>
 
@@ -882,7 +887,7 @@ export function ProjectWorkspace({
                         </td>
 
                         <td className="py-3 px-4 text-slate-700 font-mono text-[11px]">
-                          ${task.executedCost || 0} / ${task.estimatedBudget || 0}
+                          {showFinancialAmounts ? `$${task.executedCost || 0} / $${task.estimatedBudget || 0}` : "—"}
                         </td>
 
                         <td className="py-3 px-4 text-right">

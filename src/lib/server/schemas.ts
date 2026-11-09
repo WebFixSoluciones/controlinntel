@@ -297,4 +297,12 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   billingDebitNotes: z.object({ clientId: text, total: money }).passthrough(),
   auditLogs: z.object({ action: text, resource: text, details: z.string().max(20000), timestamp: text }).passthrough(),
   systemConfig: z.object({}).passthrough(),
+  documentTemplates: z.object({
+    name: z.string().trim().min(2).max(200), description: z.string().trim().max(2000),
+    category: z.enum(["Contratos", "Técnico / Red", "Comercial / Ventas", "Legal / ARCOTEL", "Finanzas"]),
+    systemTemplateId: z.enum(["sys-contract", "sys-infra", "sys-billing", "sys-renewal"]).optional(),
+    fileName: text, fileSize: text, fileType: text,
+    fileData: z.string().min(1).max(7000).refine(value => value.startsWith("/api/blob/download?") || /^https:\/\/[\w-]+\.public\.blob\.vercel-storage\.com\//.test(value), "Carga el archivo original de la plantilla."),
+    uploadedAt: date, uploadedBy: text, updatedBy: optionalText,
+  }),
 };

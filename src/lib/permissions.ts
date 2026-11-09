@@ -18,6 +18,7 @@ export const collectionPermissions = {
   policies: "manage_policies", tickets: "manage_tickets", ticketSubjects: "manage_tickets", ticketDepartments: "manage_tickets", expenses: "manage_finance",
   expenseCategories: "manage_finance", monthlyCharges: "manage_finance", clientAdvances: "manage_finance", vault: "manage_vault", clientVaultItems: "manage_vault",
   systemUsers: "manage_users", userRoleTemplates: "manage_users", auditLogs: "manage_users",
+  documentTemplates: "export_reports",
   arcotelFiles: "manage_policies", clientDocuments: "manage_clients",
   inventoryProducts: "manage_network", inventoryWarehouses: "manage_network",
   inventoryCategories: "manage_network", inventoryBrands: "manage_network",
@@ -66,9 +67,24 @@ export function canViewServicePrices(user: UserProfile | undefined | null): bool
     || (user.modulePermissions?.visibility?.canViewServicePrices ?? user.role !== "tecnico"));
 }
 
+export function canViewFinancialAmounts(user: UserProfile | undefined | null): boolean {
+  return user?.status === "activo" && (user.role === "superadmin"
+    || (user.modulePermissions?.visibility?.canViewFinancialAmounts ?? user.role !== "tecnico"));
+}
+
+export function canViewProductPrices(user: UserProfile | undefined | null): boolean {
+  return user?.status === "activo" && (user.role === "superadmin"
+    || (user.modulePermissions?.visibility?.canViewProductPrices ?? user.role !== "tecnico"));
+}
+
 export function canManageTicketDepartments(user: UserProfile): boolean {
   return can(user, "manage_tickets") && canAccessModule(user, "tickets") &&
     (user.role === "superadmin" || (user.modulePermissions?.tickets?.actions?.canManageDepartments ?? user.role === "admin"));
+}
+
+export function canManageTemplates(user: UserProfile): boolean {
+  return canAccessModule(user, "plantillas") && user.role !== "consulta" && (user.role === "superadmin"
+    || (user.modulePermissions?.plantillas?.actions?.canManageTemplates ?? user.role === "admin"));
 }
 
 export function can(user: UserProfile, permission: string) {
@@ -363,6 +379,7 @@ export function canAccessModule(user: UserProfile | undefined | null, moduleKey:
   if (!user || user.status !== "activo") return false;
   if (user.role === "superadmin") return true;
   if (moduleKey === "actions") return true;
+  if (["ventas", "compras", "finanzas", "facturacion"].includes(moduleKey) && !canViewFinancialAmounts(user)) return false;
   const override = user.modulePermissions?.[moduleKey] as { enabled?: boolean } | undefined;
   if (typeof override?.enabled === "boolean") return override.enabled;
   if (moduleKey === "dashboard") return user.role !== "tecnico";
@@ -492,6 +509,13 @@ export function canUser(
     return userModule.actions[actionKey];
   }
 
+  // Older profiles stored commercial sale actions under SRI billing.
+  if (moduleKey === "ventas") {
+    if (actionKey === "canCancelInvoices") return canPerformAction(user, "canDeleteInvoices");
+    return !!((user.modulePermissions?.facturacion?.actions as unknown as Record<string, boolean> | undefined)?.[actionKey]
+      ?? (DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role].facturacion?.actions as unknown as Record<string, boolean> | undefined)?.[actionKey]);
+  }
+
   // 2. Revisar preset predeterminado del rol
   const roleDefault = (DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role] as any)?.[moduleKey];
   if (roleDefault?.actions && typeof roleDefault.actions[actionKey] === "boolean") {
@@ -499,4 +523,28 @@ export function canUser(
   }
 
   return false;
+}
+
+/** Match the editor to the effective defaults, retaining every explicit denial. */
+export function editableModulePermissions(user: UserProfile): UserModulePermissions {
+  const defaults = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[user.role];
+  const result = JSON.parse(JSON.stringify({ ...defaults, ...user.modulePermissions })) as UserModulePermissions;
+  for (const key of Object.keys(defaults) as (keyof UserModulePermissions)[]) {
+    const preset = defaults[key] as { submodules?: object; actions?: object } | undefined;
+    const override = user.modulePermissions?.[key] as { submodules?: object; actions?: object } | undefined;
+    const target = result[key] as { submodules?: object; actions?: object } | undefined;
+    if (!target) continue;
+    if (preset?.submodules) target.submodules = { ...preset.submodules, ...override?.submodules };
+    if (preset?.actions) target.actions = { ...preset.actions, ...override?.actions };
+  }
+  result.dashboard = { enabled: canAccessModule(user, "dashboard") };
+  result.visibility = {
+    ...result.visibility, canViewServicePrices: canViewServicePrices(user),
+    canViewProductPrices: canViewProductPrices(user), canViewFinancialAmounts: canViewFinancialAmounts(user),
+  };
+  if (result.ventas) result.ventas.actions = {
+    ...defaults.facturacion?.actions, ...user.modulePermissions?.facturacion?.actions,
+    canCancelInvoices: canPerformAction(user, "canDeleteInvoices"), ...user.modulePermissions?.ventas?.actions,
+  };
+  return result;
 }

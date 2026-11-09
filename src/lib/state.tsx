@@ -1,5 +1,7 @@
 "use client";
 
+import type { DocumentTemplate } from "@/types";
+import { ApiError } from "./api-error";
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ToastProvider } from "./toast-context";
 import type { ExpenseCategory } from "./expense-categories";
@@ -176,6 +178,7 @@ interface AppContextType {
   deleteTicketSubject: (id: string) => Promise<void>;
   expenses: Expense[];
   expenseCategories: ExpenseCategory[];
+  documentTemplates: DocumentTemplate[];
   monthlyCharges: MonthlyCharge[];
   auditLogs: AuditLog[];
 
@@ -474,6 +477,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userRoleTemplates, setUserRoleTemplates] = useState<UserRoleTemplate[]>([]);
   const ticketDepartments = useMemo(() => resolveTicketDepartments(ticketDepartmentRecords), [ticketDepartmentRecords]);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
+  const [documentTemplates, setDocumentTemplates] = useState<DocumentTemplate[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [monthlyCharges, setMonthlyCharges] = useState<MonthlyCharge[]>(INITIAL_MONTHLY_CHARGES);
   const [clientAdvances, setClientAdvances] = useState<ClientAdvance[]>([]);
@@ -722,6 +726,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "ticketDepartments", setter: setTicketDepartmentRecords, initialData: [] },
       { name: "expenses", setter: setExpenses, initialData: INITIAL_EXPENSES },
       { name: "expenseCategories", setter: setExpenseCategories, initialData: [] },
+      { name: "documentTemplates", setter: setDocumentTemplates, initialData: [] },
       { name: "monthlyCharges", setter: setMonthlyCharges, initialData: INITIAL_MONTHLY_CHARGES },
       { name: "clientAdvances", setter: setClientAdvances, initialData: [] },
       { name: "projects", setter: setProjects, initialData: INITIAL_PROJECTS },
@@ -808,6 +813,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("online", reload);
   }, [isAuthenticated, refresh]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let checking = false;
+    const verifyAccess = async () => {
+      if (checking || document.visibilityState !== "visible") return;
+      checking = true;
+      try {
+        const profile = await api<UserProfile>("/api/session");
+        const access = (user: UserProfile) => JSON.stringify([user.role, user.status, user.permissions, user.modulePermissions]);
+        if (profile.uid === currentUser.uid && access(profile) !== access(currentUser)) await refresh();
+      } catch (error) {
+        if (error instanceof ApiError && [401, 403].includes(error.status)) setCurrentUser(previous => ({ ...previous, status: "inactivo" }));
+      }
+      finally { checking = false; }
+    };
+    window.addEventListener("focus", verifyAccess);
+    document.addEventListener("visibilitychange", verifyAccess);
+    return () => {
+      window.removeEventListener("focus", verifyAccess);
+      document.removeEventListener("visibilitychange", verifyAccess);
+    };
+  }, [isAuthenticated, currentUser, refresh]);
+
   const saveRecord = async (entity: Entity, data: Record<string, unknown>, id?: string) => {
     const targetId = id || (data.id ? String(data.id) : `${entity.slice(0, 4)}-${Date.now()}`);
     const recordWithId = { ...data, id: targetId };
@@ -849,6 +877,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const exists = prev.some((t) => t.id === targetId);
           return exists ? prev.map((t) => (t.id === targetId ? ({ ...t, ...recordWithId } as Ticket) : t)) : [...prev, recordWithId as Ticket];
         });
+        break;
+      case "documentTemplates":
+        setDocumentTemplates(prev => [...prev.filter(template => template.id !== targetId), recordWithId as unknown as DocumentTemplate]);
         break;
       case "expenseCategories":
         setExpenseCategories(prev => [...prev.filter(category => category.id !== targetId), recordWithId as unknown as ExpenseCategory]);
@@ -999,6 +1030,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const deleteRecord = async (entity: Entity, id: string) => {
     await deleteFromFirestore(entity, id);
     switch (entity) {
+      case "documentTemplates": setDocumentTemplates(prev => prev.filter(template => template.id !== id)); break;
       case "plans": setPlans((prev) => prev.filter((p) => p.id !== id)); break;
       case "ipPools": setIpPools((prev) => prev.filter((p) => p.id !== id)); break;
       case "clientServices": setClientServices((prev) => prev.filter((s) => s.id !== id)); break;
@@ -2031,6 +2063,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           userRoleTemplates,
           expenses,
           expenseCategories,
+          documentTemplates,
           monthlyCharges,
           clientAdvances,
           auditLogs,

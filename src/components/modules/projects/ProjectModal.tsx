@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { canViewFinancialAmounts } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
+import { ClientSearchSelect } from "@/components/ui/ClientSearchSelect";
 import { useToast } from "@/lib/toast-context";
 import { Project, ProjectStatus } from "@/types";
 import { DEFAULT_PROJECT_COLUMNS } from "@/lib/mock-data";
@@ -31,7 +33,8 @@ export function ProjectModal({
   defaultClientId,
   defaultClientName,
 }: ProjectModalProps) {
-  const { clients, addProject, updateProject } = useApp();
+  const { clients, addProject, updateProject, currentUser } = useApp();
+  const showFinancialAmounts = canViewFinancialAmounts(currentUser);
   const { showSuccess, showError } = useToast();
 
   const [title, setTitle] = useState("");
@@ -191,24 +194,11 @@ export function ProjectModal({
                 Cliente Asignado <span className="text-rose-500">*</span>
               </span>
             </label>
-            <select
-              required
-              value={clientId}
-              onChange={(e) => {
-                const selectedId = e.target.value;
+            <ClientSearchSelect clients={clients} value={clientId} required
+              onChange={selectedId => {
                 setClientId(selectedId);
-                const c = clients.find((cl) => cl.id === selectedId);
-                setClientName(c ? c.businessName : "");
-              }}
-              className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-slate-200 bg-white font-semibold text-slate-800 focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
-            >
-              <option value="">-- Seleccionar Cuenta de Cliente --</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.businessName} ({c.identificationNumber})
-                </option>
-              ))}
-            </select>
+                setClientName(clients.find(client => client.id === selectedId)?.businessName || "");
+              }} />
           </div>
 
           {/* Fechas de Inicio y Fin (Cronograma Global) */}
@@ -244,7 +234,7 @@ export function ProjectModal({
 
           {/* Presupuesto y Estado Inicial */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            {showFinancialAmounts && (<div>
               <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Presupuesto Estimado ($ USD)</span>
@@ -258,7 +248,7 @@ export function ProjectModal({
                 onChange={(e) => setEstimatedBudget(parseFloat(e.target.value) || 0)}
                 className="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 font-mono focus:outline-hidden focus:border-[#004ac6]"
               />
-            </div>
+            </div>)}
 
             <div>
               <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">

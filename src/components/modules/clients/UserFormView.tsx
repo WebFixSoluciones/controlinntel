@@ -8,8 +8,8 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
   DEFAULT_MODULE_PERMISSIONS_BY_ROLE,
-  canAccessModule,
-  canViewServicePrices,
+  canPerformAction,
+  editableModulePermissions,
   DEFAULT_INVENTORY_ACTIONS,
   DEFAULT_BILLING_ACTIONS,
   DEFAULT_CLIENT_ACTIONS,
@@ -45,12 +45,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
     const selectedRole = user?.role || "tecnico";
     const profile = { ...user, uid: user?.uid || "", email: user?.email || "", displayName: user?.displayName || "",
       role: selectedRole, status: "activo" as const };
-    return {
-      ...DEFAULT_MODULE_PERMISSIONS_BY_ROLE[selectedRole],
-      ...user?.modulePermissions,
-      dashboard: { enabled: canAccessModule(profile, "dashboard") },
-      visibility: { canViewServicePrices: canViewServicePrices(profile) },
-    };
+    return editableModulePermissions(profile);
   });
 
   // Accordion open/close state
@@ -79,7 +74,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       setPermissions({
         ...preset,
         dashboard: { enabled: selectedRole !== "tecnico" },
-        visibility: { canViewServicePrices: selectedRole !== "tecnico" },
+        visibility: { canViewServicePrices: selectedRole !== "tecnico", canViewProductPrices: selectedRole !== "tecnico", canViewFinancialAmounts: selectedRole !== "tecnico" },
       });
     }
   };
@@ -164,7 +159,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       ...Object.fromEntries(Object.entries(prev).map(([key, value]) =>
         [key, "enabled" in value ? { ...value, enabled: false } : value])),
       dashboard: { enabled: false },
-      visibility: { canViewServicePrices: false },
+      visibility: { canViewServicePrices: false, canViewProductPrices: false, canViewFinancialAmounts: false },
     }));
   };
 
@@ -220,7 +215,8 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       "inventarios",
       "facturacion",
       "personas",
-      "clientes",
+      "ventas",
+      "abonados",
       "compras",
       "finanzas",
       "red",
@@ -474,7 +470,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                     const template = userRoleTemplates.find(row => row.id === event.target.value);
                     if (!template) return;
                     setRole(template.baseRole);
-                    setPermissions(template.modulePermissions);
+                    setPermissions(editableModulePermissions({ uid: "preview", email: "", displayName: "", role: template.baseRole, status: "activo", modulePermissions: template.modulePermissions }));
                   }}>
                     <option value="">Seleccionar una plantilla guardada</option>
                     {userRoleTemplates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
@@ -492,6 +488,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
             )}
             <h3 className="font-bold text-xs text-[#0b1c30]">Pantallas y visibilidad de datos</h3>
             <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={permissions.plantillas?.actions?.canManageTemplates ?? (role === "admin" || role === "superadmin")}
+                disabled={role === "superadmin" || !permissions.plantillas?.enabled}
+                onChange={event => { const checked = event.target.checked; setPermissions(prev => ({ ...prev, plantillas: { enabled: prev.plantillas?.enabled ?? false, actions: { ...prev.plantillas?.actions, canManageTemplates: checked } } })); }} />
+              <span><strong>Administrar plantillas y archivos</strong><span className="block text-slate-500">Crear, editar, reemplazar y retirar plantillas compartidas.</span></span>
+            </label>
+            <label className="flex items-start gap-2 text-xs">
               <input type="checkbox" checked={permissions.dashboard?.enabled ?? role !== "tecnico"}
                 disabled={role === "superadmin"} onChange={() => handleToggleModule("dashboard")} />
               <span><strong>Ver Dashboard</strong><span className="block text-slate-500">Acceso a la pantalla de inicio.</span></span>
@@ -504,6 +506,13 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                 }} />
               <span><strong>Ver valores de servicios</strong><span className="block text-slate-500">Tarifas del catálogo y de los servicios contratados.</span></span>
             </label>
+            {([ ["canViewFinancialAmounts", "Ver importes comerciales y financieros", "Permite acceder a Ventas, Compras, Finanzas, SRI e informes financieros."], ["canViewProductPrices", "Ver precios de productos", "Precios de venta del inventario; los costos se controlan por separado."] ] as const).map(([key, label, description]) => (
+              <label key={key} className="flex items-start gap-2 text-xs">
+                <input type="checkbox" checked={permissions.visibility?.[key] ?? role !== "tecnico"} disabled={role === "superadmin"}
+                  onChange={event => { const checked = event.target.checked; setPermissions(prev => ({ ...prev, visibility: { ...prev.visibility, [key]: checked } })); }} />
+                <span><strong>{label}</strong><span className="block text-slate-500">{description}</span></span>
+              </label>
+            ))}
             <label className="flex items-start gap-2 text-xs">
               <input type="checkbox" checked={permissions.tickets?.actions?.canManageDepartments ?? (role === "admin" || role === "superadmin")}
                 disabled={role === "superadmin" || !permissions.tickets?.enabled} onChange={event => {
@@ -513,6 +522,39 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                 }} />
               <span><strong>Administrar departamentos de soporte</strong><span className="block text-slate-500">Crear, renombrar y desactivar departamentos.</span></span>
             </label>
+          </section>
+
+          <section aria-labelledby="personas-permissions-title" className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+            <div className="p-4 flex flex-wrap items-center justify-between gap-3 bg-[#f8f9ff] border-b border-[#e2e8f0]">
+              <div className="flex items-center gap-3">
+                <Users aria-hidden="true" className="size-5 text-[#004ac6]" />
+                <div>
+                  <h3 id="personas-permissions-title" className="text-xs font-bold text-[#0b1c30]">Personas</h3>
+                  <p className="text-xs text-slate-500">Acceso al directorio de proveedores y usuarios.</p>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-semibold">
+                <input type="checkbox" checked={!!permissions.personas?.enabled} disabled={role === "superadmin"}
+                  onChange={() => handleToggleModule("personas")} className="rounded text-[#004ac6] focus:ring-[#004ac6]" />
+                Habilitar Personas
+              </label>
+            </div>
+            <fieldset disabled={role === "superadmin" || !permissions.personas?.enabled} className="p-4 space-y-3 disabled:opacity-60">
+              <legend className="sr-only">Submódulos de Personas</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {([
+                  ["proveedores", "Proveedores"],
+                  ["usuarios_equipo", "Usuarios / Equipo"],
+                ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] p-3">
+                    <input type="checkbox" checked={!!permissions.personas?.submodules[key]}
+                      onChange={() => handleToggleSubmodule("personas", key)} className="rounded text-[#004ac6] focus:ring-[#004ac6]" />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">Desactivar Personas bloquea sus pantallas. La creación y modificación de cuentas sigue reservada al superadministrador.</p>
+            </fieldset>
           </section>
 
           {/* Module 1: INVENTARIOS */}
@@ -636,6 +678,35 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
             )}
           </div>
 
+          <section aria-labelledby="sales-permissions-title" className="bg-white rounded-xl border border-[#e2e8f0] overflow-hidden">
+            <div className="p-4 flex flex-wrap items-center justify-between gap-3 bg-[#f8f9ff] border-b border-[#e2e8f0]">
+              <h3 id="sales-permissions-title" className="text-xs font-bold text-[#0b1c30]">Ventas comerciales</h3>
+              <label className="flex items-center gap-2 text-xs font-semibold">
+                <input type="checkbox" checked={!!permissions.ventas?.enabled} disabled={role === "superadmin"}
+                  onChange={() => handleToggleModule("ventas")} className="rounded text-[#004ac6]" />Habilitar Ventas
+              </label>
+            </div>
+            <fieldset disabled={role === "superadmin" || !permissions.ventas?.enabled} className="p-4 space-y-4 disabled:opacity-60">
+              <legend className="sr-only">Pantallas y funciones de Ventas</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {([ ["notas_venta", "Notas de venta"], ["nueva_venta", "Nueva venta"], ["cotizaciones", "Cotizaciones"], ["recurrentes", "Ventas recurrentes"] ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2">
+                    <input type="checkbox" checked={!!permissions.ventas?.submodules[key]} onChange={() => handleToggleSubmodule("ventas", key)} />{label}
+                  </label>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-t border-[#e2e8f0] pt-3">
+                {([ ["canCreateInvoice", "Registrar ventas y emitir recurrencias"], ["canEditPrices", "Editar ventas y sus precios"], ["canCancelInvoices", "Eliminar notas de venta"], ["canCreateQuotes", "Crear y editar cotizaciones"], ["canApproveQuotes", "Convertir cotizaciones en ventas"] ] as const).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2">
+                    <input type="checkbox" checked={permissions.ventas?.actions?.[key] ?? (key === "canCancelInvoices" ? canPerformAction({ ...user, uid: user?.uid || "preview", email: user?.email || "", displayName: user?.displayName || "", role, status: "activo", modulePermissions: permissions }, "canDeleteInvoices") : permissions.facturacion?.actions?.[key] ?? DEFAULT_MODULE_PERMISSIONS_BY_ROLE[role].facturacion?.actions?.[key] ?? false)}
+                      onChange={event => { const checked = event.target.checked; setPermissions(prev => ({ ...prev, ventas: { ...prev.ventas!, actions: { ...prev.ventas?.actions, [key]: checked } } })); }} />{label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">Estos permisos son independientes de Facturación SRI. El acceso requiere habilitar la visualización de importes comerciales y financieros.</p>
+            </fieldset>
+          </section>
+
           {/* Module 2: FACTURACIÓN & VENTAS */}
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-3.5 px-5 flex items-center justify-between bg-[#f8f9ff] border-b border-[#e2e8f0]">
@@ -644,7 +715,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-[#0b1c30]">Ventas</span>
+                  <span className="font-bold text-xs text-[#0b1c30]">Facturación SRI</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${permissions.facturacion?.enabled ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"}`}>
                     {permissions.facturacion?.enabled ? "Activo" : "Inactivo"}
                   </span>

@@ -301,6 +301,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   const authorizedTabs = eligibleTabs.filter(tab => {
     if (currentUser.role !== "superadmin" && currentUser.modulePermissions?.abonados?.submodules?.[tab.id] === false) return false;
     if (tab.id === "facturacion") return canReadCollection(currentUser, "billingInvoices");
+    if (tab.id === "cotizaciones") return canAccessSubmodule(currentUser, "ventas", "cotizaciones");
     if (tab.id === "contratos") return canReadCollection(currentUser, "clientServices");
     if (tab.id === "finanzas") return canAccessSubmodule(currentUser, "finanzas", "cobranzas") && can(currentUser, "manage_finance");
     return can(currentUser, tab.permission);

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { canUser } from "@/lib/permissions";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { chargeBalance, money } from "@/lib/commercial-core";
 import { activeReceivables, summarizeReceivables } from "@/lib/financial-summary";
 import { ChargePaymentModal } from "./ChargePaymentModal";
@@ -30,7 +31,7 @@ export function AccountsReceivableTab() {
       (filterStatus === "pendiente" && chargeBalance(charge) > 0) ||
       (filterStatus === "pagado" && charge.status === "pagado");
     return matchesSearch && matchesStatus;
-  });
+  }).sort(compareDocumentsDescending);
   const { totalFacturado, totalRecaudado, totalPendiente } = summarizeReceivables(monthlyCharges);
 
   return (

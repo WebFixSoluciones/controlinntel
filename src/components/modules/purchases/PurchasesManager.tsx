@@ -57,6 +57,8 @@ export function PurchasesManager() {
   const canND = canAccessSubmodule(currentUser, "compras", "notas_debito");
   const canRet = canAccessSubmodule(currentUser, "compras", "retenciones");
 
+  if (!canAccessSubmodule(currentUser, "compras", activeTab)) return <p role="alert" className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">No tienes permiso para acceder a esta pantalla de Compras.</p>;
+
   if (activeTab === "registrar_compra") {
     return (
       <NewPurchaseView

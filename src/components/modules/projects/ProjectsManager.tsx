@@ -2,6 +2,7 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
+import { canViewFinancialAmounts } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Project, ProjectStatus } from "@/types";
@@ -33,11 +34,13 @@ import {
 
 export function ProjectsManager() {
   const {
+    currentUser,
     projects,
     clientProjects,
     deleteProject,
     updateProject,
   } = useApp();
+  const showFinancialAmounts = canViewFinancialAmounts(currentUser);
   const { showSuccess, showConfirm, showError } = useToast();
 
   // Active Selected Project (if non-null, views that Project's Canva Workspace)
@@ -395,7 +398,7 @@ export function ProjectsManager() {
 
                       {/* 6. Presupuesto (sin costo) */}
                       <td className="py-4 px-4 font-mono text-xs text-slate-800 font-bold">
-                        ${p.estimatedBudget.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        {showFinancialAmounts ? `$${(p.estimatedBudget || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "—"}
                       </td>
 
                       {/* 7. Estado del Proyecto */}
