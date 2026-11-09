@@ -283,6 +283,7 @@ interface AppContextType {
     advance: Omit<ClientAdvance, "id" | "remaining" | "status" | "applications">
   ) => Promise<ClientAdvance>;
   applyClientAdvance: (advanceId: string, chargeId: string, amount: number) => Promise<void>;
+  applyClientCredit: (chargeId: string, amount: number, date?: string, notes?: string) => Promise<void>;
   deleteClientAdvance: (id: string) => Promise<void>;
 
   // Inventory Module
@@ -1606,6 +1607,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("applyAdvance", { advanceId, chargeId, amount });
   };
 
+  const applyClientCredit = async (chargeId: string, amount: number, date?: string, notes?: string): Promise<void> => {
+    await runCommercial("applyClientCredit", { chargeId, amount, date, notes });
+  };
+
   const deleteClientAdvance = async (id: string): Promise<void> => {
     await runCommercial("cancelAdvance", { id });
   };
@@ -2061,6 +2066,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           addPaymentToCharge,
           addClientAdvance,
           applyClientAdvance,
+          applyClientCredit,
           deleteClientAdvance,
           // Inventory Module
           inventoryProducts,

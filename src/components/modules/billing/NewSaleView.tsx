@@ -23,6 +23,10 @@ import {
 } from "@/lib/sri-service";
 import { RidePreviewModal } from "./RidePreviewModal";
 import { ConvertToSriInvoiceModal } from "../sales/ConvertToSriInvoiceModal";
+import { ChargePaymentModal } from "../finance/ChargePaymentModal";
+import { availableClientCredit } from "@/lib/client-credit";
+import { chargeBalance, money, addDays, validDate } from "@/lib/commercial-core";
+import { canReadCollection } from "@/lib/persistence-contracts";
 
 interface NewSaleViewProps {
   onBack: () => void;
@@ -110,6 +114,8 @@ export function NewSaleView({
     sriCompanyConfig,
     billingInvoices,
     bankAccounts,
+    clientAdvances,
+    monthlyCharges,
     createInvoice,
     updateInvoiceStatus,
     currentUser,
@@ -164,6 +170,7 @@ export function NewSaleView({
   const [rideModalFormat, setRideModalFormat] = useState<"ride" | "ticket">("ride");
   const [copiedAccessKey, setCopiedAccessKey] = useState(false);
   const [isConvertSriOpen, setIsConvertSriOpen] = useState(false);
+  const [showChargePayment, setShowChargePayment] = useState(false);
 
   // Panel de correo en Paso 2
   const [emailStatus, setEmailStatus] = useState<"sent" | "sending" | "idle">("idle");
@@ -262,9 +269,7 @@ export function NewSaleView({
   const [tarjetaRef, setTarjetaRef] = useState("");
   const [paymentTermDays, setPaymentTermDays] = useState(30);
   const [creditDueDate, setCreditDueDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return getEcuadorDate(d);
+    return addDays(getEcuadorDate(), 30);
   });
   const [creditNotes, setCreditNotes] = useState("");
   const [showCreditModal, setShowCreditModal] = useState(false);
@@ -552,6 +557,12 @@ export function NewSaleView({
     }
     return clients.find((c) => c.id === selectedClientId && canTradeWithClient(c)) || null;
   }, [clients, selectedClientId, isConsumidorFinal]);
+
+  const canViewClientCredit = Boolean(currentUser && canReadCollection(currentUser, "clientAdvances"));
+  const clientCredit = availableClientCredit(clientAdvances, selectedClient?.id || "");
+  const clientDebt = money(monthlyCharges.filter(charge => charge.clientId === selectedClient?.id)
+    .reduce((sum, charge) => sum + chargeBalance(charge), 0));
+  const emittedCharge = monthlyCharges.find(charge => charge.invoiceId === (emittedInvoice?.relatedSaleId || emittedInvoice?.id) && charge.status !== "anulado");
 
   const recurringServicesInCart = selectedClient ? clientServices.filter(service =>
     service.clientId === selectedClient.id && service.status !== "retirado" &&
@@ -1208,6 +1219,10 @@ export function NewSaleView({
     }
 
     // Validar que el pago cubra el total
+    if (paymentSummary.credito > 0 && (!validDate(creditDueDate) || creditDueDate < issueDate)) {
+      showError("Revisa el vencimiento", "La fecha de vencimiento debe ser válida y no anterior a la emisión de la nota.");
+      return false;
+    }
     if (!paymentSummary.isCovered) {
       setValidationDialog({
         isOpen: true,
@@ -1255,8 +1270,7 @@ export function NewSaleView({
         isOpen: true,
         mode: "emit",
         title: "Confirmar Registro de Nota de Venta",
-        message:
-          "Se guardará el RECIBO de venta local para control interno, descontando el inventario de bodega y registrando el ingreso en caja/bancos. Esta acción no tiene validez tributaria ante el SRI.",
+        message: `Se registrará la nota por $${calculatedTotals.total.toFixed(2)}. Cobro inicial: $${Math.max(0, paymentSummary.efectivo + paymentSummary.transferencia + paymentSummary.tarjeta - paymentSummary.change).toFixed(2)}. Deuda pendiente: $${paymentSummary.credito.toFixed(2)}. Los anticipos se aplican después desde «Cobrar / aplicar anticipo».`,
       });
     } else {
       setConfirmDialog({
@@ -1373,6 +1387,7 @@ export function NewSaleView({
           tarjetaRef: tarjetaRef.trim() || undefined,
           bankAccountId: selectedBankAccountId || undefined,
           creditDueDate: activeMethods.credito ? creditDueDate : undefined,
+          creditNotes: activeMethods.credito ? creditNotes.trim() || undefined : undefined,
           orderNumber: orderNumber.trim() || undefined,
           sriPaymentCode,
           paymentTermDays: activeMethods.credito ? paymentTermDays : 0,
@@ -1427,6 +1442,7 @@ export function NewSaleView({
           tarjetaRef: tarjetaRef.trim() || undefined,
           bankAccountId: selectedBankAccountId || undefined,
           creditDueDate: activeMethods.credito ? creditDueDate : undefined,
+          creditNotes: activeMethods.credito ? creditNotes.trim() || undefined : undefined,
           orderNumber: orderNumber.trim() || undefined,
           sriPaymentCode,
           paymentTermDays: activeMethods.credito ? paymentTermDays : 0,
@@ -1772,9 +1788,21 @@ export function NewSaleView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-4">
               {/* Formas de Pago */}
+              {emittedCharge && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs">
+                <div>
+                  <p className="font-semibold">Deuda actual de esta nota: ${money(chargeBalance(emittedCharge)).toFixed(2)}</p>
+                  <p className="mt-1">Abonos confirmados: ${(emittedCharge.paidAmount || 0).toFixed(2)}</p>
+                  {canViewClientCredit && <p className="mt-1">Saldo a favor disponible: ${availableClientCredit(clientAdvances, emittedCharge.clientId).total.toFixed(2)}</p>}
+                  {emittedCharge.payments?.some(payment => payment.status !== "reversed") && <details className="mt-2">
+                    <summary className="cursor-pointer font-semibold text-[#004ac6]">Ver abonos de esta nota</summary>
+                    <ul className="mt-1 space-y-1">{emittedCharge.payments.filter(payment => payment.status !== "reversed").map(payment => <li key={payment.id}>{payment.date} · {payment.advanceId ? "Anticipo aplicado" : payment.method} · <strong>${payment.amount.toFixed(2)}</strong></li>)}</ul>
+                  </details>}
+                </div>
+                {chargeBalance(emittedCharge) > 0 && canUser(currentUser, "finanzas", "canRegisterReceipts") && <button type="button" onClick={() => setShowChargePayment(true)} className="rounded-lg bg-[#004ac6] px-4 py-2 font-semibold text-white">Cobrar / aplicar anticipo</button>}
+              </div>}
               <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Formas de Pago Aplicadas
+                  Condiciones de pago de la nota
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                   {emittedInvoice.paymentsBreakdown ? (
@@ -1916,6 +1944,7 @@ export function NewSaleView({
         </div>
 
         {/* Modal RIDE / Ticket POS 80mm */}
+        {showChargePayment && emittedCharge && <ChargePaymentModal charge={emittedCharge} onClose={() => setShowChargePayment(false)} />}
         <RidePreviewModal
           isOpen={isRideModalOpen}
           onClose={() => setIsRideModalOpen(false)}
@@ -2263,7 +2292,7 @@ export function NewSaleView({
                   <input id="new-sale-view-field-1"
                     type="date"
                     value={issueDate}
-                    onChange={(e) => setIssueDate(e.target.value)}
+                    onChange={(e) => { setIssueDate(e.target.value); if (validDate(e.target.value)) setCreditDueDate(addDays(e.target.value, paymentTermDays)); }}
                     className="w-full text-[11px] font-semibold py-2 px-2 rounded-lg border border-slate-300 bg-white text-slate-800 outline-hidden focus:border-[#004ac6]"
                   />
                 </div>
@@ -3291,11 +3320,11 @@ export function NewSaleView({
          ======================================================= */}
       {showCreditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-labelledby="credit-followup-title" className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-white rounded-xl shadow-2xl border border-slate-200">
             <div className="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400" />
-                <h3 className="text-xs font-bold uppercase tracking-wider">
+                <h3 id="credit-followup-title" className="text-xs font-bold uppercase tracking-wider">
                   Seguimiento de Cuenta por Cobrar
                 </h3>
               </div>
@@ -3308,13 +3337,14 @@ export function NewSaleView({
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <p className="text-xs font-semibold">{selectedClient?.businessName || "Selecciona un cliente"}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs tabular-nums">
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">
                     Deuda Actual Cliente
                   </span>
                   <span className="text-sm font-mono font-bold text-slate-900">
-                    ${(selectedClient?.currentBalance || 0).toFixed(2)}
+                    ${clientDebt.toFixed(2)}
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200">
@@ -3325,7 +3355,26 @@ export function NewSaleView({
                     ${paymentSummary.credito.toFixed(2)}
                   </span>
                 </div>
+                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                  <span className="text-[10px] font-bold text-blue-800 block">Saldo a favor disponible</span>
+                  <strong className="mt-1 block text-sm font-mono text-[#004ac6]">{canViewClientCredit ? `$${clientCredit.total.toFixed(2)}` : "Sin acceso"}</strong>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-600 block">Deuda de esta venta si aplicas el saldo</span>
+                  <strong className="mt-1 block text-sm font-mono">{canViewClientCredit ? `$${Math.max(0, paymentSummary.credito - clientCredit.total).toFixed(2)}` : "—"}</strong>
+                </div>
               </div>
+
+              {canViewClientCredit && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs">
+                <p className="font-semibold text-blue-900">{clientCredit.total > 0 ? `Los anticipos pueden cubrir hasta $${Math.min(clientCredit.total, paymentSummary.credito).toFixed(2)} de esta venta.` : "Este cliente no tiene anticipos disponibles."}</p>
+                <p className="mt-1 text-slate-600">Registrar la venta a crédito crea la deuda. Después pulsa «Cobrar / aplicar anticipo» para elegir el importe y confirmar el uso del saldo a favor. Cerrar este cuadro no aplica anticipos.</p>
+                {clientCredit.advances.length > 0 && <details className="mt-2">
+                  <summary className="cursor-pointer font-semibold text-[#004ac6]">Ver detalle de {clientCredit.advances.length} anticipo(s)</summary>
+                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+                    {clientCredit.advances.map(advance => <li key={advance.id} className="flex flex-wrap justify-between gap-1 border-t border-blue-100 py-1"><span>{advance.date} · {advance.reference || advance.notes || "Sin referencia"}</span><strong>${Number(advance.remaining).toFixed(2)}</strong></li>)}
+                  </ul>
+                </details>}
+              </div>}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -3337,9 +3386,7 @@ export function NewSaleView({
                     onChange={(e) => {
                       const days = Number(e.target.value);
                       setPaymentTermDays(days);
-                      const d = new Date();
-                      d.setDate(d.getDate() + days);
-                      setCreditDueDate(getEcuadorDate(d));
+                      if (validDate(issueDate)) setCreditDueDate(addDays(issueDate, days));
                     }}
                     className="w-full text-xs font-bold py-2 px-2.5 rounded-lg border border-slate-300 bg-white"
                   >
@@ -3356,6 +3403,7 @@ export function NewSaleView({
                   </label>
                   <input id="new-sale-view-field-11"
                     type="date"
+                    min={issueDate}
                     value={creditDueDate}
                     onChange={(e) => setCreditDueDate(e.target.value)}
                     className="w-full text-xs font-semibold py-2 px-2.5 rounded-lg border border-slate-300 bg-white"
@@ -3369,6 +3417,7 @@ export function NewSaleView({
                 </label>
                 <input id="new-sale-view-field-12"
                   type="text"
+                  maxLength={500}
                   placeholder="Acuerdo de pago, contacto de tesorería..."
                   value={creditNotes}
                   onChange={(e) => setCreditNotes(e.target.value)}

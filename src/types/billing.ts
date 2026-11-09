@@ -195,6 +195,7 @@ export interface SriInvoice extends SriFiscalEvidence {
   tarjetaRef?: string;
   bankAccountId?: string;
   creditDueDate?: string;
+  creditNotes?: string;
   orderNumber?: string;
   sriPaymentCode?: string; // "01", "19", "20"
   paymentTermDays?: number;

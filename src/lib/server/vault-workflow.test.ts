@@ -97,7 +97,7 @@ test("a customer node with estado activo is saved with encrypted service credent
   assert.match(encrypted, /^v1\./);
   assert.equal(await revealNodePassword(admin, "node", "router", database.db), "NodeSecret#42");
   const restricted: UserProfile = {
-    ...admin, role: "admin", modulePermissions: { red: { enabled: true, actions: { canEditRouterCredentials: false } } },
+    ...admin, role: "admin", modulePermissions: { red: { enabled: true, submodules: { nodos: true, pools_ip: false }, actions: { canManageNodes: true, canAssignIps: false, canEditRouterCredentials: false } } },
   };
   await assert.rejects(revealNodePassword(restricted, "node", "router", database.db), { status: 403 });
   await assert.rejects(revealNodePassword({ ...admin, status: "inactivo" }, "node", "router", database.db), { status: 403 });

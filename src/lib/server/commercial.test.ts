@@ -40,6 +40,67 @@ const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:
 const expensePayload = (extra = {}) => ({ supplierName: "BENEFICIARIO QA", bankAccountId: "bank", category: "mantenimiento",
   amount: 100, expenseDate: "2026-11-07", description: "Gasto manual QA", paymentMethod: "transferencia", ...extra });
 
+test("El cobro aplica varios anticipos en una operación sin repetir el ingreso y la anulación restaura su saldo", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
+  const db = new Database(initial());
+  const first = await run(db, "advance", { clientId: "a", amount: 60, date: "2026-11-01", bankAccountId: "bank" });
+  const second = await run(db, "advance", { clientId: "a", amount: 40, date: "2026-11-02", bankAccountId: "bank" });
+  const other = await run(db, "advance", { clientId: "b", amount: 500, date: "2026-11-01", bankAccountId: "bank" });
+  const invoice = await run(db, "issueSale", sale("a", { date: "2026-11-09", creditDueDate: "2026-12-09", creditNotes: "Acuerdo de cobranza QA" }));
+  const charge = db.list("monthlyCharges")[0];
+  assert.equal(charge.notes, "Acuerdo de cobranza QA");
+  assert.equal(charge.maxPaymentDate, "2026-12-09");
+  const cashBefore = summarizeCash(db.list("financialMovements"));
+  const bankBefore = db.row("bankAccounts", "bank").currentBalance;
+  db.row("bankAccounts", "bank").status = "inactiva";
+  const operationId = randomUUID(), data = { chargeId: charge.id, amount: 100, date: "2026-11-09", notes: "Aplicación confirmada" };
+  await run(db, "applyClientCredit", data, operationId);
+  await run(db, "applyClientCredit", data, operationId);
+  assert.equal(db.row("monthlyCharges", charge.id).paidAmount, 100);
+  assert.equal(db.row("monthlyCharges", charge.id).balanceRemaining, 15);
+  assert.equal(db.row("monthlyCharges", charge.id).payments.length, 2);
+  assert.equal(db.row("clients", "a").currentBalance, 15);
+  assert.equal(db.row("clientAdvances", first.id).remaining, 0);
+  assert.equal(db.row("clientAdvances", second.id).remaining, 0);
+  assert.equal(db.row("clientAdvances", other.id).remaining, 500);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, bankBefore);
+  assert.deepEqual(summarizeCash(db.list("financialMovements")), cashBefore);
+  assert.equal(db.list("payments").length, 2);
+  assert.equal(db.list("paymentApplications").length, 2);
+  assert.equal(db.row("operationLog", operationId).type, "applyClientCredit");
+  await run(db, "cancelSale", { id: invoice.id });
+  assert.equal(db.row("clientAdvances", first.id).remaining, 60);
+  assert.equal(db.row("clientAdvances", second.id).remaining, 40);
+  assert.equal(db.row("clients", "a").currentBalance, 0);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, bankBefore);
+});
+
+test("Los anticipos permiten abonos parciales y se validan nuevamente al confirmar", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-09T17:00:00Z") });
+  const db = new Database(initial());
+  const first = await run(db, "advance", { clientId: "a", amount: 40, date: "2026-11-01", bankAccountId: "bank" });
+  const second = await run(db, "advance", { clientId: "a", amount: 50, date: "2026-11-02", bankAccountId: "bank" });
+  await assert.rejects(run(db, "issueSale", sale("a", { date: "2026-11-09", creditDueDate: "2026-11-08" })), /vencimiento/);
+  await run(db, "issueSale", sale("a", { date: "2026-11-09" }));
+  const charge = db.list("monthlyCharges")[0];
+  const command = (amount: number, date = "2026-11-09") => run(db, "applyClientCredit", { chargeId: charge.id, amount, date });
+  await assert.rejects(command(91), /saldo a favor/);
+  await assert.rejects(command(70, "2026-11-01"), /anterior al anticipo/);
+  await assert.rejects(command(70, "2026-11-10"), /futura/);
+  const before = structuredClone([...db.rows]);
+  db.failCommit = true;
+  await assert.rejects(command(70), /Injected/);
+  assert.deepEqual([...db.rows], before);
+  db.failCommit = false;
+  const results = await Promise.allSettled([command(70), command(70)]);
+  assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
+  assert.equal(db.row("clientAdvances", first.id).remaining, 0);
+  assert.equal(db.row("clientAdvances", second.id).remaining, 20);
+  assert.equal(db.row("monthlyCharges", charge.id).balanceRemaining, 45);
+  const restricted: UserProfile = { ...user, role: "finanzas", permissions: ["manage_finance"], modulePermissions: { finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } } } };
+  await assert.rejects(executeCommercial(restricted, { action: "applyClientCredit", operationId: randomUUID(), data: { chargeId: charge.id, amount: 20 } }, db as unknown as Firestore), /autorización/);
+});
+
 test("Editar gastos corrige banco, movimiento y reportes sin duplicar ingresos ni salidas", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-07T17:00:00Z") });
   const seed = initial();
@@ -103,7 +164,7 @@ test("La corrección de gastos valida permisos, versión, saldo y vínculo y rev
   await assert.rejects(edit({ amount: 0 }), /mayor que cero/);
   await assert.rejects(edit({ expenseDate: "2026-11-08" }), /futura/);
   await assert.rejects(edit({ bankAccountId: "missing" }), /inexistente/);
-  const restricted: UserProfile = { ...user, role: "finanzas", permissions: ["manage_finance"], modulePermissions: { finanzas: { enabled: true, actions: { canRegisterExpenses: false } } } };
+  const restricted: UserProfile = { ...user, role: "finanzas", permissions: ["manage_finance"], modulePermissions: { finanzas: { enabled: true, submodules: { movimientos: true, bancos: true, cuentas_por_cobrar: true, cuentas_por_pagar: true, reportes: true }, actions: { canViewBankBalances: false, canRegisterReceipts: false, canRegisterExpenses: false, canCancelPayments: false, canExportReports: false } } } };
   for (const action of ["editExpense", "deleteExpense"] as const) {
     await assert.rejects(executeCommercial(restricted, { action, operationId: randomUUID(), data: { ...expensePayload(), id: expense.id } }, db as unknown as Firestore), /autorización/);
   }

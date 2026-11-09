@@ -7,11 +7,12 @@ import { digest, recordOperation, type Effect } from "./operation-log.ts";
 import { calculateLines, cents, money, chargeBalance, planServicePeriod, scheduledServicePeriods, paymentDueOnIssue, serviceBillingStart, initialServicePeriod, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
+import { allocateClientCredit } from "../client-credit.ts";
 import { schemas } from "./schemas.ts";
 import { canUser, canPerformAction, canViewServicePrices } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
 class Context {
@@ -188,6 +189,7 @@ async function issueSale(c: Context, input: Row) {
   const immediate=input.paymentsBreakdown ? cents(input.paymentsBreakdown.efectivo||0)+cents(input.paymentsBreakdown.transferencia||0)+cents(input.paymentsBreakdown.tarjeta||0) : input.paymentMethod==="credito"?0:cents(calculated.total);
   if(immediate<0 || immediate>cents(calculated.total)) throw new HttpError(400,"Pago inicial inválido.");
   if(input.paymentsBreakdown && immediate+cents(input.paymentsBreakdown.credito||0)!==cents(calculated.total)) throw new HttpError(400,"La distribución del pago no coincide con el total calculado.");
+  if (!isDraft && immediate < cents(calculated.total) && input.creditDueDate !== undefined && (!validDate(input.creditDueDate) || input.creditDueDate < date)) throw new HttpError(400, "El vencimiento del crédito debe ser válido y no anterior a la emisión.");
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
   const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
   for(const item of calculated.items) {
@@ -225,6 +227,7 @@ async function issueSale(c: Context, input: Row) {
   c.put("billingInvoices",invoice);
   if(!isDraft) {
     const charge={id:`chg-inv-${id}`,clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,invoiceId:id,invoiceNumber:documentNumber,saleDate:date,month:Number(date.slice(5,7)),year:Number(date.slice(0,4)),serviceDescription:calculated.items.map(i=>i.name).join(" + "),subtotal:calculated.subtotal,ivaAmount:calculated.ivaTotal,total:calculated.total,paidAmount:0,balanceRemaining:calculated.total,status:"pendiente",payments:[],maxPaymentDate:input.creditDueDate||date,...(input.expectedPaymentMethod?{expectedPaymentMethod:String(input.expectedPaymentMethod)}:{})};
+    if (typeof input.creditNotes === "string" && input.creditNotes.trim()) Object.assign(charge, { notes: input.creditNotes.trim().slice(0, 500) });
     c.put("monthlyCharges",charge);
     if(immediate) {
       let bankId=input.bankAccountId;
@@ -566,6 +569,22 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "payCharge": return payCharge(c,data);
     case "applyAdvance": return payCharge(c,{...data,method:"Anticipo de Cliente"});
+    case "applyClientCredit": {
+      const charge = await c.get("monthlyCharges", data.chargeId);
+      const amount = checkedAmount(data.amount);
+      if (charge.status === "anulado" || amount > chargeBalance(charge)) throw new HttpError(409, "El importe supera la deuda pendiente o el comprobante está anulado.");
+      const advances = await c.list("clientAdvances", "clientId", charge.clientId);
+      const applications = allocateClientCredit(advances, charge.clientId, money(amount));
+      const date = checkedDate(data.date);
+      if (date > c.today || applications.some(application => String(advances.find(advance => advance.id === application.advanceId)?.date || "") > date)) {
+        throw new HttpError(400, "La fecha de aplicación no puede ser futura ni anterior al anticipo utilizado.");
+      }
+      const payments = [];
+      for (const application of applications) {
+        payments.push(await payCharge(c, { ...application, chargeId: charge.id, date, notes: data.notes, method: "Anticipo de Cliente" }));
+      }
+      return { amount: money(amount), payments };
+    }
     case "advance": {
       const client=await c.get("clients",data.clientId), amount=checkedAmount(data.amount), id=randomUUID(), date=checkedDate(data.date);
       const movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"anticipo_cliente",description:`Anticipo ${client.businessName}`,paymentMethod:data.method||"transferencia",referenceNumber:data.reference||""});
@@ -723,7 +742,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={
     createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],
     issueSale:["facturacion","canCreateInvoice"],editSale:["facturacion","canEditPrices"],recur:["facturacion","canCreateInvoice"],
-    payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
+    payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],applyClientCredit:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],adjustBank:["finanzas","canRegisterExpenses"],transfer:["finanzas","canRegisterExpenses"],
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["facturacion","canCreateInvoice"],processRun:["facturacion","canCreateInvoice"],
     reverseApplication:["finanzas","canCancelPayments"],
