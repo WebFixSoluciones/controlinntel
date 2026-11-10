@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { chargeBalance, externalCash, money } from "@/lib/commercial-core";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "@/lib/financial-summary";
-import { getEcuadorDate, addMonthsSafely } from "@/lib/date-utils";
+import { getEcuadorDate } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
-import { safeFloat, safeNumber } from "@/lib/print-service";
+import { downloadReport } from "@/lib/report-export";
+import { canUser } from "@/lib/permissions";
+import { safeFloat, safeNumber, printHtmlElement } from "@/lib/print-service";
 import {
   BarChart3,
   DollarSign,
@@ -40,7 +42,7 @@ import {
 } from "recharts";
 import { formatFinanceCategory } from "./FinanceDashboard";
 import { expenseCategoriesWithDefaults, expenseCategoryKey } from "@/lib/expense-categories";
-import { inReportPeriod, chargeReportDate } from "@/lib/company-reporting";
+import { inReportPeriod, chargeReportDate, purchaseBalance, reportCashSeries } from "@/lib/company-reporting";
 import { CompanyReportsPanel } from "./CompanyReportsPanel";
 
 type ReportTab = "resumen" | "cobranzas" | "gastos" | "cxc" | "cxp" | "bancos";
@@ -52,6 +54,7 @@ export function FinancialReportsTab() {
 
 function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const {
+    currentUser,
     monthlyCharges: allCharges = [],
     expenses: allExpenses = [],
     expenseCategories,
@@ -63,8 +66,10 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const monthlyCharges = allCharges.filter(row => inReportPeriod(chargeReportDate(row), from, to));
   const expenses = allExpenses.filter(row => row.status !== "anulado" && inReportPeriod(row.expenseDate, from, to));
   const financialMovements = allMovements.filter(row => inReportPeriod(row.date, from, to));
-  const purchaseInvoices = allPurchases.filter(row => inReportPeriod(row.date, from, to));
-  const { showSuccess } = useToast();
+  const purchaseInvoices = allPurchases.filter(row => !["anulado", "anulada"].includes(String("status" in row ? row.status : "")) && inReportPeriod(row.date, from, to));
+  const { showSuccess, showError } = useToast();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const canExport = canUser(currentUser, "finanzas", "canExportReports");
 
   const [activeTab, setActiveTab] = useState<ReportTab>("resumen");
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,8 +122,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const cxpList = useMemo(() => {
     return purchaseInvoices
       .filter((inv) => {
-        const bal = inv.balanceRemaining !== undefined ? inv.balanceRemaining : inv.paymentStatus === "pagado" ? 0 : inv.total;
-        return bal > 0 && inv.paymentStatus !== "pagado";
+        const bal = purchaseBalance(inv);
+        return bal > 0;
       })
       .map((inv) => ({
         id: inv.id,
@@ -129,7 +134,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
         dueDate: inv.dueDate || "-",
         total: safeFloat(inv.total),
         paidAmount: safeFloat(inv.paidAmount || 0),
-        balanceRemaining: safeFloat(inv.balanceRemaining !== undefined ? inv.balanceRemaining : inv.total),
+        balanceRemaining: purchaseBalance(inv),
         paymentStatus: inv.paymentStatus,
       }));
   }, [purchaseInvoices]);
@@ -140,7 +145,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
   // 6. CÁLCULO DE BANCOS Y DISPONIBILIDAD
   const bancosMetrics = useMemo(() => {
-    const accounts = (bankAccounts || []).filter((b) => b && b.status === "activa");
+    const accounts = (bankAccounts || []).filter((b) => b);
     const totalLiquidez = accounts.reduce((sum, b) => sum + safeFloat(b.currentBalance), 0);
 
     const withShare = accounts.map((b) => {
@@ -159,25 +164,18 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
     };
   }, [bankAccounts]);
 
-  const chartData = useMemo(() => {
-    const current = (to || getEcuadorDate()).slice(0,7) + "-01";
-    return Array.from({length:6}, (_, index) => {
-      const month=addMonthsSafely(current,index-5).slice(0,7);
-      const movements=cashMovements.filter(m => String(m.date).startsWith(month));
-      const ingresos=movements.filter(m=>m.type==="ingreso").reduce((sum,m)=>sum+safeFloat(m.amount),0);
-      const egresos=movements.filter(m=>m.type==="egreso").reduce((sum,m)=>sum+safeFloat(m.amount),0);
-      return { mes: month, ingresos, egresos, neto: ingresos-egresos };
-    });
-  }, [cashMovements]);
+  const chartData = useMemo(() => reportCashSeries(cashMovements, from, to), [cashMovements, from, to]);
 
   // EXPORTACIÓN DINÁMICA A CSV SEGÚN EL REPORTE ACTIVO
   const handleExportCsv = async (format: "csv" | "xlsx" = "csv") => {
+    if (!canExport) return;
+    try {
     let filename = `Reporte_Financiero_${activeTab}_${getEcuadorDate()}.csv`;
     let headers: string[] = [];
     let rows: (string | number)[][] = [];
 
     if (activeTab === "cobranzas") {
-      headers = ["Comprobante", "Fecha Venta", "Cliente", "RUC", "Total Venta", "Abonado", "Saldo Pendiente", "Estado"];
+      headers = ["Comprobante", "Fecha Venta", "Cliente", "RUC", "Total Venta", "Abonado actual", "Saldo Pendiente actual", "Estado"];
       rows = monthlyCharges.filter(c => c.status !== "anulado").map((c) => [
         c.invoiceNumber || "S/N",
         c.saleDate || `${c.year}-${c.month}-01`,
@@ -256,32 +254,17 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
       const text = String(value).replace(/^"([\s\S]*)"$/, "$1").replace(/""/g, '"');
       return /Monto|Total|Abonado|Saldo|Participacion/i.test(headers[index]) && text.trim() !== "" && Number.isFinite(Number(text)) ? Number(text) : text;
     }));
-    let blob: Blob;
-    if (format === "xlsx") {
-      const ExcelJS = await import("exceljs");
-      const workbook = new ExcelJS.Workbook(), sheet = workbook.addWorksheet("Reporte");
-      sheet.addRow(headers);
-      cleanRows.forEach(row => sheet.addRow(row));
-      sheet.columns.forEach(column => { column.width = 25; });
-      sheet.eachRow(row => row.eachCell(cell => { if (typeof cell.value === "string") cell.numFmt = "@"; }));
-      blob = new Blob([await workbook.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      filename = filename.replace(/\.csv$/, ".xlsx");
-    } else {
-      const escape = (value: string | number) => {
-        const text = String(value);
-        const safe = typeof value === "string" && /^[=+@-]/.test(text) ? "'" + text : text;
-        return '"' + safe.replace(/"/g, '""') + '"';
-      };
-      blob = new Blob(["\uFEFF" + [headers, ...cleanRows].map(row => row.map(escape).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
-    }
-    const url = URL.createObjectURL(blob), link = document.createElement("a");
-    link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
-
-    showSuccess("Reporte Exportado", `Archivo ${filename} generado exitosamente.`);
+    const columns = headers.map((label, index) => ({ key: `column_${index}`, label, money: /Monto|Total|Abonado|Saldo|USD/i.test(label), date: /^Fecha/i.test(label) }));
+    const records = cleanRows.map(row => Object.fromEntries(row.map((value, index) => [`column_${index}`, value])));
+    await downloadReport(records, columns, filename.replace(/\.csv$/, ""), format,
+      `Desde ${from || "inicio"} hasta ${to || "sin límite"}; búsqueda: ${searchQuery || "todas"}; estado: ${filterStatus}; categoría: ${filterCategory}. Abonos, cuentas por cobrar/pagar y bancos muestran saldos actuales. Fecha de consulta: ${getEcuadorDate()}.`);
+    showSuccess("Reporte Exportado", `Archivo ${filename.replace(/\.csv$/, "." + format)} generado exitosamente.`);
+    } catch { showError("No se pudo exportar", "Inténtalo nuevamente."); }
   };
 
+  const selectReportTab = (tab: ReportTab) => { setActiveTab(tab); setSearchQuery(""); setFilterStatus("todos"); setFilterCategory("todas"); };
   return (
-    <div className="w-full space-y-6">
+    <div ref={reportRef} className="min-w-0 w-full space-y-6">
       {/* 1. BARRA SUPERIOR DE ACCIONES Y ENCABEZADO */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div>
@@ -296,10 +279,10 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+        {canExport && <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-start sm:justify-end print:hidden">
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => printHtmlElement(reportRef.current, "Detalle financiero", "a4", { orientation: "landscape", report: true })}
             className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer"
             title="Imprimir reporte formal"
           >
@@ -317,11 +300,11 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
             <span>Exportar CSV</span>
           </button>
           <button type="button" onClick={() => { void handleExportCsv("xlsx"); }} className="px-3 py-2 rounded-lg border text-xs font-bold text-blue-700">Exportar Excel</button>
-        </div>
+        </div>}
       </div>
 
       {/* 2. TARJETAS KPI RESUMEN EJECUTIVO (SIEMPRE VISIBLES ARRIBA) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 print:grid-cols-3 gap-3.5">
         {/* Ingresos Totales */}
         <div className="p-4 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs hover:border-emerald-300 transition">
           <div className="flex items-center justify-between text-[11px] font-bold text-[#737686] uppercase tracking-wider">
@@ -414,16 +397,16 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
             ${safeNumber(bancosMetrics.totalLiquidez)}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">
-            {bancosMetrics.accounts.length} cuentas activas
+            {bancosMetrics.accounts.length} cuentas registradas
           </div>
         </div>
       </div>
 
       {/* 3. SELECTOR DE VISTAS DE REPORTES ESPECIALIZADOS */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200 overflow-x-auto scrollbar-thin">
+      <div className="flex min-w-0 items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200 overflow-x-auto scrollbar-thin print:hidden">
         <button
           type="button"
-          onClick={() => setActiveTab("resumen")}
+          onClick={() => selectReportTab("resumen")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "resumen"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -436,7 +419,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
         <button
           type="button"
-          onClick={() => setActiveTab("cobranzas")}
+          onClick={() => selectReportTab("cobranzas")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "cobranzas"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -449,7 +432,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
         <button
           type="button"
-          onClick={() => setActiveTab("gastos")}
+          onClick={() => selectReportTab("gastos")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "gastos"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -462,7 +445,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
         <button
           type="button"
-          onClick={() => setActiveTab("cxc")}
+          onClick={() => selectReportTab("cxc")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "cxc"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -475,7 +458,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
         <button
           type="button"
-          onClick={() => setActiveTab("cxp")}
+          onClick={() => selectReportTab("cxp")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "cxp"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -488,7 +471,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
         <button
           type="button"
-          onClick={() => setActiveTab("bancos")}
+          onClick={() => selectReportTab("bancos")}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "bancos"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -508,7 +491,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
           {/* Bloque de 2 Gráficas Grandes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Gráfica 1: Ingresos vs Egresos Históricos */}
-            <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
+            <div className="min-w-0 p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
@@ -516,10 +499,10 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                     Comparativa de Flujo: Ingresos vs Egresos
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Comportamiento mensual del flujo operativo consolidado
+                    Flujo operativo de todo el intervalo; agrupado por año si supera diez años
                   </p>
                 </div>
-                <div className="flex items-center gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
                   <span className="flex items-center gap-1.5 font-semibold text-slate-700">
                     <span className="w-2.5 h-2.5 rounded-sm bg-emerald-600"></span> Ingresos
                   </span>
@@ -532,7 +515,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </div>
               </div>
 
-              <div className="h-64 mt-4 w-full relative">
+              <div className="h-64 mt-4 w-full min-w-0 overflow-hidden relative">
                 {isMounted ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -545,6 +528,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                         tickFormatter={(val) => `$${val}`}
                       />
                       <Tooltip
+                        allowEscapeViewBox={{ x: false, y: false }}
                         contentStyle={{
                           backgroundColor: "#FFFFFF",
                           borderRadius: "8px",
@@ -568,7 +552,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
             </div>
 
             {/* Gráfica 2: Desglose de Gastos OPEX por Categoría */}
-            <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
+            <div className="min-w-0 p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
               <div className="flex items-center justify-between pb-3 border-b border-[#f1f5f9]">
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
@@ -618,7 +602,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
           {/* Bloque de 2 Paneles de Análisis (Cobranzas vs Liquidez) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Panel de Eficiencia de Cobranzas */}
-            <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs space-y-4">
+            <div className="min-w-0 p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
@@ -685,7 +669,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
             </div>
 
             {/* Panel de Concentración de Liquidez en Bancos */}
-            <div className="p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs space-y-4">
+            <div className="min-w-0 p-5 rounded-xl bg-white border border-[#e2e8f0] shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-bold text-xs uppercase tracking-wider text-[#0b1c30] flex items-center gap-1.5">
@@ -722,7 +706,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                       <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                         <div
                           className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, b.sharePct)}%` }}
+                          style={{ width: `${Math.max(0, Math.min(100, b.sharePct))}%` }}
                         />
                       </div>
                     </div>
@@ -802,7 +786,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                           {c.invoiceNumber || "S/N"}
                         </td>
                         <td className="py-3 px-3 font-mono text-slate-600">
-                          {c.saleDate || `${c.year}-${String(c.month).padStart(2, "0")}-01`}
+                          {String(c.saleDate || `${c.year}-${String(c.month).padStart(2, "0")}-01`).slice(0, 10)}
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold text-slate-900 block truncate">{c.clientName}</span>

@@ -2455,7 +2455,7 @@ test("Flujo E2E 41: Centro de Reportes Financieros Completo (Gráficas Ejecutiva
   // 4. Exportación e Impresión
   assert.ok(
     reportsContent.includes("handleExportCsv") &&
-      reportsContent.includes("window.print()"),
+      reportsContent.includes("printHtmlElement(reportRef.current"),
     "FinancialReportsTab debe permitir exportar a CSV/Excel e imprimir el reporte formal"
   );
 });

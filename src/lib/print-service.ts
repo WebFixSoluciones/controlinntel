@@ -28,7 +28,8 @@ export function safeFloat(val: any): number {
 export function printHtmlElement(
   element: HTMLElement | null,
   documentTitle = "Documento Oficial",
-  format: "a4" | "ticket" = "a4"
+  format: "a4" | "ticket" = "a4",
+  options: { orientation?: "portrait" | "landscape"; report?: boolean } = {},
 ): void {
   if (typeof window === "undefined") return;
 
@@ -44,7 +45,7 @@ export function printHtmlElement(
   iframe.style.position = "fixed";
   iframe.style.left = "-10000px";
   iframe.style.top = "0";
-  iframe.style.width = format === "ticket" ? "320px" : "1024px";
+  iframe.style.width = format === "ticket" ? "320px" : options.orientation === "landscape" ? "1400px" : "1024px";
   iframe.style.height = "1200px";
   iframe.style.border = "0";
   iframe.style.opacity = "0";
@@ -65,6 +66,7 @@ export function printHtmlElement(
     document.querySelectorAll("link[rel='stylesheet'], style")
   )
     .filter((el) => {
+      if (options.report) return true;
       const content = el.textContent || "";
       return !content.includes("visibility: hidden") && !content.includes("visibility:hidden");
     })
@@ -74,7 +76,7 @@ export function printHtmlElement(
   const pageCss =
     format === "ticket"
       ? `@page { size: 80mm auto; margin: 3mm 2mm 3mm 2mm; }`
-      : `@page { size: A4 portrait; margin: 8mm 10mm 8mm 10mm; }`;
+      : `@page { size: A4 ${options.orientation || "portrait"}; margin: 8mm 10mm 8mm 10mm; }`;
 
   const a4GridOverrides =
     format === "a4"
@@ -162,10 +164,27 @@ export function printHtmlElement(
             box-shadow: none !important;
           }
           ${a4GridOverrides}
+          ${options.report ? `
+            [data-report-print] { width: 100%; min-width: 0; }
+            [data-report-print], [data-report-print] * { visibility: visible !important; }
+            [data-report-print] .print\\:hidden { display: none !important; }
+            [data-report-print] .overflow-x-auto,
+            [data-report-print] [role="region"] { overflow: visible !important; max-height: none !important; }
+            [data-report-print] table {
+              width: 100% !important; min-width: 0 !important; table-layout: fixed !important;
+              break-inside: auto !important; page-break-inside: auto !important;
+            }
+            [data-report-print] thead { display: table-header-group !important; }
+            [data-report-print] tr { break-inside: avoid !important; }
+            [data-report-print] th, [data-report-print] td {
+              white-space: normal !important; overflow-wrap: anywhere !important;
+              padding: 5px !important; font-size: 11px !important; vertical-align: top;
+            }
+          ` : ""}
         </style>
       </head>
       <body>
-        <div style="width: 100%; ${format === "a4" ? "max-width: 100%;" : "max-width: 300px;"} margin: 0 auto; background: #ffffff;">
+        <div ${options.report ? "data-report-print" : ""} style="width: 100%; ${format === "a4" ? "max-width: 100%;" : "max-width: 300px;"} margin: 0 auto; background: #ffffff;">
           ${element.outerHTML}
         </div>
       </body>

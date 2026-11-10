@@ -1,6 +1,6 @@
-export type ReportColumn = { key: string; label: string; money?: boolean };
+export type ReportColumn = { key: string; label: string; money?: boolean; date?: boolean };
 export async function downloadReport(rows: Record<string, unknown>[], columns: ReportColumn[], title: string, format: "csv" | "xlsx", criteria: string) {
-  const values = rows.map(row => columns.map(column => row[column.key] ?? ""));
+  const values = rows.map(row => columns.map(column => column.date && row[column.key] ? String(row[column.key]).slice(0, 10) : row[column.key] ?? ""));
   let blob: Blob;
   if (format === "xlsx") {
     const ExcelJS = await import("exceljs");
@@ -8,6 +8,8 @@ export async function downloadReport(rows: Record<string, unknown>[], columns: R
     sheet.addRow(columns.map(column => column.label)); values.forEach(row => sheet.addRow(row));
     columns.forEach((column, index) => { sheet.getColumn(index + 1).width = column.money ? 19 : 34; if (column.money) sheet.getColumn(index + 1).numFmt = '"$"#,##0.00'; });
     sheet.getRow(1).font = { bold: true }; sheet.views = [{ state: "frozen", ySplit: 1 }];
+    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, sheet.rowCount), column: columns.length } };
+    sheet.pageSetup = { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: "1:1" };
     const filters = book.addWorksheet("Criterios"); filters.addRows([["Reporte", title], ["Filtros", criteria]]); filters.getColumn(2).width = 90;
     blob = new Blob([await book.xlsx.writeBuffer()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   } else {

@@ -120,7 +120,7 @@ function ClientesContent() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
+        <main className="p-3 sm:p-5 xl:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
           {!canAccessClientes ? (
             <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center max-w-lg mx-auto my-12 space-y-3">
               <div className="w-12 h-12 bg-[#fee2e2] text-[#dc2626] rounded-full flex items-center justify-center mx-auto">

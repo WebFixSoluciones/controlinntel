@@ -12,7 +12,7 @@ export default function ProyectosPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="p-6 md:p-8 space-y-8 flex-1 overflow-y-auto w-full min-w-0">
+        <main className="p-3 sm:p-5 xl:p-8 space-y-8 flex-1 overflow-y-auto w-full min-w-0">
           <ProjectsManager />
         </main>
 

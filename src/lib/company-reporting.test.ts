@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inReportPeriod, companyPeriodReport, clientCommercialRows, reportSales, type ReportSource } from "./company-reporting.ts";
+import { inReportPeriod, companyPeriodReport, clientCommercialRows, reportSales, purchaseBalance, reportSearchText, reportCashSeries, type ReportSource } from "./company-reporting.ts";
 
 const fiscal = { estadoSRI: "AUTORIZADO", authorizationVerified: true, ambiente: "2" };
 const fixture = (): ReportSource => ({
@@ -130,4 +130,56 @@ test("El costo referencial de servicios no se suma otra vez a las compras y gast
   assert.equal(report.operatingResult, 40);
   assert.equal(report.needsExpenseReview, false);
   assert.equal(companyPeriodReport({ billingInvoices: source.billingInvoices }).needsExpenseReview, true);
+});
+
+
+test("El cierre bancario incluye todas las horas del último día y distingue el saldo actual", () => {
+  const source: ReportSource = { bankAccounts: [{ id: "bank", initialBalance: 100, currentBalance: 180, createdAt: "2025-01-01" }], financialMovements: [
+    { bankAccountId: "bank", date: "2026-11-08", type: "ingreso", amount: 20 },
+    { bankAccountId: "bank", date: "2026-11-09T12:00:00Z", type: "ingreso", amount: 50 },
+    { bankAccountId: "bank", date: "2026-11-09T23:59:59Z", type: "egreso", amount: 10 },
+    { bankAccountId: "bank", date: "2026-11-10T00:00:00Z", type: "ingreso", amount: 20 },
+  ] };
+  const report = companyPeriodReport(source, "2026-11-09", "2026-11-09");
+  assert.equal(report.banks[0].opening, 120); assert.equal(report.banks[0].closing, 160);
+  assert.equal(report.banks[0].current, 180); assert.equal(report.incoming, 50); assert.equal(report.outgoing, 10);
+  const future = companyPeriodReport({ bankAccounts: [{ id: "future", initialBalance: 100, currentBalance: 100, createdAt: "2026-12-01" }] }, "", "2026-11-30");
+  assert.equal(future.banks[0].opening, 0); assert.equal(future.banks[0].closing, 0);
+  assert.equal(inReportPeriod("2026-02-30", "2026-02-01", "2026-03-01"), false);
+});
+
+test("Los datos que nunca llegaron no se presentan como costos completos ni se inventa la clasificación de compras", () => {
+  const report = companyPeriodReport({ billingInvoices: [{ id: "sale", documentType: "nota_venta", date: "2026-11-09", total: 100, subtotal: 100 }],
+    purchaseInvoices: [{ id: "legacy", inventoryStatus: "ingresado", date: "2026-11-09", total: 60, subtotal: 60 },
+      { id: "service", inventoryStatus: "no_aplica", date: "2026-11-09", total: 20, subtotal: 20 }],
+    financialMovements: [{ bankAccountId: "b", type: "ingreso", amount: 10, date: "" }] }, "2026-11-01", "2026-11-30");
+  assert.equal(report.missingCosts, 1); assert.equal(report.unknownPurchases, 1);
+  assert.equal(report.directPurchaseCost, 20); assert.equal(report.undatedBankMovements, 1);
+  assert.equal(report.incoming, 0);
+});
+
+test("Las cuentas por pagar descuentan abonos aun si no se guardó el saldo y conservan los ceros explícitos", () => {
+  assert.equal(purchaseBalance({ total: 100, paidAmount: 35, paymentStatus: "abono_parcial" }), 65);
+  assert.equal(purchaseBalance({ total: 100, paidAmount: 35, balanceRemaining: 0, paymentStatus: "pendiente" }), 0);
+  assert.equal(purchaseBalance({ total: 100, balanceRemaining: 20, paymentStatus: "pagado" }), 20);
+  assert.equal(purchaseBalance({ total: 100, paidAmount: 110 }), 0);
+  assert.equal(purchaseBalance({ total: 100, status: "anulado" }), 0);
+  assert.equal(reportSearchText("  MUÑOZ  "), "munoz"); assert.equal(reportSearchText(0), "0");
+  assert.equal(clientCommercialRows({ clients: [{ id: "a", businessName: "Nombre", tradeName: "Comercial QA" }] })[0].tradeName, "Comercial QA");
+});
+
+test("La apertura de una cuenta creada en UTC respeta el día de Ecuador", () => {
+  const report = companyPeriodReport({ bankAccounts: [{ id: "late", createdAt: "2026-11-10T02:00:00Z", currentBalance: 50, initialBalance: 0 }],
+    financialMovements: [{ bankAccountId: "late", date: "2026-11-09", type: "ingreso", amount: 50 }] }, "2026-11-09", "2026-11-09");
+  assert.equal(report.banks[0].opening, 0); assert.equal(report.banks[0].closing, 50);
+});
+
+test("La gráfica conserva todo el período seleccionado, incluidos movimientos anteriores a los últimos seis meses", () => {
+  const movements = [{ date: "2026-01-10", type: "ingreso", amount: 100 }, { date: "2026-11-09", type: "ingreso", amount: 50 }, { date: "2026-02-01", type: "egreso", amount: 25 }];
+  const series = reportCashSeries(movements, "2026-01-01", "2026-12-31");
+  assert.equal(series.length, 12); assert.equal(series[0].mes, "2026-01"); assert.equal(series[0].ingresos, 100);
+  assert.equal(series.reduce((sum, row) => sum + row.neto, 0), 125);
+  const longHistory = reportCashSeries([...movements, { date: "2000-01-01", type: "ingreso", amount: 20 }], "2000-01-01", "2026-12-31");
+  assert.equal(longHistory.length, 27); assert.equal(longHistory[0].mes, "2000");
+  assert.equal(longHistory.reduce((sum, row) => sum + row.neto, 0), 145);
 });

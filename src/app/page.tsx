@@ -40,7 +40,7 @@ export default function DashboardPage() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
+        <main className="p-3 sm:p-5 xl:p-8 space-y-6 flex-1 overflow-y-auto w-full min-w-0">
           {/* Header con Bienvenida y Accesos Directos Minimalistas */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b border-[#e2e8f0]/60">
             <div>
