@@ -290,6 +290,8 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   ticketSubjects: z.object({ name: text, category: text, defaultDepartment: text }).passthrough(),
   ticketDepartments: z.object({ name: z.string().trim().min(2).max(80), active: z.boolean() }),
   userRoleTemplates: z.object({
+    description: z.string().max(500).optional(),
+    status: z.enum(["activo", "inactivo"]).optional(),
     name: z.string().trim().min(2).max(80),
     baseRole: z.enum(["admin", "ventas", "finanzas", "tecnico", "soporte", "bodega", "legal", "consulta"]),
     modulePermissions: modulePermissionsSchema,

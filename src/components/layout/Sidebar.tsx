@@ -135,6 +135,7 @@ const NAV_ITEMS: NavItem[] = [
     submodules: [
       { key: "proveedores", label: "Proveedores", href: "/personas?sub=proveedores", submoduleKey: "proveedores" },
       { key: "usuarios_equipo", label: "Usuarios", href: "/personas?sub=usuarios_equipo", submoduleKey: "usuarios_equipo" },
+      { key: "roles_permisos", label: "Roles y permisos", href: "/personas?sub=roles_permisos", submoduleKey: "roles_permisos" },
     ],
   },
   {
@@ -252,7 +253,7 @@ function SidebarContent() {
           // Filter accessible submodules
           const accessibleSubmodules = item.submodules
             ? item.submodules.filter((sub) =>
-                item.moduleKey ? canAccessSubmodule(currentUser, item.moduleKey, sub.submoduleKey) : true
+                item.moduleKey ? canAccessSubmodule(currentUser, item.moduleKey, sub.submoduleKey) && (sub.key !== "configuracion_sri" || canAccessSubmodule(currentUser,"configuracion","sri")) : true
               )
             : undefined;
 

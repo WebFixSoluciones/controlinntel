@@ -1,5 +1,7 @@
 # Administración de usuarios, roles y permisos
 
+> Este documento registra la corrección anterior. El flujo vigente de roles vinculados y excepciones individuales está documentado en [Roles administrables y excepciones](roles-y-excepciones-2026-11-13.md).
+
 ## Reglas de acceso
 
 - Cada solicitud protegida verifica la identidad en Firebase, la revocación del token y el perfil activo en `users/{uid}`. Sin perfil verificable se deniega el acceso. Se retiraron las identidades de respaldo definidas en el código.

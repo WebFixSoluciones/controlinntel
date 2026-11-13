@@ -2,7 +2,7 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo } from "react";
-import { canViewFinancialAmounts } from "@/lib/permissions";
+import { canViewFinancialAmounts, canRoleAction } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Project, ProjectStatus } from "@/types";
@@ -278,6 +278,7 @@ export function ProjectsManager() {
           </button>
 
           <button
+            disabled={!canRoleAction(currentUser,"proyectos","canCreateProject")}
             onClick={handleOpenCreateProject}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-xs"
           >
@@ -432,7 +433,7 @@ export function ProjectsManager() {
                           </button>
 
                           {/* ✏️ Editar Proyecto */}
-                          <ActionIconButton action="edit" onClick={() => handleOpenEditProject(p)} title="Editar Datos del Proyecto" />
+                          <ActionIconButton action="edit" disabled={!canRoleAction(currentUser,"proyectos","canEditProject")} onClick={() => handleOpenEditProject(p)} title="Editar Datos del Proyecto" />
 
                           {/* 🔄 Cambiar Estado */}
                           <button
@@ -459,7 +460,7 @@ export function ProjectsManager() {
                           </button>
 
                           {/* 🗑️ Eliminar Proyecto (Envía a Papelera) */}
-                          <ActionIconButton action="delete" onClick={() => handleDeleteProject(p)} title="Enviar Proyecto a Papelera" />
+                          <ActionIconButton action="delete" disabled={!canRoleAction(currentUser,"proyectos","canDeleteProject")} onClick={() => handleDeleteProject(p)} title="Enviar Proyecto a Papelera" />
                         </div>
                       </td>
                     </tr>

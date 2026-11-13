@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { adminServices } from "./admin.ts";
 import { audit, HttpError, requirePermission } from "./security.ts";
-import { can, canAccessModule, canAccessSubmodule, canManageTicketDepartments, canManageTemplates, canUser, canViewServicePrices, canViewFinancialAmounts, collectionPermissions, type Entity } from "../permissions.ts";
+import { can, canAccessModule, canAccessSubmodule, canManageTicketDepartments, canManageTemplates, canUser, canRoleAction, canViewServicePrices, canViewFinancialAmounts, collectionPermissions, type Entity } from "../permissions.ts";
 import { schemas } from "./schemas.ts";
 import { seal, unseal, initializeVaultKey } from "./vault.ts";
 import { requireVaultAccess } from "./vault-access.ts";
@@ -19,6 +19,8 @@ import { nextTicketNumber } from "./ticket-sequence.ts";
 import { requireEntityWriteAccess } from "./entity-write-access.ts";
 import { isClosedTicketStatus, requiresPublicTicketReply } from "../ticket-status.ts";
 import type { TicketDepartmentRecord } from "@/types";
+import type { UserRoleTemplate } from "@/types";
+import { administrationProfile, resolveAssignedRole, normalizedRole } from "../role-access.ts";
 
 const now = () => new Date().toISOString();
 function nodeServicePassword(service?: DocumentData): string {
@@ -79,21 +81,33 @@ export async function snapshot(user: UserProfile) {
       return redact((entity === "billingInvoices" && value.documentType !== "nota_venta") || fiscalCollections.has(entity) ? fiscalMetadata(visible) : visible);
     });
   }));
+  const definitions = (result.userRoleTemplates || []) as UserRoleTemplate[];
+  result.userRoleTemplates = definitions.map(normalizedRole);
+  const roleCache = new Map<string, Promise<UserRoleTemplate | undefined>>();
+  for (const definition of definitions) roleCache.set(definition.id, Promise.resolve(definition));
+  const loadRole = (id: string) => {
+    if (!roleCache.has(id)) roleCache.set(id, db.collection("userRoleTemplates").doc(id).get().then(doc => doc.exists ? { ...doc.data(), id: doc.id } as UserRoleTemplate : undefined));
+    return roleCache.get(id)!;
+  };
+  result.systemUsers = await Promise.all(((result.systemUsers || []) as UserProfile[]).map(async profile => administrationProfile(profile, profile.accessRoleId ? await loadRole(profile.accessRoleId) : undefined)));
   if (canAccessModule(user, "tickets") && can(user, "manage_tickets")) {
-    const directory = await db.collection("users").where("status", "==", "activo").select("displayName", "role", "permissions", "modulePermissions", "permissionModelVersion").get();
-    result.ticketAssignees = directory.docs.flatMap(doc => {
-      const data = doc.data() as UserProfile;
+    const directory = await db.collection("users").where("status", "==", "activo").select("displayName", "role", "permissions", "modulePermissions", "permissionModelVersion", "accessRoleId", "permissionOverrides").get();
+    result.ticketAssignees = (await Promise.all(directory.docs.map(async doc => {
+      let data = { ...doc.data(), uid: doc.id, status: "activo" } as UserProfile;
+      if (data.accessRoleId) { try { data = resolveAssignedRole(data, await loadRole(data.accessRoleId)); } catch { return []; } }
       return data.displayName && canAccessModule({ ...data, status: "activo" }, "tickets") && can({ ...data, status: "activo" }, "manage_tickets")
-        ? [{ uid: doc.id, displayName: data.displayName, role: data.role }] : [];
-    });
+        ? [{ uid: doc.id, displayName: data.displayName, role: data.accessRoleName || data.role }] : [];
+    }))).flat();
   } else result.ticketAssignees = [];
   return result;
 }
 export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number, database?: Firestore) {
-  requireEntityWriteAccess(user, entity, "save");
+  if (entity === "userRoleTemplates") throw new HttpError(400, "Administra los roles desde Roles y permisos.");
+  if (entity === "systemConfig" && id === "arcotelConcession") { if (!canRoleAction(user,"arcotel","canManageRegulatoryData")) throw new HttpError(403,"No tienes permiso para editar la concesión."); } else requireEntityWriteAccess(user, entity, "save");
   const permission=collectionPermissions[entity];
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
   if (entity !== "documentTemplates" && entity !== "sriCompanyConfig") requirePermission(user,permission);
+  if (entity === "sriCompanyConfig" && user.accessRoleId && !canUser(user,"configuracion","canEditGeneralSettings") && !canUser(user,"configuracion","canEditSriSettings")) throw new HttpError(403,"No tienes permiso para guardar la configuración.");
   if (entity === "sriCompanyConfig" && !canAccessSubmodule(user, "configuracion", "general") && !canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "No tienes permiso para cambiar la configuración de la empresa.");
   if (entity === "documentTemplates" && !canManageTemplates(user)) throw new HttpError(403, "No tienes permiso para administrar plantillas.");
   if (["projects", "clientProjects"].includes(entity) && !canViewFinancialAmounts(user)) {
@@ -103,7 +117,6 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   if (["clientQuotes", "billingQuotes"].includes(entity) && !((canAccessSubmodule(user, "ventas", "cotizaciones") && canUser(user, "ventas", "canCreateQuotes")) || (entity === "billingQuotes" && canAccessSubmodule(user, "facturacion", "cotizaciones") && canUser(user, "facturacion", "canCreateQuotes")))) throw new HttpError(403, "No tienes permiso para crear o editar cotizaciones.");
   if (entity === "expenseCategories" && !canManageExpenseCategories(user)) throw new HttpError(403, "No tienes permiso para administrar las categorías de gastos.");
   if (["tickets", "ticketSubjects", "ticketDepartments"].includes(entity) && !canAccessModule(user, "tickets")) throw new HttpError(403,"Acceso restringido a Soporte.");
-  if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
   if (entity === "ticketDepartments" && !canManageTicketDepartments(user)) throw new HttpError(403,"No tienes permiso para administrar departamentos de soporte.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "save");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
@@ -114,6 +127,12 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   const reference=db.collection(entity).doc(id || randomUUID());
   return db.runTransaction(async tx=>{
     const old=await tx.get(reference);
+    if(user.accessRoleId){
+      if(entity==="projects"&&!canUser(user,"proyectos",old.exists?(input.isDeleted===true&&!old.data()?.isDeleted?"canDeleteProject":"canEditProject"):"canCreateProject"))throw new HttpError(403,"No tienes permiso para crear o editar proyectos.");
+      if(entity==="projects"&&old.exists&&input.isDeleted===true&&!canUser(user,"proyectos","canEditProject")&&Object.keys(input).some(key=>!["id","version","isDeleted","deletedAt","updatedAt"].includes(key)&&digest(input[key])!==digest(old.data()?.[key])))throw new HttpError(403,"El permiso para retirar un proyecto no permite cambiar sus demás datos.");
+      if(entity==="tickets"&&!canUser(user,"tickets",old.exists?"canEditTicket":"canCreateTicket"))throw new HttpError(403,"No tienes permiso para crear o editar tickets.");
+      if(entity==="tickets"&&["resuelto","cerrado"].includes(String(input.status))&&input.status!==old.data()?.status&&!canUser(user,"tickets","canResolveTickets"))throw new HttpError(403,"No tienes permiso para resolver o cerrar tickets.");
+    }
     if (!canViewServicePrices(user) && (entity === "plans" || entity === "clientContracts" || entity === "hostingDomains")
       && (!old.exists || servicePriceFields[entity].some(key => key in input && input[key] !== old.data()?.[key]))) {
       throw new HttpError(403, "No tienes permiso para registrar o cambiar los valores del servicio.");
@@ -126,7 +145,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     if (entity === "sriCompanyConfig") {
       const sensitive = /^(ruc|razonSocial|nombreComercial|direccionMatriz|direccionEstablecimiento|ambiente|establecimiento|puntoEmision.*|secuencial(?!NotaVenta|Cotizacion).*|obligadoContabilidad|tipoContribuyente|resolucionAgenteRetencion|contribuyenteEspecial|rucProveedorFacturacion)$/;
       if (Object.keys(input).some(key => sensitive.test(key) && digest(input[key]) !== digest(old.data()?.[key] ?? null))
-        && !canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
+        && (!canAccessSubmodule(user, "configuracion", "sri") || (user.accessRoleId && !canUser(user,"configuracion","canEditSriSettings")))) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
       input = Object.fromEntries(Object.entries(input).filter(([key]) => !key.startsWith("certificado")));
       if (input.rucProveedorFacturacion && !/^\d{13}$/.test(input.rucProveedorFacturacion)) throw new HttpError(400, "El RUC del proveedor debe tener 13 dígitos.");
     }
@@ -144,12 +163,6 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       const categories = expenseCategoriesWithDefaults(records.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ExpenseCategory));
       if (categories.some(category => category.id !== reference.id && expenseCategoryKey(category.name) === expenseCategoryKey(data.name))) {
         throw new HttpError(409, "Ya existe una categoría de gasto con ese nombre.");
-      }
-    }
-    if (entity === "userRoleTemplates") {
-      const templates = await tx.get(db.collection("userRoleTemplates"));
-      if (templates.docs.some(doc => doc.id !== reference.id && doc.data().name.toLocaleLowerCase("es") === data.name.toLocaleLowerCase("es"))) {
-        throw new HttpError(409, "Ya existe una plantilla de rol con ese nombre.");
       }
     }
     if (entity === "ticketDepartments" || entity === "tickets" || entity === "ticketSubjects") {
@@ -279,6 +292,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   });
 }
 export async function remove(user:UserProfile,entity:Entity,id:string,version?:number,database?: Firestore) {
+  if (entity === "userRoleTemplates") throw new HttpError(400, "Administra los roles desde Roles y permisos.");
   requireEntityWriteAccess(user, entity, "delete");
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
   if (entity === "expenseCategories") throw new HttpError(400, "Desactiva la categoría para conservar el historial de gastos.");
@@ -287,7 +301,6 @@ export async function remove(user:UserProfile,entity:Entity,id:string,version?:n
   if (entity === "documentTemplates" && !canManageTemplates(user)) throw new HttpError(403, "No tienes permiso para administrar plantillas.");
   if (entity === "suppliers" && !canAccessSubmodule(user, "personas", "proveedores")) throw new HttpError(403, "No tienes acceso a Proveedores en Personas.");
   if (["clientQuotes", "billingQuotes"].includes(entity) && !(canAccessSubmodule(user, "ventas", "cotizaciones") && canUser(user, "ventas", "canCancelInvoices"))) throw new HttpError(403, "No tienes permiso para eliminar cotizaciones.");
-  if (entity === "userRoleTemplates" && user.role !== "superadmin") throw new HttpError(403,"Solo un superadministrador administra plantillas de rol.");
   if (entity === "ticketDepartments") throw new HttpError(400,"Desactiva el departamento para conservar los tickets históricos.");
   if (entity === "vault" || entity === "clientVaultItems") requireVaultAccess(user, entity, "delete");
   if(user.role==="consulta")throw new HttpError(403,"Perfil de consulta.");

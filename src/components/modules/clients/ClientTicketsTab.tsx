@@ -1,5 +1,6 @@
 "use client";
 
+import {canRoleAction} from "@/lib/permissions";
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -24,7 +25,7 @@ interface ClientTicketsTabProps {
 }
 
 export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
-  const { tickets } = useApp();
+  const { tickets, currentUser } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [resolveOnOpen, setResolveOnOpen] = useState(false);
@@ -204,6 +205,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
+              disabled={!canRoleAction(currentUser,"tickets","canCreateTicket")}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />

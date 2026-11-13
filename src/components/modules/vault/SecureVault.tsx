@@ -39,9 +39,10 @@ export function SecureVault({ clientId }: { clientId?: string }) {
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
   const canView = canUser(app.currentUser, "boveda", clientId ? "canViewClientVault" : "canViewInternalVault");
-  const canManage = canView && can(app.currentUser, "manage_vault") && app.currentUser.role !== "consulta";
-  const canReveal = canManage && canUser(app.currentUser, "boveda", "canRevealPasswords");
-  const canDelete = canManage && canUser(app.currentUser, "boveda", "canDeleteCredentials");
+  const canOperate = canView && can(app.currentUser, "manage_vault") && app.currentUser.role !== "consulta";
+  const canManage = canOperate && (!app.currentUser.accessRoleId || canUser(app.currentUser,"boveda","canManageCredentials"));
+  const canReveal = canOperate && canUser(app.currentUser, "boveda", "canRevealPasswords");
+  const canDelete = canOperate && canUser(app.currentUser, "boveda", "canDeleteCredentials");
   const rawItems = clientId
     ? (app?.clientVaultItems || []).filter((v) => v && v.clientId === clientId)
     : (app?.vault || []);

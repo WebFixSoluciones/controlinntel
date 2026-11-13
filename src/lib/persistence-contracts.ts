@@ -20,6 +20,7 @@ export function canReadCollection(user:UserProfile,entity:Entity) {
   if(entity==="userRoleTemplates")return false;
   if(entity==="documentTemplates")return canAccessModule(user,"plantillas");
   if(entity==="systemUsers")return can(user,"manage_users")&&canAccessSubmodule(user,"personas","usuarios_equipo");
+  if(user.accessRoleId && ["policies","arcotelFiles","regulatoryTramites"].includes(entity))return canAccessModule(user,"arcotel");
   if(!canViewFinancialAmounts(user) && (["monthlyCharges","clientAdvances","expenses","financialMovements","bankAccounts","purchaseInvoices","supplierPayments","supplierCredits","supplierCreditNotes","supplierDebitNotes","purchaseWithholdings","clientQuotes"].includes(entity)||entity.startsWith("billing")))return false;
   if(entity==="suppliers")return canAccessSubmodule(user,"personas","proveedores")||canAccessModule(user,"compras");
   if(["systemUsers","auditLogs","operationLog"].includes(entity))return can(user,"manage_users");

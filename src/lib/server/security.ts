@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { adminServices } from "./admin.ts";
 import { can, effectiveAccountPermissions } from "../permissions.ts";
 import type { UserProfile } from "@/types";
+import type { UserRoleTemplate } from "@/types";
+import { resolveAssignedRole, RoleAccessError } from "../role-access.ts";
 
 export class HttpError extends Error {
   status: number;
@@ -28,9 +30,22 @@ export async function actor(request: NextRequest, services = adminServices): Pro
   } catch { throw new HttpError(503, "No se pudo verificar el perfil. Intenta nuevamente."); }
 
   if (!profile || profile.status !== "activo") throw new HttpError(403, "Cuenta sin perfil activo.");
+  if (profile.accessRoleId) {
+    try {
+      const role = await db.collection("userRoleTemplates").doc(profile.accessRoleId).get();
+      profile = resolveAssignedRole(profile, role.exists ? { ...role.data(), id: role.id } as UserRoleTemplate : undefined);
+    } catch (error) {
+      if (error instanceof RoleAccessError) throw new HttpError(403, error.message);
+      throw new HttpError(503, "No se pudo verificar el rol de acceso. Intenta nuevamente.");
+    }
+  }
 
   return {
     uid,
+    accessRoleId: profile.accessRoleId,
+    accessRoleName: profile.accessRoleName,
+    accessRoleVersion: profile.accessRoleVersion,
+    permissionOverrides: profile.permissionOverrides,
     email: profile.email || decoded.email || "",
     permissionModelVersion: profile.permissionModelVersion,
     displayName: profile.displayName || "Usuario Corporativo",
@@ -45,6 +60,6 @@ export function requirePermission(user: UserProfile, permission: string) {
 }
 export function audit(user: UserProfile, action: string, resource: string) {
   return { id: crypto.randomUUID(), userId: user.uid, userEmail: user.email, userRole: user.role,
-    action, resource, details: action + " " + resource, timestamp: new Date().toISOString() };
+    action, resource, ...(user.accessRoleId ? { actorRoleId: user.accessRoleId, actorRoleName: user.accessRoleName || "", actorRoleVersion: user.accessRoleVersion || 0 } : {}), details: action + " " + resource, timestamp: new Date().toISOString() };
 }
 

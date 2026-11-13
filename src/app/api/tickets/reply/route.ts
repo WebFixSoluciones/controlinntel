@@ -4,7 +4,7 @@ import { actor, requirePermission, HttpError } from "@/lib/server/security";
 import { adminServices } from "@/lib/server/admin";
 import { recordOperation } from "@/lib/server/operation-log";
 import { isClosedTicketStatus, requiresPublicTicketReply } from "@/lib/ticket-status";
-import { canAccessModule } from "@/lib/permissions";
+import { canAccessModule, canUser } from "@/lib/permissions";
 import type { DocumentData } from "firebase-admin/firestore";
 export const runtime="nodejs";
 const schema=z.object({id:z.string().regex(/^[\w-]{1,150}$/),messageId:z.string().uuid(),body:z.string().trim().min(1).max(5000),isInternal:z.boolean(),status:z.enum(["abierto","en_progreso","respondido","en_espera","respuesta_cliente","resuelto","cerrado"]).optional()});
@@ -13,11 +13,12 @@ export async function POST(request:NextRequest) {
     const user=await actor(request);requirePermission(user,"manage_tickets");
     if(user.role==="consulta" || !canAccessModule(user,"tickets"))throw new HttpError(403,"Acceso restringido a Soporte.");
     const data=schema.parse(await request.json()),{db}=adminServices();
+    if(user.accessRoleId&&(!canUser(user,"tickets","canReplyTicket")||(["resuelto","cerrado"].includes(data.status||"")&&!canUser(user,"tickets","canResolveTickets"))))throw new HttpError(403,"No tienes permiso para responder o resolver este ticket.");
     await db.runTransaction(async tx=>{
       const ref=db.collection("tickets").doc(data.id),snapshot=await tx.get(ref),ticket=snapshot.data();
       if(!ticket)throw new HttpError(404,"Ticket inexistente.");
       if((ticket.messages||[]).some((m:any)=>m.id===data.messageId))return;
-      const timestamp=new Date().toISOString(),message={id:data.messageId,body:data.body,authorId:user.uid,authorName:user.displayName,authorRole:user.role,isInternal:data.isInternal,createdAt:timestamp};
+      const timestamp=new Date().toISOString(),message={id:data.messageId,body:data.body,authorId:user.uid,authorName:user.displayName,authorRole:user.accessRoleName||user.role,isInternal:data.isInternal,createdAt:timestamp};
       const status=data.status||(data.isInternal?ticket.status:"respondido");
       if (requiresPublicTicketReply(ticket.status, status, data)) throw new HttpError(400, "Escribe una respuesta al cliente antes de resolver o cerrar el ticket.");
       const after: DocumentData={...ticket,id:ref.id,status,messages:[...(ticket.messages||[]),message],version:Number(ticket.version||0)+1,updatedAt:timestamp,lastReplyAt:timestamp,lastReplier:user.displayName};

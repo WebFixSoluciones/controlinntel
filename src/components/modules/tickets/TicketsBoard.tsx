@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { canManageTicketDepartments } from "@/lib/permissions";
+import { canManageTicketDepartments, canRoleAction } from "@/lib/permissions";
 import { departmentLabel, DEFAULT_TICKET_DEPARTMENT } from "@/lib/ticket-departments";
 import { TicketDepartmentsModal } from "./TicketDepartmentsModal";
 import { api } from "@/lib/api-client";
@@ -227,6 +227,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             <button
               type="button"
               onClick={() => setIsSubjectsOpen(true)}
+              disabled={!canRoleAction(currentUser,"tickets","canManageSubjects")}
               className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
               title="Configurar los asuntos disponibles al crear tickets"
             >
@@ -235,6 +236,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
             </button>
             <button
               onClick={onOpenNewModal}
+              disabled={!canRoleAction(currentUser,"tickets","canCreateTicket")}
               className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />

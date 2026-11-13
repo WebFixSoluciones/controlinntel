@@ -6,12 +6,13 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { QuickSearchModal } from "@/components/layout/QuickSearchModal";
 import { SuppliersManager } from "@/components/modules/clients/SuppliersManager";
+import { RolesManager } from "@/components/modules/clients/RolesManager";
 import { UsersManager } from "@/components/modules/clients/UsersManager";
 import { useApp } from "@/lib/state";
 import { canAccessModule, canAccessSubmodule } from "@/lib/permissions";
 import { ShieldAlert } from "lucide-react";
 
-export type PersonasSubmoduleTab = "proveedores" | "usuarios_equipo";
+export type PersonasSubmoduleTab = "proveedores" | "usuarios_equipo" | "roles_permisos";
 
 function PersonasContent() {
   const { currentUser } = useApp();
@@ -19,13 +20,14 @@ function PersonasContent() {
 
   const canAccessPersonas = canAccessModule(currentUser, "personas");
   const canProveedores = canAccessSubmodule(currentUser, "personas", "proveedores");
+  const canRoles = canAccessSubmodule(currentUser, "personas", "roles_permisos");
   const canUsuarios = canAccessSubmodule(currentUser, "personas", "usuarios_equipo");
 
   // Determine active view based on query param or first permitted submodule
   const subParam = searchParams.get("sub") as PersonasSubmoduleTab | null;
   let activeTab: PersonasSubmoduleTab = "proveedores";
 
-  if (subParam === "usuarios_equipo" && canUsuarios) {
+  if (subParam === "roles_permisos" && canRoles) { activeTab = "roles_permisos"; } else if (subParam === "usuarios_equipo" && canUsuarios) {
     activeTab = "usuarios_equipo";
   } else if (subParam === "proveedores" && canProveedores) {
     activeTab = "proveedores";
@@ -34,9 +36,9 @@ function PersonasContent() {
   }
 
   const requestedSubmoduleDenied = subParam === "proveedores" ? !canProveedores
-    : subParam === "usuarios_equipo" ? !canUsuarios : !!subParam;
+    : subParam === "usuarios_equipo" ? !canUsuarios : subParam === "roles_permisos" ? !canRoles : !!subParam;
 
-  if (!canAccessPersonas || (!canProveedores && !canUsuarios) || requestedSubmoduleDenied) {
+  if (!canAccessPersonas || (!canProveedores && !canUsuarios && !canRoles) || requestedSubmoduleDenied) {
     return (
       <div className="p-8 bg-white border border-[#e2e8f0] rounded-xl text-center max-w-lg mx-auto my-12 space-y-3">
         <div className="w-12 h-12 bg-[#fee2e2] text-[#dc2626] rounded-full flex items-center justify-center mx-auto">
@@ -58,6 +60,7 @@ function PersonasContent() {
       <div className="w-full">
         {activeTab === "proveedores" && canProveedores && <SuppliersManager />}
         {activeTab === "usuarios_equipo" && canUsuarios && <UsersManager />}
+        {activeTab === "roles_permisos" && canRoles && <RolesManager />}
       </div>
     </div>
   );

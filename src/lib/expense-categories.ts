@@ -21,6 +21,7 @@ export function expenseCategoriesWithDefaults(records: ExpenseCategory[] = []): 
 }
 
 export function canManageExpenseCategories(user: UserProfile): boolean {
+  if (user.accessRoleId) return canAccessSubmodule(user,"finanzas","gastos") && canUser(user,"finanzas","canManageExpenseCategories");
   return (user.role === "superadmin" || user.role === "admin") &&
     canAccessSubmodule(user, "finanzas", "gastos") && canUser(user, "finanzas", "canRegisterExpenses");
 }

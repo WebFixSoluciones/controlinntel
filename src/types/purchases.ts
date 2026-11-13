@@ -223,6 +223,7 @@ export interface PurchaseActions {
 }
 
 export interface FinanceActions {
+  canManageExpenseCategories?: boolean;
   canManageBankAccounts?: boolean;
   canTransferFunds?: boolean;
   canViewBankBalances: boolean;   // 🔒 Ver saldos de cuentas bancarias
@@ -239,6 +240,7 @@ export interface NetworkActions {
 }
 
 export interface VaultActions {
+  canManageCredentials?: boolean;
   canViewClientVault: boolean;
   canViewInternalVault: boolean;  // 🔒 Credenciales NOC
   canRevealPasswords: boolean;    // 🔒 Revelar y descifrar contraseñas
@@ -254,6 +256,7 @@ export interface UserModulePermissions {
     submodules: {
       proveedores: boolean;
       usuarios_equipo: boolean;
+      roles_permisos?: boolean;
     };
   };
   clientes?: {
@@ -275,6 +278,7 @@ export interface UserModulePermissions {
     enabled: boolean;
     submodules: {
       cobranzas?: boolean;
+      anticipos?: boolean;
       gastos?: boolean;
       movimientos: boolean;
       bancos: boolean;
@@ -327,9 +331,9 @@ export interface UserModulePermissions {
     };
     actions?: NetworkActions;
   };
-  proyectos?: { enabled: boolean };
-  tickets?: { enabled: boolean; actions?: { canManageDepartments?: boolean } };
-  arcotel?: { enabled: boolean };
+  proyectos?: { enabled: boolean; actions?: Record<string, boolean> };
+  tickets?: { enabled: boolean; actions?: { canManageDepartments?: boolean; canCreateTicket?: boolean; canEditTicket?: boolean; canReplyTicket?: boolean; canDeleteTicket?: boolean; canManageSubjects?: boolean; canResolveTickets?: boolean } };
+  arcotel?: { enabled: boolean; actions?: Record<string, boolean> };
   boveda?: {
     enabled: boolean;
     actions?: VaultActions;
@@ -337,6 +341,7 @@ export interface UserModulePermissions {
   plantillas?: { enabled: boolean; actions?: { canManageTemplates?: boolean } };
   configuracion?: {
     enabled: boolean;
+    actions?: Record<string, boolean>;
     submodules?: {
       general: boolean;
       sri: boolean;
@@ -351,6 +356,10 @@ export interface UserModulePermissions {
 }
 
 export interface UserRoleTemplate {
+  description?: string;
+  status?: "activo" | "inactivo";
+  createdAt?: string;
+  updatedAt?: string;
   version?: number;
   permissionModelVersion?: 2;
   id: string;

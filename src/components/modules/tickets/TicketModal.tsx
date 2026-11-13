@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { canManageTicketDepartments } from "@/lib/permissions";
+import { canManageTicketDepartments, canRoleAction } from "@/lib/permissions";
 import { TicketDepartmentsModal } from "./TicketDepartmentsModal";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -350,6 +350,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
               <button
                 type="button"
                 onClick={() => setIsSubjectsOpen(true)}
+                disabled={!canRoleAction(currentUser,"tickets","canManageSubjects")}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-[#004ac6] hover:underline cursor-pointer"
               >
                 <Settings2 className="w-3 h-3" />

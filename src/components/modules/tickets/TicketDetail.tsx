@@ -1,6 +1,7 @@
 "use client";
 import { BackButton } from "@/components/ui/BackButton";
 
+import {canRoleAction} from "@/lib/permissions";
 import React, { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { isClosedTicketStatus } from "@/lib/ticket-status";
@@ -57,6 +58,7 @@ const CANNED_RESPONSES = [
 export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
   const {
     tickets,
+    currentUser,
     clients,
     clientServices,
     ticketAssignees,
@@ -65,6 +67,9 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
     updateTicketStatus,
     updateTicketDetails,
   } = useApp();
+  const canReply = canRoleAction(currentUser,"tickets","canReplyTicket");
+  const canEdit = canRoleAction(currentUser,"tickets","canEditTicket");
+  const canResolve = canReply && canRoleAction(currentUser,"tickets","canResolveTickets");
   const { showSuccess, showError } = useToast();
 
   const ticket = tickets.find((t) => t.id === id);
@@ -405,7 +410,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
           </div>
 
           {/* Clean Workspace Foot Reply Box */}
-          <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+          {canReply ? <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             {/* Box Tabs: Reply vs Internal Note */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#e2e8f0] bg-[#f8f9ff] px-4 py-2.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -505,8 +510,8 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                         <option value="respondido">Respondido</option>
                         <option value="en_progreso">En Progreso</option>
                         <option value="en_espera">En Espera</option>
-                        <option value="resuelto">Resuelto</option>
-                        <option value="cerrado">Cerrado</option>
+                        <option value="resuelto" disabled={!canResolve}>Resuelto</option>
+                        <option value="cerrado" disabled={!canResolve}>Cerrado</option>
                       </select>
                       {isClosedTicketStatus(replyStatus) && <span className="text-xs font-medium text-slate-600">Respuesta obligatoria</span>}
                     </>
@@ -527,7 +532,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                 </button>
               </div>
             </form>
-          </div>
+          </div> : <p className="rounded-lg border bg-slate-50 p-4 text-xs text-slate-500">Tienes acceso de consulta. Tu rol no permite responder tickets.</p>}
         </div>
 
         {/* ========================================================= */}
@@ -628,7 +633,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                   <label className="text-[10px] font-bold text-[#737686] block mb-1">Departamento:</label>
                   <select
                     value={ticket.department || ""}
-                    onChange={(e) => handleUpdateProperty("department", e.target.value as TicketDepartment)}
+                    disabled={!canEdit} onChange={(e) => handleUpdateProperty("department", e.target.value as TicketDepartment)}
                     className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 font-medium text-[#0b1c30] focus:outline-hidden text-xs"
                   >
                     {!ticket.department && <option value="">Sin departamento</option>}
@@ -641,7 +646,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                   <label className="text-[10px] font-bold text-[#737686] block mb-1">Prioridad:</label>
                   <select
                     value={ticket.priority}
-                    onChange={(e) => handleUpdateProperty("priority", e.target.value as TicketPriority)}
+                    disabled={!canEdit} onChange={(e) => handleUpdateProperty("priority", e.target.value as TicketPriority)}
                     className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-2.5 py-1.5 font-bold text-[#0b1c30] focus:outline-hidden text-xs"
                   >
                     <option value="baja">Baja</option>
@@ -654,7 +659,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                   <label className="text-[10px] font-bold text-[#737686] block mb-1">Técnico Asignado:</label>
                   <select
                     value={ticket.assignedToName || ""}
-                    onChange={(e) => handleUpdateProperty("assignedToName", e.target.value)}
+                    disabled={!canEdit} onChange={(e) => handleUpdateProperty("assignedToName", e.target.value)}
                     className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-3 py-1.5 font-medium text-[#0b1c30] focus:outline-hidden text-xs"
                   >
                     {ticketAssignees.map((u) => (

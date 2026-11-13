@@ -77,10 +77,11 @@ export function UsersManager() {
         );
       } else {
         await addSystemUser({
+          ...userData,
           email: userData.email || "",
           displayName: userData.displayName || "",
           role: userData.role || "tecnico",
-          department: userData.department || "Operaciones & Red",
+          department: userData.department ?? "",
           status: userData.status || "activo",
           passwordHash: userData.passwordHash,
           phone: userData.phone,
@@ -169,7 +170,7 @@ export function UsersManager() {
       (u.displayName || "").toLowerCase().includes(q) ||
       (u.email || "").toLowerCase().includes(q) ||
       (u.department || "").toLowerCase().includes(q) ||
-      (u.role || "").toLowerCase().includes(q)
+      (u.accessRoleName || u.role || "").toLowerCase().includes(q)
     );
   });
 
@@ -246,7 +247,9 @@ export function UsersManager() {
 
                       <td className="py-4 px-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
-                          {u.role === "superadmin" ? "Superadmin" : u.role}
+                          {u.accessRoleName || (u.role === "superadmin" ? "Superadmin" : u.role)}
+                          {u.accessRoleStatus && u.accessRoleStatus !== "activo" && <span className="ml-1 text-[10px] text-red-600">Rol inactivo o no disponible</span>}
+                          {!!Object.keys(u.permissionOverrides || {}).length && <span className="ml-1 text-[10px] text-blue-700">Personalizado</span>}
                         </span>
                       </td>
 

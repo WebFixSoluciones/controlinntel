@@ -17,7 +17,7 @@ export type Effect = { collection: string; id: string; beforeVersion: number | n
 export function recordOperation(tx: Transaction, db: Firestore, user: UserProfile, type: string, effects: Effect[], id: string = randomUUID(), source?: DocumentData) {
   const timestamp=new Date().toISOString();
   tx.create(db.collection("operationLog").doc(id), {
-    id, schemaVersion: 1, status: "committed", type, actorId: user.uid,
+    id, schemaVersion: 1, status: "committed", type, actorId: user.uid, ...(user.accessRoleId ? { actorRoleId: user.accessRoleId, actorRoleName: user.accessRoleName || "", actorRoleVersion: user.accessRoleVersion || 0 } : {}),
     timestamp, effects, digest: digest(effects), ...(source ? { source } : {}),
   });
   tx.create(db.collection("auditLogs").doc("operation-"+id),{

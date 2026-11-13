@@ -117,6 +117,7 @@ function getPageTitle(pathname: string, subParam: string | null): string {
 
   if (pathname === "/personas") {
     switch (subParam) {
+      case "roles_permisos": return "Roles y permisos";
       case "usuarios_equipo":
         return "Usuarios";
       default:
@@ -243,7 +244,7 @@ function HeaderContent() {
             </div>
             <div className="hidden md:block max-w-[11rem] text-left">
               <p className="text-xs font-bold text-[#0b1c30] leading-tight truncate">{cleanUserName}</p>
-              <p className="text-[10px] text-[#737686] leading-none capitalize">{currentUser.role}</p>
+              <p className="text-[10px] text-[#737686] leading-none capitalize">{currentUser.accessRoleName || currentUser.role}</p>
             </div>
             <ChevronDown
               className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform ${
@@ -265,7 +266,7 @@ function HeaderContent() {
                   <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
                   <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
                     <Shield className="w-2.5 h-2.5" />
-                    {currentUser.role}
+                    {currentUser.accessRoleName || currentUser.role}
                   </span>
                 </div>
               </div>

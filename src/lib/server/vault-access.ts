@@ -11,4 +11,5 @@ export function requireVaultAccess(user: UserProfile, entity: string, action: "s
   if ((action === "reveal" && !canUser(user, "boveda", "canRevealPasswords")) || (action === "delete" && !canUser(user, "boveda", "canDeleteCredentials"))) {
     throw new HttpError(403, "No tienes permiso para esta acción de la bóveda.");
   }
+  if(action==="save"&&user.accessRoleId&&!canUser(user,"boveda","canManageCredentials"))throw new HttpError(403,"Puedes consultar la bóveda, pero no crear ni editar credenciales.");
 }

@@ -149,6 +149,7 @@ export const DEFAULT_PURCHASE_ACTIONS: PurchaseActions = {
 };
 
 export const DEFAULT_FINANCE_ACTIONS: FinanceActions = {
+  canManageExpenseCategories: true,
   canManageBankAccounts: true,
   canTransferFunds: true,
   canViewBankBalances: true,
@@ -165,6 +166,7 @@ export const DEFAULT_NETWORK_ACTIONS: NetworkActions = {
 };
 
 export const DEFAULT_VAULT_ACTIONS: VaultActions = {
+  canManageCredentials: true,
   canViewClientVault: true,
   canViewInternalVault: true,
   canRevealPasswords: true,
@@ -438,7 +440,7 @@ export function canAccessSubmodule(
 ): boolean {
   if (!user || user.status !== "activo") return false;
   if (user.role === "superadmin") return true;
-  if (moduleKey === "personas" && submoduleKey === "usuarios_equipo") return false;
+  if (moduleKey === "personas" && ["usuarios_equipo", "roles_permisos"].includes(submoduleKey)) return false;
 
   // Si el módulo general está deshabilitado, el submódulo tampoco es accesible
   if (!canAccessModule(user, moduleKey)) return false;
@@ -573,7 +575,7 @@ export function editableModulePermissions(user: UserProfile): UserModulePermissi
       .map(key => [key, user.modulePermissions?.abonados?.submodules?.[key] ?? user.permissionModelVersion !== 2])
   );
   if (result.clientes) result.clientes.enabled = result.abonados?.enabled === true;
-  if (result.tickets) result.tickets.actions = { canManageDepartments: canManageTicketDepartments(user) };
+  if (result.tickets) result.tickets.actions = { ...result.tickets.actions, canManageDepartments: canManageTicketDepartments(user) };
   if (result.plantillas) result.plantillas.actions = { canManageTemplates: canManageTemplates(user) };
   if (result.ventas) result.ventas.actions = {
     ...defaults.facturacion?.actions, ...(user.permissionModelVersion !== 2 ? user.modulePermissions?.facturacion?.actions : {}),
@@ -585,4 +587,11 @@ export function editableModulePermissions(user: UserProfile): UserModulePermissi
 export function disabledModulePermissions(value: UserModulePermissions): UserModulePermissions {
   const deny = (node: any): any => typeof node === "boolean" ? false : Object.fromEntries(Object.entries(node).map(([key, child]) => [key, deny(child)]));
   return deny(value);
+}
+
+export function canRoleAction(user: UserProfile, moduleKey: keyof UserModulePermissions, action: string): boolean {
+  if (!user || user.status !== "activo") return false;
+  if (user.role === "superadmin") return true;
+  if (user.role === "consulta" || !canAccessModule(user, moduleKey)) return false;
+  return user.accessRoleId ? canUser(user, moduleKey, action) : true;
 }

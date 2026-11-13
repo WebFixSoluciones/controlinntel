@@ -157,6 +157,8 @@ interface AppContextType {
 
   systemUsers: SystemUser[];
   addSystemUser: (user: Omit<SystemUser, "uid" | "createdAt">) => Promise<void>;
+  saveAccessRole: (data: Partial<UserRoleTemplate>, id?: string) => Promise<UserRoleTemplate>;
+  deleteAccessRole: (id: string, version: number) => Promise<void>;
   updateSystemUser: (uid: string, updates: Partial<SystemUser>) => Promise<void>;
   deleteSystemUser: (uid: string) => Promise<boolean>;
   toggleUserStatus: (uid: string) => Promise<void>;
@@ -823,7 +825,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         const profile = await api<UserProfile>("/api/session");
         if (disposed) return;
-        const access = (user: UserProfile) => JSON.stringify([user.role, user.status, user.permissionModelVersion, user.permissions, user.modulePermissions]);
+        const access = (user: UserProfile) => JSON.stringify([user.role, user.status, user.accessRoleId, user.accessRoleName, user.accessRoleVersion, user.permissionOverrides, user.permissionModelVersion, user.permissions, user.modulePermissions]);
         if (profile.uid === currentUser.uid && access(profile) !== access(currentUser)) await refresh();
       } catch (error) {
         if (!disposed && error instanceof ApiError && [401, 403].includes(error.status)) {
@@ -1087,6 +1089,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateSystemUser = async (uid: string, updates: Partial<SystemUser>) => {
     await api("/api/users", { action: "update", uid, expectedVersion: updates.version ?? systemUsers.find(user => user.uid === uid)?.version ?? 0, data: updates });
     await refresh();
+  };
+
+  const saveAccessRole = async (data: Partial<UserRoleTemplate>, id?: string) => {
+    const response = await api<{result: UserRoleTemplate}>("/api/roles", { action: id ? "update" : "create", id, expectedVersion: data.version ?? 0, data });
+    await refresh(); return response.result;
+  };
+  const deleteAccessRole = async (id: string, version: number) => {
+    await api("/api/roles", { action: "delete", id, expectedVersion: version }); await refresh();
   };
 
   const deleteSystemUser = async (uid: string): Promise<boolean> => {
@@ -2022,6 +2032,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           systemUsers,
           addSystemUser,
           updateSystemUser,
+          saveAccessRole,
+          deleteAccessRole,
           deleteSystemUser,
           toggleUserStatus,
           projects,

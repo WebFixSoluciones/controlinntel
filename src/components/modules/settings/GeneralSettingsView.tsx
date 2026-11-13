@@ -1,5 +1,6 @@
 "use client";
 
+import {canRoleAction} from "@/lib/permissions";
 import React, { useState } from "react";
 import { useToast } from "@/lib/toast-context";
 import { useApp } from "@/lib/state";
@@ -19,7 +20,8 @@ import {
 
 export function GeneralSettingsView() {
   const { showSuccess, showError } = useToast();
-  const { sriCompanyConfig, updateSriConfig, bankAccounts } = useApp();
+  const { sriCompanyConfig, updateSriConfig, bankAccounts, currentUser } = useApp();
+  const canEdit = canRoleAction(currentUser,"configuracion","canEditGeneralSettings");
   const [bankDetails, setBankDetails] = useState(() => ({ ...emptyBankTransferDetails(), ...sriCompanyConfig.bankTransferDetails }));
   const [selectedBankId, setSelectedBankId] = useState("");
 
@@ -82,7 +84,7 @@ export function GeneralSettingsView() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !canEdit}
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
         >
           <Save className="w-4 h-4" />

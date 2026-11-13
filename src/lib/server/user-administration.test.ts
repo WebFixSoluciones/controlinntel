@@ -1,29 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { UserProfile } from "@/types";
+import { userFixture as fixture } from "./test-support/user-store.ts";
 import { administerUser } from "./user-administration.ts";
 
 const admin: UserProfile = {uid:"owner",email:"owner@example.test",displayName:"QA Owner",role:"superadmin",status:"activo",permissions:["all"]};
 const employee = {uid:"staff",email:"staff@example.test",displayName:"QA Staff",role:"tecnico",status:"activo",permissions:[],version:1,createdAt:"2026-01-01T00:00:00Z"};
 
-// Stages writes atomically, including the operation journal, and serializes conflicting transactions.
-function fixture(records: Record<string, unknown>[] = [employee]) {
-  const rows = new Map(records.map(row => ["users/"+row.uid,structuredClone(row)]));
-  const updates: any[] = [], revoked: string[] = [], deleted: string[] = [];
-  const identities = new Map<string, any>();
-  let failCommit = false, failActivation = false, created = 0, tail = Promise.resolve();
-  const db: any = {collection:(name:string) => ({doc:(id:string) => ({path:name+"/"+id,id}),where:(_field:string,_op:string,value:unknown) => ({name,value})}),
-    batch:() => {const pending=new Map<string,any>();return {create:(ref:any,data:any)=>pending.set(ref.path,structuredClone(data)),commit:async()=>{if(failCommit)throw Error("Commit failed");pending.forEach((data,key)=>rows.set(key,data));}};},
-    runTransaction:async(fn:any)=>{let release!:()=>void;const prior=tail;tail=new Promise<void>(resolve=>release=resolve);await prior;const pending=new Map<string,any>();
-      const snap=(key:string)=>({exists:rows.has(key),data:()=>structuredClone(rows.get(key))});
-      try {const result=await fn({get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...rows].filter(([key,value])=>key.startsWith(ref.name+"/")&&value.role===ref.value).map(([key])=>snap(key))},set:(ref:any,data:any)=>pending.set(ref.path,structuredClone(data)),create:(ref:any,data:any)=>pending.set(ref.path,structuredClone(data))});if(failCommit)throw Error("Commit failed");pending.forEach((data,key)=>rows.set(key,data));return result;}finally{release();}}
-  };
-  const auth: any = {createUser:async(data:any)=>{created++;identities.set("new-user",{disabled:data.disabled});return {uid:"new-user"};},
-    updateUser:async(uid:string,data:any)=>{if(failActivation&&data.disabled===false)throw Error("Activation failed");updates.push({uid,...data});identities.set(uid,{...identities.get(uid),...data});},
-    revokeRefreshTokens:async(uid:string)=>{revoked.push(uid);},deleteUser:async(uid:string)=>{deleted.push(uid);identities.delete(uid);}};
-  return {rows,updates,revoked,deleted,identities,services:{db,auth},get created(){return created;},failCommit:()=>{failCommit=true;},failActivation:()=>{failActivation=true;}};
-}
-const createData = {...employee,permissions:["all"],passwordHash:"Synthetic-QA-password-123"};
+const createData = {...employee,permissions:["all"],accessRoleId:"role-qa",expectedRoleVersion:1,permissionOverrides:{},passwordHash:"Synthetic-QA-password-123"};
 
 test("Crear una cuenta activa valida y fija su matriz, sin guardar la contraseña en perfil ni auditoría", async()=>{
   const f=fixture();await administerUser(admin,{action:"create",data:createData},f.services);

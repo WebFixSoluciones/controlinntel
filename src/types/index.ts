@@ -27,6 +27,11 @@ export type SystemPermission =
   | "delete_invoices";
 
 export interface UserProfile {
+  accessRoleId?: string | null;
+  accessRoleName?: string;
+  accessRoleVersion?: number;
+  accessRoleStatus?: "activo" | "inactivo" | "missing";
+  permissionOverrides?: Record<string, boolean>;
   permissionModelVersion?: 2;
   uid: string;
   email: string;

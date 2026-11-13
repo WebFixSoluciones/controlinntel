@@ -1,6 +1,7 @@
 "use client";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
+import {canRoleAction} from "@/lib/permissions";
 import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -76,7 +77,8 @@ interface EmailResponse {
 }
 
 export function SriConfigView() {
-  const { sriCompanyConfig, updateSriConfig } = useApp();
+  const { sriCompanyConfig, updateSriConfig, currentUser } = useApp();
+  const canEditSri = canRoleAction(currentUser,"configuracion","canEditSriSettings");
   const { showSuccess, showError, showWarning } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -511,7 +513,7 @@ export function SriConfigView() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canEditSri}
             className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" />
@@ -621,7 +623,7 @@ export function SriConfigView() {
               <button
                 type="button"
                 onClick={handleValidateCert}
-                disabled={certBusy}
+                disabled={certBusy || !canEditSri}
                 className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
@@ -631,7 +633,7 @@ export function SriConfigView() {
               <button
                 type="button"
                 onClick={handleSaveCert}
-                disabled={certBusy}
+                disabled={certBusy || !canEditSri}
                 className="w-full py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
@@ -669,7 +671,7 @@ export function SriConfigView() {
                 <button
                   type="button"
                   onClick={handleRemoveCertificate}
-                  disabled={certBusy}
+                  disabled={certBusy || !canEditSri}
                   className="px-2 py-1 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 border border-rose-200 rounded-md text-xs font-semibold text-rose-700 transition cursor-pointer"
                 >
                   Quitar
@@ -1275,7 +1277,7 @@ export function SriConfigView() {
             <button
               type="button"
               onClick={handleSaveEmail}
-              disabled={emailBusy}
+              disabled={emailBusy || !canEditSri}
               className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
@@ -1285,7 +1287,7 @@ export function SriConfigView() {
             <button
               type="button"
               onClick={handleTestEmail}
-              disabled={emailBusy}
+              disabled={emailBusy || !canEditSri}
               className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <Wifi className="w-3.5 h-3.5" />
@@ -1295,7 +1297,7 @@ export function SriConfigView() {
             <button
               type="button"
               onClick={handleSendTestEmail}
-              disabled={emailBusy}
+              disabled={emailBusy || !canEditSri}
               className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 border border-[#cbd5e1] text-slate-700 rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <Mail className="w-3.5 h-3.5" />

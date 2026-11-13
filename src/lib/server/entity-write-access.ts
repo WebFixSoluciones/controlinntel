@@ -24,6 +24,12 @@ export function requireEntityWriteAccess(user: UserProfile, entity: string, acti
     inventoryCategories: ["inventarios", "canEditProduct"], inventoryBrands: ["inventarios", "canEditProduct"],
     inventoryWarehouses: ["inventarios", "canEditProduct"],
   };
+  if(user.accessRoleId){
+    const custom: Record<string,[keyof UserModulePermissions,string]>={clientProjects:["proyectos","canManageClientTasks"],ticketSubjects:["tickets","canManageSubjects"],policies:["arcotel","canManageRegulatoryData"],regulatoryTramites:["arcotel","canManageRegulatoryData"],arcotelFiles:["arcotel","canManageRegulatoryFiles"],systemConfig:["configuracion","canEditGeneralSettings"]};
+    if(action==="delete"){custom.projects=["proyectos","canDeleteProject"];custom.tickets=["tickets","canDeleteTicket"];}
+    if(action==="delete"&&entity==="arcotelFiles")delete custom.arcotelFiles;
+    const requested=custom[entity];if(requested&&!canUser(user,requested[0],requested[1]))throw new HttpError(403,"No tienes permiso para esta función.");
+  }
   const grant = actions[entity];
   if (grant && !canUser(user, grant[0], grant[1])) throw new HttpError(403, "No tienes permiso para modificar este registro.");
   if (entity === "arcotelFiles" && action === "delete" && !canPerformAction(user, "canDeleteFiles")) throw new HttpError(403, "No tienes permiso para eliminar archivos de ARCOTEL.");

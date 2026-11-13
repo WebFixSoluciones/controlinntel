@@ -109,7 +109,7 @@ function FinanzasContent() {
 
   const canAccessFinanzas = canAccessModule(currentUser, "finanzas");
   const canCobranzas = canAccessSubmodule(currentUser, "finanzas", "cobranzas");
-  const canAnticipos = canAccessSubmodule(currentUser, "finanzas", "anticipos") || canCobranzas;
+  const canAnticipos = canAccessSubmodule(currentUser, "finanzas", "anticipos") || (currentUser.permissionModelVersion !== 2 && canCobranzas);
   const canGastos = canAccessSubmodule(currentUser, "finanzas", "gastos");
   const canMovimientos = canAccessSubmodule(currentUser, "finanzas", "movimientos");
   const canBancos = canAccessSubmodule(currentUser, "finanzas", "bancos");

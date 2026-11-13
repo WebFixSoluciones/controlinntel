@@ -430,6 +430,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "editProduct": {
       const old=await c.get("inventoryProducts",data.id),updated=schemas.inventoryProducts.parse({...old,...data});
+      if (updated.status !== old.status && updated.status === "inactivo" && !canUser(c.user,"inventarios","canDeleteItems")) throw new HttpError(403,"No tienes permiso para retirar artículos del catálogo.");
       if (old.type === "servicio" && !canViewServicePrices(c.user)
         && servicePriceFields.inventoryProducts.some(key => key in data && data[key] !== old[key])) {
         throw new HttpError(403, "No tienes permiso para cambiar los valores del servicio.");
