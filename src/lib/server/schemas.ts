@@ -1,3 +1,4 @@
+import { modulePermissionsSchema } from "../user-access.ts";
 import { z } from "zod";
 import { validateIdentification } from "../validation-engine.ts";
 import { validDate } from "../commercial-core.ts";
@@ -291,7 +292,8 @@ export const schemas: Record<string, z.ZodTypeAny> = {
   userRoleTemplates: z.object({
     name: z.string().trim().min(2).max(80),
     baseRole: z.enum(["admin", "ventas", "finanzas", "tecnico", "soporte", "bodega", "legal", "consulta"]),
-    modulePermissions: z.record(z.unknown()),
+    modulePermissions: modulePermissionsSchema,
+    permissionModelVersion: z.literal(2).optional(),
   }),
   clientAdvances: z.object({ clientId: text, amount: money, remaining: money, applications: z.array(z.record(z.unknown())) }).passthrough(),
   billingDebitNotes: z.object({ clientId: text, total: money }).passthrough(),

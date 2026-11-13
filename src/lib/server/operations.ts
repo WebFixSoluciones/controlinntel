@@ -16,6 +16,7 @@ import { fiscalMetadata } from "./sri-metadata.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 import { resolveTicketDepartments } from "../ticket-departments.ts";
 import { nextTicketNumber } from "./ticket-sequence.ts";
+import { requireEntityWriteAccess } from "./entity-write-access.ts";
 import { isClosedTicketStatus, requiresPublicTicketReply } from "../ticket-status.ts";
 import type { TicketDepartmentRecord } from "@/types";
 
@@ -79,7 +80,7 @@ export async function snapshot(user: UserProfile) {
     });
   }));
   if (canAccessModule(user, "tickets") && can(user, "manage_tickets")) {
-    const directory = await db.collection("users").where("status", "==", "activo").select("displayName", "role", "permissions", "modulePermissions").get();
+    const directory = await db.collection("users").where("status", "==", "activo").select("displayName", "role", "permissions", "modulePermissions", "permissionModelVersion").get();
     result.ticketAssignees = directory.docs.flatMap(doc => {
       const data = doc.data() as UserProfile;
       return data.displayName && canAccessModule({ ...data, status: "activo" }, "tickets") && can({ ...data, status: "activo" }, "manage_tickets")
@@ -89,9 +90,11 @@ export async function snapshot(user: UserProfile) {
   return result;
 }
 export async function save(user:UserProfile, entity:Entity, input:DocumentData, id?:string, version?:number, database?: Firestore) {
+  requireEntityWriteAccess(user, entity, "save");
   const permission=collectionPermissions[entity];
   if (!permission || !schemas[entity]) throw new HttpError(400,"Colección no editable.");
-  if (entity !== "documentTemplates") requirePermission(user,permission);
+  if (entity !== "documentTemplates" && entity !== "sriCompanyConfig") requirePermission(user,permission);
+  if (entity === "sriCompanyConfig" && !canAccessSubmodule(user, "configuracion", "general") && !canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "No tienes permiso para cambiar la configuración de la empresa.");
   if (entity === "documentTemplates" && !canManageTemplates(user)) throw new HttpError(403, "No tienes permiso para administrar plantillas.");
   if (["projects", "clientProjects"].includes(entity) && !canViewFinancialAmounts(user)) {
     input = { ...input }; delete input.estimatedBudget; delete input.executedCost;
@@ -210,6 +213,11 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
       // El AAD las ata al nodo y al servicio.
       // Al editar, si el formulario no trae contraseña nueva se conserva la sellada previa.
       const previousServices:DocumentData[] = old.data()?.services || [];
+      if (Array.isArray(input.services) && !canUser(user, "red", "canEditRouterCredentials") && data.services.some((service:DocumentData) => {
+        const previous = previousServices.find(item => item.id === service.id);
+        const previousUsername = previous?.username || (typeof previous?.credentials === "string" ? previous.credentials.split("/")[0].trim() : "");
+        return nodeServicePassword(service) || (service.username || "") !== previousUsername;
+      })) throw new HttpError(403, "No tienes permiso para cambiar las credenciales de los sistemas.");
       if (data.services.some((service: DocumentData) => nodeServicePassword(service) ||
         nodeServicePassword(previousServices.find(item => item.id === service.id)))) await initializeVaultKey();
       data.services = data.services.map((service:DocumentData, index:number) => {
@@ -218,7 +226,6 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
         const previous = previousServices.find((item)=>String(item.id)===String(rest.id));
         const plain = nodeServicePassword(service) || (!previous?.passwordSealed ? nodeServicePassword(previous) : "");
         if (plain) rest.passwordSealed = seal(plain, context);
-        else if (typeof passwordSealed==="string" && passwordSealed) rest.passwordSealed = passwordSealed;
         else if (previous?.passwordSealed) rest.passwordSealed = previous.passwordSealed;
         rest.hasPassword = Boolean(rest.passwordSealed);
         return rest;
@@ -272,6 +279,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
   });
 }
 export async function remove(user:UserProfile,entity:Entity,id:string,version?:number,database?: Firestore) {
+  requireEntityWriteAccess(user, entity, "delete");
   if (!schemas[entity]) throw new HttpError(400,"Eliminación no permitida.");
   if (entity === "expenseCategories") throw new HttpError(400, "Desactiva la categoría para conservar el historial de gastos.");
   if (entity === "expenses") throw new HttpError(400, "El gasto está vinculado a un movimiento de caja y requiere conciliación.");

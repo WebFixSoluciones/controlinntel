@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
-import { actor, HttpError, requirePermission } from "@/lib/server/security";
-import { canAccessSubmodule } from "@/lib/permissions";
+import { actor, HttpError } from "@/lib/server/security";
+import { requireSettingsAccess } from "@/lib/server/settings-access";
 import { parsePkcs12 } from "@/lib/server/sri-signer";
 import {
   clearEmitterSecret,
@@ -83,8 +83,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
     }
     const user = await actor(request);
-    requirePermission(user, "manage_finance");
-    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
+    requireSettingsAccess(user, "sri");
     const config = await readSriCompanyConfig();
     const stored = await hasEmitterSecret();
     return NextResponse.json(
@@ -117,8 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await actor(request);
-    requirePermission(user, "manage_finance");
-    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
+    requireSettingsAccess(user, "sri", true);
 
     const body = bodySchema.parse(await request.json());
     const base64 = normalizeBase64(body.certificadoBase64);
@@ -185,8 +183,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const user = await actor(request);
-    requirePermission(user, "manage_finance");
-    if (!canAccessSubmodule(user, "configuracion", "sri")) throw new HttpError(403, "Acceso restringido a Configuración SRI.");
+    requireSettingsAccess(user, "sri", true);
 
     await clearEmitterSecret();
 

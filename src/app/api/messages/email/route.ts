@@ -3,12 +3,14 @@ import { z } from "zod";
 import { actor,requirePermission,HttpError } from "@/lib/server/security";
 import { adminServices } from "@/lib/server/admin";
 import { recordOperation,digest } from "@/lib/server/operation-log";
+import { canUser, canAccessSubmodule } from "@/lib/permissions";
 export const runtime="nodejs";
 const schema=z.object({invoiceId:z.string().regex(/^[\w-]{1,150}$/),recipient:z.string().email(),operationId:z.string().uuid()});
 export async function POST(request:NextRequest) {
   try {
     const user=await actor(request);requirePermission(user,"manage_finance");
     if(user.role==="consulta")throw new HttpError(403,"Perfil de consulta.");
+    if (!canUser(user,"ventas","canCreateInvoice") || !(canAccessSubmodule(user,"ventas","notas_venta") || canAccessSubmodule(user,"ventas","nueva_venta"))) throw new HttpError(403,"No tienes permiso para enviar notas de venta.");
     const input=schema.parse(await request.json()),url=process.env.EMAIL_DELIVERY_WEBHOOK_URL,token=process.env.EMAIL_DELIVERY_WEBHOOK_TOKEN;
     if(!url||!token)throw new HttpError(503,"El envío de correo aún no está configurado. No se envió ningún mensaje.");
     if(new URL(url).protocol!=="https:")throw new HttpError(503,"El adaptador de correo requiere HTTPS.");

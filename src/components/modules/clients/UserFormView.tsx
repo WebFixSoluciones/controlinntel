@@ -10,6 +10,7 @@ import {
   DEFAULT_MODULE_PERMISSIONS_BY_ROLE,
   canPerformAction,
   editableModulePermissions,
+  disabledModulePermissions,
   DEFAULT_INVENTORY_ACTIONS,
   DEFAULT_BILLING_ACTIONS,
   DEFAULT_CLIENT_ACTIONS,
@@ -26,8 +27,9 @@ interface UserFormViewProps {
 }
 
 export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
-  const { currentUser, userRoleTemplates, saveRecord } = useApp();
-  const { showSuccess } = useToast();
+  const { currentUser, userRoleTemplates, saveRecord, deleteRecord } = useApp();
+  const { showSuccess, showConfirm } = useToast();
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templateName, setTemplateName] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
   // Form State
@@ -71,17 +73,13 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   const handleApplyRolePreset = (selectedRole: UserRole) => {
     const preset = DEFAULT_MODULE_PERMISSIONS_BY_ROLE[selectedRole];
     if (preset) {
-      setPermissions({
-        ...preset,
-        dashboard: { enabled: selectedRole !== "tecnico" },
-        visibility: { canViewServicePrices: selectedRole !== "tecnico", canViewProductPrices: selectedRole !== "tecnico", canViewFinancialAmounts: selectedRole !== "tecnico" },
-      });
+      setPermissions(editableModulePermissions({ uid: "preview", email: "", displayName: "", role: selectedRole, status: "activo", permissions: [] }));
     }
   };
 
   const handleRoleChange = (newRole: UserRole) => {
     setRole(newRole);
-    handleApplyRolePreset(newRole);
+    if (!user || newRole === "superadmin") handleApplyRolePreset(newRole);
   };
 
   async function saveRoleTemplate() {
@@ -89,9 +87,10 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
     setSavingTemplate(true);
     setErrorMessage("");
     try {
-      await saveRecord("userRoleTemplates", { name: templateName.trim(), baseRole: role, modulePermissions: permissions }, `role-${crypto.randomUUID()}`);
+      const id = selectedTemplateId || `role-${crypto.randomUUID()}`;
+      await saveRecord("userRoleTemplates", { version: userRoleTemplates.find(template => template.id === selectedTemplateId)?.version, name: templateName.trim(), baseRole: role, permissionModelVersion: 2, modulePermissions: permissions }, id);
       showSuccess("Plantilla guardada", "Puedes aplicarla al crear o editar otro usuario.");
-      setTemplateName("");
+      setSelectedTemplateId(id);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar la plantilla.");
     } finally {
@@ -151,19 +150,11 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
 
   // Quick Bulk Controls
   const handleEnableAllModules = () => {
-    setPermissions({
-      ...JSON.parse(JSON.stringify(DEFAULT_MODULE_PERMISSIONS_BY_ROLE.superadmin)),
-      visibility: { canViewServicePrices: true, canViewProductPrices: true, canViewFinancialAmounts: true },
-    });
+    setPermissions(editableModulePermissions({ uid: "preview", email: "", displayName: "", role: "superadmin", status: "activo", permissions: ["all"] }));
   };
 
   const handleDisableAllModules = () => {
-    setPermissions(prev => ({
-      ...Object.fromEntries(Object.entries(prev).map(([key, value]) =>
-        [key, "enabled" in value ? { ...value, enabled: false } : value])),
-      dashboard: { enabled: false },
-      visibility: { canViewServicePrices: false, canViewProductPrices: false, canViewFinancialAmounts: false },
-    }));
+    setPermissions(prev => disabledModulePermissions(prev));
   };
 
   // Submit Handler
@@ -191,11 +182,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
     try {
       setIsSaving(true);
       const updates: Partial<SystemUser> = {
+        version: user ? user.version ?? 0 : undefined,
         displayName: displayName.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || undefined,
         department: department.trim(),
-        role: user?.role === "superadmin" ? "superadmin" : role,
+        role,
         status,
       };
 
@@ -212,8 +204,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
   };
 
   // Helper counts
-  const countActiveModules = () => {
-    const keys: (keyof UserModulePermissions)[] = [
+  const configurableModuleKeys: (keyof UserModulePermissions)[] = [
       "dashboard",
       "inventarios",
       "facturacion",
@@ -230,8 +221,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
       "plantillas",
       "configuracion",
     ];
-    return keys.filter((k) => (permissions[k] as any)?.enabled).length;
-  };
+  const countActiveModules = () => configurableModuleKeys.filter((k) => (permissions[k] as any)?.enabled).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
@@ -318,6 +308,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   required
                   placeholder="carlos.mendoza@inntelcorp.com"
                   value={email}
+                  readOnly={!!user}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#f8f9ff] border border-[#cbd5e1] rounded-xl px-3 py-2 font-medium text-[#0b1c30] focus:ring-2 focus:ring-[#004ac6] focus:bg-white focus:outline-hidden"
                 />
@@ -393,7 +384,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                 </label>
                 <select
                   value={role}
-                  disabled={user?.role === "superadmin"}
+                  disabled={user?.uid === currentUser.uid}
                   onChange={(e) => handleRoleChange(e.target.value as UserRole)}
                   className="w-full bg-white border-2 border-[#004ac6]/30 text-[#004ac6] font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-[#004ac6] focus:outline-hidden cursor-pointer"
                 >
@@ -405,14 +396,14 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   <option value="soporte">Mesa de Ayuda (Soporte)</option>
                   <option value="legal">Legal & Arcotel</option>
                   <option value="consulta">Solo Consulta / Auditor</option>
-                  {user?.role === "superadmin" && <option value="superadmin">Superadmin (Acceso Total)</option>}
+                  {currentUser.role === "superadmin" && <option value="superadmin">Superadmin (Acceso Total)</option>}
                 </select>
 
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[11px] text-[#737686]">Plantilla sugerida</span>
                   <button
                     type="button"
-                    onClick={() => handleApplyRolePreset(role)}
+                    onClick={() => showConfirm("Restablecer permisos", "Se reemplazarán los permisos del formulario por los recomendados para este rol. Se aplicarán al guardar.", () => handleApplyRolePreset(role))}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-[#004ac6] hover:underline cursor-pointer"
                   >
                     <RotateCcw className="w-3 h-3" />
@@ -427,7 +418,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
           <div className="bg-[#f8f9ff] rounded-xl border border-[#e2e8f0] p-4 text-xs text-[#434655] space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-medium text-[#737686]">Módulos Activos:</span>
-              <span className="font-bold font-mono text-[#004ac6]">{countActiveModules()} / 13</span>
+              <span className="font-bold font-mono text-[#004ac6]">{countActiveModules()} / {configurableModuleKeys.length}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-medium text-[#737686]">Rol asignado:</span>
@@ -451,6 +442,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
               <button
                 type="button"
                 onClick={handleEnableAllModules}
+                disabled={role === "superadmin"}
                 className="px-2.5 py-1 bg-blue-50 text-[#004ac6] hover:bg-blue-100 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               >
                 Todos
@@ -458,6 +450,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
               <button
                 type="button"
                 onClick={handleDisableAllModules}
+                disabled={role === "superadmin"}
                 className="px-2.5 py-1 bg-slate-100 text-[#737686] hover:bg-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
               >
                 Ninguno
@@ -469,27 +462,38 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
             {currentUser.role === "superadmin" && role !== "superadmin" && (
               <div className="space-y-2 border-b border-slate-200 pb-3 text-xs">
                 <label className="block font-semibold">Aplicar plantilla de rol
-                  <select className="mt-1 block w-full rounded-lg border border-slate-200 p-2" value="" onChange={event => {
+                  <select className="mt-1 block w-full rounded-lg border border-slate-200 p-2" value={selectedTemplateId} onChange={event => {
                     const template = userRoleTemplates.find(row => row.id === event.target.value);
                     if (!template) return;
+                    setSelectedTemplateId(template.id);
+                    setTemplateName(template.name);
                     setRole(template.baseRole);
-                    setPermissions(editableModulePermissions({ uid: "preview", email: "", displayName: "", role: template.baseRole, status: "activo", modulePermissions: template.modulePermissions }));
+                    setPermissions(editableModulePermissions({ uid: "preview", email: "", displayName: "", role: template.baseRole, permissionModelVersion: template.permissionModelVersion, status: "activo", modulePermissions: template.modulePermissions }));
                   }}>
                     <option value="">Seleccionar una plantilla guardada</option>
                     {userRoleTemplates.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
                   </select>
                 </label>
                 <div className="flex flex-wrap items-end gap-2">
-                  <label className="min-w-0 flex-1 basis-40 font-semibold">Nombre de la nueva plantilla
+                  <label className="min-w-0 flex-1 basis-40 font-semibold">Nombre de la plantilla
                     <input className="mt-1 block w-full rounded-lg border border-slate-200 p-2" maxLength={80}
                       value={templateName} onChange={event => setTemplateName(event.target.value)} />
                   </label>
                   <button type="button" disabled={savingTemplate || templateName.trim().length < 2} onClick={() => void saveRoleTemplate()}
-                    className="rounded-lg border border-blue-200 px-3 py-2 font-semibold text-[#004ac6] disabled:opacity-50">Guardar como plantilla</button>
+                    className="rounded-lg border border-blue-200 px-3 py-2 font-semibold text-[#004ac6] disabled:opacity-50">{selectedTemplateId ? "Actualizar plantilla" : "Guardar como plantilla"}</button>
+                  {selectedTemplateId && <><button type="button" onClick={() => { setSelectedTemplateId(""); setTemplateName(""); }}>Crear otra plantilla</button><button type="button" onClick={() => showConfirm("Eliminar plantilla", "Los usuarios que la utilizaron conservan sus permisos. ¿Deseas eliminar esta plantilla?", async () => { await deleteRecord("userRoleTemplates", selectedTemplateId); setSelectedTemplateId(""); setTemplateName(""); })}>Eliminar plantilla</button></>}
                 </div>
               </div>
             )}
             <h3 className="font-bold text-xs text-[#0b1c30]">Pantallas y visibilidad de datos</h3>
+            {role === "superadmin" && <p className="text-xs font-semibold text-amber-700">El superadministrador tiene acceso completo y administra cuentas. Para limitar su acceso, asigna otro rol.</p>}
+            {role === "consulta" && <p className="text-xs font-semibold text-amber-700">Consulta es un rol de solo lectura. Para conceder acciones de escritura, selecciona otro rol.</p>}
+            <p className="text-xs text-slate-500">Al editar, cambiar el rol conserva los permisos personalizados. Usa los valores recomendados para reemplazarlos. Las plantillas se copian al usuario; sus cambios posteriores no se propagan.</p>
+            <label className="flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={!!permissions.actions?.canDeleteFiles} disabled={role === "superadmin" || role === "consulta"}
+                onChange={event => { const checked = event.target.checked; setPermissions(prev => ({ ...prev, actions: { ...prev.actions, canDeleteFiles: checked } })); }} />
+              <span><strong>Eliminar archivos de ARCOTEL</strong><span className="block text-slate-500">Los archivos de clientes y las plantillas tienen sus permisos propios.</span></span>
+            </label>
             <label className="flex items-start gap-2 text-xs">
               <input type="checkbox" checked={permissions.plantillas?.actions?.canManageTemplates ?? (role === "admin" || role === "superadmin")}
                 disabled={role === "superadmin" || !permissions.plantillas?.enabled}
@@ -550,7 +554,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   ["usuarios_equipo", "Usuarios / Equipo"],
                 ] as const).map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 rounded-lg border border-[#e2e8f0] p-3">
-                    <input type="checkbox" checked={!!permissions.personas?.submodules[key]}
+                    <input type="checkbox" disabled={key === "usuarios_equipo" && role !== "superadmin"} checked={key === "usuarios_equipo" && role !== "superadmin" ? false : !!permissions.personas?.submodules[key]}
                       onChange={() => handleToggleSubmodule("personas", key)} className="rounded text-[#004ac6] focus:ring-[#004ac6]" />
                     {label}
                   </label>
@@ -699,7 +703,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                 ))}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-t border-[#e2e8f0] pt-3">
-                {([ ["canCreateInvoice", "Registrar ventas y emitir recurrencias"], ["canEditPrices", "Editar ventas y sus precios"], ["canCancelInvoices", "Eliminar notas de venta"], ["canCreateQuotes", "Crear y editar cotizaciones"], ["canApproveQuotes", "Convertir cotizaciones en ventas"] ] as const).map(([key, label]) => (
+                {([ ["canCreateInvoice", "Registrar ventas y emitir recurrencias"], ["canEditPrices", "Editar ventas y sus precios"], ["canApplyDiscounts", "Aplicar descuentos en ventas"], ["canCancelInvoices", "Eliminar notas de venta"], ["canCreateQuotes", "Crear y editar cotizaciones"], ["canApproveQuotes", "Convertir cotizaciones en ventas"] ] as const).map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2">
                     <input type="checkbox" checked={permissions.ventas?.actions?.[key] ?? (key === "canCancelInvoices" ? canPerformAction({ ...user, uid: user?.uid || "preview", email: user?.email || "", displayName: user?.displayName || "", role, status: "activo", modulePermissions: permissions }, "canDeleteInvoices") : permissions.facturacion?.actions?.[key] ?? DEFAULT_MODULE_PERMISSIONS_BY_ROLE[role].facturacion?.actions?.[key] ?? false)}
                       onChange={event => { const checked = event.target.checked; setPermissions(prev => ({ ...prev, ventas: { ...prev.ventas!, actions: { ...prev.ventas?.actions, [key]: checked } } })); }} />{label}
@@ -886,7 +890,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                     { key: "canEditServicePrices", label: "Modificar Tarifa Mensual de Servicio", critical: true },
                     { key: "canUploadContracts", label: "Cargar Contratos y Documentos", critical: false },
                     { key: "canDeleteContracts", label: "Eliminar Archivos de Contrato", critical: true },
-                    { key: "canDeleteClient", label: "Eliminar Cliente Definitivamente", critical: true },
+                    { key: "canDeleteClient", label: "Retirar clientes y administrar bajas", critical: true },
                   ].map((act) => {
                     const checked = !!permissions.clientes?.actions?.[act.key as keyof typeof DEFAULT_CLIENT_ACTIONS];
                     return (
@@ -1007,7 +1011,8 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                         </span>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {[
-                            { key: "cobranzas_opex", label: "Cobranzas & OPEX" },
+                            { key: "cobranzas", label: "Cobranzas y anticipos" },
+                            { key: "gastos", label: "Gastos" },
                             { key: "movimientos", label: "Movimientos Tesorería" },
                             { key: "bancos", label: "Bancos & Cuentas" },
                             { key: "cuentas_por_cobrar", label: "Por Cobrar (CxC)" },
@@ -1015,7 +1020,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                             { key: "reportes", label: "Reportes Financieros" },
                           ].map((sub) => {
                             const checked =
-                              (permissions.finanzas?.submodules as any)?.[sub.key] ?? true;
+                              (permissions.finanzas?.submodules as any)?.[sub.key] ?? false;
                             return (
                               <label
                                 key={sub.key}
@@ -1044,6 +1049,8 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                         </span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {[
+                            { key: "canManageBankAccounts", label: "Crear, editar y ajustar cuentas bancarias", critical: true },
+                            { key: "canTransferFunds", label: "Transferir entre cuentas", critical: true },
                             { key: "canViewBankBalances", label: "Ver Saldos de Cuentas Bancarias", critical: true },
                             { key: "canRegisterReceipts", label: "Registrar Cobranzas / Recibos", critical: false },
                             { key: "canRegisterExpenses", label: "Registrar Gastos Operativos", critical: false },
@@ -1170,7 +1177,7 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                   { key: "tickets", label: "Tickets de Soporte" },
                   { key: "arcotel", label: "Pólizas Arcotel" },
                   { key: "plantillas", label: "Generador Plantillas" },
-                  { key: "configuracion", label: "Configuración SRI" },
+                  { key: "configuracion", label: "Configuración" },
                 ].map((mod) => {
                   const checked = !!(permissions[mod.key as keyof UserModulePermissions] as any)?.enabled;
                   return (
@@ -1190,6 +1197,12 @@ export function UserFormView({ user, onSave, onCancel }: UserFormViewProps) {
                     </label>
                   );
                 })}
+                <fieldset disabled={!permissions.configuracion?.enabled || role === "superadmin"} className="col-span-full mt-2 flex flex-wrap gap-4 border-t border-slate-200 pt-3 disabled:opacity-60">
+                  <legend className="text-xs font-semibold">Secciones de configuración</legend>
+                  {([ ["general", "Configuración general"], ["sri", "Configuración SRI y firma electrónica"] ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-2">
+                    <input type="checkbox" checked={!!permissions.configuracion?.submodules?.[key]} onChange={() => handleToggleSubmodule("configuracion", key)} />{label}
+                  </label>)}
+                </fieldset>
               </div>
             )}
           </div>

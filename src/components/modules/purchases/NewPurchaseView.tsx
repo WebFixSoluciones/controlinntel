@@ -555,7 +555,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.bankName} - {b.accountNumber} (Saldo: ${b.currentBalance.toFixed(2)})
+                        {b.bankName} - {b.accountNumber}{Number.isFinite(b.currentBalance) ? ` (Saldo: $${b.currentBalance.toFixed(2)})` : ""}
                       </option>
                     ))}
                   </select>

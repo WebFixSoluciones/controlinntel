@@ -15,9 +15,13 @@ import {
   Power,
 } from "lucide-react";
 import { BankAccount } from "@/types";
+import { canUser } from "@/lib/permissions";
 
 export function BankAccountsTab() {
-  const { bankAccounts = [], addBankAccount, updateBankAccount, transferBetweenAccounts, adjustBankBalance } = useApp();
+  const { bankAccounts = [], addBankAccount, updateBankAccount, transferBetweenAccounts, adjustBankBalance, currentUser } = useApp();
+  const canManage = canUser(currentUser, "finanzas", "canManageBankAccounts");
+  const canTransfer = canUser(currentUser, "finanzas", "canTransferFunds");
+  const canViewBalances = canUser(currentUser, "finanzas", "canViewBankBalances");
   const { showSuccess, showError } = useToast();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -150,7 +154,7 @@ export function BankAccountsTab() {
     if (!origin || !dest) return;
 
     const originBalance = safeFloat(origin.currentBalance);
-    if (originBalance < transferAmount) {
+    if (Number.isFinite(origin.currentBalance) && originBalance < transferAmount) {
       showError("Saldo Insuficiente", `La cuenta ${origin.bankName} solo dispone de $${safeNumber(originBalance)}.`);
       return;
     }
@@ -195,7 +199,7 @@ export function BankAccountsTab() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-600 font-semibold">Saldo Total Disponible:</span>
               <span className="text-base font-bold font-mono text-[#004ac6]">
-                ${safeNumber(totalBalance)}
+                {canViewBalances ? `$${safeNumber(totalBalance)}` : "Restringido"}
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
@@ -205,7 +209,7 @@ export function BankAccountsTab() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          {bankAccounts.length >= 2 && (
+          {canTransfer && bankAccounts.length >= 2 && (
             <button
               type="button"
               onClick={handleOpenTransfer}
@@ -219,6 +223,7 @@ export function BankAccountsTab() {
           <button
             type="button"
             onClick={handleOpenCreate}
+            disabled={!canManage}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -238,6 +243,7 @@ export function BankAccountsTab() {
           <button
             type="button"
             onClick={handleOpenCreate}
+            disabled={!canManage}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
@@ -281,11 +287,12 @@ export function BankAccountsTab() {
                       >
                         {account.status}
                       </span>
-                      <ActionIconButton action="edit" type="button" onClick={() => handleOpenEdit(account)} title="Editar cuenta bancaria" />
-                      <button type="button" className="text-xs text-blue-700 px-2 py-1 border rounded" onClick={() => {setAdjustingAccount(account);setAdjustDelta("");setAdjustReason("");}}>Ajustar saldo</button>
+                      <ActionIconButton action="edit" type="button" disabled={!canManage} onClick={() => handleOpenEdit(account)} title="Editar cuenta bancaria" />
+                      {canManage && <button type="button" className="text-xs text-blue-700 px-2 py-1 border rounded" onClick={() => {setAdjustingAccount(account);setAdjustDelta("");setAdjustReason("");}}>Ajustar saldo</button>}
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(account)}
+                        disabled={!canManage}
                         className={`p-1.5 rounded-lg transition cursor-pointer ${
                           isActive
                             ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
@@ -312,7 +319,7 @@ export function BankAccountsTab() {
                       Saldo Disponible
                     </div>
                     <div className="text-xl font-bold font-mono text-[#004ac6] mt-0.5">
-                      ${safeNumber(balanceNum)}
+                      {canViewBalances ? `$${safeNumber(balanceNum)}` : "Restringido"}
                     </div>
                   </div>
                   <span className="text-[10px] font-bold text-slate-400 font-mono">
@@ -461,7 +468,7 @@ export function BankAccountsTab() {
                 >
                   {(bankAccounts || []).map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName || "Cuenta"} • ${safeNumber(b.currentBalance)}
+                      {b.bankName || "Cuenta"}{canViewBalances ? ` • $${safeNumber(b.currentBalance)}` : ""}
                     </option>
                   ))}
                 </select>
@@ -478,7 +485,7 @@ export function BankAccountsTab() {
                 >
                   {(bankAccounts || []).map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.bankName || "Cuenta"} • ${safeNumber(b.currentBalance)}
+                      {b.bankName || "Cuenta"}{canViewBalances ? ` • $${safeNumber(b.currentBalance)}` : ""}
                     </option>
                   ))}
                 </select>

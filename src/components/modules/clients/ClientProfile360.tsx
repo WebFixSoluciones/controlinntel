@@ -299,7 +299,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
 
   // RBAC Filter: Only render tabs the active user has explicit permission for (PDF Page 9 & 10)
   const authorizedTabs = eligibleTabs.filter(tab => {
-    if (currentUser.role !== "superadmin" && currentUser.modulePermissions?.abonados?.submodules?.[tab.id] === false) return false;
+    if (currentUser.role !== "superadmin" && (currentUser.modulePermissions?.abonados?.submodules?.[tab.id] ?? currentUser.permissionModelVersion !== 2) === false) return false;
     if (tab.id === "facturacion") return canReadCollection(currentUser, "billingInvoices");
     if (tab.id === "cotizaciones") return canAccessSubmodule(currentUser, "ventas", "cotizaciones");
     if (tab.id === "contratos") return canReadCollection(currentUser, "clientServices");

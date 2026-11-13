@@ -528,7 +528,7 @@ export function RegisterPurchaseModal({
                   >
                     {bankAccounts.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.bankName} - Saldo: ${b.currentBalance.toFixed(2)}
+                        {b.bankName}{Number.isFinite(b.currentBalance) ? ` - Saldo: $${b.currentBalance.toFixed(2)}` : ""}
                       </option>
                     ))}
                   </select>

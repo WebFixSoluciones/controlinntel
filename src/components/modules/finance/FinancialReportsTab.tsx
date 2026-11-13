@@ -59,7 +59,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
     expenses: allExpenses = [],
     expenseCategories,
     financialMovements: allMovements = [],
-    bankAccounts = [],
+    bankAccounts: allBankAccounts = [],
     purchaseInvoices: allPurchases = [],
     clientAdvances = [],
   } = useApp();
@@ -70,8 +70,11 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const { showSuccess, showError } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);
   const canExport = canUser(currentUser, "finanzas", "canExportReports");
+  const canViewBalances = canUser(currentUser, "finanzas", "canViewBankBalances");
+  const bankAccounts = useMemo(() => canViewBalances ? allBankAccounts : [], [canViewBalances, allBankAccounts]);
 
   const [activeTab, setActiveTab] = useState<ReportTab>("resumen");
+  useEffect(() => { if (!canViewBalances && activeTab === "bancos") setActiveTab("resumen"); }, [canViewBalances, activeTab]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterCategory, setFilterCategory] = useState("todas");
@@ -242,7 +245,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
         ["Comprobantes anulados (excluidos de cobranzas)", cobranzasMetrics.anuladosCount],
         ["Cuentas por Cobrar (Cartera Abierta)", safeNumber(totalCxCPendiente)],
         ["Cuentas por Pagar (Proveedores)", safeNumber(totalCxPPendiente)],
-        ["Disponibilidad Liquidez en Bancos", safeNumber(bancosMetrics.totalLiquidez)],
+        ["Disponibilidad Liquidez en Bancos", canViewBalances ? safeNumber(bancosMetrics.totalLiquidez) : "Restringido"],
       ];
     }
 
@@ -394,7 +397,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
             </div>
           </div>
           <div className="mt-2 text-xl font-black font-mono text-[#004ac6]">
-            ${safeNumber(bancosMetrics.totalLiquidez)}
+            {canViewBalances ? `$${safeNumber(bancosMetrics.totalLiquidez)}` : "Restringido"}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">
             {bancosMetrics.accounts.length} cuentas registradas
@@ -472,6 +475,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
         <button
           type="button"
           onClick={() => selectReportTab("bancos")}
+          disabled={!canViewBalances}
+          title={!canViewBalances ? "No tienes permiso para consultar saldos bancarios" : undefined}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap ${
             activeTab === "bancos"
               ? "bg-white text-[#004ac6] shadow-2xs"
@@ -681,7 +686,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                   </p>
                 </div>
                 <span className="font-mono font-bold text-xs text-[#004ac6]">
-                  Total: ${safeNumber(bancosMetrics.totalLiquidez)}
+                  Total: {canViewBalances ? `$${safeNumber(bancosMetrics.totalLiquidez)}` : "Restringido"}
                 </span>
               </div>
 
@@ -1027,7 +1032,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
       {/* ========================================================================= */}
       {/* VISTA 6: REPORTE DE BANCOS & DISPONIBILIDAD DE LIQUIDEZ                   */}
       {/* ========================================================================= */}
-      {activeTab === "bancos" && (
+      {activeTab === "bancos" && canViewBalances && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#fcfdff]">
@@ -1038,7 +1043,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </h3>
               </div>
               <span className="font-mono font-bold text-xs text-[#004ac6]">
-                Liquidez Total: ${safeNumber(bancosMetrics.totalLiquidez)}
+                Liquidez Total: {canViewBalances ? `$${safeNumber(bancosMetrics.totalLiquidez)}` : "Restringido"}
               </span>
             </div>
 

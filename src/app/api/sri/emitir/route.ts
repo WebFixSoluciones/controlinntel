@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const kind = body.kind === "consultar" ? body.documentKind : body.kind;
     const spec = sriKinds[kind];
     if (!canAccessSubmodule(user, "facturacion", spec.submodule)
-      || ((body.kind !== "consultar" || body.retry || correctionId) && (!canUser(user, "facturacion", "canCreateInvoice") || user.role === "consulta"))) {
+      || ((body.kind !== "consultar" || body.retry || correctionId) && (!canUser(user, "facturacion", "canCreateInvoice") || !canUser(user, "facturacion", "canAuthorizeSri") || user.role === "consulta"))) {
       throw new HttpError(403, "No tienes autorización para esta operación fiscal.");
     }
     const { db } = adminServices();

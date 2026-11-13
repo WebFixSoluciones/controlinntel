@@ -816,21 +816,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) return;
     let checking = false;
+    let disposed = false;
     const verifyAccess = async () => {
       if (checking || document.visibilityState !== "visible") return;
       checking = true;
       try {
         const profile = await api<UserProfile>("/api/session");
-        const access = (user: UserProfile) => JSON.stringify([user.role, user.status, user.permissions, user.modulePermissions]);
+        if (disposed) return;
+        const access = (user: UserProfile) => JSON.stringify([user.role, user.status, user.permissionModelVersion, user.permissions, user.modulePermissions]);
         if (profile.uid === currentUser.uid && access(profile) !== access(currentUser)) await refresh();
       } catch (error) {
-        if (error instanceof ApiError && [401, 403].includes(error.status)) setCurrentUser(previous => ({ ...previous, status: "inactivo" }));
+        if (!disposed && error instanceof ApiError && [401, 403].includes(error.status)) {
+          snapshotGeneration.current++;
+          setIsAuthenticated(false);
+          setDataReady(false);
+          void signOut(auth).catch(() => {});
+        }
       }
       finally { checking = false; }
     };
+    const interval = window.setInterval(verifyAccess, 30000);
     window.addEventListener("focus", verifyAccess);
     document.addEventListener("visibilitychange", verifyAccess);
     return () => {
+      disposed = true;
+      window.clearInterval(interval);
       window.removeEventListener("focus", verifyAccess);
       document.removeEventListener("visibilitychange", verifyAccess);
     };
@@ -1075,12 +1085,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateSystemUser = async (uid: string, updates: Partial<SystemUser>) => {
-    await api("/api/users", { action: "update", uid, data: updates });
+    await api("/api/users", { action: "update", uid, expectedVersion: updates.version ?? systemUsers.find(user => user.uid === uid)?.version ?? 0, data: updates });
     await refresh();
   };
 
   const deleteSystemUser = async (uid: string): Promise<boolean> => {
-    await api("/api/users", { action: "disable", uid });
+    await api("/api/users", { action: "disable", uid, expectedVersion: systemUsers.find(user => user.uid === uid)?.version ?? 0 });
     await refresh();
     return true;
   };

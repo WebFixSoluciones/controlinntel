@@ -101,24 +101,24 @@ export function UsersManager() {
   };
 
   const handleDeleteUser = (u: SystemUser) => {
-    if (u.uid === currentUser.uid || u.role === "superadmin") {
-      showError("Acción Bloqueada", "No puedes eliminar la cuenta principal de Administrador.");
+    if (u.uid === currentUser.uid) {
+      showError("Acción Bloqueada", "Otro superadministrador debe modificar tu cuenta.");
       return;
     }
 
     showConfirm(
-      "Eliminar Usuario Definitivamente",
-      `¿Estás seguro de eliminar la cuenta de ${u.displayName} (${u.email})? Esta acción la borrará del sistema.`,
+      "Desactivar usuario",
+      `¿Deseas desactivar la cuenta de ${u.displayName} (${u.email})? Se bloqueará el acceso conservando su historial.`,
       async () => {
         try {
           const ok = await deleteSystemUser(u.uid);
           if (ok) {
-            showSuccess("Usuario Eliminado", `La cuenta de ${u.displayName} ha sido eliminada.`);
+            showSuccess("Usuario desactivado", `La cuenta de ${u.displayName} ha sido desactivada.`);
           } else {
-            showError("No Permitido", "No se puede eliminar al único superadministrador del sistema.");
+            showError("No Permitido", "Debe permanecer un superadministrador activo.");
           }
         } catch (err: any) {
-          showError("Error al Eliminar", err?.message || "No se pudo eliminar el usuario.");
+          showError("Error al desactivar", err?.message || "No se pudo desactivar el usuario.");
         }
       }
     );
@@ -268,9 +268,9 @@ export function UsersManager() {
 
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <ActionIconButton action="edit" onClick={() => handleOpenEdit(u)} title="Editar usuario y matriz de permisos" />
+                          <ActionIconButton action="edit" disabled={u.uid === currentUser.uid} onClick={() => handleOpenEdit(u)} title={u.uid === currentUser.uid ? "Otro superadministrador debe modificar tu cuenta" : "Editar usuario y matriz de permisos"} />
 
-                          {u.uid !== currentUser?.uid && u.role !== "superadmin" && (
+                          {u.uid !== currentUser?.uid && (
                             <>
                               <button
                                 onClick={() => handleToggleStatus(u)}
@@ -284,7 +284,7 @@ export function UsersManager() {
                                 {isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                               </button>
 
-                              <ActionIconButton action="delete" onClick={() => handleDeleteUser(u)} title="Eliminar colaborador" />
+                              <ActionIconButton action="delete" onClick={() => handleDeleteUser(u)} title="Desactivar colaborador" />
                             </>
                           )}
                         </div>

@@ -37,6 +37,22 @@ const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificatio
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
 
+test("Un vendedor sin permiso de precios o descuentos conserva la tarifa de catálogo en el servidor",async()=>{
+  const db=new Database(initial());
+  const operator:UserProfile={...user,role:"ventas",modulePermissions:{ventas:{enabled:true,submodules:{notas_venta:true,nueva_venta:true,cotizaciones:true,recurrentes:true},actions:{canCreateInvoice:true,canEditPrices:false,canApplyDiscounts:false}}}};
+  const execute=(data:Record<string,any>)=>executeCommercial(operator,{action:"issueSale",data,operationId:randomUUID()},db as unknown as Firestore);
+  await assert.rejects(execute(sale("a",{items:[{...sale().items[0],unitPrice:90}]})),{status:403});
+  await assert.rejects(execute(sale("a",{items:[{...sale().items[0],discount:1}]})),{status:403});
+  assert.equal(db.list("billingInvoices").length,0);
+  const invoice=await execute(sale());assert.equal(invoice.total,115);
+});
+test("Editar productos y administrar bancos requieren sus acciones propias",async()=>{
+  const db=new Database(initial());const operator:UserProfile={...user,role:"admin",modulePermissions:{inventarios:{enabled:true,actions:{canEditProduct:true,canChangePrices:false} as any,submodules:{} as any},finanzas:{enabled:true,submodules:{} as any,actions:{canManageBankAccounts:false,canTransferFunds:false} as any}}};
+  await assert.rejects(executeCommercial(operator,{action:"editProduct",data:{id:"srv",salePrice:120},operationId:randomUUID()},db as unknown as Firestore),{status:403});
+  for(const action of ["createBank","editBank","adjustBank","transfer"] as const) await assert.rejects(executeCommercial(operator,{action,data:{},operationId:randomUUID()},db as unknown as Firestore),{status:403});
+  assert.equal(db.row("inventoryProducts","srv").salePrice,100);assert.equal(db.row("bankAccounts","bank").currentBalance,1000);
+});
+
 const expensePayload = (extra = {}) => ({ supplierName: "BENEFICIARIO QA", bankAccountId: "bank", category: "mantenimiento",
   amount: 100, expenseDate: "2026-11-07", description: "Gasto manual QA", paymentMethod: "transferencia", ...extra });
 

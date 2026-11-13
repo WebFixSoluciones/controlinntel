@@ -19,6 +19,8 @@ export function visibleServiceData(user: UserProfile, collection: string, row: R
     }) };
   }
   let hidden: readonly string[] = [];
+  if (collection === "suppliers" && !canUser(user, "compras", "canViewSupplierBank")) hidden = ["bankName", "bankAccountType", "bankAccountNumber", "bankAccountOwner"];
+  if (collection === "bankAccounts" && !canUser(user, "finanzas", "canViewBankBalances")) hidden = ["initialBalance", "currentBalance"];
   if (!canViewFinancialAmounts(user)) {
     if (collection === "clients") hidden = ["currentBalance"];
     if (collection === "projects" || collection === "clientProjects") hidden = ["estimatedBudget", "executedCost"];

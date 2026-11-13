@@ -1,6 +1,7 @@
+import { requireSettingsAccess } from "@/lib/server/settings-access";
 import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
-import { actor, HttpError, requirePermission } from "@/lib/server/security";
+import { actor, HttpError } from "@/lib/server/security";
 import { save } from "@/lib/server/operations";
 import {
   emailSettingsFromConfig,
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Demasiadas solicitudes. Espera un momento." }, { status: 429 });
     }
     const user = await actor(request);
-    requirePermission(user, "manage_finance");
+    requireSettingsAccess(user, "email");
 
     const config = await readSriCompanyConfig();
     const password = await readEmailPassword();
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await actor(request);
-    requirePermission(user, "manage_finance");
+    requireSettingsAccess(user, "email", true);
     const body = bodySchema.parse(await request.json());
 
     const current = await readSriCompanyConfig();

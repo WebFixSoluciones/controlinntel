@@ -123,8 +123,8 @@ export function NewSaleView({
   } = useApp();
   const { showSuccess, showError, showWarning } = useToast();
 
-  const canEditPrices = canUser(currentUser, "facturacion", "canEditPrices");
-  const canApplyDiscounts = canUser(currentUser, "facturacion", "canApplyDiscounts");
+  const canEditPrices = canUser(currentUser, "ventas", "canEditPrices");
+  const canApplyDiscounts = canUser(currentUser, "ventas", "canApplyDiscounts");
   const canCreateQuickProduct = canUser(currentUser, "inventarios", "canCreateProduct");
   const canCreateQuickService = canUser(currentUser, "inventarios", "canCreateService");
 

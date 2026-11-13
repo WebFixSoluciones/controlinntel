@@ -27,6 +27,7 @@ export type SystemPermission =
   | "delete_invoices";
 
 export interface UserProfile {
+  permissionModelVersion?: 2;
   uid: string;
   email: string;
   displayName: string;
@@ -57,6 +58,7 @@ export interface DocumentTemplate {
 }
 
 export interface SystemUser extends UserProfile {
+  version?: number;
   passwordHash?: string;
   status: "activo" | "inactivo";
   permissions: SystemPermission[];

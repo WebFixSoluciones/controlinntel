@@ -168,6 +168,7 @@ async function issueSale(c: Context, input: Row) {
   const client=input.clientId==="cf-9999999999999" ? {id:input.clientId,businessName:"Consumidor Final",identificationNumber:"9999999999999"} : await c.get("clients",input.clientId);
   if(client.status==="retirado") throw new HttpError(400,"Cliente retirado.");
   const calculated=calculateLines(input.items), id=randomUUID();
+  if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => Number(item.discount) > 0)) throw new HttpError(403, "No tienes permiso para aplicar descuentos.");
   if(calculated.items.some(item=>Number(item.unitPrice)===0&&!String(item.zeroPriceReason||input.notes||"").trim()))throw new HttpError(400,"Indica el motivo de la partida gratuita en las notas.");
   const configs=await c.list("sriCompanyConfig"), config=configs[0]||{};
   // Canal comercial: mostrador (venta puntual) o servicio (recurrencia).
@@ -214,6 +215,7 @@ async function issueSale(c: Context, input: Row) {
     }
     if(!product.id && !item.serviceId) throw new HttpError(400,"Artículo inexistente.");
     if(product.status==="inactivo") throw new HttpError(400,"Artículo inactivo.");
+    if (!item.serviceId && !canUser(c.user, "ventas", "canEditPrices") && (!product.id || cents(item.unitPrice) !== cents(product.salePrice) || Number(item.ivaRate) !== Number(product.ivaRate))) throw new HttpError(403, "No tienes permiso para modificar los precios del catálogo.");
     if(!isDraft&&item.serviceId){
       const service=await c.get("clientServices",item.serviceId);
       if(service.clientId!==client.id||!item.periodStart||!item.periodEnd)throw new HttpError(400,"El período o servicio no pertenece al cliente.");
@@ -432,6 +434,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
         && servicePriceFields.inventoryProducts.some(key => key in data && data[key] !== old[key])) {
         throw new HttpError(403, "No tienes permiso para cambiar los valores del servicio.");
       }
+      if (!canUser(c.user, "inventarios", "canChangePrices") && ["salePrice", "salePriceConIva", "ivaRate"].some(key => key in data && Number(data[key]) !== Number(old[key]))) throw new HttpError(403, "No tienes permiso para cambiar precios del catálogo.");
       if(updated.stock!==old.stock||JSON.stringify(updated.stockByWarehouse)!==JSON.stringify(old.stockByWarehouse)||updated.baseCost!==old.baseCost)throw new HttpError(400,"Utiliza ajustes de inventario para cambiar existencias o valoración.");
       if(updated.type!==old.type||updated.tracksStock!==old.tracksStock)throw new HttpError(400,"No cambies el control de existencias de un artículo registrado; crea otro artículo.");
       if(updated.sku!==old.sku&&(await c.list("inventoryProducts","sku",updated.sku)).length)throw new HttpError(409,"SKU ya registrado.");
@@ -541,6 +544,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(changes.documentType && changes.documentType !== old.documentType || changes.claveAcceso) throw new HttpError(400,"El tipo y la clave del documento se conservan.");
       if(changes.documentNumber&&changes.documentNumber!==old.documentNumber)throw new HttpError(400,"La numeración emitida no se modifica.");
       const calculated=calculateLines(changes.items||old.items);
+      if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => Number(item.discount) !== Number(old.items.find((line: Row) => line.id === item.id)?.discount || 0))) throw new HttpError(403, "No tienes permiso para cambiar descuentos.");
       for (const item of calculated.items) {
         delete item.costUnitSnapshot; delete item.costTotalSnapshot; delete item.costKindSnapshot;
         const previous = old.items.find((line: Row) => line.id === item.id && line.productId === item.productId);
@@ -769,6 +773,7 @@ function visibleCommercialResult<T>(user: UserProfile, action: CommercialCommand
     return service as T;
   }
   if (action === "createProduct" || action === "editProduct") return visibleServiceData(user, "inventoryProducts", result as Row) as T;
+  if (["createBank", "editBank", "adjustBank"].includes(action)) return visibleServiceData(user, "bankAccounts", result as Row) as T;
   if (["issueSale", "editSale", "recur"].includes(action)) return visibleServiceData(user, "billingInvoices", result as Row) as T;
   return result;
 }
@@ -829,7 +834,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],
     issueSale:["ventas","canCreateInvoice"],editSale:["ventas","canEditPrices"],recur:["ventas","canCreateInvoice"],cancelSale:["ventas","canCancelInvoices"],
     payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],applyClientCredit:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
-    bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],adjustBank:["finanzas","canRegisterExpenses"],transfer:["finanzas","canRegisterExpenses"],
+    bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],createBank:["finanzas","canManageBankAccounts"],editBank:["finanzas","canManageBankAccounts"],adjustBank:["finanzas","canManageBankAccounts"],transfer:["finanzas","canTransferFunds"],manualCharge:["finanzas","canRegisterReceipts"],
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["ventas","canCreateInvoice"],processRun:["ventas","canCreateInvoice"],
     editAdvance:["finanzas","canRegisterReceipts"],voidAdvance:["finanzas","canCancelPayments"],
     reverseApplication:["finanzas","canCancelPayments"],

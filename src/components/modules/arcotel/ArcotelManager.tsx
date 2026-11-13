@@ -1,4 +1,5 @@
 "use client";
+import { canPerformAction } from "@/lib/permissions";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -227,8 +228,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
   };
 
   const handleDeleteFile = (fileId: string, name: string) => {
-    const isSuperOrAdmin = currentUser.role === "admin" || currentUser.role === "superadmin";
-    const canDelete = isSuperOrAdmin || currentUser.permissions?.includes("delete_files") || currentUser.modulePermissions?.actions?.canDeleteFiles;
+    const canDelete = canPerformAction(currentUser, "canDeleteFiles");
     if (!canDelete) {
       showError("Acceso Restringido", "No tienes autorización para eliminar archivos regulatorios de ARCOTEL.");
       return;

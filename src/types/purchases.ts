@@ -223,6 +223,8 @@ export interface PurchaseActions {
 }
 
 export interface FinanceActions {
+  canManageBankAccounts?: boolean;
+  canTransferFunds?: boolean;
   canViewBankBalances: boolean;   // 🔒 Ver saldos de cuentas bancarias
   canRegisterReceipts: boolean;   // Registrar cobros y abonos
   canRegisterExpenses: boolean;   // Registrar gastos
@@ -349,6 +351,8 @@ export interface UserModulePermissions {
 }
 
 export interface UserRoleTemplate {
+  version?: number;
+  permissionModelVersion?: 2;
   id: string;
   name: string;
   baseRole: Exclude<import("./index").UserRole, "superadmin">;
