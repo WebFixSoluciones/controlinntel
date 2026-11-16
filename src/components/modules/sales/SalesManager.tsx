@@ -372,15 +372,15 @@ export function SalesManager() {
                                   setIsRideOpen(true);
                                 }
                               }}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition cursor-pointer ${isFacturada ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}
+                              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium leading-[13px] border transition cursor-pointer ${isFacturada ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}
                               title="Clic para ver Factura SRI vinculada"
                             >
-                              {isFacturada ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                              <span>{fiscalLabel} · {linkedSriInv.documentNumber}</span>
+                              {isFacturada ? <CheckCircle2 className="size-3 shrink-0" /> : <Clock className="size-3 shrink-0" />}
+                              <span className="flex flex-col items-start"><span className="whitespace-nowrap">{fiscalLabel}</span><span className="whitespace-nowrap font-mono text-[9px] leading-[12px]">{linkedSriInv.documentNumber}</span></span>
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                            <span className="inline-flex items-center gap-1 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] leading-[14px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                              <Clock className="size-3 text-amber-500" />
                               <span>Pendiente SRI</span>
                             </span>
                           )}

@@ -18,14 +18,13 @@ const xmlLimit = 175_000;
 
 export async function deleteTestInvoice(db: Firestore, user: UserProfile, config: SriCompanyConfig, id: string) {
   if (!canAccessSubmodule(user, "facturacion", "facturas") || !canUser(user, "facturacion", "canCancelInvoices")) throw new HttpError(403, "No tienes permiso para eliminar comprobantes de prueba.");
-  if (config.ambiente !== "1") throw new HttpError(409, "Selecciona el ambiente de pruebas para eliminar este documento.");
   await db.runTransaction(async tx => {
     const ref = db.collection("billingInvoices").doc(id), row = (await tx.get(ref)).data();
     if (!row || row.documentType !== "factura") throw new HttpError(404, "Factura de prueba inexistente.");
-    if (row.ambiente !== "1" || keyOf(row, "factura", config).ambiente !== "1") throw new HttpError(409, "No se permite eliminar una factura de producción.");
+    if ((row.ambiente && row.ambiente !== "1") || keyOf(row, "factura", config).ambiente !== "1") throw new HttpError(409, "No se permite eliminar una factura de producción.");
     if (Number(row.fiscalLeaseUntil || 0) > Date.now()) throw new HttpError(409, "Espera a que termine el procesamiento del comprobante.");
     const storedConfig = (await tx.get(db.doc(SRI_CONFIG_PATH))).data();
-    if (storedConfig?.ambiente !== "1" || storedConfig.ruc !== config.ruc) throw new HttpError(409, "El ambiente cambió. Actualiza la pantalla.");
+    if (storedConfig?.ruc !== config.ruc) throw new HttpError(409, "El emisor cambió. Actualiza la pantalla.");
     for (const collection of ["billingCreditNotes", "billingDebitNotes", "billingRemissionGuides"]) {
       if ((await tx.get(db.collection(collection).where("invoiceId", "==", id))).docs.length) throw new HttpError(409, "La factura tiene documentos vinculados; requiere revisión antes de eliminarla.");
     }

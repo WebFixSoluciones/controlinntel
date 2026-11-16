@@ -271,7 +271,10 @@ test("eliminar una factura de prueba archiva auditoría, libera la nota y conser
   const verifier = new SignedXml({ publicCert: parsePkcs12(fixture.pkcs12Base64, password).certificatePem });
   verifier.loadSignature(signature);
   assert.equal(verifier.checkSignature(original.xmlFirmado), true, "Un verificador independiente valida firma y referencias");
-  await assert.rejects(deleteTestInvoice(db, user, productionConfig, ref.id), { status: 409 });
+  await assert.rejects(deleteTestInvoice(db, user, productionConfig, live.id), { status: 409 });
+  storage.rows.get(live.path)!.ambiente = "1";
+  await assert.rejects(deleteTestInvoice(db, user, productionConfig, live.id), { status: 409 });
+  storage.rows.set(live.path, liveBefore!);
   storage.rows.set("sriCompanyConfig/sri-config-inntel", config);
   await assert.rejects(deleteTestInvoice(db, user, config, live.id), { status: 409 });
   await assert.rejects(deleteTestInvoice(db, { ...user, role: "consulta", permissions: [] }, config, ref.id), { status: 403 });
@@ -281,11 +284,13 @@ test("eliminar una factura de prueba archiva auditoría, libera la nota y conser
   storage.rows.set("billingCreditNotes/linked", { invoiceId: ref.id });
   await assert.rejects(deleteTestInvoice(db, user, config, ref.id), { status: 409 });
   storage.rows.delete("billingCreditNotes/linked");
-  await deleteTestInvoice(db, user, config, ref.id);
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", productionConfig);
+  await deleteTestInvoice(db, user, productionConfig, ref.id);
   assert.equal(storage.read(ref.path), undefined);
   assert.deepEqual(storage.read(live.path), liveBefore);
   assert.deepEqual(storage.read("billingInvoices/sale-qa")!.sriInvoicesByEnvironment, { "2": live.id });
   assert.ok([...storage.rows.keys()].some(key => key.startsWith("sriDeletedTests/")));
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", config);
   const regenerated = await reserve({ kind: "factura", saleId: "sale-qa" });
   assert.notEqual(storage.read(regenerated.path)!.documentNumber, original.documentNumber, "No se recicla el secuencial eliminado");
 });

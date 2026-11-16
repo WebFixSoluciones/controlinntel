@@ -1771,7 +1771,7 @@ test("Flujo E2E 29: Auditoría Global y Estandarización Clean Enterprise en Pes
   assert.ok(!quotePreview.includes("rounded-["), "QuotePreviewModal no debe contener rounded-[");
 
   const ridePreview = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/RidePreviewModal.tsx"), "utf8");
-  assert.ok(ridePreview.includes("bg-[#004ac6] text-white"), "RidePreviewModal debe usar cabecera corporativa");
+  assert.ok(ridePreview.includes('aria-label="Formato de impresión"') && ridePreview.includes('aria-label="Acciones del comprobante"') && ridePreview.includes('aria-label="Cerrar vista previa"'), "RIDE debe agrupar formato y acciones y mantener un cierre accesible");
   assert.ok(!ridePreview.includes("rounded-["), "RidePreviewModal no debe contener rounded-[");
 
   const billingMgr = fs.readFileSync(path.resolve(rootDir, "src/components/modules/billing/BillingManager.tsx"), "utf8");

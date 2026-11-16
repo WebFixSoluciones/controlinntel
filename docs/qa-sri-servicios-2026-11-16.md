@@ -11,7 +11,7 @@ Se reprodujo la consulta de su clave contra el servicio de certificación: SOAPA
 - SOAPAction vacío tanto en recepción como en autorización.
 - Nombre del emisor del certificado: los atributos desconocidos de UANATACA se representan por OID y valor ASN.1 hexadecimal, evitando `undefined=`.
 - Referencia firmada a SignedProperties con el atributo Type exigido por XAdES 1.3.2.
-- Eliminar factura de prueba: botón de papelera con confirmación y comprobación del permiso de anulación. Solo funciona con configuración en pruebas y comprobante identificado como pruebas tanto en sus metadatos como en su clave. No permite documentos en procesamiento ni con notas de crédito, débito o guías vinculadas.
+- Eliminar factura de prueba: botón de papelera con confirmación y comprobación del permiso de anulación. La opción depende del ambiente del comprobante, aunque la configuración actual esté en producción. El servidor verifica su clave de pruebas y rechaza cualquier metadato que indique producción. No permite documentos en procesamiento ni con notas de crédito, débito o guías vinculadas.
 - La eliminación retira el registro operativo, archiva el documento y registra la auditoría en una misma transacción. Libera el vínculo de prueba con la nota y conserva cualquier vínculo de producción, cobros e inventario. No reinicia ni recicla secuenciales.
 
 ## Numeración

@@ -64,14 +64,15 @@ import { api, downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import type { FiscalKind } from "@/lib/server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
 
-function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { status?: string; emailStatus?: string; commercialReconciliationStatus?: string } }) {
+function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { claveAcceso?: string; status?: string; emailStatus?: string; commercialReconciliationStatus?: string } }) {
+  const environment = doc.ambiente || doc.claveAcceso?.[23];
   const color = isFiscalAuthorized(doc)
-    ? doc.ambiente === "1" ? "bg-sky-50 text-sky-800 border-sky-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"
+    ? environment === "1" ? "bg-sky-50 text-sky-800 border-sky-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"
     : doc.estadoSRI === "DEVUELTA" || doc.estadoSRI === "NO AUTORIZADO"
       ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-amber-50 text-amber-800 border-amber-200";
-  return <><span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-semibold ${color}`}>
-    {fiscalStateLabel(doc)}{doc.ambiente === "1" && " · PRUEBAS"}
-  </span>
+  return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><span className={`whitespace-nowrap rounded border px-1.5 text-[10px] font-medium leading-[15px] ${color}`}>
+    {fiscalStateLabel(doc)}
+  </span>{environment === "1" && <span className="text-[9px] font-medium leading-[11px] text-sky-700">PRUEBAS</span>}</span>
     {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="mt-1 block text-[10px] text-slate-500">Correo: {({enviado:"confirmado",enviando:"en curso",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
     {doc.commercialReconciliationStatus === "pendiente" && <span className="mt-1 block text-[10px] font-semibold text-amber-700">Requiere conciliación de cartera</span>}
   </>;
@@ -808,7 +809,7 @@ export function BillingManager() {
                                 )}
                               </>
                             )}
-                            {!isNotaVenta && inv.ambiente === "1" && sriCompanyConfig.ambiente === "1" && canUser(currentUser, "facturacion", "canCancelInvoices") && (
+                            {!isNotaVenta && (inv.ambiente || inv.claveAcceso?.[23]) === "1" && canUser(currentUser, "facturacion", "canCancelInvoices") && (
                               <ActionIconButton action="delete" title="Eliminar factura de prueba" onClick={() => showConfirm(
                                 "Eliminar factura de prueba", "Se retirará del listado y se liberará su vínculo de prueba con la nota de venta. Se conserva la auditoría y la numeración consumida. No afecta cobros, inventario ni producción.",
                                 async () => { try { await api(`/api/sri/emitir?id=${encodeURIComponent(inv.id)}`, undefined, "DELETE"); await refresh(); showSuccess("Factura de prueba eliminada", "La nota de venta y los registros de producción se conservaron."); } catch (error: any) { showError("No se pudo eliminar", error.message); } }
