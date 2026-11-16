@@ -8,11 +8,8 @@ import {
   Download,
   Copy,
   Check,
-  Building2,
-  FileCheck2,
   FileText,
   Receipt,
-  FileCode,
 } from "lucide-react";
 import {
   SriInvoice,
@@ -41,6 +38,8 @@ interface RidePreviewModalProps {
   withholding?: WithholdingReceipt | null;
   remissionGuide?: RemissionGuide | null;
   companyConfig?: SriCompanyConfig;
+  sourceNumber?: string;
+  guideNumber?: string;
   initialFormat?: "ride" | "ticket";
 }
 
@@ -53,6 +52,8 @@ export function RidePreviewModal({
   withholding,
   remissionGuide,
   companyConfig = DEFAULT_INNTEL_SRI_CONFIG,
+  sourceNumber,
+  guideNumber,
   initialFormat = "ride",
 }: RidePreviewModalProps) {
   const printAreaRef = useRef<HTMLDivElement>(null);
@@ -70,10 +71,23 @@ export function RidePreviewModal({
 
   const doc = invoice || creditNote || debitNote || withholding || remissionGuide;
   useEffect(() => {
-    if (barcodeRef.current && doc && isFiscalAuthorized(doc) && /^\d{49}$/.test(doc.claveAcceso)) {
+    if (barcodeRef.current && doc && /^\d{49}$/.test(doc.claveAcceso)) {
       JsBarcode(barcodeRef.current, doc.claveAcceso, { format: "CODE128", displayValue: false, width: 1.3, height: 38, margin: 12 });
     }
   }, [doc, isOpen, format]);
+
+  useEffect(() => {
+    if (!isOpen || format !== "ride") return;
+    const name = printAreaRef.current?.querySelector<HTMLElement>("[data-issuer-name]");
+    if (!name) return;
+    const fit = () => {
+      let size = 12;
+      name.style.fontSize = `${size}px`;
+      while (name.scrollWidth > name.clientWidth && size > 6) { size -= 0.25; name.style.fontSize = `${size}px`; }
+    };
+    const observer = new ResizeObserver(fit); observer.observe(name); fit();
+    return () => observer.disconnect();
+  }, [isOpen, format, doc, companyConfig]);
 
   if (!isOpen) return null;
 
@@ -238,112 +252,30 @@ export function RidePreviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-white print:static">
-      <div className="relative w-full max-w-5xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none">
-        {/* Barra superior de herramientas - No se imprime */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-[#004ac6] text-white print:hidden">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white/20 border border-white/30 flex items-center justify-center text-white">
-              {isNotaVenta ? <Receipt className="w-5 h-5 text-white" /> : <FileCheck2 className="w-5 h-5 text-white" />}
+      <div className="relative flex max-h-[95dvh] w-full max-w-6xl flex-col bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden my-auto print:border-none print:shadow-none print:rounded-none">
+        <header className="shrink-0 border-b border-slate-200 bg-white print:hidden">
+          <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-6">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-semibold text-slate-500">{isNotaVenta ? "Comprobante interno" : fiscalAuthorized ? "RIDE electrónico" : "Vista previa SRI"}</span><span className={`rounded px-2 py-0.5 font-semibold ${fiscalAuthorized ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{isNotaVenta ? doc.status : fiscalStateLabel(doc)}</span></div>
+              <h2 className="mt-1 text-sm font-semibold text-slate-900">{docTypeLabel} <span className="font-mono">{docNumber}</span></h2>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
-                  {isNotaVenta ? "COMPROBANTE DE VENTA INTERNO" : fiscalAuthorized ? "RIDE ELECTRÓNICO" : "VISTA PREVIA SRI"}
-                </span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    fiscalAuthorized || (isNotaVenta && doc.status === "registrado")
-                      ? "bg-emerald-500 text-white"
-                      : doc.status === "anulada"
-                      ? "bg-rose-500 text-white"
-                      : "bg-amber-400 text-slate-900"
-                  }`}
-                >
-                  {!isNotaVenta ? fiscalStateLabel(doc) : isNotaVenta && doc.status === "autorizada"
-                    ? "REGISTRADO"
-                    : doc.status.toUpperCase()}
-                </span>
-              </div>
-              <h2 className="text-sm font-black text-white">
-                {docTypeLabel}: {docNumber}
-              </h2>
+            <button type="button" aria-label="Cerrar vista previa" onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="size-5" /></button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-slate-50 px-4 py-3 sm:px-6">
+            {isInvoice ? <div role="group" aria-label="Formato de impresión" className="flex rounded-lg border bg-white p-1">
+              <button type="button" aria-pressed={format === "ride"} onClick={() => setFormat("ride")} className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold ${format === "ride" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`}><FileText className="size-4" />A4</button>
+              <button type="button" aria-pressed={format === "ticket"} onClick={() => setFormat("ticket")} className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold ${format === "ticket" ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`}><Receipt className="size-4" />Ticket 80 mm</button>
+            </div> : <span className="text-xs font-medium text-slate-500">Formato A4</span>}
+            <div role="group" aria-label="Acciones del comprobante" className="flex flex-wrap items-center gap-2">
+              {!isNotaVenta && claveAcceso && <button type="button" onClick={handleCopyClave} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100">{copiedKey ? <Check className="size-4" /> : <Copy className="size-4" />}{copiedKey ? "Clave copiada" : "Copiar clave"}</button>}
+              {!isNotaVenta && <button type="button" onClick={handleDownloadXml} disabled={!fiscalAuthorized} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><Download className="size-4" />{xmlDownloaded ? "Descargado" : "Descargar XML"}</button>}
+              <button type="button" onClick={handlePrint} disabled={!isNotaVenta && !fiscalAuthorized} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"><Printer className="size-4" />{format === "ticket" ? "Imprimir ticket" : isNotaVenta ? "Imprimir nota" : "Imprimir RIDE"}</button>
             </div>
-
-            {/* Selector de Formato: RIDE A4 vs Ticket POS 80mm */}
-            {isInvoice && (
-              <div className="hidden sm:flex items-center bg-black/20 p-1 rounded-lg border border-white/20 ml-3">
-                <button
-                  type="button"
-                  onClick={() => setFormat("ride")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
-                    format === "ride"
-                      ? "bg-white text-[#004ac6] shadow-xs"
-                      : "text-white/80 hover:text-white"
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>{isNotaVenta ? "Formato A4" : "RIDE Oficial (A4)"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormat("ticket")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
-                    format === "ticket"
-                      ? "bg-white text-[#004ac6] shadow-xs"
-                      : "text-white/80 hover:text-white"
-                  }`}
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  <span>Ticket POS (80mm)</span>
-                </button>
-              </div>
-            )}
           </div>
-
-          <div className="flex items-center gap-2">
-            {!isNotaVenta && claveAcceso && (
-              <button
-                onClick={handleCopyClave}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20 transition cursor-pointer"
-                title="Copiar Clave de Acceso"
-              >
-                {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5 text-white/80" />}
-                <span>{copiedKey ? "Clave Copiada" : "Copiar Clave"}</span>
-              </button>
-            )}
-
-            {!isNotaVenta && (
-              <button
-                onClick={handleDownloadXml}
-                disabled={!fiscalAuthorized}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/20 transition cursor-pointer"
-                title="Descargar XML Firmado XAdES-BES"
-              >
-                {xmlDownloaded ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Download className="w-3.5 h-3.5 text-white/80" />}
-                <span>{xmlDownloaded ? "Descargado" : "Descargar XML"}</span>
-              </button>
-            )}
-
-            <button
-              onClick={handlePrint}
-              disabled={!isNotaVenta && !fiscalAuthorized}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md transition cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>{format === "ticket" ? "Imprimir Ticket" : isNotaVenta ? "Imprimir Nota" : "Imprimir RIDE"}</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition ml-1 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        </header>
 
         {/* Contenedor del documento imprimible */}
-        <div className="p-6 sm:p-10 text-slate-900 bg-slate-100/70 max-h-[85vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0 print:bg-white">
+        <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6 text-slate-900 bg-slate-100/70 print:max-h-none print:overflow-visible print:p-0 print:bg-white">
           {format === "ticket" && isInvoice && invoice ? (
             /* =====================================================
                VISTA TICKET TÉRMICO POS (80mm)
@@ -474,186 +406,55 @@ export function RidePreviewModal({
             <div
               ref={printAreaRef}
               id="ride-print-area"
-              className="max-w-4xl mx-auto bg-white p-6 sm:p-7 rounded-lg shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
+              className="w-[794px] max-w-none shrink-0 mx-auto bg-white p-6 rounded-lg shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
             >
-              {/* Cabecera: 2 Columnas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 print:grid-cols-2">
-                {/* Columna Izquierda: Logo Oficial + Datos del Emisor */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-20 h-16 rounded-lg bg-white border border-slate-200 p-1.5 flex items-center justify-center shadow-2xs shrink-0">
-                      <img
-                        src="/logo-inntel.webp"
-                        alt="INNTEL CORP S.A."
-                        className="max-h-full max-w-full object-contain"
-                      />
+              <div data-ride-header className="grid grid-cols-2 gap-0 border border-slate-300 print-avoid-break">
+                <div className="min-w-0 space-y-2 p-3">
+                  <h1 data-issuer-name className="whitespace-nowrap text-xs font-semibold text-slate-900">{emisor.razonSocial}</h1>
+                  <div className="flex items-start gap-3">
+                    <img src={emisor.logoUrl || "/logo-inntel.webp"} alt="Logo INNTEL" className="h-14 w-16 shrink-0 object-contain" />
+                    <div className="min-w-0 space-y-1 text-[10px]">
+                      <p className="font-semibold text-blue-700">{emisor.nombreComercial}</p>
+                      <p><strong>RUC:</strong> {emisor.ruc}</p>
+                      <p><strong>Dirección matriz:</strong> {emisor.direccionMatriz}</p>
+                      {emisor.direccionEstablecimiento && emisor.direccionEstablecimiento !== emisor.direccionMatriz && <p><strong>Sucursal:</strong> {emisor.direccionEstablecimiento}</p>}
+                      <p><strong>Teléfono:</strong> {emisor.telefonoContacto || "N/D"}</p>
+                      {!isNotaVenta && <><p><strong>Obligado a llevar contabilidad:</strong> {emisor.obligadoContabilidad ? "SI" : "NO"}</p><p><strong>Régimen:</strong> {(emisor.tipoContribuyente || "general").replaceAll("_", " ").toUpperCase()}</p></>}
+                      {!isNotaVenta && emisor.resolucionAgenteRetencion && <p><strong>Agente de retención:</strong> {emisor.resolucionAgenteRetencion}</p>}
+                      {!isNotaVenta && emisor.contribuyenteEspecial && <p><strong>Contribuyente especial:</strong> {emisor.contribuyenteEspecial}</p>}
                     </div>
-                    <div>
-                      <h1 className="text-lg font-black text-slate-900 tracking-tight leading-tight">
-                        {emisor.razonSocial}
-                      </h1>
-                      <p className="text-[11px] font-semibold text-[#004ac6]">
-                        {emisor.nombreComercial}
-                      </p>
-                      <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase block mt-0.5">
-                        INNOVACIÓN EN TELECOMUNICACIONES
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-1 text-slate-700">
-                    <p>
-                      <span className="font-bold text-slate-900">Dirección Matriz:</span>{" "}
-                      {emisor.direccionMatriz}
-                    </p>
-                    <p>
-                      <span className="font-bold text-slate-900">Dirección Sucursal:</span>{" "}
-                      {emisor.direccionEstablecimiento}
-                    </p>
-                    <p>
-                      <span className="font-bold text-slate-900">Teléfono:</span>{" "}
-                      {emisor.telefonoContacto || "+593 2 394 5000"}
-                    </p>
-                    {!isNotaVenta && <p>
-                      <span className="font-bold text-slate-900">OBLIGADO A LLEVAR CONTABILIDAD:</span>{" "}
-                      <span className="font-bold text-slate-900">{emisor.obligadoContabilidad ? "SI" : "NO"}</span>
-                    </p>}
-                    {!isNotaVenta && (
-                      <p>
-                        <span className="font-bold text-slate-900">Contribuyente Régimen:</span>{" "}
-                        <span className="font-semibold uppercase text-slate-800">
-                          {emisor.tipoContribuyente.replace("_", " ")}
-                        </span>
-                      </p>
-                    )}
-                    {emisor.resolucionAgenteRetencion && !isNotaVenta && (
-                      <p>
-                        <span className="font-bold text-slate-900">Agente de Retención Resolución No.:</span>{" "}
-                        {emisor.resolucionAgenteRetencion}
-                      </p>
-                    )}
-                    {emisor.contribuyenteEspecial && !isNotaVenta && (
-                      <p>
-                        <span className="font-bold text-slate-900">Contribuyente Especial Resolución No.:</span>{" "}
-                        {emisor.contribuyenteEspecial}
-                      </p>
-                    )}
                   </div>
                 </div>
-
-                {/* Columna Derecha: Recuadro Oficial SRI o Recibo Interno */}
-                <div className="p-4 rounded-lg border-2 border-slate-900 space-y-2.5 bg-white">
-                  <div className="border-b border-slate-200 pb-2">
-                    <p className="text-sm font-black tracking-wider text-slate-900">
-                      R.U.C.: {emisor.ruc}
-                    </p>
-                    <h3 className="text-base font-black text-[#004ac6] tracking-tight">
-                      {docTypeLabel}
-                    </h3>
-                    <p className="text-sm font-mono font-bold text-slate-900">
-                      No. {docNumber}
-                    </p>
-                  </div>
-
-                  {isNotaVenta ? (
-                    <div className="space-y-1.5 text-[11px] text-slate-700 pt-1">
-                      <p>
-                        <span className="font-bold text-slate-900">TIPO DE DOCUMENTO:</span>{" "}
-                        RECIBO INTERNO / NOTA DE VENTA
-                      </p>
-                      <p>
-                        <span className="font-bold text-slate-900">ESTADO:</span>{" "}
-                        <span className="font-bold text-emerald-700">
-                          {doc.status === "anulada" ? "ANULADO" : "REGISTRADO"}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="font-bold text-slate-900">FECHA DE REGISTRO:</span>{" "}
-                        {fechaEmision} {invoice?.time || ""}
-                      </p>
-                      <p>
-                        <span className="font-bold text-slate-900">VALIDEZ:</span>{" "}
-                        CONTROL INTERNO / NO TRIBUTARIO
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-1 text-[10.5px] text-slate-700">
-                        <p>
-                          <span className="font-bold text-slate-900">NÚMERO DE AUTORIZACIÓN:</span>
-                          <br />
-                          <span className="font-mono text-[9.5px] break-all text-slate-900 font-semibold select-all">
-                            {fiscalAuthorized ? doc.numeroAutorizacion : "Pendiente"}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="font-bold text-slate-900">FECHA Y HORA DE AUTORIZACIÓN:</span>{" "}
-                          {fiscalAuthorized && doc.authorizationDate ? new Date(doc.authorizationDate).toLocaleString("es-EC", { timeZone: "America/Guayaquil" }) : "Pendiente"}
-                        </p>
-                        <p>
-                          <span className="font-bold text-slate-900">AMBIENTE:</span>{" "}
-                          <span className="font-bold text-slate-900">{docEnvironment === "2" ? "PRODUCCIÓN" : "PRUEBAS"}</span>
-                        </p>
-                        <p>
-                          <span className="font-bold text-slate-900">ESTADO:</span> {fiscalStateLabel(doc)}
-                          {docEnvironment === "1" && <strong className="block text-amber-800">COMPROBANTE DE PRUEBAS</strong>}
-                        </p>
-                        {emisor.rucProveedorFacturacion && <p>RUC Proveedor: {emisor.rucProveedorFacturacion}</p>}
-                      </div>
-
-                      {/* Código de barras visual Code 128 y clave de acceso */}
-                      <div className="pt-1.5 border-t border-slate-200 space-y-1">
-                        <span className="font-bold text-[9.5px] text-slate-700 uppercase tracking-wider block">
-                          CLAVE DE ACCESO
-                        </span>
-
-                        <div className="w-full bg-white py-0.5 flex items-center justify-center overflow-hidden">
-                          {fiscalAuthorized && <svg ref={barcodeRef} className="h-auto max-w-full" role="img" aria-label="Código de barras de la clave de acceso" />}
-                        </div>
-
-                        <p className="text-center font-mono font-bold text-[10px] tracking-wider text-slate-900 break-all select-all">
-                          {claveAcceso}
-                        </p>
-                      </div>
-                    </>
-                  )}
+                <div className="min-w-0 space-y-2 border-l border-slate-300 p-3 text-[10px]">
+                  {isNotaVenta ? <><p className="font-semibold">COMPROBANTE INTERNO · SIN VALIDEZ TRIBUTARIA</p><p>Estado: {doc.status === "anulada" ? "ANULADO" : "REGISTRADO"}</p></> : <>
+                    <div className="flex flex-wrap justify-between gap-2"><p><strong>Ambiente:</strong> {docEnvironment === "2" ? "PRODUCCIÓN" : "PRUEBAS"}</p><p><strong>Emisión:</strong> NORMAL</p></div>
+                    <div><p className="font-semibold">Clave de acceso:</p><p className="break-all font-mono text-[8px] select-all">{claveAcceso || "Pendiente"}</p></div>
+                    <p><strong>N.º autorización:</strong> <span className="break-all">{fiscalAuthorized ? doc.numeroAutorizacion : "Pendiente"}</span></p>
+                    <p><strong>Fecha y hora de autorización:</strong> {fiscalAuthorized && doc.authorizationDate ? new Date(doc.authorizationDate).toLocaleString("es-EC", { timeZone: "America/Guayaquil" }) : "Pendiente"}</p>
+                    {/^\d{49}$/.test(claveAcceso || "") && <div className="min-w-0 text-center"><svg ref={barcodeRef} className="mx-auto h-10 w-full" role="img" aria-label="Código de barras de la clave de acceso" /><p className="break-all font-mono text-[8px] select-all">{claveAcceso}</p></div>}
+                    {!fiscalAuthorized && <p className="font-semibold text-amber-800">{fiscalStateLabel(doc)} · SIN VALIDEZ TRIBUTARIA</p>}
+                    {docEnvironment === "1" && fiscalAuthorized && <p className="font-semibold text-amber-800">COMPROBANTE DE PRUEBAS · SIN VALIDEZ TRIBUTARIA</p>}
+                  </>}
+                  <p className="border-t border-slate-300 pt-2 font-semibold">{isInvoice && !isNotaVenta ? "FACTURA ELECTRÓNICA" : docTypeLabel} <span className="font-mono">{docNumber}</span></p>
                 </div>
               </div>
 
-              {/* Recuadro de Información del Comprador / Sujeto Pasivo / Transportista */}
-              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2 print-avoid-break">
-                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
-                  <p>
-                    <span className="font-bold text-slate-900">
-                      {isRemissionGuide ? "Destinatario:" : isWithholding ? "Sujeto Pasivo Retenido:" : "Razón Social / Nombres y Apellidos:"}
-                    </span>{" "}
-                    <span className="font-semibold text-slate-900">{clienteNombre}</span>
-                  </p>
-                  <p>
-                    <span className="font-bold text-slate-900">Identificación (RUC / C.I.):</span>{" "}
-                    <span className="font-mono font-bold text-slate-900">{clienteRuc}</span>
-                  </p>
-                  <p>
-                    <span className="font-bold text-slate-900">Fecha de Emisión:</span>{" "}
-                    {fechaEmision}
-                  </p>
-
-                  {isInvoice && (
-                    <>
-                      <p>
-                        <span className="font-bold text-slate-900">
-                          {invoice.orderNumber ? "Nro. Pedido / Ref:" : "Guía de Remisión:"}
-                        </span>{" "}
-                        {invoice.orderNumber || (invoice.notes?.includes("Guía") ? invoice.notes : "S/N")}
-                      </p>
-                      {invoice.clientAddress && (
-                        <p className="sm:col-span-2 print:col-span-2">
-                          <span className="font-bold text-slate-900">Dirección:</span>{" "}
-                          {invoice.clientAddress}
-                        </p>
-                      )}
-                    </>
-                  )}
+              <div className="border border-slate-300 p-3 print-avoid-break">
+                <div data-ride-buyer className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px]">
+                  <div className="min-w-0 space-y-1">
+                    <p><strong>{isRemissionGuide ? "DESTINATARIO:" : isWithholding ? "SUJETO RETENIDO:" : "CLIENTE:"}</strong> {clienteNombre}</p>
+                    <p><strong>DIRECCIÓN:</strong> {(doc as any).clientAddress || (remissionGuide && remissionGuide.destAddress) || "N/D"}</p>
+                    <p><strong>CI O RUC:</strong> {clienteRuc}</p>
+                    <p><strong>TELÉFONO:</strong> {(doc as any).clientPhone || "N/D"}</p>
+                    <p className="break-words"><strong>EMAIL:</strong> {(doc as any).clientEmail || "N/D"}</p>
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <p><strong>DOC. INTERNO:</strong> {sourceNumber || (invoice?.relatedSaleId ? "Nota de venta vinculada" : "Ninguno")}</p>
+                    <p><strong>DOC. REFERENCIA:</strong> {creditNote?.invoiceNumber || debitNote?.modifiedInvoiceNumber || withholding?.invoiceNumber || invoice?.orderNumber || "Ninguno"}</p>
+                    <p><strong>GUÍA DE REMISIÓN:</strong> {isRemissionGuide ? docNumber : guideNumber || "Sin guía"}</p>
+                    <p><strong>FECHA EMISIÓN:</strong> {fechaEmision}</p>
+                    {invoice?.creditDueDate && <p><strong>FECHA VENCIMIENTO:</strong> {invoice.creditDueDate}</p>}
+                  </div>
 
                   {isCreditNote && creditNote && (
                     <div className="sm:col-span-2 print:col-span-2 p-2 rounded-md bg-amber-50 border border-amber-200 mt-1">

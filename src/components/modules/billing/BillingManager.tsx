@@ -1565,6 +1565,8 @@ export function BillingManager() {
         debitNote={rideDebitNote}
         withholding={rideWithholding}
         remissionGuide={rideRemissionGuide}
+        sourceNumber={billingInvoices.find(row => row.id === rideInvoice?.relatedSaleId)?.documentNumber}
+        guideNumber={rideInvoice ? billingRemissionGuides.find(row => row.invoiceId === rideInvoice.id && isFiscalAuthorized(row))?.documentNumber : undefined}
         companyConfig={sriCompanyConfig}
       />
 
