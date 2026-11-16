@@ -138,7 +138,7 @@ async function soapCall(
     method: "POST",
     headers: {
       "Content-Type": "text/xml; charset=utf-8",
-      SOAPAction: action,
+      SOAPAction: '""', // Both official WSDL bindings declare an empty soapAction.
       Accept: "text/xml",
       "User-Agent": "INNTEL-CORP/1.0 (+https://control.inntelcorp.com)",
     },

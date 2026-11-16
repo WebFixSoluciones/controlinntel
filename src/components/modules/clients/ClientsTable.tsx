@@ -2,7 +2,7 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useCallback } from "react";
-import { canViewServicePrices } from "@/lib/permissions";
+import { canViewClientServicePart } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { matchesClientStatus, clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
@@ -36,7 +36,9 @@ interface ClientsTableProps {
 
 export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
   const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
-  const showServicePrices = canViewServicePrices(currentUser);
+  const showServicePrices = canViewClientServicePart(currentUser, "tarifas");
+  const showContracted = canViewClientServicePart(currentUser, "contratados");
+  const showBilled = canViewClientServicePart(currentUser, "facturados");
   const { showSuccess, showError } = useToast();
 
   const [filter, setFilter] = useState("");
@@ -81,6 +83,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
   const [selectedInvoicesClient, setSelectedInvoicesClient] = useState<Client | null>(null);
   const [selectedServicesClient, setSelectedServicesClient] = useState<Client | null>(null);
   const [servicesModalTab, setServicesModalTab] = useState<"contratados" | "facturados">("contratados");
+  const visibleServicesTab = servicesModalTab === "contratados" && showContracted || !showBilled ? "contratados" : "facturados";
   const [blockedDeleteClient, setBlockedDeleteClient] = useState<{ client: Client; balance: number } | null>(null);
   const [confirmDeleteClient, setConfirmDeleteClient] = useState<Client | null>(null);
   const [confirmDeleteChecked, setConfirmDeleteChecked] = useState(false);
@@ -361,6 +364,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                             setServicesModalTab("contratados");
                           }}
                           className="text-xs text-[#004ac6] hover:text-[#003da6] hover:underline font-semibold inline-flex items-center gap-1 transition cursor-pointer"
+                          disabled={!showContracted && !showBilled}
                           title="Ver servicios contratados y facturados"
                         >
                           Ver servicios
@@ -839,7 +843,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
       )}
 
       {/* Modal Minimalista de Servicios Contratados y Facturados */}
-      {selectedServicesClient && (
+      {selectedServicesClient && (showContracted || showBilled) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
             {/* Header Minimalista */}
@@ -869,11 +873,10 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
 
             {/* Selector de Pestañas Minimalista */}
             <div className="px-5 pt-3 pb-0 flex items-center gap-4 border-b border-slate-100 text-xs">
-              <button
-                type="button"
+              {showContracted && <button type="button"
                 onClick={() => setServicesModalTab("contratados")}
                 className={`pb-2.5 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-                  servicesModalTab === "contratados"
+                  visibleServicesTab === "contratados"
                     ? "border-[#004ac6] text-[#004ac6]"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
@@ -882,12 +885,11 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
                   {clientContractedServices.length}
                 </span>
-              </button>
-              <button
-                type="button"
+              </button>}
+              {showBilled && <button type="button"
                 onClick={() => setServicesModalTab("facturados")}
                 className={`pb-2.5 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-                  servicesModalTab === "facturados"
+                  visibleServicesTab === "facturados"
                     ? "border-[#004ac6] text-[#004ac6]"
                     : "border-transparent text-slate-500 hover:text-slate-800"
                 }`}
@@ -896,12 +898,12 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
                   {clientBilledServices.length}
                 </span>
-              </button>
+              </button>}
             </div>
 
             {/* Contenido con scroll */}
             <div className="p-5 overflow-y-auto flex-1 space-y-3">
-              {servicesModalTab === "contratados" ? (
+              {visibleServicesTab === "contratados" ? (
                 clientContractedServices.length === 0 ? (
                   <div className="py-10 text-center space-y-1">
                     <p className="text-xs font-semibold text-slate-600">
@@ -980,7 +982,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                           <th className="py-2.5 px-3 w-[26%]">Comprobante</th>
                           <th className="py-2.5 px-3 w-[16%]">Fecha / Período</th>
                           <th className="py-2.5 px-3 w-[36%]">Concepto Facturado</th>
-                          <th className="py-2.5 px-3 w-[12%] text-right">Total</th>
+                          {showServicePrices && <th className="py-2.5 px-3 w-[12%] text-right">Total</th>}
                           <th className="py-2.5 px-3 w-[10%] text-center">Estado</th>
                         </tr>
                       </thead>
@@ -996,9 +998,9 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                             <td className="py-2.5 px-3 text-slate-800 truncate max-w-xs" title={b.description}>
                               {b.description}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                            {showServicePrices && <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                               ${b.amount.toFixed(2)}
-                            </td>
+                            </td>}
                             <td className="py-2.5 px-3 text-center">
                               <span
                                 className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${

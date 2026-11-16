@@ -1,4 +1,4 @@
-import { can, canAccessModule, canAccessSubmodule, canUser, canViewFinancialAmounts, type Entity } from "./permissions.ts";
+import { canViewClientServicePart, can, canAccessModule, canAccessSubmodule, canUser, canViewFinancialAmounts, type Entity } from "./permissions.ts";
 import type { UserProfile,UserModulePermissions } from "@/types";
 
 // Canonical physical names and routes for every collection exposed by /api/data.
@@ -30,6 +30,7 @@ export function canReadCollection(user:UserProfile,entity:Entity) {
     billingCreditNotes: "notas_credito", billingDebitNotes: "notas_debito", billingWithholdings: "retenciones", billingRemissionGuides: "guias_remision",
   };
   if(fiscalScreens[entity])return canAccessSubmodule(user,"facturacion",fiscalScreens[entity]!);
+  if(entity==="clientServices"&&!canViewClientServicePart(user,"contratados"))return false;
   let modules:(keyof UserModulePermissions)[];
   if(entity.startsWith("inventory"))modules=["inventarios"];
   else if(["clients","clientServices","plans","clientDocuments","clientContracts","clientProjects","hostingDomains"].includes(entity))modules=["abonados"];

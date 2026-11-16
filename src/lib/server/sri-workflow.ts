@@ -10,10 +10,49 @@ import { fiscalContent, fiscalXml, sriKinds, type FiscalKind, type SriNewDocumen
 import { materialFromStored, signSriXml } from "./sri-signer.ts";
 import { readEmitterSecret, SRI_CONFIG_PATH } from "./sri-secrets.ts";
 import { HttpError } from "./security.ts";
+import { canAccessSubmodule, canUser } from "../permissions.ts";
 
 const cleanRow = (row: RecordData): RecordData => JSON.parse(JSON.stringify(row));
 const leaseMs = 75_000;
 const xmlLimit = 175_000;
+
+export async function deleteTestInvoice(db: Firestore, user: UserProfile, config: SriCompanyConfig, id: string) {
+  if (!canAccessSubmodule(user, "facturacion", "facturas") || !canUser(user, "facturacion", "canCancelInvoices")) throw new HttpError(403, "No tienes permiso para eliminar comprobantes de prueba.");
+  if (config.ambiente !== "1") throw new HttpError(409, "Selecciona el ambiente de pruebas para eliminar este documento.");
+  await db.runTransaction(async tx => {
+    const ref = db.collection("billingInvoices").doc(id), row = (await tx.get(ref)).data();
+    if (!row || row.documentType !== "factura") throw new HttpError(404, "Factura de prueba inexistente.");
+    if (row.ambiente !== "1" || keyOf(row, "factura", config).ambiente !== "1") throw new HttpError(409, "No se permite eliminar una factura de producción.");
+    if (Number(row.fiscalLeaseUntil || 0) > Date.now()) throw new HttpError(409, "Espera a que termine el procesamiento del comprobante.");
+    const storedConfig = (await tx.get(db.doc(SRI_CONFIG_PATH))).data();
+    if (storedConfig?.ambiente !== "1" || storedConfig.ruc !== config.ruc) throw new HttpError(409, "El ambiente cambió. Actualiza la pantalla.");
+    for (const collection of ["billingCreditNotes", "billingDebitNotes", "billingRemissionGuides"]) {
+      if ((await tx.get(db.collection(collection).where("invoiceId", "==", id))).docs.length) throw new HttpError(409, "La factura tiene documentos vinculados; requiere revisión antes de eliminarla.");
+    }
+    const saleRef = row.relatedSaleId ? db.collection("billingInvoices").doc(row.relatedSaleId) : null;
+    const sale = saleRef ? (await tx.get(saleRef)).data() : undefined;
+    const otherId = sale?.sriInvoicesByEnvironment?.["2"];
+    const other = otherId ? (await tx.get(db.collection("billingInvoices").doc(otherId))).data() : undefined;
+    const archiveId = randomUUID(), now = new Date().toISOString();
+    const archive = { ...row, id: archiveId, originalId: id, deletedAt: now, deletedBy: user.uid };
+    const effects: Effect[] = [{ collection: "billingInvoices", id, beforeVersion: row.version ?? null, after: null }, { collection: "sriDeletedTests", id: archiveId, beforeVersion: null, after: archive }];
+    if (saleRef && sale) {
+      const links = { ...sale.sriInvoicesByEnvironment }; delete links["1"];
+      const updated: RecordData = { ...sale, sriInvoicesByEnvironment: links, version: Number(sale.version || 0) + 1, updatedAt: now };
+      if (sale.sriInvoiceId === id) {
+        delete updated.sriInvoiceId; delete updated.sriDocumentNumber;
+        updated.sriStatus = "pendiente";
+        if (other) Object.assign(updated, { sriInvoiceId: otherId, sriDocumentNumber: other.documentNumber, sriStatus: other.estadoSRI === "AUTORIZADO" ? "facturada" : "pendiente" });
+      }
+      tx.set(saleRef, updated);
+      effects.push({ collection: "billingInvoices", id: saleRef.id, beforeVersion: sale.version ?? null, after: updated });
+    }
+    tx.create(db.collection("sriDeletedTests").doc(archiveId), archive);
+    tx.delete(ref);
+    recordOperation(tx, db, user, "SRI_ELIMINAR_PRUEBA", effects);
+  });
+  return { deleted: true, id };
+}
 
 async function signingMaterial(db: Firestore) {
   const secret = await readEmitterSecret(db);

@@ -3,7 +3,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { canAccessSubmodule } from "@/lib/permissions";
+import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
@@ -59,7 +59,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { fiscalStateLabel, findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
-import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
+import { api, downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import type { FiscalKind } from "@/lib/server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
 
@@ -87,6 +87,7 @@ export function BillingManager() {
   const router = useRouter();
   const {
     currentUser,
+    refresh,
     billingInvoices,
     billingQuotes,
     billingCreditNotes,
@@ -802,6 +803,12 @@ export function BillingManager() {
                                   </>
                                 )}
                               </>
+                            )}
+                            {!isNotaVenta && inv.ambiente === "1" && sriCompanyConfig.ambiente === "1" && canUser(currentUser, "facturacion", "canCancelInvoices") && (
+                              <ActionIconButton action="delete" title="Eliminar factura de prueba" onClick={() => showConfirm(
+                                "Eliminar factura de prueba", "Se retirará del listado y se liberará su vínculo de prueba con la nota de venta. Se conserva la auditoría y la numeración consumida. No afecta cobros, inventario ni producción.",
+                                async () => { try { await api(`/api/sri/emitir?id=${encodeURIComponent(inv.id)}`, undefined, "DELETE"); await refresh(); showSuccess("Factura de prueba eliminada", "La nota de venta y los registros de producción se conservaron."); } catch (error: any) { showError("No se pudo eliminar", error.message); } }
+                              )} />
                             )}
                             {isNotaVenta && !inv.sriInvoiceId && inv.status !== "anulada" && (
                               <ActionIconButton action="edit" onClick={() => {

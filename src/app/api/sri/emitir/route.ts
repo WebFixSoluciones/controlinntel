@@ -6,7 +6,7 @@ import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import { CommercialValidationError } from "@/lib/commercial-core";
 import { readSriCompanyConfig } from "@/lib/server/sri-secrets";
 import { sriKinds, sriRequest } from "@/lib/server/sri-documents";
-import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument } from "@/lib/server/sri-workflow";
+import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "@/lib/server/sri-workflow";
 import { sendInvoiceEmail } from "@/lib/server/email-delivery";
 import { fiscalMetadata } from "@/lib/server/sri-metadata";
 import type { SriInvoice } from "@/types";
@@ -81,5 +81,16 @@ export async function POST(request: NextRequest) {
     }
     console.error("Error en flujo SRI", error instanceof Error ? error.name : "unknown");
     return NextResponse.json({ error: "No se pudo completar la operación fiscal. Consulta el comprobante antes de reenviarlo." }, { status: 503, headers });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await actor(request); requirePermission(user, "manage_finance");
+    const id = z.string().regex(/^[\w-]{1,150}$/).parse(request.nextUrl.searchParams.get("id"));
+    const { db } = adminServices();
+    return NextResponse.json(await deleteTestInvoice(db, user, await readSriCompanyConfig(db), id), { headers });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof HttpError ? error.message : "No se pudo eliminar la factura de prueba." }, { status: error instanceof HttpError ? error.status : error instanceof ZodError ? 400 : 503, headers });
   }
 }

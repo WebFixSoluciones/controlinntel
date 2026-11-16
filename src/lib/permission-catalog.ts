@@ -24,6 +24,7 @@ complete.tickets!.actions={...complete.tickets!.actions,canCreateTicket:true,can
 complete.proyectos!.actions={canCreateProject:true,canEditProject:true,canDeleteProject:true,canManageClientTasks:true};
 complete.arcotel!.actions={canManageRegulatoryData:true,canManageRegulatoryFiles:true};
 complete.configuracion!.actions={canEditGeneralSettings:true,canEditSriSettings:true};
+complete.abonados!.submodules={...complete.abonados!.submodules,servicios_contratados:true,servicios_facturados:true,servicios_tarifas:true};
 const catalogMatrix:UserModulePermissions=complete;
 export function flattenPermissions(value:unknown,prefix=""):Record<string,boolean>{
  const result:Record<string,boolean>={};if(!value||typeof value!=="object"||Array.isArray(value))return result;
@@ -40,6 +41,10 @@ export function setPermission(value:UserModulePermissions,path:string,enabled:bo
 }
 export function completePermissions(value:UserModulePermissions={},overrides:Record<string,boolean>={}):UserModulePermissions{
  const result:UserModulePermissions={};const incoming={...flattenPermissions(value),...overrides};
+ for(const part of ["contratados","facturados","tarifas"]) {
+  const path="abonados.submodules.servicios_"+part;
+  if(!(path in incoming))incoming[path]=incoming["abonados.enabled"]===true&&incoming["abonados.submodules.contratos"]===true&&(part!=="tarifas"||incoming["visibility.canViewServicePrices"]===true);
+ }
  for(const path of permissionPaths){const parts=path.split(".");let node=result as Record<string,any>;for(const part of parts.slice(0,-1)){node[part]??={};node=node[part];}node[parts.at(-1)!]=reservedPermissionPaths.has(path)?false:incoming[path]===true;}
  if(result.clientes)result.clientes.enabled=result.abonados?.enabled===true;
  return result;
@@ -48,7 +53,9 @@ export function permissionSections():PermissionSection[]{
  const sections:PermissionSection[]=[{key:"visibility",label:"Visibilidad de datos",items:Object.keys(catalogMatrix.visibility!).map(key=>({path:"visibility."+key,label:labels[key]}))}];
  for(const[key,label]of Object.entries(moduleLabels)){
   const value=(catalogMatrix as any)[key],items:PermissionItem[]=[{path:key+".enabled",label:"Acceder a "+label}];
-  for(const sub of Object.keys(value?.submodules||{}))items.push({path:key+".submodules."+sub,label:subLabels[sub]||sub,reserved:reservedPermissionPaths.has(key+".submodules."+sub)});
+  const subs=Object.keys(value?.submodules||{});
+  const orderedSubs=key==="abonados"?subs.filter(sub=>!sub.startsWith("servicios_")).flatMap(sub=>sub==="contratos"?[sub,...subs.filter(child=>child.startsWith("servicios_"))]:[sub]):subs;
+  for(const sub of orderedSubs)items.push({path:key+".submodules."+sub,label:sub==="servicios_contratados"?"Servicios · Ver tabla de contratados":sub==="servicios_facturados"?"Servicios · Ver tabla de facturados":sub==="servicios_tarifas"?"Servicios · Ver columna de tarifas":subLabels[sub]||sub,reserved:reservedPermissionPaths.has(key+".submodules."+sub)});
   const actions=key==="ventas"?catalogMatrix.ventas?.actions||catalogMatrix.facturacion!.actions:value?.actions;
   for(const action of Object.keys(actions||{})){if(key==="ventas"&&action==="canAuthorizeSri")continue;items.push({path:key+".actions."+action,label:key==="ventas"&&action==="canCreateClient"?"Crear clientes desde Ventas":labels[action]||action});}
   if(key==="abonados")for(const action of Object.keys(catalogMatrix.clientes!.actions!))items.push({path:"clientes.actions."+action,label:labels[action]||action});

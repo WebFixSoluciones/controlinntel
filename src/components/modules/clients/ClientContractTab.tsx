@@ -16,7 +16,7 @@ import {
   ServicePaymentMethod,
 } from "@/types";
 import { InventoryProduct } from "@/types/inventory";
-import { canAccessRoute, canAccessSubmodule, canUser, canViewServicePrices } from "@/lib/permissions";
+import { canAccessRoute, canAccessSubmodule, canUser, canViewClientServicePart } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
@@ -95,7 +95,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     deleteClientService,
     renewClientService,
   } = useApp();
-  const showPrices = canViewServicePrices(currentUser);
+  const showPrices = canViewClientServicePart(currentUser, "tarifas");
   const canAssign = showPrices && canUser(currentUser, "clientes", "canEditClient");
   const canEditPrices = canAssign && canUser(currentUser, "clientes", "canEditServicePrices");
   const { showError, showSuccess, showConfirm } = useToast();
@@ -184,6 +184,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -833,6 +834,8 @@ export function ClientContractTab({ client }: { client: Client }) {
       showError("Error", "No se pudo renovar el servicio.");
     }
   };
+
+  if (!canViewClientServicePart(currentUser, "contratados")) return <p className="p-4 text-sm text-slate-500">No tienes permiso para ver la tabla de servicios contratados.</p>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">

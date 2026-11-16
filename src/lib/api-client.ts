@@ -2,11 +2,11 @@ import { auth } from "./firebase";
 import { ApiError } from "./api-error";
 import { descargarXmlArchivo } from "./sri-service";
 import type { FiscalKind } from "./server/sri-documents";
-export async function api<T = unknown>(path: string, body?: unknown): Promise<T> {
+export async function api<T = unknown>(path: string, body?: unknown, method?: "DELETE"): Promise<T> {
   const user = auth.currentUser;
   if (!user) throw new Error("Inicia sesión para continuar.");
   const response = await fetch(path, {
-    method: body === undefined ? "GET" : "POST",
+    method: method || (body === undefined ? "GET" : "POST"),
     cache: "no-store",
     headers: { "Authorization": "Bearer " + await user.getIdToken(), "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),

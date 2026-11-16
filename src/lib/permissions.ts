@@ -67,6 +67,14 @@ export function canViewServicePrices(user: UserProfile | undefined | null): bool
     || (user.modulePermissions?.visibility?.canViewServicePrices ?? (user.permissionModelVersion !== 2 && user.role !== "tecnico")));
 }
 
+export function canViewClientServicePart(user: UserProfile | undefined | null, part: "contratados" | "facturados" | "tarifas"): boolean {
+  if (!user || user.status !== "activo") return false;
+  if (user.role === "superadmin") return true;
+  if (!canAccessSubmodule(user, "abonados", "contratos")) return false;
+  const allowed = user.modulePermissions?.abonados?.submodules?.[`servicios_${part}`] ?? true;
+  return allowed && (part === "tarifas" ? canViewServicePrices(user) : part === "facturados" ? canViewFinancialAmounts(user) : true);
+}
+
 export function canViewFinancialAmounts(user: UserProfile | undefined | null): boolean {
   return user?.status === "activo" && (user.role === "superadmin"
     || (user.modulePermissions?.visibility?.canViewFinancialAmounts ?? (user.permissionModelVersion !== 2 && user.role !== "tecnico")));
@@ -578,8 +586,8 @@ export function editableModulePermissions(user: UserProfile): UserModulePermissi
     canViewProductPrices: canViewProductPrices(user), canViewFinancialAmounts: canViewFinancialAmounts(user),
   };
   if (result.abonados) result.abonados.submodules = Object.fromEntries(
-    ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier"]
-      .map(key => [key, user.modulePermissions?.abonados?.submodules?.[key] ?? user.permissionModelVersion !== 2])
+    ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier", "servicios_contratados", "servicios_facturados", "servicios_tarifas"]
+      .map(key => [key, user.modulePermissions?.abonados?.submodules?.[key] ?? (key.startsWith("servicios_") ? canAccessSubmodule(user, "abonados", "contratos") && (key !== "servicios_tarifas" || canViewServicePrices(user)) : user.permissionModelVersion !== 2)])
   );
   if (result.clientes) result.clientes.enabled = result.abonados?.enabled === true;
   if (result.tickets) result.tickets.actions = { ...result.tickets.actions, canManageDepartments: canManageTicketDepartments(user) };

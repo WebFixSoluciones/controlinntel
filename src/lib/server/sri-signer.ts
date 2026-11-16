@@ -84,10 +84,14 @@ function escapeXmlText(value: string): string {
 }
 
 /** DN en formato RFC 2253 (orden invertido al del certificado). */
-function issuerRfc2253(cert: forge.pki.Certificate): string {
+export function issuerRfc2253(cert: forge.pki.Certificate): string {
   const attributes = (cert.issuer?.attributes || []).slice().reverse();
   return attributes
-    .map((attr: any) => `${attr.shortName || attr.name}=${escapeDnValue(String(attr.value ?? ""))}`)
+    .map((attr: any) => {
+      if (attr.shortName || attr.name) return `${attr.shortName || attr.name}=${escapeDnValue(String(attr.value ?? ""))}`;
+      const value = forge.asn1.create(forge.asn1.Class.UNIVERSAL, attr.valueTagClass || forge.asn1.Type.UTF8, false, forge.util.encodeUtf8(String(attr.value ?? "")));
+      return `${attr.type}=#${forge.util.bytesToHex(forge.asn1.toDer(value).getBytes())}`;
+    })
     .join(",");
 }
 
@@ -309,7 +313,7 @@ export function signSriXml(xml: string, material: SriSigningMaterial): SriSigned
     `<ds:DigestMethod Algorithm="${SHA1_ALGORITHM}"/>`,
     `<ds:DigestValue>${digestComprobante}</ds:DigestValue>`,
     `</ds:Reference>`,
-    `<ds:Reference Id="Reference-ID-2" URI="#${SIGNED_PROPERTIES_ID}">`,
+    `<ds:Reference Id="Reference-ID-2" URI="#${SIGNED_PROPERTIES_ID}" Type="http://uri.etsi.org/01903#SignedProperties">`,
     `<ds:Transforms>`,
     `<ds:Transform Algorithm="${C14N_ALGORITHM}"/>`,
     `</ds:Transforms>`,

@@ -3,14 +3,16 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import forge from "node-forge";
+import { SignedXml } from "xml-crypto";
+import { DOMParser } from "@xmldom/xmldom";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 import { getEcuadorDate } from "../date-utils.ts";
 import { DEFAULT_INNTEL_SRI_CONFIG, generarClaveAccesoSRI } from "../sri-service.ts";
 import { autorizacionComprobante } from "./sri-client.ts";
 import { sriRequest, type FiscalKind, type SriNewDocument } from "./sri-documents.ts";
-import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument } from "./sri-workflow.ts";
-import { parsePkcs12 } from "./sri-signer.ts";
+import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "./sri-workflow.ts";
+import { parsePkcs12, issuerRfc2253 } from "./sri-signer.ts";
 import { initializeVaultKey, seal } from "./vault.ts";
 
 type Row = Record<string, any>;
@@ -40,6 +42,7 @@ class FiscalDatabase {
     this.tail = new Promise(resolve => { release = resolve; });
     await previous;
     const changes = new Map<string, Row>();
+    const deleted = new Set<string>();
     const set = (ref: Ref, value: Row) => changes.set(ref.path, structuredClone(value));
     const tx = {
       get: async (ref: Ref | ReturnType<FiscalDatabase["collection"]>) => "path" in ref ? this.snap(ref.path) : ({
@@ -50,6 +53,7 @@ class FiscalDatabase {
         })).map(([path]) => this.snap(path)),
       }),
       set,
+      delete: (ref: Ref) => deleted.add(ref.path),
       create: (ref: Ref, row: Row) => { assert.ok(!this.rows.has(ref.path)); set(ref, row); },
       update: (ref: Ref, patch: Row) => set(ref, { ...this.read(ref.path), ...patch }),
     };
@@ -57,6 +61,7 @@ class FiscalDatabase {
       const result = await work(tx);
       if (this.failNextCommit) { this.failNextCommit = false; throw new Error("Fallo de escritura inyectado"); }
       changes.forEach((row, path) => this.rows.set(path, row));
+      deleted.forEach(path => this.rows.delete(path));
       return result;
     } finally {
       release();
@@ -179,6 +184,7 @@ test("keeps test and production reservations separate for the same commercial sa
   storage.rows.set("sriCompanyConfig/sri-config-inntel", productionConfig);
   const live = await reserveFiscalDocument(db, user, productionConfig, { kind: "factura", saleId: "sale-qa" });
   assert.notEqual(live.id, trial.id);
+  assert.equal(storage.read(live.path)!.documentNumber, storage.read(trial.path)!.documentNumber, "El mismo número se admite en ambientes diferentes");
   assert.notEqual(storage.read(live.path)!.claveAcceso, storage.read(trial.path)!.claveAcceso);
   assert.deepEqual(storage.read("billingInvoices/sale-qa")!.sriInvoicesByEnvironment, { "1": trial.id, "2": live.id });
 });
@@ -246,4 +252,50 @@ test("creates the five fiscal document types from source data and caps credit qu
     mkdirSync(exportPath, { recursive: true });
     for (const [kind, document] of samples) writeFileSync(join(exportPath, kind + ".xml"), storage.read(document.path)!.xmlFirmado);
   }
+});
+
+test("eliminar una factura de prueba archiva auditoría, libera la nota y conserva secuencias y producción", async () => {
+  const { storage, db, reserve } = await setup();
+  const ref = await reserve({ kind: "factura", saleId: "sale-qa" });
+  const original = storage.read(ref.path)!;
+  assert.match(original.xmlFirmado, /Type="http:\/\/uri.etsi.org\/01903#SignedProperties"/);
+  const productionConfig = { ...config, ambiente: "2" as const };
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", productionConfig);
+  const live = await reserveFiscalDocument(db, user, productionConfig, { kind: "factura", saleId: "sale-qa" });
+  const liveBefore = storage.read(live.path);
+  const signature = new DOMParser().parseFromString(original.xmlFirmado, "text/xml").getElementsByTagNameNS("http://www.w3.org/2000/09/xmldsig#", "Signature")[0];
+  const verifier = new SignedXml({ publicCert: parsePkcs12(fixture.pkcs12Base64, password).certificatePem });
+  verifier.loadSignature(signature);
+  assert.equal(verifier.checkSignature(original.xmlFirmado), true, "Un verificador independiente valida firma y referencias");
+  await assert.rejects(deleteTestInvoice(db, user, productionConfig, ref.id), { status: 409 });
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", config);
+  await assert.rejects(deleteTestInvoice(db, user, config, live.id), { status: 409 });
+  await assert.rejects(deleteTestInvoice(db, { ...user, role: "consulta", permissions: [] }, config, ref.id), { status: 403 });
+  storage.rows.get(ref.path)!.fiscalLeaseUntil = Date.now() + 10000;
+  await assert.rejects(deleteTestInvoice(db, user, config, ref.id), { status: 409 });
+  storage.rows.get(ref.path)!.fiscalLeaseUntil = 0;
+  storage.rows.set("billingCreditNotes/linked", { invoiceId: ref.id });
+  await assert.rejects(deleteTestInvoice(db, user, config, ref.id), { status: 409 });
+  storage.rows.delete("billingCreditNotes/linked");
+  await deleteTestInvoice(db, user, config, ref.id);
+  assert.equal(storage.read(ref.path), undefined);
+  assert.deepEqual(storage.read(live.path), liveBefore);
+  assert.deepEqual(storage.read("billingInvoices/sale-qa")!.sriInvoicesByEnvironment, { "2": live.id });
+  assert.ok([...storage.rows.keys()].some(key => key.startsWith("sriDeletedTests/")));
+  const regenerated = await reserve({ kind: "factura", saleId: "sale-qa" });
+  assert.notEqual(storage.read(regenerated.path)!.documentNumber, original.documentNumber, "No se recicla el secuencial eliminado");
+});
+
+test("SOAP respeta soapAction vacío del WSDL oficial y DN admite OID de UANATACA", async t => {
+  const key = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: config.ruc, ambiente: "1", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "12345678" });
+  t.mock.method(globalThis, "fetch", async (_url: string, options: any) => {
+    assert.equal(options.headers.SOAPAction, '\"\"');
+    return resultXml(key);
+  });
+  assert.equal((await autorizacionComprobante(key, "1")).sinRegistro, true);
+  const cert = forge.pki.createCertificate();
+  cert.setIssuer([{ type: "2.5.4.97", value: "VATES-A66721499" }, { name: "commonName", value: "CA QA" }]);
+  const dn = issuerRfc2253(cert);
+  assert.ok(!dn.includes("undefined"));
+  assert.match(dn, /2\.5\.4\.97=#0c/);
 });

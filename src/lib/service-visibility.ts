@@ -1,5 +1,5 @@
 import type { UserProfile } from "@/types";
-import { canUser, canViewServicePrices, canViewProductPrices, canViewFinancialAmounts } from "./permissions.ts";
+import { canUser, canViewClientServicePart, canViewServicePrices, canViewProductPrices, canViewFinancialAmounts } from "./permissions.ts";
 
 type Row = Record<string, unknown>;
 
@@ -26,6 +26,7 @@ export function visibleServiceData(user: UserProfile, collection: string, row: R
     if (collection === "projects" || collection === "clientProjects") hidden = ["estimatedBudget", "executedCost"];
   }
   if (collection === "inventoryProducts" && row.type !== "servicio" && !canViewProductPrices(user)) hidden = [...hidden, "salePrice", "salePriceConIva", "ivaRate"];
+  if (collection === "clientServices" && !canViewClientServicePart(user, "tarifas")) hidden = [...hidden, ...servicePriceFields.clientServices];
   if (!canViewServicePrices(user)) {
     if (collection === "clientServices") hidden = servicePriceFields.clientServices;
     if (collection === "plans") hidden = servicePriceFields.plans;
