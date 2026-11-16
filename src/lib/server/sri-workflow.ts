@@ -7,7 +7,7 @@ import type { RecordData } from "../commercial-core.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
 import { autorizacionComprobante, enviarComprobante, sriSignatureValue, type SriAutorizacionResult } from "./sri-client.ts";
 import { fiscalContent, fiscalXml, sriKinds, type FiscalKind, type SriNewDocument } from "./sri-documents.ts";
-import { materialFromStored, signSriXml } from "./sri-signer.ts";
+import { materialFromStored, signSriXml, verifySriSignedXml } from "./sri-signer.ts";
 import { readEmitterSecret, SRI_CONFIG_PATH } from "./sri-secrets.ts";
 import { HttpError } from "./security.ts";
 import { canAccessSubmodule, canUser } from "../permissions.ts";
@@ -72,7 +72,7 @@ function signDocument(kind: FiscalKind, document: RecordData, config: SriCompany
   const fiscalIssuer = {
     ruc: config.ruc, razonSocial: config.razonSocial, nombreComercial: config.nombreComercial,
     direccionMatriz: config.direccionMatriz, direccionEstablecimiento: config.direccionEstablecimiento,
-    obligadoContabilidad: config.obligadoContabilidad, resolucionAgenteRetencion: config.resolucionAgenteRetencion,
+    obligadoContabilidad: config.obligadoContabilidad, tipoContribuyente: config.tipoContribuyente, resolucionAgenteRetencion: config.resolucionAgenteRetencion,
     contribuyenteEspecial: config.contribuyenteEspecial, rucProveedorFacturacion: config.rucProveedorFacturacion,
   };
   return cleanRow({ xmlFirmado: signed.xml, fiscalIssuer,
@@ -270,7 +270,7 @@ export async function processFiscalDocument(
   const authorizedXml = authorization?.estado === "AUTORIZADO" ? authorization.comprobanteXml : undefined;
   const returnedSignature = authorizedXml ? sriSignatureValue(authorizedXml) : "";
   const verified = Boolean(authorizedXml && Buffer.byteLength(authorizedXml) <= xmlLimit && returnedSignature
-    && (row.fiscalWorkflowVersion !== 1 || returnedSignature === sriSignatureValue(row.xmlFirmado)));
+    && row.fiscalWorkflowVersion === 1 && verifySriSignedXml(authorizedXml!, row.xmlFirmado));
   const xmlAutorizado = verified && authorization ? `<?xml version="1.0" encoding="UTF-8"?>
 <autorizacion><estado>AUTORIZADO</estado><numeroAutorizacion>${escaparXml(authorization.numeroAutorizacion)}</numeroAutorizacion><fechaAutorizacion>${escaparXml(authorization.fechaAutorizacion)}</fechaAutorizacion><ambiente>${escaparXml(authorization.ambiente)}</ambiente><comprobante><![CDATA[${authorizedXml!.replaceAll("]]>", "]]]]><![CDATA[>")}]]></comprobante><mensajes/></autorizacion>` : undefined;
   const reported = emission?.estado || authorization?.estado || "ERROR_CONEXION";
@@ -299,6 +299,8 @@ export async function processFiscalDocument(
         || (state === "DEVUELTA" && authorization?.sinRegistro === true)),
       xmlAutorizado: xmlAutorizado || null, numeroAutorizacion: verified ? authorization?.numeroAutorizacion : null,
       authorizationDate: verified ? authorization?.fechaAutorizacion : null,
+      ...(verified && ambiente === "2" && ["nota_credito", "nota_debito", "retencion"].includes(kind)
+        ? { commercialReconciliationStatus: current.commercialReconciliationStatus || "pendiente" } : {}),
     });
     const effects: Effect[] = [{ collection: sriKinds[kind].collection as string, id: ref.id, beforeVersion: current.version ?? null, after: updated }];
     tx.set(ref, updated);

@@ -56,6 +56,7 @@ import {
   X,
   Trash2,
   Edit2,
+  Mail,
   FileCheck2,
 } from "lucide-react";
 import { fiscalStateLabel, findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
@@ -63,14 +64,17 @@ import { api, downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import type { FiscalKind } from "@/lib/server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
 
-function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { status?: string } }) {
+function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { status?: string; emailStatus?: string; commercialReconciliationStatus?: string } }) {
   const color = isFiscalAuthorized(doc)
     ? doc.ambiente === "1" ? "bg-sky-50 text-sky-800 border-sky-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"
     : doc.estadoSRI === "DEVUELTA" || doc.estadoSRI === "NO AUTORIZADO"
       ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-amber-50 text-amber-800 border-amber-200";
-  return <span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-semibold ${color}`}>
+  return <><span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-semibold ${color}`}>
     {fiscalStateLabel(doc)}{doc.ambiente === "1" && " · PRUEBAS"}
-  </span>;
+  </span>
+    {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="mt-1 block text-[10px] text-slate-500">Correo: {({enviado:"confirmado",enviando:"en curso",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
+    {doc.commercialReconciliationStatus === "pendiente" && <span className="mt-1 block text-[10px] font-semibold text-amber-700">Requiere conciliación de cartera</span>}
+  </>;
 }
 
 type BillingTab =
@@ -809,6 +813,12 @@ export function BillingManager() {
                                 "Eliminar factura de prueba", "Se retirará del listado y se liberará su vínculo de prueba con la nota de venta. Se conserva la auditoría y la numeración consumida. No afecta cobros, inventario ni producción.",
                                 async () => { try { await api(`/api/sri/emitir?id=${encodeURIComponent(inv.id)}`, undefined, "DELETE"); await refresh(); showSuccess("Factura de prueba eliminada", "La nota de venta y los registros de producción se conservaron."); } catch (error: any) { showError("No se pudo eliminar", error.message); } }
                               )} />
+                            )}
+                            {!isNotaVenta && inv.ambiente === "2" && isFiscalAuthorized(inv) && canUser(currentUser, "facturacion", "canAuthorizeSri") && (
+                              <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Estado y envío de correo SRI" onClick={() => showConfirm("Correo de la factura", "Enviar XML autorizado y RIDE al destinatario de la factura. Si el envío ya fue confirmado, no se duplica. Si quedó sin confirmación, comprueba primero tu proveedor: repetirlo podría duplicar el correo.", async () => {
+                                try { const result = await api<{email:{sent:boolean;error?:string;skippedReason?:string}}>("/api/sri/emitir", { action: "reenviar_correo", id: inv.id, confirmUncertain: true }); await refresh(); if (result.email.sent) showSuccess("Correo confirmado", result.email.skippedReason || "XML y RIDE aceptados por el proveedor de correo."); else showWarning("Correo pendiente", result.email.error || result.email.skippedReason || "Revisa la configuración SMTP."); }
+                                catch (error: any) { showError("No se pudo enviar", error.message); }
+                              })}><Mail className="size-4" /></button>
                             )}
                             {isNotaVenta && !inv.sriInvoiceId && inv.status !== "anulada" && (
                               <ActionIconButton action="edit" onClick={() => {

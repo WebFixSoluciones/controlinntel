@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import forge from "node-forge";
 import { DOMParser, XMLSerializer } from "@xmldom/xmldom";
-import { C14nCanonicalization } from "xml-crypto";
+import { C14nCanonicalization, SignedXml } from "xml-crypto";
 
 /**
  * Firma electrónica XAdES-BES para comprobantes del SRI (Ecuador).
@@ -27,6 +27,24 @@ const SIGNATURE_ID = "Signature-inntel";
 const SIGNED_PROPERTIES_ID = "SignedProperties-inntel";
 const KEY_INFO_ID = "KeyInfo-inntel";
 const OBJECT_ID = "Object-inntel";
+
+/** Verify the returned bytes with the original certificate, never a replacement KeyInfo. */
+export function verifySriSignedXml(returned: string, original: string): boolean {
+  try {
+    if ([returned, original].some(xml => !xml || Buffer.byteLength(xml) > 175_000 || /<!DOCTYPE|<!ENTITY/i.test(xml))) return false;
+    const source = parseElement(original), target = parseElement(returned);
+    if (source.localName !== target.localName || target.getAttribute("id") !== "comprobante") return false;
+    const certificates = source.getElementsByTagNameNS(DS_NS, "X509Certificate");
+    const signatures = target.getElementsByTagNameNS(DS_NS, "Signature");
+    if (certificates.length !== 1 || signatures.length !== 1 || signatures[0].parentNode !== target) return false;
+    const expected = source.getElementsByTagNameNS(DS_NS, "SignatureValue")[0]?.textContent?.replace(/\s/g, "");
+    if (!expected || signatures[0].getElementsByTagNameNS(DS_NS, "SignatureValue")[0]?.textContent?.replace(/\s/g, "") !== expected) return false;
+    const base64 = certificates[0].textContent?.replace(/\s/g, "");
+    const verifier = new SignedXml({ publicCert: `-----BEGIN CERTIFICATE-----\n${base64}\n-----END CERTIFICATE-----`, getCertFromKeyInfo: () => null });
+    verifier.loadSignature(signatures[0]);
+    return verifier.checkSignature(returned);
+  } catch { return false; }
+}
 
 export interface SriCertificateSummary {
   subject: string;

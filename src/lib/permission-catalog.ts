@@ -24,7 +24,7 @@ complete.tickets!.actions={...complete.tickets!.actions,canCreateTicket:true,can
 complete.proyectos!.actions={canCreateProject:true,canEditProject:true,canDeleteProject:true,canManageClientTasks:true};
 complete.arcotel!.actions={canManageRegulatoryData:true,canManageRegulatoryFiles:true};
 complete.configuracion!.actions={canEditGeneralSettings:true,canEditSriSettings:true};
-complete.abonados!.submodules={...complete.abonados!.submodules,servicios_contratados:true,servicios_facturados:true,servicios_tarifas:true};
+complete.abonados!.submodules={...complete.abonados!.submodules,servicios_contratados:true,servicios_facturados:true,servicios_tarifas:true,historial_ventas:true};
 const catalogMatrix:UserModulePermissions=complete;
 export function flattenPermissions(value:unknown,prefix=""):Record<string,boolean>{
  const result:Record<string,boolean>={};if(!value||typeof value!=="object"||Array.isArray(value))return result;
@@ -41,6 +41,7 @@ export function setPermission(value:UserModulePermissions,path:string,enabled:bo
 }
 export function completePermissions(value:UserModulePermissions={},overrides:Record<string,boolean>={}):UserModulePermissions{
  const result:UserModulePermissions={};const incoming={...flattenPermissions(value),...overrides};
+ if(!("abonados.submodules.historial_ventas" in incoming))incoming["abonados.submodules.historial_ventas"]=incoming["abonados.enabled"]===true&&incoming["abonados.submodules.facturacion"]===true&&incoming["visibility.canViewFinancialAmounts"]===true;
  for(const part of ["contratados","facturados","tarifas"]) {
   const path="abonados.submodules.servicios_"+part;
   if(!(path in incoming))incoming[path]=incoming["abonados.enabled"]===true&&incoming["abonados.submodules.contratos"]===true&&(part!=="tarifas"||incoming["visibility.canViewServicePrices"]===true);
@@ -55,7 +56,7 @@ export function permissionSections():PermissionSection[]{
   const value=(catalogMatrix as any)[key],items:PermissionItem[]=[{path:key+".enabled",label:"Acceder a "+label}];
   const subs=Object.keys(value?.submodules||{});
   const orderedSubs=key==="abonados"?subs.filter(sub=>!sub.startsWith("servicios_")).flatMap(sub=>sub==="contratos"?[sub,...subs.filter(child=>child.startsWith("servicios_"))]:[sub]):subs;
-  for(const sub of orderedSubs)items.push({path:key+".submodules."+sub,label:sub==="servicios_contratados"?"Servicios · Ver tabla de contratados":sub==="servicios_facturados"?"Servicios · Ver tabla de facturados":sub==="servicios_tarifas"?"Servicios · Ver columna de tarifas":subLabels[sub]||sub,reserved:reservedPermissionPaths.has(key+".submodules."+sub)});
+  for(const sub of orderedSubs)items.push({path:key+".submodules."+sub,label:sub==="historial_ventas"?"Historial de ventas del cliente":sub==="servicios_contratados"?"Servicios · Ver tabla de contratados":sub==="servicios_facturados"?"Servicios · Ver tabla de facturados":sub==="servicios_tarifas"?"Servicios · Ver columna de tarifas":subLabels[sub]||sub,reserved:reservedPermissionPaths.has(key+".submodules."+sub)});
   const actions=key==="ventas"?catalogMatrix.ventas?.actions||catalogMatrix.facturacion!.actions:value?.actions;
   for(const action of Object.keys(actions||{})){if(key==="ventas"&&action==="canAuthorizeSri")continue;items.push({path:key+".actions."+action,label:key==="ventas"&&action==="canCreateClient"?"Crear clientes desde Ventas":labels[action]||action});}
   if(key==="abonados")for(const action of Object.keys(catalogMatrix.clientes!.actions!))items.push({path:"clientes.actions."+action,label:labels[action]||action});

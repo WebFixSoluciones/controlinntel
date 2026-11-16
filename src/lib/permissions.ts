@@ -75,6 +75,11 @@ export function canViewClientServicePart(user: UserProfile | undefined | null, p
   return allowed && (part === "tarifas" ? canViewServicePrices(user) : part === "facturados" ? canViewFinancialAmounts(user) : true);
 }
 
+export function canViewClientSalesHistory(user: UserProfile | undefined | null): boolean {
+  return !!user && user.status === "activo" && (user.role === "superadmin" || canAccessModule(user, "abonados") && canViewFinancialAmounts(user)
+    && (user.modulePermissions?.abonados?.submodules?.historial_ventas ?? canAccessSubmodule(user, "abonados", "facturacion")));
+}
+
 export function canViewFinancialAmounts(user: UserProfile | undefined | null): boolean {
   return user?.status === "activo" && (user.role === "superadmin"
     || (user.modulePermissions?.visibility?.canViewFinancialAmounts ?? (user.permissionModelVersion !== 2 && user.role !== "tecnico")));
@@ -456,7 +461,7 @@ export function canAccessSubmodule(
   // Directorio is the entry to the client's permitted tabs, not a separate
   // permission. Legacy navigation used an absent "listado" checkbox.
   if (moduleKey === "abonados" && submoduleKey === "listado") {
-    return ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier"]
+    return ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier", "historial_ventas"]
       .some(tab => canAccessSubmodule(user, "abonados", tab));
   }
 
@@ -586,8 +591,8 @@ export function editableModulePermissions(user: UserProfile): UserModulePermissi
     canViewProductPrices: canViewProductPrices(user), canViewFinancialAmounts: canViewFinancialAmounts(user),
   };
   if (result.abonados) result.abonados.submodules = Object.fromEntries(
-    ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier", "servicios_contratados", "servicios_facturados", "servicios_tarifas"]
-      .map(key => [key, user.modulePermissions?.abonados?.submodules?.[key] ?? (key.startsWith("servicios_") ? canAccessSubmodule(user, "abonados", "contratos") && (key !== "servicios_tarifas" || canViewServicePrices(user)) : user.permissionModelVersion !== 2)])
+    ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier", "servicios_contratados", "servicios_facturados", "servicios_tarifas", "historial_ventas"]
+      .map(key => [key, user.modulePermissions?.abonados?.submodules?.[key] ?? (key === "historial_ventas" ? canViewClientSalesHistory(user) : key.startsWith("servicios_") ? canAccessSubmodule(user, "abonados", "contratos") && (key !== "servicios_tarifas" || canViewServicePrices(user)) : user.permissionModelVersion !== 2)])
   );
   if (result.clientes) result.clientes.enabled = result.abonados?.enabled === true;
   if (result.tickets) result.tickets.actions = { ...result.tickets.actions, canManageDepartments: canManageTicketDepartments(user) };

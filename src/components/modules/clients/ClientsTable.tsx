@@ -1,8 +1,10 @@
 "use client";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
-import React, { useState, useMemo, useCallback } from "react";
-import { canViewClientServicePart } from "@/lib/permissions";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { canViewClientServicePart, canViewClientSalesHistory } from "@/lib/permissions";
+import { api } from "@/lib/api-client";
+import { clientSalesHistory } from "@/lib/client-sales-history";
 import { useApp } from "@/lib/state";
 import { matchesClientStatus, clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
@@ -36,6 +38,7 @@ interface ClientsTableProps {
 
 export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
   const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
+  const canHistory = canViewClientSalesHistory(currentUser);
   const showServicePrices = canViewClientServicePart(currentUser, "tarifas");
   const showContracted = canViewClientServicePart(currentUser, "contratados");
   const showBilled = canViewClientServicePart(currentUser, "facturados");
@@ -95,42 +98,13 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
     return clientServices.filter((s) => s.clientId === selectedServicesClient.id);
   }, [selectedServicesClient, clientServices]);
 
-  // Servicios facturados (cobros mensuales y facturas) del cliente seleccionado
+  // One commercial operation may have a note, a fiscal document and a receivable.
   const clientBilledServices = useMemo(() => {
     if (!selectedServicesClient) return [];
-    const charges = monthlyCharges
-      .filter(
-        (ch) =>
-          ch.clientId === selectedServicesClient.id ||
-          ch.clientRuc === selectedServicesClient.identificationNumber
-      )
-      .map((ch) => ({
-        id: ch.id,
-        source: "charge" as const,
-        docNumber: ch.invoiceNumber,
-        date: ch.month && ch.year ? `${String(ch.month).padStart(2, "0")}/${ch.year}` : ch.saleDate || "-",
-        description: ch.serviceDescription || "Servicio mensual",
-        amount: ch.total,
-        status: ch.status,
-      }));
-
-    const invoices = billingInvoices
-      .filter(
-        (inv) =>
-          inv.clientId === selectedServicesClient.id ||
-          inv.clientRuc === selectedServicesClient.identificationNumber
-      )
-      .map((inv) => ({
-        id: inv.id,
-        source: "invoice" as const,
-        docNumber: inv.documentNumber,
-        date: inv.date,
-        description: inv.items.map((it) => `${it.quantity}x ${it.name}`).join(", ") || "Comprobante comercial",
-        amount: inv.total,
-        status: inv.status,
-      }));
-
-    return [...charges, ...invoices];
+    const matches = (row: { clientId?: string; clientRuc?: string }) => row.clientId === selectedServicesClient.id || row.clientRuc === selectedServicesClient.identificationNumber;
+    return clientSalesHistory(billingInvoices.filter(matches), monthlyCharges.filter(matches)).rows.filter(row => !row.isTest).map(row => ({
+      id: row.id, docNumber: row.documentNumber, date: row.date, description: row.description, amount: row.total, status: row.status,
+    }));
   }, [selectedServicesClient, monthlyCharges, billingInvoices]);
 
   // Helper: calculate pending balance for any client
@@ -182,27 +156,40 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
   const startIndex = filtered.length === 0 ? 0 : (safeCurrentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(safeCurrentPage * itemsPerPage, filtered.length);
 
-  // Invoices for selected modal client
-  const clientInvoices = useMemo(() => {
-    if (!selectedInvoicesClient) return [];
-    const targetCleanId = limpiarIdentificacion(selectedInvoicesClient.identificationNumber);
-    return billingInvoices.filter(
-      (inv) =>
-        inv.clientId === selectedInvoicesClient.id ||
-        (inv.clientRuc && limpiarIdentificacion(inv.clientRuc) === targetCleanId)
-    );
-  }, [selectedInvoicesClient, billingInvoices]);
-
-  const clientCharges = useMemo(() => {
-    if (!selectedInvoicesClient) return [];
-    return monthlyCharges.filter((c) => c.clientId === selectedInvoicesClient.id);
-  }, [selectedInvoicesClient, monthlyCharges]);
-
-  const modalTotalFacturado = useMemo(() => {
-    const invTotal = clientInvoices.reduce((sum, i) => sum + (i.total || 0), 0);
-    const chargeTotal = clientCharges.reduce((sum, c) => sum + (c.total || 0), 0);
-    return invTotal + chargeTotal;
-  }, [clientInvoices, clientCharges]);
+  const [historyData, setHistoryData] = useState<ReturnType<typeof clientSalesHistory> | null>(null);
+  const [historyError, setHistoryError] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const historyDialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!selectedInvoicesClient || !canHistory) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    historyDialog.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedInvoicesClient(null);
+      if (event.key !== "Tab") return;
+      const buttons = historyDialog.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)");
+      if (!buttons?.length) return;
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", onKey); if (previous?.isConnected) previous.focus(); };
+  }, [selectedInvoicesClient, canHistory]);
+  useEffect(() => {
+    let cancelled = false;
+    setHistoryData(null); setHistoryError("");
+    if (!selectedInvoicesClient || !canHistory) return;
+    setHistoryLoading(true);
+    api<ReturnType<typeof clientSalesHistory>>(`/api/clients/history?clientId=${encodeURIComponent(selectedInvoicesClient.id)}`)
+      .then(data => { if (!cancelled) setHistoryData(data); })
+      .catch(error => { if (!cancelled) setHistoryError(error.message); })
+      .finally(() => { if (!cancelled) setHistoryLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedInvoicesClient, canHistory]);
+  const history = historyData || clientSalesHistory([], []);
 
   // Handle client delete request with strict validation
   const handleRequestDelete = (client: Client, e: React.MouseEvent) => {
@@ -404,13 +391,13 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                           </button>
 
                           {/* 2. Ver Facturas y Notas de Venta */}
-                          <button
+                          {canHistory && <button
                             onClick={() => setSelectedInvoicesClient(client)}
                             className="p-1.5 text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition-colors cursor-pointer"
                             title="Ver Facturas y Notas de Venta del Cliente"
                           >
                             <Receipt className="w-4 h-4" />
-                          </button>
+                          </button>}
 
                           {/* 3. Eliminar Cliente con Validación */}
                           <ActionIconButton action="delete" onClick={(e) => handleRequestDelete(client, e)} title="Eliminar Cliente" />
@@ -471,185 +458,35 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
       {/* ========================================================================= */}
       {/* MODAL 1: HISTORIAL DE FACTURAS Y NOTAS DE VENTA DEL CLIENTE              */}
       {/* ========================================================================= */}
-      {selectedInvoicesClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-xl shadow-2xl border border-[#e2e8f0] w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f8f9ff]">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#004ac6] flex items-center justify-center">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#0b1c30] text-sm">
-                    Historial de Facturas & Notas de Venta
-                  </h3>
-                  <p className="text-xs text-[#737686] font-medium">
-                    {selectedInvoicesClient.businessName} •{" "}
-                    <span className="font-mono text-[#0b1c30]">
-                      RUC/CI: {selectedInvoicesClient.identificationNumber}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedInvoicesClient(null)}
-                className="p-1.5 rounded-lg text-[#737686] hover:text-[#0b1c30] hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {selectedInvoicesClient && canHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 backdrop-blur-xs sm:p-5">
+          <section ref={historyDialog} role="dialog" aria-modal="true" aria-label="Historial de ventas del cliente" className="flex max-h-[92dvh] w-full min-w-0 max-w-6xl flex-col overflow-hidden rounded-xl border bg-white shadow-2xl">
+            <header className="flex shrink-0 items-start justify-between gap-3 border-b bg-slate-50 px-4 py-4 sm:px-6">
+              <div className="min-w-0"><h3 className="text-sm font-semibold text-slate-900">Historial de Facturas &amp; Notas de Venta</h3><p className="mt-1 break-words text-xs text-slate-500">{selectedInvoicesClient.businessName} · RUC/CI: {selectedInvoicesClient.identificationNumber}</p></div>
+              <button type="button" aria-label="Cerrar historial" className="shrink-0 rounded-lg p-2 hover:bg-slate-200" onClick={() => setSelectedInvoicesClient(null)}><X className="size-4" /></button>
+            </header>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-2 border-b p-4 text-xs sm:grid-cols-3">
+              <div className="rounded-lg border bg-slate-50 p-3">Total de operaciones vigentes<strong className="mt-1 block font-mono text-base">${history.total.toFixed(2)}</strong></div>
+              <div className="rounded-lg border bg-slate-50 p-3">Operaciones vigentes<strong className="mt-1 block font-mono text-base">{history.count}</strong></div>
+              <div className="rounded-lg border bg-amber-50 p-3">Saldo pendiente registrado<strong className="mt-1 block font-mono text-base">${history.pending.toFixed(2)}</strong>{history.reconciliationCount > 0 && <span className="mt-1 block text-amber-800">{history.reconciliationCount} registro(s) requieren conciliación.</span>}</div>
             </div>
-
-            {/* Financial Summary Cards */}
-            <div className="p-5 border-b border-[#e2e8f0] grid grid-cols-3 gap-3 bg-white text-xs">
-              <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
-                <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
-                  Total Facturado
-                </span>
-                <span className="text-base font-black font-mono text-[#0b1c30]">
-                  ${modalTotalFacturado.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
-                <span className="text-xs font-bold text-[#737686] uppercase tracking-wider block">
-                  Comprobantes Emitidos
-                </span>
-                <span className="text-base font-black font-mono text-[#0b1c30]">
-                  {clientInvoices.length + clientCharges.length}
-                </span>
-              </div>
-
-              <div className={`p-3 rounded-lg border ${
-                getClientPendingBalance(selectedInvoicesClient) > 0
-                  ? "bg-rose-50 border-rose-200"
-                  : "bg-emerald-50 border-emerald-200"
-              }`}>
-                <span className={`text-xs font-bold uppercase tracking-wider block ${
-                  getClientPendingBalance(selectedInvoicesClient) > 0
-                    ? "text-rose-600"
-                    : "text-emerald-600"
-                }`}>
-                  Saldo Pendiente
-                </span>
-                <span className={`text-base font-black font-mono ${
-                  getClientPendingBalance(selectedInvoicesClient) > 0
-                    ? "text-rose-700"
-                    : "text-emerald-700"
-                }`}>
-                  ${getClientPendingBalance(selectedInvoicesClient).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Invoices List / Table */}
-            <div className="flex-1 overflow-y-auto p-5">
-              {clientInvoices.length === 0 && clientCharges.length === 0 ? (
-                <div className="text-center py-12 space-y-2">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-bold text-[#0b1c30] text-xs">Sin Comprobantes Registrados</h4>
-                  <p className="text-xs text-[#737686] max-w-sm mx-auto">
-                    Aún no se han emitido facturas electrónicas o notas de venta para este cliente.
-                  </p>
-                </div>
-              ) : (
-                <div className="border border-[#e2e8f0] rounded-xl overflow-hidden shadow-2xs">
-                  <table className="table-fixed w-full text-left text-xs">
-                    <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                      <tr>
-                        <th className="py-2.5 px-3 w-3/12">Comprobante</th>
-                        <th className="py-2.5 px-3 w-2/12">Tipo</th>
-                        <th className="py-2.5 px-3 w-2/12">Fecha</th>
-                        <th className="py-2.5 px-3 w-2/12">Forma de Pago</th>
-                        <th className="py-2.5 px-3 w-2/12 text-right">Total</th>
-                        <th className="py-2.5 px-3 w-1/12 text-center">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#f1f5f9]">
-                      {/* Facturas Electrónicas SRI */}
-                      {clientInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-[#f8f9ff] transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-[#0b1c30]">
-                            {inv.documentNumber}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
-                              Factura SRI
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 font-mono text-[#475569]">
-                            {inv.date}
-                          </td>
-                          <td className="py-2.5 px-3 capitalize text-[#475569]">
-                            {inv.paymentMethod}
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">
-                            ${inv.total.toFixed(2)}
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
-                              inv.status === "autorizada"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : inv.status === "anulada"
-                                ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
-                            }`}>
-                              {inv.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-
-                      {/* Cobros y Pre-Facturas */}
-                      {clientCharges.map((ch) => (
-                        <tr key={ch.id} className="hover:bg-[#f8f9ff] transition">
-                          <td className="py-2.5 px-3 font-mono font-bold text-[#0b1c30]">
-                            {ch.invoiceNumber}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-[#475569] border border-slate-200">
-                              Cobro Mensual
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 font-mono text-[#475569]">
-                            {ch.month}/{ch.year}
-                          </td>
-                          <td className="py-2.5 px-3 capitalize text-[#475569]">
-                            {ch.paymentMethod || "Transferencia"}
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">
-                            ${ch.total.toFixed(2)}
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
-                              ch.status === "pagado"
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border border-amber-200"
-                            }`}>
-                              {ch.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            <div className="overflow-x-auto p-3 sm:p-5">
+              {historyLoading ? <p className="p-6 text-center text-sm text-slate-500">Cargando historial…</p> : historyError ? <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{historyError}</p> : history.rows.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">Sin comprobantes vigentes para este cliente.</p> : (
+                <table className="w-full min-w-[850px] text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-50 text-blue-700"><tr>{["Comprobante", "Tipo", "Fecha", "Forma de pago", "Total", "Saldo", "Estado"].map(label => <th key={label} className="whitespace-nowrap border-b px-3 py-3 font-semibold">{label}</th>)}</tr></thead>
+                  <tbody className="divide-y">{history.rows.map(row => <tr key={row.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-3 font-mono font-semibold">{row.documentNumber}{row.sourceNumber && <span className="mt-1 block text-[10px] font-normal text-slate-500">Origen: {row.sourceNumber}</span>}{row.testDocuments?.length > 0 && <span className="mt-1 block max-w-64 text-[10px] font-normal text-slate-500">Pruebas SRI: {row.testDocuments.join(", ")}</span>}</td>
+                    <td className="px-3 py-3">{row.kind}</td><td className="whitespace-nowrap px-3 py-3">{row.date}</td><td className="px-3 py-3 capitalize">{row.paymentMethod}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono">${row.total.toFixed(2)}</td><td className="whitespace-nowrap px-3 py-3 text-right font-mono">{row.pending === null ? "Por conciliar" : `$${row.pending.toFixed(2)}`}</td>
+                    <td className="px-3 py-3"><span className="inline-block rounded border bg-slate-50 px-2 py-1 text-[10px] font-semibold">{row.status}</span>{row.needsReconciliation && <span className="mt-1 block text-amber-700">Revisar cartera vinculada</span>}</td>
+                  </tr>)}</tbody>
+                </table>
               )}
             </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-3 border-t border-[#e2e8f0] flex items-center justify-end bg-[#f8f9ff]">
-              <button
-                type="button"
-                onClick={() => setSelectedInvoicesClient(null)}
-                className="px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white font-bold rounded-lg text-xs transition cursor-pointer"
-              >
-                Cerrar
-              </button>
             </div>
-          </div>
+            <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t bg-slate-50 px-4 py-3"><span className="text-[11px] text-slate-500">Las facturas de prueba y los documentos anulados no forman parte de los totales.</span><button type="button" className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white" onClick={() => setSelectedInvoicesClient(null)}>Cerrar</button></footer>
+          </section>
         </div>
       )}
 
@@ -733,6 +570,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                 </button>
                 <button
                   type="button"
+                  disabled={!canHistory}
                   onClick={() => {
                     const client = blockedDeleteClient.client;
                     setBlockedDeleteClient(null);

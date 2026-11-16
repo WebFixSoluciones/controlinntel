@@ -7,9 +7,8 @@ import { CommercialValidationError } from "@/lib/commercial-core";
 import { readSriCompanyConfig } from "@/lib/server/sri-secrets";
 import { sriKinds, sriRequest } from "@/lib/server/sri-documents";
 import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "@/lib/server/sri-workflow";
-import { sendInvoiceEmail } from "@/lib/server/email-delivery";
+import { deliverFiscalInvoice } from "@/lib/server/sri-email";
 import { fiscalMetadata } from "@/lib/server/sri-metadata";
-import type { SriInvoice } from "@/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +43,14 @@ export async function POST(request: NextRequest) {
     const raw = await request.text();
     if (raw.length > 100_000) throw new HttpError(413, "La solicitud es demasiado grande.");
     const input = JSON.parse(raw);
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "Solicitud inválida.");
+    if (input.action === "reenviar_correo") {
+      if (!canAccessSubmodule(user, "facturacion", "facturas") || !canUser(user, "facturacion", "canAuthorizeSri") || user.role === "consulta") throw new HttpError(403, "No tienes permiso para enviar comprobantes fiscales.");
+      const id = z.string().regex(/^[\w-]{1,150}$/).parse(input.id);
+      const { db } = adminServices();
+      const confirmUncertain = z.boolean().optional().parse(input.confirmUncertain) === true;
+      return NextResponse.json({ email: await deliverFiscalInvoice(db, user, await readSriCompanyConfig(db), id, undefined, confirmUncertain) }, { headers });
+    }
     const correctionId = z.string().regex(/^[\w-]{1,150}$/).optional().parse(input?.correctionId);
     const operationId = z.string().uuid().optional().parse(input?.operationId);
     const body = sriRequest.parse(input);
@@ -65,9 +72,7 @@ export async function POST(request: NextRequest) {
     if (kind === "factura" && result.newlyAuthorized && result.document.fiscalWorkflowVersion === 1
       && result.document.ambiente === "2" && config.emailEnabled) {
       try {
-        const invoice = result.document as SriInvoice;
-        email = await sendInvoiceEmail({ config, invoice, xmlFirmado: invoice.xmlAutorizado,
-          numeroAutorizacion: invoice.numeroAutorizacion, fechaAutorizacion: invoice.authorizationDate });
+        email = await deliverFiscalInvoice(db, user, config, ref.id);
       } catch {
         email = { sent: false, error: "La autorización quedó guardada. Falló la entrega por correo." };
       }

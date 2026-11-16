@@ -1,0 +1,148 @@
+{
+  "date": "2026-11-16",
+  "scope": "SRI QA aislado e historial de ventas",
+  "baselineCommit": "719a4de04e0da21c3b57a2569ff89ebf391abf00",
+  "realSriCertification": [
+    {
+      "kind": "factura",
+      "number": "001-010-950709475",
+      "environment": "1",
+      "state": "AUTORIZADO",
+      "authorized": true
+    },
+    {
+      "kind": "nota_credito",
+      "number": "001-010-950709475",
+      "environment": "1",
+      "state": "AUTORIZADO",
+      "authorized": true
+    },
+    {
+      "kind": "nota_debito",
+      "number": "001-010-950709475",
+      "environment": "1",
+      "state": "AUTORIZADO",
+      "authorized": true
+    },
+    {
+      "kind": "guia_remision",
+      "number": "001-010-950709475",
+      "environment": "1",
+      "state": "AUTORIZADO",
+      "authorized": true
+    }
+  ],
+  "liveBusinessDatabaseWrites": false,
+  "liveEmailSent": false,
+  "retentionExternallyAuthorized": false,
+  "regression": {
+    "tests": 287,
+    "passed": 287,
+    "failed": 0
+  },
+  "typescript": {
+    "passed": true
+  },
+  "officialXsd": {
+    "passed": true,
+    "results": [
+      {
+        "kind": "factura",
+        "schema": "factura_V1.1.0.xsd",
+        "valid": true,
+        "errors": []
+      },
+      {
+        "kind": "nota_credito",
+        "schema": "NotaCredito_V1.1.0.xsd",
+        "valid": true,
+        "errors": []
+      },
+      {
+        "kind": "nota_debito",
+        "schema": "NotaDebito_V1.0.0.xsd",
+        "valid": true,
+        "errors": []
+      },
+      {
+        "kind": "guia_remision",
+        "schema": "GuiaRemision_V1.1.0.xsd",
+        "valid": true,
+        "errors": []
+      },
+      {
+        "kind": "retencion",
+        "schema": "ComprobanteRetencion_V2.0.0.xsd",
+        "valid": true,
+        "errors": []
+      }
+    ]
+  },
+  "http": {
+    "passed": true,
+    "checks": [
+      "real Auth/Firestore emulator HTTP",
+      "verified XML download",
+      "idempotent repeat without new sequence",
+      "dependent test deletion blocked",
+      "test email blocked",
+      "fiscal permissions and unauthenticated rejection",
+      "history-only profile without Sales or SRI",
+      "one operation instead of note + invoice + receivable",
+      "history permission revocation on same token"
+    ]
+  },
+  "browser": {
+    "passed": true,
+    "checks": [
+      "authenticated SRI list",
+      "authorized RIDE rendering",
+      "history without duplicated note/invoice/charge",
+      "history fits mobile/tablet/desktop/landscape with local table scrolling",
+      "footer reachable and Escape closes dialog"
+    ],
+    "viewports": [
+      {
+        "width": 360,
+        "height": 640
+      },
+      {
+        "width": 768,
+        "height": 900
+      },
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 844,
+        "height": 390
+      }
+    ],
+    "artifactsDirectory": "inntel-sri-ui-BYABK9"
+  },
+  "signedAndAuthorizedXmlSha256": {
+    "factura.xml": "cc1ff362c55f15d932f8dbe84fd257eb1119ecc6571dc7cda2f352ab0016e140",
+    "factura-autorizado.xml": "0f3e95e415581e62babb2b60326af1410a9d35460394be7de3e09b44efec4a19",
+    "nota_credito.xml": "fca0b6df9522b38782694ca1e3b541eeeb3acb1db21247e82c5a5b102ad7b55e",
+    "nota_credito-autorizado.xml": "df138e1d81a4cc53c01179a92fc7afcb47dbca75125c135cdf97594d633a3037",
+    "nota_debito.xml": "c95c7f365ba740b998431648f2343232c08777a7570cb9e018e2a7acff17055e",
+    "nota_debito-autorizado.xml": "69021e577ab69add906a2e31c030f93a01e469698c38e70216c84aee0e71e26b",
+    "guia_remision.xml": "ec3414bf9f5b6c0f35a748df0e8d6811306da642d2ab4377502f904cd2fda1cc",
+    "guia_remision-autorizado.xml": "f50cbad376268f50daf7baf4e1756c7b902f7a0363ae555b07530f59e7a40f68"
+  },
+  "openFindings": [
+    "SRI-QA-01: conciliacion comercial de NC, ND y retenciones",
+    "SRI-QA-02: catalogos de renta y sustento",
+    "SRI-QA-03: autorizacion externa de retencion ATS",
+    "SRI-QA-04: recepcion real de correo"
+  ],
+  "verdict": "Integracion de certificacion SRI aprobada para cuatro tipos; flujo comercial integral pendiente",
+  "productionBuild": {
+    "passed": true,
+    "knownWarnings": [
+      "next/no-img-element",
+      "react-hooks/exhaustive-deps"
+    ]
+  }
+}

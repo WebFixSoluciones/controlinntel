@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import type { CreditNote, DebitNote, RemissionGuide, SriCompanyConfig, SriInvoice, WithholdingReceipt } from "@/types";
 import { calculateLines, cents, money, validDate, type RecordData } from "../commercial-core.ts";
+import { roundUnitPrice } from "../pricing.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import {
   generarFacturaXml, generarNotaCreditoXml, generarNotaDebitoXml, generarGuiaRemisionXml,
@@ -124,6 +125,7 @@ export async function fiscalContent(db: Firestore, tx: Transaction, request: Sri
       calculated.items.forEach(item => {
         rate.parse(item.ivaRate);
         quantity.parse(item.quantity);
+        if (roundUnitPrice(item.unitPrice) !== item.unitPrice) throw new HttpError(400, "El precio unitario admite hasta seis decimales. Corrige la nota antes de convertirla.");
       });
       if (cents(calculated.total) !== cents(sale.total)) throw new HttpError(409, "El total de la nota de venta requiere conciliación.");
       const fiscal = {
@@ -197,7 +199,8 @@ export async function fiscalContent(db: Firestore, tx: Transaction, request: Sri
         || !/^\d{3}-\d{3}-\d{9}$/.test(purchase.documentNumber)
         || !access.isValid || access.detalles?.tipoComprobante !== "01" || access.detalles.ruc !== purchase.supplierRuc
         || access.detalles.ambiente !== config.ambiente
-        || (access.detalles.serie + "-" + access.detalles.secuencial) !== purchase.documentNumber) {
+        || (access.detalles.serie + "-" + access.detalles.secuencial) !== purchase.documentNumber
+        || purchase.status === "anulada" || purchase.status === "anulado") {
         throw new HttpError(409, "Selecciona una factura electrónica de compra con clave y datos de sustento consistentes.");
       }
       const previous = await tx.get(db.collection("billingWithholdings").where("purchaseInvoiceId", "==", purchase.id));

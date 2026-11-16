@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
-import { adminServices } from "./admin";
+import { adminServices } from "./admin.ts";
+import { invoiceRidePdf } from "./sri-ride-pdf.ts";
 import type { SriCompanyConfig, SriInvoice } from "@/types";
 
 /**
@@ -214,9 +215,12 @@ export interface InvoiceEmailInput {
   fechaAutorizacion?: string;
 }
 
-function buildInvoiceHtml(input: InvoiceEmailInput): string {
+export function buildInvoiceHtml(input: InvoiceEmailInput): string {
   const { config, invoice } = input;
   const empresa = escapeHtml(config.razonSocial || "INNTEL CORP S.A.");
+  const bases = new Map<number, number>();
+  for (const item of invoice.items || []) bases.set(item.ivaRate, (bases.get(item.ivaRate) || 0) + Math.round(item.subtotal * 100));
+  const baseRows = [...bases].sort(([a], [b]) => a - b).map(([rate, base]) => `<tr><td style="padding:3px 8px;">Subtotal ${rate}%</td><td style="padding:3px 8px;text-align:right;">${money(base / 100)}</td></tr>`).join("");
   const filas = (invoice.items || [])
     .map(
       (item) => `<tr>
@@ -267,12 +271,7 @@ function buildInvoiceHtml(input: InvoiceEmailInput): string {
         <tbody>${filas}</tbody>
       </table>
       <table style="width:100%;margin-top:12px;font-size:13px;">
-        <tr><td style="padding:3px 8px;">Subtotal 15%</td><td style="padding:3px 8px;text-align:right;">${money(
-          invoice.subtotal15
-        )}</td></tr>
-        <tr><td style="padding:3px 8px;">Subtotal 0%</td><td style="padding:3px 8px;text-align:right;">${money(
-          invoice.subtotal0
-        )}</td></tr>
+        ${baseRows}
         <tr><td style="padding:3px 8px;">IVA</td><td style="padding:3px 8px;text-align:right;">${money(
           invoice.ivaTotal
         )}</td></tr>
@@ -297,6 +296,7 @@ export interface InvoiceEmailResult {
   skippedReason?: string;
   error?: string;
   messageId?: string;
+  deliveryUncertain?: boolean;
 }
 
 /**
@@ -341,6 +341,7 @@ export async function sendInvoiceEmail(input: InvoiceEmailInput): Promise<Invoic
     }
 
     const attachments: EmailAttachment[] = [];
+    attachments.push({ filename: `RIDE-${input.invoice.documentNumber}.pdf`, content: invoiceRidePdf(input.invoice, input.config), contentType: "application/pdf" });
     if (input.xmlFirmado) {
       attachments.push({
         filename: `${input.invoice.documentNumber}.xml`,
@@ -377,6 +378,7 @@ export async function sendInvoiceEmail(input: InvoiceEmailInput): Promise<Invoic
       sent: false,
       recipients: [...new Set([...to, ...cc])],
       error: error?.message || "No se pudo enviar el comprobante por correo.",
+      deliveryUncertain: true,
     };
   }
 }

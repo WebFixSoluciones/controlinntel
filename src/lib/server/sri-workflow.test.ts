@@ -12,7 +12,10 @@ import { DEFAULT_INNTEL_SRI_CONFIG, generarClaveAccesoSRI } from "../sri-service
 import { autorizacionComprobante } from "./sri-client.ts";
 import { sriRequest, type FiscalKind, type SriNewDocument } from "./sri-documents.ts";
 import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "./sri-workflow.ts";
-import { parsePkcs12, issuerRfc2253 } from "./sri-signer.ts";
+import { parsePkcs12, issuerRfc2253, verifySriSignedXml } from "./sri-signer.ts";
+import { deliverFiscalInvoice } from "./sri-email.ts";
+import { invoiceRidePdf } from "./sri-ride-pdf.ts";
+import { buildInvoiceHtml } from "./email-delivery.ts";
 import { initializeVaultKey, seal } from "./vault.ts";
 
 type Row = Record<string, any>;
@@ -246,6 +249,7 @@ test("creates the five fiscal document types from source data and caps credit qu
     const result = await processFiscalDocument(db, user, config, kind, document, "emitir");
     assert.equal(result.document.estadoSRI, "AUTORIZADO");
     assert.ok(result.document.xmlAutorizado);
+    assert.equal(result.document.commercialReconciliationStatus, undefined, "Las pruebas no alteran la cartera real");
   }
   const exportPath = process.env.SRI_QA_XML_OUTPUT;
   if (exportPath) {
@@ -298,4 +302,92 @@ test("SOAP respeta soapAction vacío del WSDL oficial y DN admite OID de UANATAC
   const dn = issuerRfc2253(cert);
   assert.ok(!dn.includes("undefined"));
   assert.match(dn, /2\.5\.4\.97=#0c/);
+});
+
+test("QA SRI: alterar el XML conservando SignatureValue nunca concede autorización", async t => {
+  const { storage, db, reserve } = await setup();
+  const ref = await reserve({ kind: "factura", saleId: "sale-qa" });
+  const original = storage.read(ref.path)!;
+  assert.equal(verifySriSignedXml(original.xmlFirmado, original.xmlFirmado), true);
+  const altered = original.xmlFirmado.replace("<importeTotal>199.50</importeTotal>", "<importeTotal>0.01</importeTotal>");
+  assert.notEqual(altered, original.xmlFirmado);
+  assert.equal(verifySriSignedXml(altered, original.xmlFirmado), false);
+  t.mock.method(globalThis, "fetch", async (url: string) => url.includes("Recepcion") ? reception("RECIBIDA") : resultXml(original.claveAcceso, authorized(original.claveAcceso, altered), 1));
+  const result = await processFiscalDocument(db, user, config, "factura", ref, "emitir");
+  assert.equal(result.document.estadoSRI, "ERROR_CONEXION");
+  assert.equal(result.document.xmlAutorizado, null);
+  assert.equal(result.document.numeroAutorizacion, null);
+  assert.equal(storage.read("billingInvoices/sale-qa")!.sriStatus, "pendiente");
+});
+
+test("QA SRI: correo recuperable, bloqueo de duplicados y PDF RIDE con datos históricos", async t => {
+  const { storage, db } = await setup();
+  const production = { ...config, ambiente: "2" as const, emailEnabled: true };
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", production);
+  const ref = await reserveFiscalDocument(db, user, production, { kind: "factura", saleId: "sale-qa" });
+  const reserved = storage.read(ref.path)!;
+  t.mock.method(globalThis, "fetch", async (url: string) => url.includes("Recepcion") ? reception("RECIBIDA") : resultXml(reserved.claveAcceso, authorized(reserved.claveAcceso, reserved.xmlFirmado, "PRODUCCIÓN"), 1));
+  const result = await processFiscalDocument(db, user, production, "factura", ref, "emitir");
+  const pdf = invoiceRidePdf(result.document as any, { ...production, razonSocial: "EMISOR NUEVO QUE NO DEBE APARECER" });
+  assert.ok(pdf.length > 5000); assert.ok(pdf.subarray(0, 5).equals(Buffer.from("%PDF-")));
+  assert.equal(pdf.toString("latin1").includes("EMISOR NUEVO QUE NO DEBE APARECER"), false);
+  assert.ok(pdf.toString("latin1").includes("199.50"));
+  assert.ok(pdf.toString("latin1").includes("Subtotal 5%"));
+  const html = buildInvoiceHtml({ config: production, invoice: result.document as any });
+  assert.match(html, /Subtotal 5%/); assert.match(html, /\$190\.00/); assert.doesNotMatch(html, /Subtotal 15%/);
+  let attempts = 0;
+  const failed = await deliverFiscalInvoice(db, user, production, ref.id, async () => { attempts++; return { sent: false, recipients: [], skippedReason: "SMTP sin configurar" }; });
+  assert.equal(failed.sent, false); assert.equal(storage.read(ref.path)!.emailStatus, "error");
+  await deliverFiscalInvoice(db, user, production, ref.id, async input => { attempts++; assert.equal(input.xmlFirmado, result.document.xmlAutorizado); assert.equal(input.config.razonSocial, production.razonSocial); return { sent: true, recipients: ["qa@example.test"], messageId: "local-accepted" }; });
+  assert.equal(storage.read(ref.path)!.emailStatus, "enviado");
+  await deliverFiscalInvoice(db, user, production, ref.id, async () => { throw Error("No debe volver a invocarse"); });
+  assert.equal(attempts, 2);
+  assert.equal(storage.read(ref.path)!.estadoSRI, "AUTORIZADO");
+  assert.equal(storage.read(ref.path)!.total, 199.5);
+});
+
+test("QA SRI: no se envía correo de pruebas y un envío ambiguo exige confirmación", async () => {
+  const { storage, db, reserve } = await setup();
+  const ref = await reserve({ kind: "factura", saleId: "sale-qa" });
+  await assert.rejects(deliverFiscalInvoice(db, user, config, ref.id, async () => { throw Error("No debe enviar"); }), { status: 409 });
+  const row = storage.read(ref.path)!;
+  storage.rows.set(ref.path, { ...row, ambiente: "2", claveAcceso: row.claveAcceso.slice(0, 23) + "2" + row.claveAcceso.slice(24), estadoSRI: "AUTORIZADO", xmlAutorizado: "fixture", emailStatus: "enviando", emailLeaseUntil: 0 });
+  await assert.rejects(deliverFiscalInvoice(db, user, config, ref.id), { status: 409 });
+  await deliverFiscalInvoice(db, user, config, ref.id, async () => ({ sent: true, recipients: [], messageId: "explicit-retry" }), true);
+  assert.equal(storage.read(ref.path)!.emailStatus, "enviado");
+});
+
+test("QA SRI: documentos complementarios autorizados de producción requieren conciliación comercial explícita", async t => {
+  const { storage, db } = await setup();
+  const production = { ...config, ambiente: "2" as const };
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", production);
+  const reserve = (request: SriNewDocument) => reserveFiscalDocument(db, user, production, request);
+  t.mock.method(globalThis, "fetch", async (url: string, init: RequestInit) => {
+    if (url.includes("Recepcion")) return reception("RECIBIDA");
+    const key = String(init.body).match(/<claveAccesoComprobante>(\d{49})<\/claveAccesoComprobante>/)?.[1];
+    const document = [...storage.rows.values()].find(row => row.fiscalWorkflowVersion === 1 && row.claveAcceso === key);
+    return resultXml(key!, authorized(key!, document!.xmlFirmado, "PRODUCCIÓN"), 1);
+  });
+  const invoice = await reserve({ kind: "factura", saleId: "sale-qa" });
+  await processFiscalDocument(db, user, production, "factura", invoice, "emitir");
+  const credit = await reserve({ kind: "nota_credito", invoiceId: invoice.id, reason: "Ajuste QA", items: [{ id: "part", quantity: 1 }] });
+  const debit = await reserve({ kind: "nota_debito", invoiceId: invoice.id, ivaRate: 5, paymentCode: "20", reasons: [{ reason: "Recargo QA", amount: 10 }] });
+  const claveAcceso = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: "1790012345001", ambiente: "2", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "87654321" });
+  storage.rows.set("purchaseInvoices/qa", { supplierRuc: "1790012345001", supplierName: "Proveedor QA", date: getEcuadorDate(), claveAcceso, documentNumber: "001-001-000000001", subtotal: 100, ivaAmount: 15, total: 115, items: [{ ivaRate: 15, subtotal: 100, ivaAmount: 15 }] });
+  const retention = await reserve({ kind: "retencion", purchaseInvoiceId: "qa", supportCode: "01", relatedParty: false, paymentCode: "20", items: [{ taxType: "IVA", code: "1", percentage: 30, taxBase: 15 }] });
+  for (const [kind, ref] of [["nota_credito", credit], ["nota_debito", debit], ["retencion", retention]] as const) {
+    const { document } = await processFiscalDocument(db, user, production, kind, ref, "emitir");
+    assert.equal(document.estadoSRI, "AUTORIZADO");
+    assert.equal(document.commercialReconciliationStatus, "pendiente");
+  }
+});
+
+test("QA SRI: precio no representable y compra anulada se rechazan antes de reservar números", async () => {
+  const { storage, reserve } = await setup();
+  storage.rows.get("billingInvoices/sale-qa")!.items[0].unitPrice = 100.0000001;
+  await assert.rejects(reserve({ kind: "factura", saleId: "sale-qa" }), /seis decimales/);
+  assert.equal([...storage.rows.keys()].some(key => key.startsWith("sequences/")), false);
+  const claveAcceso = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: "1790012345001", ambiente: "1", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "87654321" });
+  storage.rows.set("purchaseInvoices/void", { status: "anulada", supplierRuc: "1790012345001", date: getEcuadorDate(), claveAcceso, documentNumber: "001-001-000000001" });
+  await assert.rejects(reserve({ kind: "retencion", purchaseInvoiceId: "void", supportCode: "01", relatedParty: false, paymentCode: "20", items: [{ taxType: "RENTA", code: "312", percentage: 1.75, taxBase: 100 }] }), /sustento consistentes/);
 });
