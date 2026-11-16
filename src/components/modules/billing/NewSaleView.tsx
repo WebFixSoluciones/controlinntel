@@ -27,6 +27,7 @@ import { ConvertToSriInvoiceModal } from "../sales/ConvertToSriInvoiceModal";
 import { ChargePaymentModal } from "../finance/ChargePaymentModal";
 import { availableClientCredit } from "@/lib/client-credit";
 import { chargeBalance, money, addDays, validDate } from "@/lib/commercial-core";
+import { calculateLineAmounts, calculatePriceWithTax, calculatePriceWithoutTax } from "@/lib/pricing";
 import { canReadCollection } from "@/lib/persistence-contracts";
 
 interface NewSaleViewProps {
@@ -65,6 +66,7 @@ interface SaleDraftData {
   clientSearch: string;
   documentType: "factura" | "nota_venta";
   issueDate: string;
+  administrativePeriod?: string;
   selectedEstablecimiento: string;
   warehouseId: string;
   showAdditionalInfo: boolean;
@@ -188,6 +190,7 @@ export function NewSaleView({
 
   const [documentType, setDocumentType] = useState<"factura" | "nota_venta">("nota_venta");
   const [issueDate, setIssueDate] = useState(getEcuadorDate());
+  const [administrativePeriod, setAdministrativePeriod] = useState("");
   const [selectedEstablecimiento, setSelectedEstablecimiento] = useState(
     sriCompanyConfig?.establecimiento || "010"
   );
@@ -310,6 +313,7 @@ export function NewSaleView({
       if (draft.clientSearch) setClientSearch(draft.clientSearch);
       if (draft.documentType) setDocumentType(draft.documentType);
       if (draft.issueDate) setIssueDate(draft.issueDate);
+      setAdministrativePeriod(draft.administrativePeriod || "");
       if (draft.selectedEstablecimiento) setSelectedEstablecimiento(draft.selectedEstablecimiento);
       if (draft.warehouseId) setWarehouseId(draft.warehouseId);
       if (draft.showAdditionalInfo !== undefined) setShowAdditionalInfo(draft.showAdditionalInfo);
@@ -374,6 +378,7 @@ export function NewSaleView({
           clientSearch,
           documentType,
           issueDate,
+          administrativePeriod,
           selectedEstablecimiento,
           warehouseId,
           showAdditionalInfo,
@@ -409,6 +414,7 @@ export function NewSaleView({
     clientSearch,
     documentType,
     issueDate,
+    administrativePeriod,
     selectedEstablecimiento,
     warehouseId,
     showAdditionalInfo,
@@ -437,6 +443,7 @@ export function NewSaleView({
     setIsConsumidorFinal(false);
     setClientSearch("");
     setOrderNumber("");
+    setAdministrativePeriod("");
     setNotes("");
     setGlobalDiscountType("none");
     setGlobalDiscountValue(0);
@@ -716,9 +723,7 @@ export function NewSaleView({
       }
 
       const totalItemDiscount = Math.round((l.lineDiscount + extraGlobalDisc) * 100) / 100;
-      const finalSubtotal = Math.max(0, Math.round((l.grossLine - totalItemDiscount) * 100) / 100);
-      const finalIva = Math.round(finalSubtotal * (l.rate / 100) * 100) / 100;
-      const finalTotal = Math.round((finalSubtotal + finalIva) * 100) / 100;
+      const { subtotal: finalSubtotal, ivaAmount: finalIva, total: finalTotal } = calculateLineAmounts(l.unitPrice, l.quantity, l.rate, totalItemDiscount);
 
       if (l.rate > 0) {
         subtotal15 += finalSubtotal;
@@ -1157,11 +1162,6 @@ export function NewSaleView({
       return true;
     }
 
-    if (recurringServicesInCart.length) {
-      showWarning("Servicio recurrente", "Abre Ventas recurrentes desde el aviso para emitir o reemitir el período del servicio.");
-      return false;
-    }
-
     const cleanSelectedRuc = limpiarIdentificacion(selectedClient.identificationNumber);
 
     // Regla SRI Ecuador: Consumidor Final > $50 SOLO bloquea en Factura Electrónica
@@ -1361,6 +1361,7 @@ export function NewSaleView({
         const draftInvoice = await createInvoice({
           documentType,
           date: issueDate,
+          administrativePeriod: administrativePeriod || undefined,
           time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
           clientId: selectedClient.id,
           clientName: cleanClientName,
@@ -1416,6 +1417,7 @@ export function NewSaleView({
           saleChannel: "mostrador",
           establishment: selectedEstablecimiento,
           date: issueDate,
+          administrativePeriod: administrativePeriod || undefined,
           time: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
           clientId: selectedClient.id,
           clientName: cleanClientName,
@@ -1450,7 +1452,7 @@ export function NewSaleView({
           status: "registrado",
           warehouseId: wh ? wh.id : warehouseId,
           warehouseName: wh ? wh.name : "Bodega Central",
-          notes: notes.trim() || undefined,
+          notes: [administrativePeriod ? `Período administrativo: ${administrativePeriod.slice(5, 7)}/${administrativePeriod.slice(0, 4)}` : "", notes.trim()].filter(Boolean).join(". ") || undefined,
         });
 
         if (typeof window !== "undefined") {
@@ -2079,7 +2081,7 @@ export function NewSaleView({
 
       {recurringServicesInCart.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-slate-700">
-          <span>Este borrador incluye servicios ya asignados. Su nota se genera por período en Ventas recurrentes.</span>
+          <span>Puedes emitir esta nota administrativa para el período que necesites. Es independiente del calendario del contrato; para liquidar un período recurrente sin duplicarlo, utiliza Ventas recurrentes.</span>
           <Link href={recurringHref} className="inline-flex items-center gap-1.5 font-bold text-[#004ac6] hover:underline">
             Ir a Ventas recurrentes <ExternalLink className="h-3.5 w-3.5" />
           </Link>
@@ -2340,6 +2342,14 @@ export function NewSaleView({
                     ))}
                   </select>
                 </div>
+                <div className="col-span-2 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-2 sm:col-span-4">
+                  <div className="w-full sm:w-48">
+                    <label htmlFor="administrative-period" className="mb-1 block text-[10px] font-bold uppercase text-slate-600">Período de la nota (opcional)</label>
+                    <input id="administrative-period" type="month" value={administrativePeriod} onChange={e => setAdministrativePeriod(e.target.value)}
+                      className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-[11px]" />
+                  </div>
+                  <span className="pb-2 text-[10px] text-slate-500">Mes del servicio, independiente de la fecha de emisión.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -2581,10 +2591,11 @@ export function NewSaleView({
 
                             {/* Precio Unitario */}
                             <td className="py-2 px-3 text-right align-top">
+                              <span className="block text-[9px] text-slate-500">Sin IVA</span>
                               <input
                                 type="number"
                                 min="0"
-                                step="0.01"
+                                step="any"
                                 value={item.unitPrice}
                                 readOnly={!canEditPrices}
                                 disabled={!canEditPrices}
@@ -2596,6 +2607,12 @@ export function NewSaleView({
                                 className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-md border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                                 title={!canEditPrices ? "No tienes permiso para modificar precios de catálogo" : undefined}
                               />
+                              <label className="mt-1 block text-[9px] text-slate-500">Con IVA
+                                <input type="number" min="0" step="0.01" aria-label={`Precio con IVA de ${item.name}`}
+                                  value={calculatePriceWithTax(item.unitPrice, item.ivaRate)} disabled={!canEditPrices}
+                                  onChange={e => handleUpdateCartItem(idx, { unitPrice: calculatePriceWithoutTax(Number(e.target.value), item.ivaRate) })}
+                                  className="mt-0.5 block w-24 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-right font-mono text-xs font-semibold text-emerald-800 disabled:opacity-60" />
+                              </label>
                             </td>
 
                             {/* Botón de Descuento de Línea */}
@@ -2625,6 +2642,7 @@ export function NewSaleView({
                             <td className="py-2 px-2 text-center align-top">
                               <select
                                 value={item.ivaRate}
+                                disabled={!canEditPrices}
                                 onChange={(e) =>
                                   handleUpdateCartItem(idx, {
                                     ivaRate: Number(e.target.value),

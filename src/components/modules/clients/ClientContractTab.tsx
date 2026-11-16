@@ -1,4 +1,5 @@
 "use client";
+import { calculatePriceWithoutTax, calculatePriceWithTax } from "@/lib/pricing";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
@@ -406,15 +407,15 @@ export function ClientContractTab({ client }: { client: Client }) {
 
     const baseSinIva = prod.salePrice ?? 0;
     if (baseSinIva > 0) {
-      setNewSvcPriceSinIva(baseSinIva.toFixed(2));
+      setNewSvcPriceSinIva(String(baseSinIva));
       const conIva = prod.salePriceConIva
         ? prod.salePriceConIva
         : Math.round(baseSinIva * (1 + rate / 100) * 100) / 100;
       setNewSvcPriceConIva(conIva.toFixed(2));
     } else if (prod.salePriceConIva && prod.salePriceConIva > 0) {
       setNewSvcPriceConIva(prod.salePriceConIva.toFixed(2));
-      const sinIva = Math.round((prod.salePriceConIva / (1 + rate / 100)) * 100) / 100;
-      setNewSvcPriceSinIva(sinIva.toFixed(2));
+      const sinIva = calculatePriceWithoutTax(prod.salePriceConIva, rate);
+      setNewSvcPriceSinIva(String(sinIva));
     } else {
       setNewSvcPriceSinIva("");
       setNewSvcPriceConIva("");
@@ -471,8 +472,8 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcPriceConIva(val);
     const num = parseFloat(val);
     if (!isNaN(num) && num >= 0) {
-      const calculatedSinIva = Math.round((num / (1 + newSvcIvaRate / 100)) * 100) / 100;
-      setNewSvcPriceSinIva(calculatedSinIva.toFixed(2));
+      const calculatedSinIva = calculatePriceWithoutTax(num, newSvcIvaRate);
+      setNewSvcPriceSinIva(String(calculatedSinIva));
     } else if (val === "") {
       setNewSvcPriceSinIva("");
     }
@@ -586,7 +587,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     const sinIva = svc.customPrice ?? svc.basePrice ?? 0;
     const rate = svc.ivaRate ?? 15;
     setEditIvaRate(rate);
-    setEditPriceSinIva(sinIva.toFixed(2));
+    setEditPriceSinIva(String(sinIva));
     const conIva = svc.priceConIva ?? Math.round(sinIva * (1 + rate / 100) * 100) / 100;
     setEditPriceConIva(conIva.toFixed(2));
     setEditBillingType(
@@ -636,8 +637,8 @@ export function ClientContractTab({ client }: { client: Client }) {
     setEditPriceConIva(val);
     const num = parseFloat(val);
     if (!isNaN(num) && num >= 0) {
-      const calculatedSinIva = Math.round((num / (1 + editIvaRate / 100)) * 100) / 100;
-      setEditPriceSinIva(calculatedSinIva.toFixed(2));
+      const calculatedSinIva = calculatePriceWithoutTax(num, editIvaRate);
+      setEditPriceSinIva(String(calculatedSinIva));
     } else if (val === "") {
       setEditPriceSinIva("");
     }
@@ -1084,7 +1085,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0.01"
                     required
                     placeholder="0.00"
@@ -1107,7 +1108,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                   </span>
                   <input
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0.01"
                     placeholder="0.00"
                     value={newSvcPriceConIva}
@@ -1484,7 +1485,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
             <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" aria-hidden="true" />
 
-            {canAccessRoute(currentUser, "/ventas") && canAccessSubmodule(currentUser, "ventas", "recurrentes") && canUser(currentUser, "facturacion", "canCreateInvoice") && (
+            {canAccessRoute(currentUser, "/ventas") && canAccessSubmodule(currentUser, "ventas", "recurrentes") && canUser(currentUser, "ventas", "canCreateInvoice") && (
               <Link href={`/ventas?sub=recurrentes&cliente=${encodeURIComponent(client.id)}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-semibold text-[#004ac6] hover:bg-blue-50">
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -1705,7 +1706,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                           ${safeNumber(price)}
                         </span>
                         <span className="block text-[10px] text-slate-500 font-medium">
-                          ${safeNumber(svc.priceConIva || Math.round(price * 1.15 * 100) / 100)} c/IVA
+                          ${safeNumber(svc.priceConIva ?? calculatePriceWithTax(price, svc.ivaRate ?? 0))} c/IVA
                         </span>
                       </td>}
 
@@ -1847,7 +1848,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     </span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       required
                       value={editPriceSinIva}
@@ -1868,7 +1869,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     </span>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min="0"
                       value={editPriceConIva}
                       onChange={(e) => handleEditPriceConIvaChange(e.target.value)}

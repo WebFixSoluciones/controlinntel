@@ -445,6 +445,13 @@ export function canAccessSubmodule(
   // Si el módulo general está deshabilitado, el submódulo tampoco es accesible
   if (!canAccessModule(user, moduleKey)) return false;
 
+  // Directorio is the entry to the client's permitted tabs, not a separate
+  // permission. Legacy navigation used an absent "listado" checkbox.
+  if (moduleKey === "abonados" && submoduleKey === "listado") {
+    return ["fiscal", "red", "boveda", "contratos", "archivos", "cotizaciones", "facturacion", "finanzas", "tickets", "proyectos", "tramites", "arcotel", "dossier"]
+      .some(tab => canAccessSubmodule(user, "abonados", tab));
+  }
+
   // Verificar en la matriz del usuario
   const modPerms = user.modulePermissions?.[moduleKey] as any;
   if (modPerms && modPerms.submodules && typeof modPerms.submodules[submoduleKey] === "boolean") {

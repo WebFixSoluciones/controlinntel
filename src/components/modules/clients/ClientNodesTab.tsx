@@ -8,7 +8,7 @@ import { useToast } from "@/lib/toast-context";
 import { Client, NodeLocation } from "@/types";
 import { ClientNodeModal } from "./ClientNodeModal";
 import { ClientTabHeader } from "./ClientTabHeader";
-import { NodeSystemCredentials } from "./NodeSystemCredentials";
+import { NodeCredentialsModal } from "./NodeCredentialsModal";
 import {
   Radio,
   Plus,
@@ -45,6 +45,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nodeToEdit, setNodeToEdit] = useState<NodeLocation | null>(null);
+  const [credentialsNodeId, setCredentialsNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "map">("table");
 
@@ -196,10 +197,10 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
             <table className="table-fixed w-full min-w-[60rem] text-left text-xs border-collapse">
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="py-3 px-3 w-[15%]">Nodo / Sede</th>
-                  <th className="py-3 px-3 w-[18%]">Ubicación</th>
-                  <th className="py-3 px-3 w-[25%]">Proveedores Portadores</th>
-                  <th className="py-3 px-3 w-[34%]">Sistemas & Credenciales</th>
+                  <th className="py-3 px-3 w-[20%]">Nodo / Sede</th>
+                  <th className="py-3 px-3 w-[26%]">Ubicación</th>
+                  <th className="py-3 px-3 w-[28%]">Proveedores</th>
+                  <th className="py-3 px-3 w-[18%]">Credenciales</th>
                   <th className="py-3 px-2 w-[8%] text-right">Acciones</th>
                 </tr>
               </thead>
@@ -329,10 +330,8 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                       {/* Sistemas con IP y credenciales legibles */}
                       <td className="py-3 px-3">
                         {node.services?.length ? (
-                          <div className="space-y-1.5">
-                            {node.services.map(service => <NodeSystemCredentials key={service.id} nodeId={node.id} service={service} />)}
-                          </div>
-                        ) : <span className="text-[11px] text-slate-400 italic">Sin sistemas</span>}
+                          <button type="button" onClick={() => setCredentialsNodeId(node.id)} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-[#004ac6] transition hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">Ver credenciales ({node.services.length})</button>
+                        ) : <span className="text-[11px] text-slate-400 italic">Sin credenciales</span>}
                       </td>
 
                       {/* 6. Acciones */}
@@ -354,6 +353,7 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
   )}
 
       {/* Modal de Sede / Nodo */}
+      {credentialsNodeId && <NodeCredentialsModal key={credentialsNodeId} nodeId={credentialsNodeId} onClose={() => setCredentialsNodeId(null)} />}
       <ClientNodeModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

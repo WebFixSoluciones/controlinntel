@@ -1,3 +1,4 @@
+import { validateIdentification } from "./validation-engine.ts";
 import type {
   SriInvoice,
   SriCompanyConfig,
@@ -128,68 +129,9 @@ export function validarIdentificacionEcuador(
   if (len !== 10 && len !== 13) return false;
   if (!/^\d+$/.test(clean)) return false;
 
-  // Si fue validado externamente por consulta autoritativa del SRI, comprobar estructura básica
-  if (isValidated) {
-    if (len === 13 && clean.endsWith("000")) return false;
-    return true;
-  }
-
-  // Si es RUC de 13 dígitos, debe terminar en establecimiento válido (ej. 001)
-  if (len === 13) {
-    const sufijo = clean.substring(10);
-    if (sufijo === "000") return false;
-  }
-
-  const cedula = clean.substring(0, 10);
-  const provincia = parseInt(cedula.substring(0, 2), 10);
-  if ((provincia < 1 || provincia > 24) && provincia !== 30) return false;
-
-  const tercerDigito = parseInt(cedula.substring(2, 3), 10);
-
-  // RUC Sociedades Privadas / Extranjeros sin cédula (tercer dígito = 9)
-  if (tercerDigito === 9) {
-    if (len !== 13) return false;
-    const coeficientes = [4, 3, 2, 7, 6, 5, 4, 3, 2];
-    const verificador = parseInt(clean.substring(9, 10), 10);
-    let suma = 0;
-    for (let i = 0; i < 9; i++) {
-      suma += parseInt(clean[i], 10) * coeficientes[i];
-    }
-    const residuo = suma % 11;
-    const digitoCalculado = residuo === 0 ? 0 : 11 - residuo;
-    return digitoCalculado === verificador;
-  }
-
-  // RUC Sociedades Públicas (tercer dígito = 6)
-  if (tercerDigito === 6) {
-    if (len !== 13) return false;
-    const coeficientes = [3, 2, 7, 6, 5, 4, 3, 2];
-    const verificador = parseInt(clean.substring(8, 9), 10);
-    let suma = 0;
-    for (let i = 0; i < 8; i++) {
-      suma += parseInt(clean[i], 10) * coeficientes[i];
-    }
-    const residuo = suma % 11;
-    const digitoCalculado = residuo === 0 ? 0 : 11 - residuo;
-    return digitoCalculado === verificador;
-  }
-
-  // Cédula de Persona Natural (tercer dígito < 6)
-  if (tercerDigito < 6) {
-    const coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
-    const verificador = parseInt(cedula.substring(9, 10), 10);
-    let suma = 0;
-    for (let i = 0; i < 9; i++) {
-      let valor = parseInt(cedula[i], 10) * coeficientes[i];
-      if (valor >= 10) valor -= 9;
-      suma += valor;
-    }
-    const residuo = suma % 10;
-    const digitoCalculado = residuo === 0 ? 0 : 10 - residuo;
-    return digitoCalculado === verificador;
-  }
-
-  return false;
+  // Use exactly the same format rules as client registration. External lookup
+  // is informational and a browser-provided flag must not bypass validation.
+  return validateIdentification(len === 13 ? "RUC" : "CEDULA", clean).isValid;
 }
 
 /**

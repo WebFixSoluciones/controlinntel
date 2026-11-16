@@ -231,6 +231,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy || isQueryingSri) return;
     try {
       setBusy(true);
 
@@ -481,9 +482,11 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                         : "Ej: 1712345678"
                     }
                     value={identificationNumber}
+                    disabled={isQueryingSri}
                     onChange={(e) => {
                       const clean = e.target.value.replace(/\s+/g, "");
                       setIdentificationNumber(clean);
+                      setSriValidated(false);
                       if (clean.length === 10) setIdentificationType("CEDULA");
                       else if (clean.length === 13) setIdentificationType("RUC");
                     }}
@@ -840,7 +843,7 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
             </button>
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || isQueryingSri}
               className="px-5 py-2.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg font-bold shadow-xs flex items-center gap-2 cursor-pointer transition-all"
             >
               <Check className="w-4 h-4" />

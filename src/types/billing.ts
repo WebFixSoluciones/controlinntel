@@ -153,6 +153,7 @@ export interface InvoiceItem {
 }
 
 export interface SriInvoice extends SriFiscalEvidence {
+  administrativePeriod?: string;
   subtotal?: number;
   basesByRate?: Record<string, number>;
   id: string;

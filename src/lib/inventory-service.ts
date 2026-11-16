@@ -27,26 +27,7 @@ export function calculateWeightedAverageCost(
   return Math.round(result * 10000) / 10000;
 }
 
-/**
- * Calcula el precio con IVA incluido (por defecto 15% vigente en Ecuador).
- */
-export function calculatePriceWithTax(priceSinIva: number, ivaRate: number = 15): number {
-  const base = Math.max(0, Number(priceSinIva) || 0);
-  const rate = Math.max(0, Number(ivaRate) || 0) / 100;
-  const conIva = base * (1 + rate);
-  return Math.round(conIva * 100) / 100;
-}
-
-/**
- * Desglosa el precio sin IVA a partir de un valor que ya incluye impuesto.
- */
-export function calculatePriceWithoutTax(priceConIva: number, ivaRate: number = 15): number {
-  const total = Math.max(0, Number(priceConIva) || 0);
-  const rate = Math.max(0, Number(ivaRate) || 0) / 100;
-  if (1 + rate === 0) return total;
-  const sinIva = total / (1 + rate);
-  return Math.round(sinIva * 100) / 100;
-}
+export { calculatePriceWithTax, calculatePriceWithoutTax } from "./pricing.ts";
 
 /**
  * Valida si hay stock suficiente en una bodega específica para una salida o transferencia.

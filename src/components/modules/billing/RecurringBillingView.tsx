@@ -3,7 +3,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
-import { calculateLines, planServicePeriod } from "@/lib/commercial-core";
+import { calculateLines, planManualServicePeriod } from "@/lib/commercial-core";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getEcuadorDate } from "@/lib/date-utils";
@@ -152,7 +152,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           const legacyInvoiceId = service.lastBilledInvoiceId || service.saleInvoiceId;
           const cancelled = Boolean(evidence?.cancelled || legacyBilled && legacyInvoiceId && periodDocuments.cancelledIds.has(legacyInvoiceId));
           const issued = Boolean(evidence?.issued || legacyBilled && !cancelled);
-          return { service, plan: planServicePeriod(service, selectedMonthNum, selectedYear, getEcuadorDate()), issued, cancelled };
+          return { service, plan: planManualServicePeriod(service, selectedMonthNum, selectedYear), issued, cancelled };
         });
         const available = plans.filter(({ plan, issued }) => plan.eligible && !issued);
         const billableServices = available.map(p => p.service);
@@ -180,6 +180,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
           services: matchingFreqServices,
           billableServices,
           nonBillableServices,
+          exclusionReasons: plans.filter(p => !p.plan.eligible || p.issued).map(p => ({ id: p.service.id, name: p.service.planName, reason: p.issued ? "Este período ya tiene una nota vigente." : !p.plan.eligible ? p.plan.reason : "" })),
           subtotal,
           iva,
           total,
@@ -436,7 +437,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-slate-700">
-        <span>La emisión automática está programada para el día 1. Para emitir manualmente, selecciona el mes en que inicia el período del servicio.</span>
+        <span>La emisión automática se ejecuta el día 1. Para emitir manualmente, selecciona el mes de inicio del período; puedes anticipar prepago o postpago dentro del contrato. Para notas independientes de otros meses, utiliza Nueva venta.</span>
         {clientFilter && (
           <Link href="/ventas?sub=recurrentes" className="font-bold text-[#004ac6] hover:underline">
             Ver todos los clientes
@@ -550,7 +551,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         <div className="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
-            Activos
+            Por emitir
           </span>
           <span className="text-lg font-black text-emerald-700 font-mono">
             {summaryStats.totalBillableServices}
@@ -559,7 +560,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
         <div className="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/30">
           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">
-            Pausados
+            No incluidos
           </span>
           <span className="text-lg font-black text-amber-700 font-mono">
             {summaryStats.totalNonBillableServices}
@@ -627,8 +628,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                 <tr>
                   <th className="py-3 px-4 w-3/12">Cliente</th>
                   <th className="py-3 px-3 w-1/12">Ciclo</th>
-                  <th className="py-3 px-3 text-center w-1/12">Activos</th>
-                  <th className="py-3 px-3 text-center w-1/12">Pausados</th>
+                  <th className="py-3 px-3 text-center w-1/12">Por emitir</th>
+                  <th className="py-3 px-3 text-center w-1/12">No incluidos</th>
                   <th className="py-3 px-3 text-right w-1/12">Subtotal</th>
                   <th className="py-3 px-3 text-right w-1/12">IVA</th>
                   <th className="py-3 px-4 text-right font-black w-1/12">Total</th>
@@ -713,7 +714,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                               </span>
                             ) : row.billableServices.length === 0 ? (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-500 border border-slate-200">
-                                Sin Servicios Activos
+                                Revisar período
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
@@ -827,6 +828,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                         <tr key={svc.id} className="hover:bg-slate-50/60 transition">
                                           <td className="py-2.5 px-4 font-bold text-slate-800">
                                             {svc.planName}
+                                            {row.exclusionReasons.filter(reason => reason.id === svc.id).map(reason => <p key={reason.id} className="mt-1 max-w-xs whitespace-normal text-[11px] font-normal text-amber-800">{reason.reason}</p>)}
                                           </td>
                                           <td className="py-2.5 px-3 capitalize text-slate-600">
                                             {svc.billingFrequency || "mensual"}

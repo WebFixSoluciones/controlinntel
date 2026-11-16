@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   can,
   canAccessRoute,
+  canAccessSubmodule,
   canUser,
   canViewServicePrices,
   canManageTicketDepartments,
@@ -11,6 +12,57 @@ import {
 } from "./permissions.ts";
 import type { UserProfile } from "@/types";
 import { visibleServiceData } from "./service-visibility.ts";
+import { completePermissions, setPermission, permissionSections } from "./permission-catalog.ts";
+
+test("QA: Clientes aparece por sus vistas autorizadas sin exigir un permiso inexistente de listado", () => {
+  let matrix = setPermission(completePermissions(), "abonados.enabled", true);
+  const profile = (modulePermissions = matrix): UserProfile => ({ uid: "qa", email: "qa@example.test", displayName: "QA", role: "tecnico", status: "activo", permissionModelVersion: 2, modulePermissions });
+  assert.equal(canAccessSubmodule(profile(), "abonados", "listado"), false);
+  for (const tab of ["fiscal", "contratos", "red", "boveda", "archivos", "tickets", "facturacion"]) {
+    const allowed = setPermission(matrix, `abonados.submodules.${tab}`, true);
+    assert.equal(canAccessRoute(profile(allowed), "/clientes"), true);
+    assert.equal(canAccessSubmodule(profile(allowed), "abonados", "listado"), true);
+    assert.equal(canAccessSubmodule(profile(allowed), "abonados", tab), true);
+    assert.equal(canAccessRoute(profile(allowed), "/ventas"), false);
+    assert.equal(canAccessSubmodule(profile(setPermission(allowed, "abonados.enabled", false)), "abonados", "listado"), false);
+  }
+});
+
+test("QA: las pantallas de cada módulo respetan su interruptor y el resto de rutas permanece cerrado", () => {
+  const routes = Object.entries(routePermissions).filter(([path]) => path !== "/abonados" && path !== "/tramites");
+  for (const [path, moduleKey] of routes) {
+    let matrix = completePermissions();
+    matrix = setPermission(matrix, "visibility.canViewFinancialAmounts", true);
+    matrix = setPermission(matrix, `${moduleKey}.enabled`, true);
+    const profile: UserProfile = { uid: "qa", email: "qa@example.test", displayName: "QA", role: "admin", status: "activo", permissionModelVersion: 2, modulePermissions: matrix };
+    assert.equal(canAccessRoute(profile, path), true, path);
+    for (const [otherPath, otherModule] of routes) if (otherModule !== moduleKey) assert.equal(canAccessRoute(profile, otherPath), false, `${path} no habilita ${otherPath}`);
+    const section = permissionSections().find(item => item.key === moduleKey);
+    for (const item of section?.items || []) {
+      if (!item.path.includes(".submodules.")) continue;
+      const sub = item.path.split(".").at(-1)!;
+      const selected = { ...profile, modulePermissions: setPermission(matrix, item.path, true) };
+      assert.equal(canAccessSubmodule(selected, moduleKey, sub), !item.reserved, item.path);
+      assert.equal(canAccessSubmodule({ ...selected, modulePermissions: setPermission(selected.modulePermissions!, `${moduleKey}.enabled`, false) }, moduleKey, sub), false, `Módulo apagado: ${item.path}`);
+    }
+    assert.equal(canAccessRoute({ ...profile, status: "inactivo" }, path), false);
+  }
+});
+
+test("QA: cada acción publicada por el editor se habilita y revoca sin desbloquear su módulo apagado", () => {
+  for (const section of permissionSections()) {
+    if (section.key === "visibility") continue;
+    const enabled = setPermission(setPermission(completePermissions(), "visibility.canViewFinancialAmounts", true), `${section.key}.enabled`, true);
+    for (const item of section.items.filter(item => item.path.includes(".actions."))) {
+      const [moduleKey, , action] = item.path.split(".");
+      const profile: UserProfile = { uid: "qa", email: "qa@example.test", displayName: "QA", role: "admin", status: "activo", permissionModelVersion: 2,
+        modulePermissions: setPermission(enabled, item.path, true) };
+      assert.equal(canUser(profile, moduleKey as any, action), true, item.path);
+      assert.equal(canUser({ ...profile, modulePermissions: setPermission(enabled, item.path, false) }, moduleKey as any, action), false, `Revocada: ${item.path}`);
+      assert.equal(canUser({ ...profile, modulePermissions: setPermission(profile.modulePermissions!, `${section.key}.enabled`, false) }, moduleKey as any, action), false, `Módulo apagado: ${item.path}`);
+    }
+  }
+});
 
 const superAdmin: UserProfile = {
   uid: "usr-super",

@@ -534,7 +534,7 @@ export function ProductModal({
                 </label>
                 <input id="product-modal-field-8"
                   type="number"
-                  step="0.01"
+                  step="any"
                   min="0"
                   value={baseCost}
                   disabled={!!productToEdit}
@@ -564,7 +564,7 @@ export function ProductModal({
                 </label>
                 <input id="product-modal-field-10"
                   type="number"
-                  step="0.01"
+                  step="any"
                   min="0"
                   value={salePrice}
                   onChange={(e) => handleSalePriceChange(Number(e.target.value))}
@@ -578,7 +578,7 @@ export function ProductModal({
                 </label>
                 <input id="product-modal-field-11"
                   type="number"
-                  step="0.01"
+                  step="any"
                   min="0"
                   value={salePriceConIva}
                   onChange={(e) => handleSalePriceConIvaChange(Number(e.target.value))}

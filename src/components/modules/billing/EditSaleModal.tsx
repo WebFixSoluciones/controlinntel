@@ -1,4 +1,5 @@
 "use client";
+import { calculateLineAmounts } from "@/lib/pricing";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { getEcuadorDate } from "@/lib/date-utils";
 
@@ -168,9 +169,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     const ivaRate = product.ivaRate ?? 0;
     const quantity = 1;
     const discount = 0;
-    const subtotal = Math.round((unitPrice * quantity - discount) * 100) / 100;
-    const ivaAmount = Math.round(subtotal * (ivaRate / 100) * 100) / 100;
-    const total = Math.round((subtotal + ivaAmount) * 100) / 100;
+    const { subtotal, ivaAmount, total } = calculateLineAmounts(unitPrice, quantity, ivaRate, discount);
 
     const newItem: InvoiceItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -199,9 +198,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     const ivaRate = 0;
     const quantity = 1;
     const discount = 0;
-    const subtotal = Math.round((defaultPrice * quantity - discount) * 100) / 100;
-    const ivaAmount = Math.round(subtotal * (ivaRate / 100) * 100) / 100;
-    const total = Math.round((subtotal + ivaAmount) * 100) / 100;
+    const { subtotal, ivaAmount, total } = calculateLineAmounts(defaultPrice, quantity, ivaRate, discount);
 
     const newItem: InvoiceItem = {
       id: `item-manual-${Date.now()}`,
@@ -231,9 +228,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
-        const subtotal = Math.round((it.unitPrice * newQty - (it.discount || 0)) * 100) / 100;
-        const ivaAmount = Math.round(subtotal * (it.ivaRate / 100) * 100) / 100;
-        const total = Math.round((subtotal + ivaAmount) * 100) / 100;
+        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, newQty, it.ivaRate, it.discount || 0);
         return {
           ...it,
           quantity: newQty,
@@ -250,9 +245,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
-        const subtotal = Math.max(0, Math.round((validPrice * it.quantity - (it.discount || 0)) * 100) / 100);
-        const ivaAmount = Math.round(subtotal * (it.ivaRate / 100) * 100) / 100;
-        const total = Math.round((subtotal + ivaAmount) * 100) / 100;
+        const { subtotal, ivaAmount, total } = calculateLineAmounts(validPrice, it.quantity, it.ivaRate, it.discount || 0);
         return {
           ...it,
           unitPrice: validPrice,
@@ -269,9 +262,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
-        const subtotal = Math.max(0, Math.round((it.unitPrice * it.quantity - validDiscount) * 100) / 100);
-        const ivaAmount = Math.round(subtotal * (it.ivaRate / 100) * 100) / 100;
-        const total = Math.round((subtotal + ivaAmount) * 100) / 100;
+        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, it.quantity, it.ivaRate, validDiscount);
         return {
           ...it,
           discount: validDiscount,
@@ -296,11 +287,11 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     setItems((prev) =>
       prev.map((it) => {
         if (it.id !== itemId) return it;
-        const ivaAmount = Math.round(it.subtotal * (newRate / 100) * 100) / 100;
-        const total = Math.round((it.subtotal + ivaAmount) * 100) / 100;
+        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, it.quantity, newRate, it.discount || 0);
         return {
           ...it,
           ivaRate: newRate,
+          subtotal,
           ivaAmount,
           total,
         };
@@ -760,7 +751,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                             <input
                               type="number"
                               min="0"
-                              step="0.01"
+                              step="any"
                               value={it.unitPrice}
                               onChange={(e) => handleUpdatePrice(it.id, parseFloat(e.target.value) || 0)}
                               className="w-full text-right bg-white border border-[#e2e8f0] rounded-md pl-4 pr-1 py-1 text-xs font-mono focus:outline-hidden focus:border-[#004ac6]"
@@ -771,7 +762,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                           <input
                             type="number"
                             min="0"
-                            step="0.01"
+                            step="any"
                             value={it.discount || 0}
                             onChange={(e) => handleUpdateDiscount(it.id, parseFloat(e.target.value) || 0)}
                             className="w-16 text-right bg-white border border-[#e2e8f0] rounded-md px-1 py-1 text-xs font-mono focus:outline-hidden focus:border-[#004ac6]"

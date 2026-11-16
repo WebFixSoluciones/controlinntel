@@ -37,12 +37,85 @@ const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificatio
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
 
+test("Una nota administrativa histórica admite servicios asignados y mantiene secuencial y período de cartera", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-15T17:00:00Z") });
+  const service = { id: "svc", clientId: "a", inventoryProductId: "srv", planId: "srv", status: "activo", lastBilledPeriod: "2026-11" };
+  const db = new Database({ ...initial(), clientServices: [service] });
+  const november = await run(db, "issueSale", sale("a", { date: "2026-11-15" }));
+  const october = await run(db, "issueSale", sale("a", { administrativePeriod: "2026-10" }));
+  assert.equal(november.documentNumber, "010-001-000000001");
+  assert.equal(october.documentNumber, "010-001-000000002");
+  assert.equal(october.date, "2026-10-01");
+  assert.equal(db.row("sequences", "nota_venta_010-001").lastDate, "2026-11-15");
+  const charge = db.list("monthlyCharges").find(row => row.invoiceId === october.id);
+  assert.equal(charge.month, 10); assert.equal(charge.year, 2026);
+  assert.equal(charge.balanceRemaining, 115);
+  assert.equal(db.row("clientServices", "svc").lastBilledPeriod, "2026-11");
+  assert.equal(db.list("billingPeriods").length, 0);
+  await assert.rejects(run(db, "issueSale", sale("a", { administrativePeriod: "2026-13" })), /mes válido/);
+});
+
+test("Una empresa con RUC fuera del algoritmo antiguo se registra sin depender de una marca del navegador", async () => {
+  const db = new Database(initial());
+  const client = { businessName: "EMPRESA QA", identificationType: "RUC", identificationNumber: "1790010938001", email: "qa@example.test", phone: "0990000000", address: "QA", status: "activo", sriValidated: false };
+  const result = await run(db, "createClient", { client });
+  assert.equal(result.identificationNumber, client.identificationNumber);
+  await assert.rejects(run(db, "createClient", { client }), /Ya existe/);
+  await assert.rejects(run(db, "createClient", { client: { ...client, identificationNumber: "1790010938000", sriValidated: true } }));
+});
+
+test("El catálogo conserva la precisión del precio con IVA al crear y editar un servicio", async () => {
+  const db = new Database(initial());
+  const product = await run(db, "createProduct", { name: "Tarifa cerrada", sku: "CLOSED", type: "servicio", unit: "servicio", salePrice: 130.434783, salePriceConIva: 150, ivaRate: 15, baseCost: 0, status: "activo", taxMode: "EXCLUIDO", minStock: 0, tracksStock: false });
+  assert.equal(product.salePriceConIva, 150);
+  const invoice = await run(db, "issueSale", sale("a", { items: [{ ...sale().items[0], productId: product.id, unitPrice: product.salePrice }] }));
+  assert.equal(invoice.total, 150);
+  await run(db, "editProduct", { id: product.id, salePrice: 121.73913, salePriceConIva: 140 });
+  assert.equal(db.row("inventoryProducts", product.id).salePriceConIva, 140);
+});
+
+test("El servidor cobra 150 exactos con tarifa precisa y permite emitir octubre postpago manualmente sin duplicarlo", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-15T17:00:00Z") });
+  const base = 130.434783;
+  const service = { id: "svc", clientId: "a", inventoryProductId: "srv", planId: "srv", planName: "QA", status: "activo",
+    contractStartDate: "2026-10-01", cycleAnchor: "calendario", billingFrequency: "mensual", billingType: "postpago", customPrice: base, ivaRate: 15 };
+  const db = new Database({ ...initial(), clientServices: [service] });
+  const selection = { clientId: "a", serviceIds: ["svc"], month: 10, year: 2026, expectedTotal: 150 };
+  const invoice = await run(db, "recur", selection);
+  assert.equal(invoice.total, 150); assert.equal(invoice.ivaTotal, 19.57);
+  assert.equal(invoice.items[0].periodStart, "2026-10-01");
+  assert.equal(db.list("monthlyCharges")[0].total, 150);
+  await assert.rejects(run(db, "recur", selection), /ya fue emitido/);
+  const charge = db.list("monthlyCharges")[0];
+  await run(db, "payCharge", { chargeId: charge.id, amount: 150, method: "Transferencia", bankAccountId: "bank", date: "2026-10-15" });
+  assert.equal(db.row("monthlyCharges", charge.id).balanceRemaining, 0);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1150);
+});
+
+test("Emitir octubre después de noviembre no retrocede el contrato ni duplica períodos", async t => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-15T17:00:00Z") });
+  const service = { id: "svc", clientId: "a", inventoryProductId: "srv", planId: "srv", planName: "QA", status: "activo", contractStartDate: "2026-10-01", cycleAnchor: "calendario", billingFrequency: "mensual", billingType: "postpago", customPrice: 100, ivaRate: 15 };
+  const db = new Database({ ...initial(), clientServices: [service] });
+  const issue = (month: number) => run(db, "recur", { clientId: "a", serviceIds: ["svc"], month, year: 2026, expectedTotal: 115 });
+  await issue(11);
+  const november = db.row("clientServices", "svc");
+  const october = await issue(10);
+  const latest = db.row("clientServices", "svc");
+  assert.equal(latest.lastBilledPeriod, "2026-11");
+  assert.equal(latest.lastBilledInvoiceId, november.lastBilledInvoiceId);
+  assert.equal(latest.nextRenewalDate, "2026-12-01");
+  assert.equal(db.list("monthlyCharges").find(charge => charge.invoiceId === october.id).month, 10);
+  await assert.rejects(issue(10), /ya fue emitido/);
+});
+
 test("Un vendedor sin permiso de precios o descuentos conserva la tarifa de catálogo en el servidor",async()=>{
   const db=new Database(initial());
   const operator:UserProfile={...user,role:"ventas",modulePermissions:{ventas:{enabled:true,submodules:{notas_venta:true,nueva_venta:true,cotizaciones:true,recurrentes:true},actions:{canCreateInvoice:true,canEditPrices:false,canApplyDiscounts:false}}}};
   const execute=(data:Record<string,any>)=>executeCommercial(operator,{action:"issueSale",data,operationId:randomUUID()},db as unknown as Firestore);
   await assert.rejects(execute(sale("a",{items:[{...sale().items[0],unitPrice:90}]})),{status:403});
   await assert.rejects(execute(sale("a",{items:[{...sale().items[0],discount:1}]})),{status:403});
+  await assert.rejects(execute(sale("a",{items:[{...sale().items[0],productId:undefined,unitPrice:1}]})),{status:403});
+  await assert.rejects(execute(sale("a",{items:[{...sale().items[0],unitPrice:100.000001}]})),{status:403});
   assert.equal(db.list("billingInvoices").length,0);
   const invoice=await execute(sale());assert.equal(invoice.total,115);
 });

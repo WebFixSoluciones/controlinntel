@@ -2204,7 +2204,7 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
   const commercialPath = path.resolve(rootDir, "src/lib/server/commercial.ts");
   const commercialContent = fs.readFileSync(commercialPath, "utf8");
   assert.ok(
-    commercialContent.includes("planServicePeriod") &&
+    commercialContent.includes("planManualServicePeriod") &&
       commercialContent.includes('String(service.nextRenewalDate || "") > plan.periodEnd') &&
       commercialContent.includes('c.get("billingPeriods"'),
     "La emisión recurrente debe avanzar la renovación sin sobrescribir una fecha posterior"

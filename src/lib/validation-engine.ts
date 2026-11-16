@@ -51,77 +51,28 @@ export function validateCedulaEcuador(cedula: string): ValidationResult {
 }
 
 /**
- * Valida RUC de Ecuador:
- * - RUC Persona Natural (10 dígitos de cédula + "001")
- * - RUC Sociedad Privada / Extranjeros (tercer dígito = 9, Módulo 11)
- * - RUC Sociedad Pública (tercer dígito = 6, Módulo 11)
+ * Structural validation, shared by registration and invoicing.
+ * SRI explicitly rejects checksum-based denial of corporate/foreign RUCs:
+ * https://www.sri.gob.ec/nl-BE/facturacion-electronica
+ * A valid format does not claim that the taxpayer exists or is active.
  */
 export function validateRucEcuador(ruc: string): ValidationResult {
-  const clean = ruc.trim().replace(/\D/g, "");
-  if (clean.length !== 13) {
+  const clean = String(ruc || "").replace(/\s+/g, "");
+  if (!/^\d{13}$/.test(clean)) {
     return { isValid: false, error: "El RUC debe contener exactamente 13 dígitos numéricos." };
   }
-
-  const province = parseInt(clean.substring(0, 2), 10);
+  const province = Number(clean.slice(0, 2));
   if ((province < 1 || province > 24) && province !== 30) {
     return { isValid: false, error: `Código de provincia '${province}' inválido en el RUC.` };
   }
-
-  const thirdDigit = parseInt(clean.charAt(2), 10);
-
-  // 1. RUC Persona Natural (Tercer dígito < 6)
-  if (thirdDigit < 6) {
-    const cedulaPart = clean.substring(0, 10);
-    const cedulaVal = validateCedulaEcuador(cedulaPart);
-    if (!cedulaVal.isValid) {
-      return { isValid: false, error: `RUC de persona natural inválido: ${cedulaVal.error}` };
-    }
-    const establishment = clean.substring(10, 13);
-    if (establishment === "000") {
-      return { isValid: false, error: "El código de establecimiento del RUC no puede ser '000'." };
-    }
-    return { isValid: true };
+  if (clean.endsWith("000")) {
+    return { isValid: false, error: "El código de establecimiento del RUC no puede ser '000'." };
   }
-
-  // 2. RUC Sociedad Privada o Jurídica (Tercer dígito == 9, Módulo 11)
-  if (thirdDigit === 9) {
-    const coefficients = [4, 3, 2, 7, 6, 5, 4, 3, 2];
-    let sum = 0;
-    for (let i = 0; i < 9; i++) {
-      sum += parseInt(clean.charAt(i), 10) * coefficients[i];
-    }
-    const verifier = parseInt(clean.charAt(9), 10);
-    const mod = sum % 11;
-    const calculatedVerifier = mod === 0 ? 0 : 11 - mod;
-
-    if (verifier !== calculatedVerifier) {
-      return { isValid: false, error: "Dígito verificador inválido para RUC de Sociedad Jurídica (Módulo 11)." };
-    }
-    const establishment = clean.substring(10, 13);
-    if (establishment === "000") {
-      return { isValid: false, error: "El código de establecimiento del RUC no puede ser '000'." };
-    }
-    return { isValid: true };
+  if (Number(clean[2]) < 6) {
+    const cedula = validateCedulaEcuador(clean.slice(0, 10));
+    if (!cedula.isValid) return { isValid: false, error: `RUC de persona natural inválido: ${cedula.error}` };
   }
-
-  // 3. RUC Entidad Pública (Tercer dígito == 6, Módulo 11)
-  if (thirdDigit === 6) {
-    const coefficients = [3, 2, 7, 6, 5, 4, 3, 2];
-    let sum = 0;
-    for (let i = 0; i < 8; i++) {
-      sum += parseInt(clean.charAt(i), 10) * coefficients[i];
-    }
-    const verifier = parseInt(clean.charAt(8), 10);
-    const mod = sum % 11;
-    const calculatedVerifier = mod === 0 ? 0 : 11 - mod;
-
-    if (verifier !== calculatedVerifier) {
-      return { isValid: false, error: "Dígito verificador inválido para RUC de Entidad Pública (Módulo 11)." };
-    }
-    return { isValid: true };
-  }
-
-  return { isValid: false, error: "Estructura de RUC no válida según el formato estándar." };
+  return { isValid: true };
 }
 
 /**

@@ -1,4 +1,5 @@
 import { addMonthsSafely, diffInCalendarDays, formatDateEC, getEcuadorDate } from "./date-utils.ts";
+import { calculateLineAmounts, roundUnitPrice } from "./pricing.ts";
 
 export type RecordData = Record<string, any>;
 export class CommercialValidationError extends Error {}
@@ -15,8 +16,8 @@ export function calculateLines(items: RecordData[]) {
     if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isFinite(rate) || rate < 0 || rate > 100) throw new CommercialValidationError("Cantidad, precio o impuesto inválido.");
     const discount = cents(item.discount ?? 0), base = cents(quantity * unitPrice) - discount;
     if (discount < 0 || base < 0) throw new CommercialValidationError("El descuento excede el valor de la partida.");
-    const tax = Math.round(base * rate / 100);
-    return { ...item, quantity, unitPrice, ivaRate: rate, discount: money(discount), subtotal: money(base), ivaAmount: money(tax), total: money(base + tax) };
+    const amounts = calculateLineAmounts(unitPrice, quantity, rate, money(discount));
+    return { ...item, quantity, unitPrice, ivaRate: rate, discount: money(discount), ...amounts };
   });
   const subtotal = lines.reduce((s, i) => s + cents(i.subtotal), 0), iva = lines.reduce((s, i) => s + cents(i.ivaAmount), 0);
   return { items: lines, subtotal: money(subtotal), ivaTotal: money(iva), total: money(subtotal + iva), discountTotal:money(lines.reduce((sum,item)=>sum+cents(item.discount||0),0)),
@@ -80,7 +81,7 @@ function servicePeriod(service: RecordData, month: number, year: number) {
     key: `${service.id}_${periodStart}_${periodEnd}`,
     line: { id: `period-${service.id}`, serviceId: service.id, productId: service.inventoryProductId || service.planId,
       sku: service.inventorySku || "SRV", name: service.planName, description: `Período del ${formatDateEC(billingStart)} al ${formatDateEC(addDays(periodEnd, -1))} (${prepaid ? "PREPAGO" : "POSPAGO"})`,
-      unit: "servicio", quantity: 1, unitPrice: money(cents(Number(unitPrice) * ratio)), ivaRate: Number(rate), discount: 0, periodStart, periodEnd, zeroPriceReason:service.zeroPriceReason||"" },
+      unit: "servicio", quantity: 1, unitPrice: ratio === 1 ? roundUnitPrice(Number(unitPrice)) : money(cents(Number(unitPrice) * ratio)), ivaRate: Number(rate), discount: 0, periodStart, periodEnd, zeroPriceReason:service.zeroPriceReason||"" },
   };
 }
 
@@ -89,6 +90,12 @@ export function planServicePeriod(service: RecordData, month: number, year: numb
   return period.eligible && period.issueDate > today
     ? { eligible: false as const, serviceId: String(service.id), reason: "El período todavía no es exigible." }
     : period;
+}
+
+// Manual issuance may anticipate a contractual period. The scheduler still uses
+// planServicePeriod and never anticipates postpaid or future periods.
+export function planManualServicePeriod(service: RecordData, month: number, year: number) {
+  return servicePeriod(service, month, year);
 }
 
 export function initialServicePeriod(service: RecordData) {

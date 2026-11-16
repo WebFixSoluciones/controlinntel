@@ -122,3 +122,20 @@ test("editing metadata of a legacy node retains its system password and seals it
   assert.equal(database.rows.get("nodes/legacy").services[0].credentials, undefined);
   assert.equal(await revealNodePassword(admin, "legacy", "system", database.db), "LegacyPassword#42");
 });
+
+test("Editar una credencial del nodo conserva las demás y comprueba permiso y versión", async () => {
+  const database = new VaultDatabase();
+  const created = await save(admin, "nodes", { clientId: "a", name: "Nodo QA", address: "QA", totalCapacityMbps: 100, usedCapacityMbps: 0, status: "activo",
+    services: [{ id: "router", systemName: "Router", username: "before", password: "OldSecret#42" }, { id: "olt", systemName: "OLT", username: "other", password: "OtherSecret#42" }] }, "node", undefined, database.db);
+  const update = created.services.map((service: any) => service.id === "router" ? { ...service, username: "after", password: "NewSecret#42" } : service);
+  const restricted: UserProfile = { ...admin, role: "tecnico", permissionModelVersion: 2, modulePermissions: { red: { enabled: true, submodules: { nodos: true, pools_ip: false }, actions: { canManageNodes: true, canEditRouterCredentials: false } as any } } };
+  await assert.rejects(save(restricted, "nodes", { services: update }, "node", 1, database.db), { status: 403 });
+  const changed = await save(admin, "nodes", { services: update }, "node", 1, database.db);
+  assert.equal(changed.services[0].username, "after");
+  assert.equal(await revealNodePassword(admin, "node", "router", database.db), "NewSecret#42");
+  assert.equal(await revealNodePassword(admin, "node", "olt", database.db), "OtherSecret#42");
+  assert.equal(JSON.stringify([...database.rows]).includes("NewSecret#42"), false);
+  await assert.rejects(save(admin, "nodes", { services: update }, "node", 1, database.db), { status: 409 });
+  await save(admin, "nodes", { services: changed.services.map((service: any) => ({ ...service, password: "" })) }, "node", 2, database.db);
+  assert.equal(await revealNodePassword(admin, "node", "router", database.db), "NewSecret#42");
+});

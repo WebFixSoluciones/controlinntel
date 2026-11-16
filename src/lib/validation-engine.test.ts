@@ -46,3 +46,14 @@ test("Validation Engine - Helper Central validateIdentification", () => {
   assert.equal(validateIdentification("PASAPORTE", "A12345678").isValid, true);
   assert.equal(validateIdentification("PASAPORTE", "").isValid, false);
 });
+
+test("Los RUC societarios no se rechazan por el algoritmo antiguo de módulo 11", () => {
+  for (const ruc of ["1790010938001", "1760001550001"]) {
+    assert.equal(validateRucEcuador(ruc).isValid, true);
+    assert.equal(validateIdentification("RUC", ruc).isValid, true);
+  }
+  for (const ruc of ["1790010938000", "1790010938", "A790010938001", "0090010938001"]) {
+    assert.equal(validateRucEcuador(ruc).isValid, false, ruc);
+  }
+  assert.equal(validateIdentification("CEDULA", "1710034064", true).isValid, false, "Una marca enviada por el navegador no elude la validación de cédula");
+});
