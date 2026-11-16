@@ -1,12 +1,12 @@
 import { addMonthsSafely, diffInCalendarDays, formatDateEC, getEcuadorDate } from "./date-utils.ts";
-import { calculateLineAmounts, roundUnitPrice } from "./pricing.ts";
+import { calculateLineAmounts, roundUnitPrice, inclusiveUnitPrice, roundCurrency } from "./pricing.ts";
 
 export type RecordData = Record<string, any>;
 export class CommercialValidationError extends Error {}
 export const cents = (value: unknown): number => {
   const n = Number(value);
   if (!Number.isFinite(n) || Math.abs(n) > 100_000_000) throw new CommercialValidationError("Importe inválido.");
-  return Math.round((n + Number.EPSILON) * 100);
+  return Math.round(roundCurrency(n) * 100);
 };
 export const money = (value: number) => value / 100;
 export function calculateLines(items: RecordData[]) {
@@ -16,8 +16,14 @@ export function calculateLines(items: RecordData[]) {
     if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isFinite(rate) || rate < 0 || rate > 100) throw new CommercialValidationError("Cantidad, precio o impuesto inválido.");
     const discount = cents(item.discount ?? 0), base = cents(quantity * unitPrice) - discount;
     if (discount < 0 || base < 0) throw new CommercialValidationError("El descuento excede el valor de la partida.");
-    const amounts = calculateLineAmounts(unitPrice, quantity, rate, money(discount));
-    return { ...item, quantity, unitPrice, ivaRate: rate, discount: money(discount), ...amounts };
+    const discountExact = item.discountExact === undefined ? money(discount) : Number(item.discountExact);
+    if (!Number.isFinite(discountExact) || discountExact < 0 || discountExact > quantity * unitPrice + 1e-8 || Math.abs(discountExact - money(discount)) > 0.01000001) throw new CommercialValidationError("El descuento preciso no coincide con el descuento de la partida.");
+    if (item.unitPriceWithTax !== undefined && inclusiveUnitPrice(unitPrice, item.unitPriceWithTax, rate) === undefined) throw new CommercialValidationError("El precio con IVA no coincide con la tarifa base.");
+    const amounts = calculateLineAmounts(unitPrice, quantity, rate, money(discount), { discountExact, unitPriceWithTax: item.unitPriceWithTax });
+    // Reconcile the displayed discount with the rounded bases. This also keeps
+    // quantity × unit price − discount consistent with the fiscal line base.
+    const reconciledDiscount = cents(quantity * unitPrice) - cents(amounts.subtotal);
+    return { ...item, quantity, unitPrice, ivaRate: rate, discount: money(reconciledDiscount), ...amounts };
   });
   const subtotal = lines.reduce((s, i) => s + cents(i.subtotal), 0), iva = lines.reduce((s, i) => s + cents(i.ivaAmount), 0);
   return { items: lines, subtotal: money(subtotal), ivaTotal: money(iva), total: money(subtotal + iva), discountTotal:money(lines.reduce((sum,item)=>sum+cents(item.discount||0),0)),

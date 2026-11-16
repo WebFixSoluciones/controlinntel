@@ -6,6 +6,7 @@ import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
 import { calculateLines, cents, money, chargeBalance, planManualServicePeriod, scheduledServicePeriods, paymentDueOnIssue, serviceBillingStart, initialServicePeriod, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { roundUnitPrice } from "../pricing.ts";
+import { canCreateSalesClient } from "../sales-workspace.ts";
 import { getEcuadorDate } from "../date-utils.ts";
 import { defaultExpenseCategories } from "../expense-categories.ts";
 import { allocateClientCredit } from "../client-credit.ts";
@@ -166,11 +167,12 @@ function commercialFields(input: Row) {
 async function issueSale(c: Context, input: Row) {
   if(input.documentType!=="nota_venta") throw new HttpError(400,"Este flujo administra notas comerciales; la emisión SRI se gestiona por separado.");
   const isDraft=input.status==="borrador", date=checkedDate(input.date);
+  if (!["efectivo", "transferencia", "tarjeta", "credito"].includes(input.paymentMethod)) throw new HttpError(400, "Selecciona una forma de pago válida.");
   if (input.administrativePeriod !== undefined && !validDate(`${input.administrativePeriod}-01`)) throw new HttpError(400, "Selecciona un mes válido para el período de la nota.");
   const client=input.clientId==="cf-9999999999999" ? {id:input.clientId,businessName:"Consumidor Final",identificationNumber:"9999999999999"} : await c.get("clients",input.clientId);
   if(client.status==="retirado") throw new HttpError(400,"Cliente retirado.");
   const calculated=calculateLines(input.items), id=randomUUID();
-  if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => Number(item.discount) > 0)) throw new HttpError(403, "No tienes permiso para aplicar descuentos.");
+  if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => Number(item.discountExact ?? item.discount) > 0)) throw new HttpError(403, "No tienes permiso para aplicar descuentos.");
   if(calculated.items.some(item=>Number(item.unitPrice)===0&&!String(item.zeroPriceReason||input.notes||"").trim()))throw new HttpError(400,"Indica el motivo de la partida gratuita en las notas.");
   const configs=await c.list("sriCompanyConfig"), config=configs[0]||{};
   // Canal comercial: mostrador (venta puntual) o servicio (recurrencia).
@@ -199,11 +201,12 @@ async function issueSale(c: Context, input: Row) {
     c.put("documentNumbers",{id:`nota_venta_${documentNumber}`,invoiceId:id});
   }
   const immediate=input.paymentsBreakdown ? cents(input.paymentsBreakdown.efectivo||0)+cents(input.paymentsBreakdown.transferencia||0)+cents(input.paymentsBreakdown.tarjeta||0) : input.paymentMethod==="credito"?0:cents(calculated.total);
+  if (input.paymentsBreakdown && ["efectivo", "transferencia", "tarjeta", "credito"].some(method => cents(input.paymentsBreakdown[method] || 0) < 0)) throw new HttpError(400, "Los importes de cada forma de pago deben ser positivos o cero.");
   if(immediate<0 || immediate>cents(calculated.total)) throw new HttpError(400,"Pago inicial inválido.");
   if(input.paymentsBreakdown && immediate+cents(input.paymentsBreakdown.credito||0)!==cents(calculated.total)) throw new HttpError(400,"La distribución del pago no coincide con el total calculado.");
   if (!isDraft && immediate < cents(calculated.total) && input.creditDueDate !== undefined && (!validDate(input.creditDueDate) || input.creditDueDate < date)) throw new HttpError(400, "El vencimiento del crédito debe ser válido y no anterior a la emisión.");
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
-  const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
+  const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,clientEmail:client.email||"",clientPhone:client.phone||"",clientAddress:client.address||"",status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
   for(const item of calculated.items) {
     delete item.costUnitSnapshot;
     delete item.costTotalSnapshot;
@@ -220,6 +223,11 @@ async function issueSale(c: Context, input: Row) {
     }
     if(!product.id && !item.serviceId) throw new HttpError(400,"Artículo inexistente.");
     if(product.status==="inactivo") throw new HttpError(400,"Artículo inactivo.");
+    if (isDraft && item.serviceId) {
+      const service = await c.get("clientServices", item.serviceId);
+      if (service.clientId !== client.id) throw new HttpError(400, "El servicio no pertenece al cliente.");
+      if (!canUser(c.user, "ventas", "canEditPrices") && (roundUnitPrice(item.unitPrice) !== roundUnitPrice(service.customPrice ?? service.basePrice) || Number(item.ivaRate) !== Number(service.ivaRate))) throw new HttpError(403, "No tienes permiso para modificar la tarifa del servicio en el borrador.");
+    }
     if (!item.serviceId && !canUser(c.user, "ventas", "canEditPrices") && (!product.id || roundUnitPrice(item.unitPrice) !== roundUnitPrice(product.salePrice) || Number(item.ivaRate) !== Number(product.ivaRate))) throw new HttpError(403, "No tienes permiso para modificar los precios del catálogo.");
     if(!isDraft&&item.serviceId){
       const service=await c.get("clientServices",item.serviceId);
@@ -250,11 +258,19 @@ async function issueSale(c: Context, input: Row) {
     const referencePeriod = input.administrativePeriod || calculated.items.find(item => item.periodStart)?.periodStart || date;
     const charge={id:`chg-inv-${id}`,clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,invoiceId:id,invoiceNumber:documentNumber,saleDate:date,month:Number(referencePeriod.slice(5,7)),year:Number(referencePeriod.slice(0,4)),serviceDescription:calculated.items.map(i=>i.name).join(" + "),subtotal:calculated.subtotal,ivaAmount:calculated.ivaTotal,total:calculated.total,paidAmount:0,balanceRemaining:calculated.total,status:"pendiente",payments:[],maxPaymentDate:input.creditDueDate||date,...(input.expectedPaymentMethod?{expectedPaymentMethod:String(input.expectedPaymentMethod)}:{})};
     if (typeof input.creditNotes === "string" && input.creditNotes.trim()) Object.assign(charge, { notes: input.creditNotes.trim().slice(0, 500) });
+    if (cents(charge.total) === 0) charge.status = "pagado";
     c.put("monthlyCharges",charge);
     if(immediate) {
-      let bankId=input.bankAccountId;
-      if(!bankId&&input.paymentMethod==="efectivo") {const cash=(await c.list("bankAccounts","accountType","caja_efectivo")).filter(b=>b.status==="activa");if(cash.length===1)bankId=cash[0].id;}
-      await payCharge(c,{chargeId:charge.id,amount:money(immediate),method:input.paymentMethod,bankAccountId:bankId,date,reference:documentNumber});
+      const methods = input.paymentsBreakdown ? ["efectivo", "transferencia", "tarjeta"].filter(method => cents(input.paymentsBreakdown[method] || 0) > 0) : [input.paymentMethod];
+      for (const method of methods) {
+        let bankId = input.paymentAccounts?.[method] || input.bankAccountId;
+        if (method === "efectivo" && (!bankId || methods.length > 1 && !input.paymentAccounts?.efectivo)) {
+          const cash=(await c.list("bankAccounts","accountType","caja_efectivo")).filter(b=>b.status==="activa");
+          if(cash.length===1)bankId=cash[0].id;
+          else if(methods.length>1)throw new HttpError(400,"Para combinar efectivo con otros pagos, configura una caja de efectivo activa o selecciona su cuenta.");
+        }
+        await payCharge(c,{chargeId:charge.id,amount:money(input.paymentsBreakdown ? cents(input.paymentsBreakdown[method]) : immediate),method,bankAccountId:bankId,date,reference:method==="transferencia"?input.transferenciaRef||documentNumber:method==="tarjeta"?input.tarjetaRef||documentNumber:documentNumber});
+      }
     }
     else await c.clientBalance(client.id);
   }
@@ -548,11 +564,15 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(changes.documentType && changes.documentType !== old.documentType || changes.claveAcceso) throw new HttpError(400,"El tipo y la clave del documento se conservan.");
       if(changes.documentNumber&&changes.documentNumber!==old.documentNumber)throw new HttpError(400,"La numeración emitida no se modifica.");
       const calculated=calculateLines(changes.items||old.items);
-      if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => Number(item.discount) !== Number(old.items.find((line: Row) => line.id === item.id)?.discount || 0))) throw new HttpError(403, "No tienes permiso para cambiar descuentos.");
+      if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => { const previous = old.items.find((line: Row) => line.id === item.id); return Number(item.discountExact ?? item.discount) !== Number(previous?.discountExact ?? previous?.discount ?? 0); })) throw new HttpError(403, "No tienes permiso para cambiar descuentos.");
       for (const item of calculated.items) {
         delete item.costUnitSnapshot; delete item.costTotalSnapshot; delete item.costKindSnapshot;
         const previous = old.items.find((line: Row) => line.id === item.id && line.productId === item.productId);
         const product = item.productId ? await c.get("inventoryProducts", item.productId, false) : {};
+        if (item.productId && !product.id && !item.serviceId) throw new HttpError(400, "Artículo inexistente.");
+        if (product.status === "inactivo" && !previous) throw new HttpError(400, "Artículo inactivo.");
+        const service = item.serviceId ? await c.get("clientServices", item.serviceId) : undefined;
+        if (service && service.clientId !== (changes.clientId || old.clientId)) throw new HttpError(400, "El servicio no pertenece al cliente.");
         const cost = previous?.costUnitSnapshot ?? (previous && old.status !== "borrador" ? undefined : product.baseCost);
         if (Number.isFinite(cost) && Number(cost) >= 0) {
           item.costUnitSnapshot = Number(cost);
@@ -825,7 +845,9 @@ export async function runScheduledRecurringBilling(db: Firestore, today = getEcu
 
 export async function executeCommercial(user:UserProfile, command:CommercialCommand, database?:Firestore) {
   const permission=["createClient","assignService","editService","retireClient","retireService"].includes(command.action)?"manage_clients":["createProduct","editProduct","inventoryTransfer","inventoryAdjustment"].includes(command.action)?"manage_network":"manage_finance";
-  requirePermission(user,permission);
+  const salesClient = command.action === "createClient" && canCreateSalesClient(user);
+  if (!salesClient) requirePermission(user,permission);
+  if (command.action === "createClient" && command.data.service && !canUser(user, "clientes", "canEditClient")) throw new HttpError(403, "No tienes permiso para asignar un servicio al crear el cliente.");
   if (permission === "manage_finance" && !canViewFinancialAmounts(user)) throw new HttpError(403, "No tienes permiso para operar con importes comerciales o financieros.");
   const salesScreen = command.action === "issueSale" ? "nueva_venta"
     : ["editSale", "cancelSale"].includes(command.action) ? "notas_venta"
@@ -846,7 +868,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],
   };
   const grant=grants[command.action];
-  if(grant&&!canUser(user,grant[0],grant[1]))throw new HttpError(403,"No tienes autorización para esta acción comercial.");
+  if(grant&&!canUser(user,grant[0],grant[1])&&!salesClient)throw new HttpError(403,"No tienes autorización para esta acción comercial.");
   const db=database||adminServices().db, requestHash=digest({action:command.action,data:command.data});
   return db.runTransaction(async tx=>{
     const existing=(await tx.get(db.collection("operationLog").doc(command.operationId))).data();

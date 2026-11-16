@@ -2010,7 +2010,7 @@ test("Flujo E2E 33: Autoguardado Continuo de Borrador en Ventas y Apertura de Hi
 
   // 2. Acceso directo a Historial de Facturación en Nueva Pestaña
   assert.ok(
-    newSaleContent.includes('href={`/clientes?id=${encodeURIComponent(selectedClient.id)}&tab=facturacion`}') &&
+    newSaleContent.includes('canOpenClientView("facturacion")') && newSaleContent.includes('&tab=facturacion') && newSaleContent.includes('/ventas?sub=notas_venta&cliente=') &&
       newSaleContent.includes('target="_blank"') &&
       newSaleContent.includes('rel="noopener noreferrer"') &&
       newSaleContent.includes("Historial de Facturación"),
@@ -2260,12 +2260,7 @@ test("Flujo E2E 37: Estructura Anti-Colisión y Sin Sobre-Montado en Formulario 
   const newSalePath = path.resolve(rootDir, "src/components/modules/billing/NewSaleView.tsx");
   const newSaleContent = fs.readFileSync(newSalePath, "utf8");
 
-  // 1. Selector de Cliente con distribución responsive espaciosa
-  assert.ok(
-    newSaleContent.includes("xl:grid-cols-12") &&
-      newSaleContent.includes("xl:col-span-6"),
-    "NewSaleView debe usar distribución xl:grid-cols-12 y xl:col-span-6 para evitar compresión en pantallas estándar"
-  );
+  // Visual overlap is verified against actual label bounds in qa-sales-browser.cjs.
 
   // 2. Fila superior exclusiva para identificación del cliente y cambio
   assert.ok(

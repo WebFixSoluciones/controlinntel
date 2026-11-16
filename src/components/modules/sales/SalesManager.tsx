@@ -53,6 +53,7 @@ export function SalesManager() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
+  const clientFilter = searchParams.get("cliente") || "";
   const subParam = searchParams.get("sub") as SalesTab | null;
 
   const [activeTab, setActiveTab] = useState<SalesTab>(() => {
@@ -139,9 +140,9 @@ export function SalesManager() {
       const matchesFrom = !dateFrom || (saleDate && saleDate >= dateFrom);
       const matchesTo = !dateTo || (saleDate && saleDate <= dateTo);
 
-      return matchesSearch && matchesSri && matchesFrom && matchesTo;
+      return (!clientFilter || inv.clientId === clientFilter) && matchesSearch && matchesSri && matchesFrom && matchesTo;
     });
-  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo, billingInvoices, sriCompanyConfig.ambiente]);
+  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo, billingInvoices, sriCompanyConfig.ambiente, clientFilter]);
 
   const filteredQuotes = useMemo(() => {
     return billingQuotes.filter((q) => {
@@ -253,6 +254,8 @@ export function SalesManager() {
                   className="w-full text-xs bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg pl-9 pr-3 py-2 text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
                 />
               </div>
+
+              {clientFilter && <button type="button" onClick={() => router.push("/ventas?sub=notas_venta")} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Historial del cliente · Ver todos</button>}
 
               <select
                 value={sriFilter}

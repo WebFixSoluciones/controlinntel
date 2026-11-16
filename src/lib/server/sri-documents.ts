@@ -157,7 +157,8 @@ export async function fiscalContent(db: Firestore, tx: Transaction, request: Sri
           throw new HttpError(409, "La cantidad supera lo disponible para acreditar en la factura.");
         }
         rate.parse(source.ivaRate);
-        return { ...source, quantity: line.quantity, discount: money(cents(Number(source.discount || 0) * line.quantity / Number(source.quantity))) };
+        const discountExact = Number(source.discountExact ?? source.discount ?? 0) * line.quantity / Number(source.quantity);
+        return { ...source, quantity: line.quantity, discountExact, discount: money(cents(discountExact)) };
       });
       const totals = calculateLines(items);
       if (cents(totals.total) + existing.reduce((sum, row) => sum + cents(row.total), 0) > cents(original.total) || totals.total <= 0) {

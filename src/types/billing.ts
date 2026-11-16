@@ -129,6 +129,8 @@ export interface SriFiscalEvidence {
 
 
 export interface InvoiceItem {
+  unitPriceWithTax?: number;
+  discountExact?: number;
   serviceId?: string;
   periodStart?: string;
   periodEnd?: string;

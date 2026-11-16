@@ -11,7 +11,7 @@ import { getEcuadorDate } from "@/lib/date-utils";
 import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
-import { canUser } from "@/lib/permissions";
+import { canUser, canAccessRoute, canAccessSubmodule } from "@/lib/permissions";
 import { Plus, Trash2, Search, UserPlus, CheckCircle2, Zap, Building2, CreditCard, Banknote, Landmark, Clock, FileCode2, Terminal, ShieldCheck, FolderArchive, Package, AlertCircle, X, UserCheck, Sparkles, Loader2, Receipt, Printer, Download, Copy, Check, Share2, Mail, Send, ChevronDown, ChevronUp, Save, Ban, Percent, DollarSign, Calendar, Tag, ExternalLink } from "lucide-react";
 import {
 
@@ -27,7 +27,9 @@ import { ConvertToSriInvoiceModal } from "../sales/ConvertToSriInvoiceModal";
 import { ChargePaymentModal } from "../finance/ChargePaymentModal";
 import { availableClientCredit } from "@/lib/client-credit";
 import { chargeBalance, money, addDays, validDate } from "@/lib/commercial-core";
-import { calculateLineAmounts, calculatePriceWithTax, calculatePriceWithoutTax } from "@/lib/pricing";
+import { calculatePriceWithTax, calculatePriceWithoutTax, inclusiveUnitPrice } from "@/lib/pricing";
+import { calculateSale } from "@/lib/sale-calculation";
+import { canCreateSalesClient } from "@/lib/sales-workspace";
 import { canReadCollection } from "@/lib/persistence-contracts";
 
 interface NewSaleViewProps {
@@ -51,6 +53,7 @@ interface CartLineItem {
   unit: string;
   quantity: number;
   unitPrice: number; // Precio base sin IVA
+  unitPriceWithTax?: number;
   ivaRate: number;   // 15, 5, 0
   discountType: "percentage" | "amount" | "no_iva";
   discountInput: number;
@@ -125,6 +128,8 @@ export function NewSaleView({
   } = useApp();
   const { showSuccess, showError, showWarning } = useToast();
 
+  const canOpenClientView = (tab: string) => canAccessRoute(currentUser, "/clientes") && canAccessSubmodule(currentUser, "abonados", tab);
+  const canCreateClient = canCreateSalesClient(currentUser);
   const canEditPrices = canUser(currentUser, "ventas", "canEditPrices");
   const canApplyDiscounts = canUser(currentUser, "ventas", "canApplyDiscounts");
   const canCreateQuickProduct = canUser(currentUser, "inventarios", "canCreateProduct");
@@ -221,9 +226,10 @@ export function NewSaleView({
         unit: it.unit || "unidad",
         quantity: it.quantity || 1,
         unitPrice: it.unitPrice || 0,
+        unitPriceWithTax: it.unitPriceWithTax,
         ivaRate: it.ivaRate ?? 15,
-        discountType: it.discountType || (it.discount > 0 ? "amount" : "percentage"),
-        discountInput: it.discountInput ?? (it.discount || 0),
+        discountType: it.discountExact !== undefined ? "amount" : it.discountType || (it.discount > 0 ? "amount" : "percentage"),
+        discountInput: it.discountExact ?? it.discountInput ?? (it.discount || 0),
         serialNumbers: it.serialNumbers || [],
       }));
     }
@@ -568,8 +574,8 @@ export function NewSaleView({
 
   const canViewClientCredit = Boolean(currentUser && canReadCollection(currentUser, "clientAdvances"));
   const clientCredit = availableClientCredit(clientAdvances, selectedClient?.id || "");
-  const clientDebt = money(monthlyCharges.filter(charge => charge.clientId === selectedClient?.id)
-    .reduce((sum, charge) => sum + chargeBalance(charge), 0));
+  const clientDebt = canReadCollection(currentUser, "monthlyCharges") ? money(monthlyCharges.filter(charge => charge.clientId === selectedClient?.id)
+    .reduce((sum, charge) => sum + chargeBalance(charge), 0)) : Number(selectedClient?.currentBalance || 0);
   const emittedCharge = monthlyCharges.find(charge => charge.invoiceId === (emittedInvoice?.relatedSaleId || emittedInvoice?.id) && charge.status !== "anulado");
 
   const recurringServicesInCart = selectedClient ? clientServices.filter(service =>
@@ -604,8 +610,9 @@ export function NewSaleView({
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase();
-    if (!q) return inventoryProducts.slice(0, 8);
-    return inventoryProducts
+    const sellable = inventoryProducts.filter(product => product.status !== "inactivo" && Number.isFinite(product.salePrice));
+    if (!q) return sellable.slice(0, 8);
+    return sellable
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -616,6 +623,7 @@ export function NewSaleView({
 
   const catalogFilteredProducts = useMemo(() => {
     return inventoryProducts.filter((p) => {
+      if (p.status === "inactivo" || !Number.isFinite(p.salePrice)) return false;
       const q = catalogSearch.trim().toLowerCase();
       const matchQ =
         !q ||
@@ -656,119 +664,7 @@ export function NewSaleView({
   // ==========================================
   // MOTOR DE CÁLCULO DE ÍTEMS Y DESCUENTOS (CON "QUITAR IVA")
   // ==========================================
-  const calculatedTotals = useMemo(() => {
-    // 1. Calcular descuento por línea
-    const lineCalcs = cartItems.map((item) => {
-      const qty = Math.max(0.01, Number(item.quantity) || 0);
-      const price = Math.max(0, Number(item.unitPrice) || 0);
-      const grossLine = qty * price;
-      const rate = Number(item.ivaRate) || 0;
-
-      let lineDiscount = 0;
-      if (item.discountType === "percentage") {
-        const pct = Math.min(100, Math.max(0, Number(item.discountInput) || 0));
-        lineDiscount = grossLine * (pct / 100);
-      } else if (item.discountType === "amount") {
-        lineDiscount = Math.min(grossLine, Math.max(0, Number(item.discountInput) || 0));
-      } else if (item.discountType === "no_iva") {
-        // Descuenta proporcionalmente el IVA para que el total con IVA sea igual al bruto sin IVA
-        lineDiscount = rate > 0 ? grossLine - grossLine / (1 + rate / 100) : 0;
-      }
-
-      const netAfterLineDisc = Math.max(0, grossLine - lineDiscount);
-      return {
-        ...item,
-        grossLine,
-        lineDiscount,
-        netAfterLineDisc,
-        rate,
-      };
-    });
-
-    const sumNetAfterLine = lineCalcs.reduce((acc, l) => acc + l.netAfterLineDisc, 0);
-
-    // 2. Calcular descuento general distribuido proporcionalmente
-    let globalDiscountAmount = 0;
-    if (sumNetAfterLine > 0) {
-      if (globalDiscountType === "percentage") {
-        const pct = Math.min(100, Math.max(0, Number(globalDiscountValue) || 0));
-        globalDiscountAmount = sumNetAfterLine * (pct / 100);
-      } else if (globalDiscountType === "amount") {
-        globalDiscountAmount = Math.min(sumNetAfterLine, Math.max(0, Number(globalDiscountValue) || 0));
-      } else if (globalDiscountType === "no_iva") {
-        // Quitar IVA en todos los ítems gravados
-        globalDiscountAmount = lineCalcs.reduce((acc, l) => {
-          if (l.rate > 0) {
-            return acc + (l.netAfterLineDisc - l.netAfterLineDisc / (1 + l.rate / 100));
-          }
-          return acc;
-        }, 0);
-      }
-    }
-
-    let subtotal15 = 0;
-    let subtotal0 = 0;
-    let discountTotal = 0;
-    let ivaTotal = 0;
-
-    const finalInvoiceItems: InvoiceItem[] = lineCalcs.map((l) => {
-      let extraGlobalDisc = 0;
-      if (sumNetAfterLine > 0 && globalDiscountAmount > 0) {
-        if (globalDiscountType === "no_iva") {
-          extraGlobalDisc =
-            l.rate > 0 ? l.netAfterLineDisc - l.netAfterLineDisc / (1 + l.rate / 100) : 0;
-        } else {
-          extraGlobalDisc = globalDiscountAmount * (l.netAfterLineDisc / sumNetAfterLine);
-        }
-      }
-
-      const totalItemDiscount = Math.round((l.lineDiscount + extraGlobalDisc) * 100) / 100;
-      const { subtotal: finalSubtotal, ivaAmount: finalIva, total: finalTotal } = calculateLineAmounts(l.unitPrice, l.quantity, l.rate, totalItemDiscount);
-
-      if (l.rate > 0) {
-        subtotal15 += finalSubtotal;
-        ivaTotal += finalIva;
-      } else {
-        subtotal0 += finalSubtotal;
-      }
-      discountTotal += totalItemDiscount;
-
-      return {
-        id: l.id,
-        productId: l.productId,
-        sku: l.sku,
-        name: l.name,
-        description: l.description,
-        unit: l.unit,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        discount: totalItemDiscount,
-        discountType: l.discountType,
-        discountInput: l.discountInput,
-        ivaRate: l.rate,
-        subtotal: finalSubtotal,
-        ivaAmount: finalIva,
-        total: finalTotal,
-        warehouseId,
-        serialNumbers: l.serialNumbers,
-      };
-    });
-
-    subtotal15 = Math.round(subtotal15 * 100) / 100;
-    subtotal0 = Math.round(subtotal0 * 100) / 100;
-    discountTotal = Math.round(discountTotal * 100) / 100;
-    ivaTotal = Math.round(ivaTotal * 100) / 100;
-    const total = Math.round((subtotal15 + subtotal0 + ivaTotal) * 100) / 100;
-
-    return {
-      items: finalInvoiceItems,
-      subtotal15,
-      subtotal0,
-      discountTotal,
-      ivaTotal,
-      total,
-    };
-  }, [cartItems, globalDiscountType, globalDiscountValue, warehouseId]);
+  const calculatedTotals = useMemo(() => { const result = calculateSale(cartItems.map(item => ({ ...item, warehouseId })), globalDiscountType, globalDiscountValue); return { ...result, items: result.items as InvoiceItem[] }; }, [cartItems, globalDiscountType, globalDiscountValue, warehouseId]);
 
   // ==========================================
   // CÁLCULO DE MULTIPAGO Y VUELTO
@@ -795,7 +691,7 @@ export function NewSaleView({
       totalEntered,
       change,
       missing,
-      isCovered: totalSale > 0 && totalEntered >= totalSale - 0.01,
+      isCovered: totalSale >= 0 && Math.round(totalEntered * 100) >= Math.round(totalSale * 100),
     };
   }, [activeMethods, paymentValues, calculatedTotals.total]);
 
@@ -834,6 +730,7 @@ export function NewSaleView({
           unit: prod.unit || "unidad",
           quantity: 1,
           unitPrice: prod.salePrice,
+          unitPriceWithTax: inclusiveUnitPrice(prod.salePrice, prod.salePriceConIva, prod.ivaRate ?? 15),
           ivaRate: prod.ivaRate ?? 15,
           discountType: "percentage",
           discountInput: 0,
@@ -865,7 +762,8 @@ export function NewSaleView({
 
   const applyItemDiscountModal = () => {
     if (editingDiscountIndex === null) return;
-    const numVal = Math.max(0, parseFloat(itemModalDiscValue) || 0);
+    const entered = Math.max(0, parseFloat(itemModalDiscValue) || 0);
+    const numVal = itemModalDiscType === "percentage" ? Math.min(100, entered) : entered;
     handleUpdateCartItem(editingDiscountIndex, {
       discountType: itemModalDiscType,
       discountInput: itemModalDiscType === "no_iva" ? 100 : numVal,
@@ -990,6 +888,10 @@ export function NewSaleView({
 
   const handleSaveQuickClient = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canCreateClient) {
+      showError("Acceso restringido", "Necesitas el permiso Crear clientes desde Ventas.");
+      return;
+    }
     const cleanRuc = limpiarIdentificacion(newClientRuc);
     const cleanName = limpiarTextoSri(newClientName).toUpperCase();
     const cleanEmail = limpiarEmailSri(newClientEmail);
@@ -1020,38 +922,42 @@ export function NewSaleView({
       return;
     }
 
-    const created = await addClient({
-      identificationType: docType,
-      identificationNumber: cleanRuc,
-      businessName: cleanName,
-      tradeName: limpiarTextoSri(newClientTradeName || cleanName).toUpperCase(),
-      legalRepresentative: limpiarTextoSri(newClientLegalRep) || undefined,
-      email: cleanEmail || "facturacion@cliente.ec",
-      phone: newClientPhone.trim() || "0999999999",
-      address: limpiarTextoSri(newClientAddress) || "Quito, Ecuador",
-      sector: limpiarTextoSri(newClientSector) || undefined,
-      tipoContribuyente: newClientSriMeta.tipoContribuyente || "general",
-      obligadoContabilidad: Boolean(newClientSriMeta.obligadoContabilidad),
-      agenteRetencion: Boolean(newClientSriMeta.agenteRetencion),
-      actividadEconomica: newClientSriMeta.actividadEconomica || undefined,
-      sriValidated: Boolean(newClientSriMeta.sriValidated),
-      requiresSriBilling: true,
-      status: "activo",
-      totalActiveServices: 0,
-      currentBalance: 0,
-    });
-    setIsConsumidorFinal(false);
-    setSelectedClientId(created.id);
-    setShowNewClientModal(false);
-    setNewClientName("");
-    setNewClientTradeName("");
-    setNewClientLegalRep("");
-    setNewClientRuc("");
-    setNewClientEmail("");
-    setNewClientPhone("");
-    setNewClientSector("");
-    setNewClientSriMeta({});
-    showSuccess("Cliente Registrado", `${created.businessName} seleccionado para la venta.`);
+    try {
+      const created = await addClient({
+        identificationType: docType,
+        identificationNumber: cleanRuc,
+        businessName: cleanName,
+        tradeName: limpiarTextoSri(newClientTradeName || cleanName).toUpperCase(),
+        legalRepresentative: limpiarTextoSri(newClientLegalRep) || undefined,
+        email: cleanEmail || "facturacion@cliente.ec",
+        phone: newClientPhone.trim() || "0999999999",
+        address: limpiarTextoSri(newClientAddress) || "Quito, Ecuador",
+        sector: limpiarTextoSri(newClientSector) || undefined,
+        tipoContribuyente: newClientSriMeta.tipoContribuyente || "general",
+        obligadoContabilidad: Boolean(newClientSriMeta.obligadoContabilidad),
+        agenteRetencion: Boolean(newClientSriMeta.agenteRetencion),
+        actividadEconomica: newClientSriMeta.actividadEconomica || undefined,
+        sriValidated: Boolean(newClientSriMeta.sriValidated),
+        requiresSriBilling: true,
+        status: "activo",
+        totalActiveServices: 0,
+        currentBalance: 0,
+      });
+      setIsConsumidorFinal(false);
+      setSelectedClientId(created.id);
+      setShowNewClientModal(false);
+      setNewClientName("");
+      setNewClientTradeName("");
+      setNewClientLegalRep("");
+      setNewClientRuc("");
+      setNewClientEmail("");
+      setNewClientPhone("");
+      setNewClientSector("");
+      setNewClientSriMeta({});
+      showSuccess("Cliente Registrado", `${created.businessName} seleccionado para la venta.`);
+    } catch (error: any) {
+      showError("No se pudo crear el cliente", error?.message || "Revisa los datos e inténtalo nuevamente.");
+    }
   };
 
   const handleSaveQuickProduct = async (e: React.FormEvent) => {
@@ -2095,9 +2001,9 @@ export function NewSaleView({
         <div className="lg:col-span-8 space-y-4">
           {/* Bloque 1: Selección de Cliente + Parámetros del Comprobante */}
           <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-              {/* Selector de Cliente (6 cols en pantallas xl, ancho completo en inferiores) */}
-              <div className="xl:col-span-6 space-y-1.5">
+            <div className="grid grid-cols-1 gap-4 items-start">
+              {/* Selector de Cliente */}
+              <div className="min-w-0 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                     Cliente <span className="text-rose-500">*</span>
@@ -2121,9 +2027,10 @@ export function NewSaleView({
                     </button>
                     <button
                       type="button"
+                      disabled={!canCreateClient}
+                      title={canCreateClient ? "Crear cliente" : "Necesitas el permiso Crear clientes desde Ventas"}
                       onClick={() => setShowNewClientModal(true)}
-                      className="p-1 rounded-md bg-blue-50 hover:bg-blue-100 text-[#004ac6] border border-blue-200 transition cursor-pointer"
-                      title="Crear Nuevo Cliente Rápido"
+                      className="p-1 rounded-md bg-blue-50 hover:bg-blue-100 text-[#004ac6] border border-blue-200 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -2174,8 +2081,8 @@ export function NewSaleView({
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-blue-200/60">
-                        <a
-                          href={`/clientes?id=${encodeURIComponent(selectedClient.id)}&tab=facturacion`}
+                        {(canOpenClientView("facturacion") || canAccessSubmodule(currentUser, "ventas", "notas_venta")) && <a
+                          href={canOpenClientView("facturacion") ? `/clientes?id=${encodeURIComponent(selectedClient.id)}&tab=facturacion` : `/ventas?sub=notas_venta&cliente=${encodeURIComponent(selectedClient.id)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-white text-[#004ac6] border border-blue-200 hover:bg-blue-100/60 shadow-2xs transition cursor-pointer"
@@ -2184,8 +2091,8 @@ export function NewSaleView({
                           <DollarSign className="w-3 h-3 text-[#004ac6] shrink-0" />
                           <span>Historial de Facturación</span>
                           <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                        </a>
-                        <a
+                        </a>}
+                        {canOpenClientView("contratos") && <a
                           href={`/clientes?id=${selectedClient.id}&tab=contratos`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -2195,8 +2102,8 @@ export function NewSaleView({
                           <ShieldCheck className="w-3 h-3 text-slate-500 shrink-0" />
                           <span>Servicios</span>
                           <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                        </a>
-                        <a
+                        </a>}
+                        {canOpenClientView("archivos") && <a
                           href={`/clientes?id=${selectedClient.id}&tab=archivos`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -2206,7 +2113,7 @@ export function NewSaleView({
                           <FolderArchive className="w-3 h-3 text-slate-500 shrink-0" />
                           <span>Archivos</span>
                           <ExternalLink className="w-2.5 h-2.5 text-slate-400 shrink-0" />
-                        </a>
+                        </a>}
                       </div>
                     </div>
                   )
@@ -2255,6 +2162,8 @@ export function NewSaleView({
                         ))}
                         <button
                           type="button"
+                          disabled={!canCreateClient}
+                          title={canCreateClient ? "Crear cliente" : "Necesitas el permiso Crear clientes desde Ventas"}
                           onClick={() => {
                             const possibleRuc = limpiarIdentificacion(clientSearch);
                             if (/^\d{7,13}$/.test(possibleRuc)) {
@@ -2263,7 +2172,7 @@ export function NewSaleView({
                             setShowClientDropdown(false);
                             setShowNewClientModal(true);
                           }}
-                          className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 text-[#004ac6] font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                          className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 text-[#004ac6] font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <UserPlus className="w-3.5 h-3.5" />
                           <span>+ Crear nuevo cliente / Consultar en SRI</span>
@@ -2274,8 +2183,8 @@ export function NewSaleView({
                 )}
               </div>
 
-              {/* Configuración del Documento (6 cols en pantallas xl, ancho completo en inferiores) */}
-              <div className="xl:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {/* Configuración del Documento */}
+              <div className="min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {/* Tipo Documento (fijo: NOTA DE VENTA en el flujo comercial) */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
@@ -2472,6 +2381,7 @@ export function NewSaleView({
                 <div className="flex items-center gap-1.5">
                   <select
                     value={globalDiscountType}
+                    aria-label="Tipo de descuento general" disabled={!canApplyDiscounts}
                     onChange={(e) => {
                       const mode = e.target.value as DiscountMode;
                       setGlobalDiscountType(mode);
@@ -2494,6 +2404,7 @@ export function NewSaleView({
                         min="0"
                         step="0.01"
                         value={globalDiscountValue || ""}
+                        aria-label="Valor de descuento general" disabled={!canApplyDiscounts}
                         onChange={(e) =>
                           setGlobalDiscountValue(Math.max(0, parseFloat(e.target.value) || 0))
                         }
@@ -2602,6 +2513,7 @@ export function NewSaleView({
                                 onChange={(e) =>
                                   handleUpdateCartItem(idx, {
                                     unitPrice: Math.max(0, parseFloat(e.target.value) || 0),
+                                    unitPriceWithTax: undefined,
                                   })
                                 }
                                 className="w-24 text-right font-mono font-semibold text-xs py-1 px-1.5 rounded-md border border-slate-300 bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
@@ -2610,7 +2522,7 @@ export function NewSaleView({
                               <label className="mt-1 block text-[9px] text-slate-500">Con IVA
                                 <input type="number" min="0" step="0.01" aria-label={`Precio con IVA de ${item.name}`}
                                   value={calculatePriceWithTax(item.unitPrice, item.ivaRate)} disabled={!canEditPrices}
-                                  onChange={e => handleUpdateCartItem(idx, { unitPrice: calculatePriceWithoutTax(Number(e.target.value), item.ivaRate) })}
+                                  onChange={e => handleUpdateCartItem(idx, { unitPrice: calculatePriceWithoutTax(Number(e.target.value), item.ivaRate), unitPriceWithTax: Number(e.target.value) })}
                                   className="mt-0.5 block w-24 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-right font-mono text-xs font-semibold text-emerald-800 disabled:opacity-60" />
                               </label>
                             </td>
@@ -2646,6 +2558,7 @@ export function NewSaleView({
                                 onChange={(e) =>
                                   handleUpdateCartItem(idx, {
                                     ivaRate: Number(e.target.value),
+                                    unitPriceWithTax: undefined,
                                   })
                                 }
                                 className="text-[11px] font-mono font-bold py-1 px-1.5 rounded-md border border-slate-300 bg-white text-slate-700"
@@ -2749,18 +2662,7 @@ export function NewSaleView({
 
             {/* Desglose de Subtotales e Impuestos */}
             <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between text-slate-600">
-                <span>Subtotal 15%</span>
-                <span className="font-mono font-semibold text-slate-900">
-                  ${calculatedTotals.subtotal15.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Subtotal 0%</span>
-                <span className="font-mono font-semibold text-slate-900">
-                  ${calculatedTotals.subtotal0.toFixed(2)}
-                </span>
-              </div>
+              {Object.entries(calculatedTotals.basesByRate).map(([rate, base]) => <div key={rate} className="flex justify-between text-slate-600"><span>Subtotal {rate}%</span><span className="font-mono font-semibold text-slate-900">${Number(base).toFixed(2)}</span></div>)}
               {calculatedTotals.discountTotal > 0 && (
                 <div className="flex justify-between text-rose-600 font-semibold">
                   <span>Descuento Total</span>
@@ -2768,7 +2670,7 @@ export function NewSaleView({
                 </div>
               )}
               <div className="flex justify-between text-slate-600">
-                <span>IVA (15%)</span>
+                <span>IVA</span>
                 <span className="font-mono font-semibold text-slate-900">
                   ${calculatedTotals.ivaTotal.toFixed(2)}
                 </span>
@@ -3037,7 +2939,7 @@ export function NewSaleView({
                   </span>
                   <span className="text-xs font-bold block">
                     {calculatedTotals.total === 0
-                      ? "Sin ítems"
+                      ? (cartItems.length ? "Total cero" : "Sin ítems")
                       : !Object.values(activeMethods).some(Boolean)
                       ? "Selecciona método"
                       : paymentSummary.isCovered

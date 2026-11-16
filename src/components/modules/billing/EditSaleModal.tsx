@@ -1,5 +1,6 @@
 "use client";
 import { calculateLineAmounts } from "@/lib/pricing";
+import { recalculateSaleLine } from "@/lib/sale-calculation";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { getEcuadorDate } from "@/lib/date-utils";
 
@@ -220,58 +221,27 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     setItems((prev) => [...prev, newItem]);
   };
 
-  const handleUpdateQuantity = (itemId: string, newQty: number) => {
-    if (newQty <= 0) {
-      handleRemoveItem(itemId);
-      return;
+  const recalculateItem = (itemId: string, changes: Partial<InvoiceItem>) => {
+    try {
+      const updated = items.map(item => item.id === itemId ? recalculateSaleLine(item, changes) as InvoiceItem : item);
+      setItems(updated);
+      setErrorMsg("");
+    } catch (error: any) {
+      setErrorMsg(error.message || "Revisa la cantidad, el precio y el descuento de la partida.");
     }
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== itemId) return it;
-        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, newQty, it.ivaRate, it.discount || 0);
-        return {
-          ...it,
-          quantity: newQty,
-          subtotal,
-          ivaAmount,
-          total,
-        };
-      })
-    );
+  };
+
+  const handleUpdateQuantity = (itemId: string, newQty: number) => {
+    if (newQty <= 0) { handleRemoveItem(itemId); return; }
+    recalculateItem(itemId, { quantity: newQty });
   };
 
   const handleUpdatePrice = (itemId: string, newPrice: number) => {
-    const validPrice = Math.max(0, isNaN(newPrice) ? 0 : newPrice);
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== itemId) return it;
-        const { subtotal, ivaAmount, total } = calculateLineAmounts(validPrice, it.quantity, it.ivaRate, it.discount || 0);
-        return {
-          ...it,
-          unitPrice: validPrice,
-          subtotal,
-          ivaAmount,
-          total,
-        };
-      })
-    );
+    recalculateItem(itemId, { unitPrice: Math.max(0, isNaN(newPrice) ? 0 : newPrice) });
   };
 
   const handleUpdateDiscount = (itemId: string, newDiscount: number) => {
-    const validDiscount = Math.max(0, isNaN(newDiscount) ? 0 : newDiscount);
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== itemId) return it;
-        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, it.quantity, it.ivaRate, validDiscount);
-        return {
-          ...it,
-          discount: validDiscount,
-          subtotal,
-          ivaAmount,
-          total,
-        };
-      })
-    );
+    recalculateItem(itemId, { discount: Math.max(0, isNaN(newDiscount) ? 0 : newDiscount) });
   };
 
   const handleUpdateDescription = (itemId: string, newName: string) => {
@@ -284,19 +254,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
   };
 
   const handleUpdateIvaRate = (itemId: string, newRate: number) => {
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== itemId) return it;
-        const { subtotal, ivaAmount, total } = calculateLineAmounts(it.unitPrice, it.quantity, newRate, it.discount || 0);
-        return {
-          ...it,
-          ivaRate: newRate,
-          subtotal,
-          ivaAmount,
-          total,
-        };
-      })
-    );
+    recalculateItem(itemId, { ivaRate: newRate });
   };
 
   const handleRemoveItem = (itemId: string) => {
@@ -320,7 +278,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
     items.reduce((sum, it) => sum + it.ivaAmount, 0) * 100
   ) / 100;
 
-  const total = Math.round((subtotal15 + subtotal0 + ivaTotal) * 100) / 100;
+  const total = Math.round(items.reduce((sum, item) => sum + item.total, 0) * 100) / 100;
 
   // Resolve client data
   let finalClientName = invoice.clientName;
@@ -875,14 +833,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               <span className="text-xs font-bold text-slate-800 block border-b border-[#e2e8f0] pb-1.5 uppercase tracking-wider">
                 Resumen de Valores
               </span>
-              <div className="flex justify-between text-xs text-slate-600">
-                <span>Subtotal 15%:</span>
-                <span className="font-mono font-medium">${subtotal15.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs text-slate-600">
-                <span>Subtotal 0%:</span>
-                <span className="font-mono font-medium">${subtotal0.toFixed(2)}</span>
-              </div>
+              {[...new Set(items.map(item => item.ivaRate))].map(rate => <div key={rate} className="flex justify-between text-xs text-slate-600"><span>Subtotal {rate}%:</span><span className="font-mono font-medium">${items.filter(item => item.ivaRate === rate).reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}</span></div>)}
               {discountTotal > 0 && (
                 <div className="flex justify-between text-xs text-rose-600">
                   <span>Descuento:</span>
@@ -890,7 +841,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 </div>
               )}
               <div className="flex justify-between text-xs text-slate-600">
-                <span>IVA 15%:</span>
+                <span>IVA:</span>
                 <span className="font-mono font-medium">${ivaTotal.toFixed(2)}</span>
               </div>
               <div className="border-t border-[#e2e8f0] pt-2 flex justify-between items-center">

@@ -16,22 +16,8 @@ import type { UserProfile } from "@/types";
 
 // Transactional adapter: runs the production command, stages writes, commits atomically.
 // This is not evidence of deployed Firestore rules; emulator coverage is separate.
-class Database {
-  rows = new Map<string,any>(); tail=Promise.resolve(); failCommit=false;
-  constructor(initial:Record<string,any[]>) {for(const [name,rows] of Object.entries(initial))for(const row of rows)this.rows.set(name+"/"+row.id,structuredClone(row));}
-  doc(path:string):any {return {path,id:path.split("/").pop(),parent:{id:path.split("/")[0]}};}
-  collection(name:string):any {const query=(field?:string,value?:unknown):any=>({name,field,value,doc:(id:string)=>this.doc(name+"/"+id),where:(f:string,_op:string,v:unknown)=>query(f,v),select:()=>query(field,value),
-    get:async()=>({docs:this.list(name).filter(row=>!field||row[field]===value).map(row=>({get:(key:string)=>row[key]}))})});return query();}
-  async runTransaction(fn:(tx:any)=>Promise<any>) {
-    let release!:()=>void;const prior=this.tail;this.tail=new Promise<void>(r=>release=r);await prior;
-    const pending=new Map<string,any>(); const deleted=new Set<string>();
-    const snap=(path:string)=>({id:path.split("/").pop(),ref:this.doc(path),exists:this.rows.has(path),data:()=>structuredClone(this.rows.get(path))});
-    const tx={delete:(ref:any)=>deleted.add(ref.path),get:async(ref:any)=>ref.path?snap(ref.path):{docs:[...this.rows].filter(([key,row])=>key.startsWith(ref.name+"/")&&(!ref.field||row[ref.field]===ref.value)).map(([key])=>snap(key))},getAll:async(...refs:any[])=>refs.map(ref=>snap(ref.path)),set:(ref:any,row:any)=>pending.set(ref.path,structuredClone(row)),update:(ref:any,row:any)=>pending.set(ref.path,{...structuredClone(this.rows.get(ref.path)),...structuredClone(row)}),create:(ref:any,row:any)=>{if(this.rows.has(ref.path))throw Error("Already exists");pending.set(ref.path,structuredClone(row));}};
-    try {const result=await fn(tx);if(this.failCommit)throw Error("Injected commit failure");pending.forEach((row,key)=>this.rows.set(key,row));deleted.forEach(key=>this.rows.delete(key));return result;} finally{release();}
-  }
-  list(name:string){return [...this.rows].filter(([key])=>key.startsWith(name+"/")).map(([,row])=>row);}
-  row(name:string,id:string){return this.rows.get(name+"/"+id);}
-}
+import { Database } from "./testing/commercial-database.ts";
+
 const user:UserProfile={uid:"qa",email:"qa@example.test",displayName:"QA",role:"superadmin",status:"activo",permissions:["all"]};
 const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificationType:"PASAPORTE",identificationNumber:"QA-00001",status:"activo",currentBalance:0},{id:"b",businessName:"PRUEBA CLIENTE B",identificationNumber:"QA-00002",status:"activo",currentBalance:0}],inventoryProducts:[{id:"srv",name:"Servicio QA",sku:"QA",type:"servicio",salePrice:100,ivaRate:15,stock:0,tracksStock:false,status:"activo"}],bankAccounts:[{id:"bank",bankName:"Banco QA",currentBalance:1000,initialBalance:1000,status:"activa"},{id:"bank2",bankName:"Banco QA 2",currentBalance:0,initialBalance:0,status:"activa"}],suppliers:[{id:"supplier",razonSocial:"PROVEEDOR QA",ruc:"QA-111",status:"activo"}]});
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);

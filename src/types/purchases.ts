@@ -195,6 +195,7 @@ export interface InventoryActions {
 }
 
 export interface BillingActions {
+  canCreateClient?: boolean;
   canCreateInvoice: boolean;
   canEditPrices: boolean;         // 🔒 Modificar precio unitario en venta
   canApplyDiscounts: boolean;     // 🔒 Descuentos manuales
