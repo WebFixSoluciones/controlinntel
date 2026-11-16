@@ -9,6 +9,8 @@ import { sriKinds, sriRequest } from "@/lib/server/sri-documents";
 import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "@/lib/server/sri-workflow";
 import { deliverFiscalDocument } from "@/lib/server/sri-email";
 import { fiscalMetadata } from "@/lib/server/sri-metadata";
+import { fiscalRidePdf, INNTEL_RIDE_VERSION } from "@/lib/server/sri-ride-pdf";
+import { fiscalRideData } from "@/lib/server/sri-ride-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,10 +31,20 @@ export async function GET(request: NextRequest) {
     if (!doc || doc.documentType === "nota_venta" || doc.estadoSRI !== "AUTORIZADO" || !doc.xmlAutorizado) {
       throw new HttpError(404, "El comprobante todavía no tiene un XML autorizado.");
     }
+    if (request.nextUrl.searchParams.get("format") === "pdf") {
+      const content = fiscalRidePdf(input.documentKind, await fiscalRideData(db, input.documentKind, { ...doc, id: input.id }), await readSriCompanyConfig(db));
+      const number = String(doc.documentNumber || input.id).replace(/[^\w-]/g, "");
+      // A JSON envelope prevents download-manager integrations from intercepting
+      // the authenticated preview request before the browser receives its bytes.
+      if (request.nextUrl.searchParams.get("encoding") === "base64") {
+        return NextResponse.json({ data: content.toString("base64"), templateVersion: INNTEL_RIDE_VERSION }, { headers });
+      }
+      return new NextResponse(new Uint8Array(content), { headers: { ...headers, "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="RIDE-${input.documentKind}-${number}.pdf"`, "X-Content-Type-Options": "nosniff", "X-RIDE-Template": INNTEL_RIDE_VERSION } });
+    }
     return NextResponse.json({ xml: doc.xmlAutorizado }, { headers });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : error instanceof ZodError ? 400 : 503;
-    return NextResponse.json({ error: error instanceof HttpError ? error.message : "No se pudo recuperar el XML autorizado." }, { status, headers });
+    return NextResponse.json({ error: error instanceof HttpError ? error.message : "No se pudo recuperar el comprobante autorizado." }, { status, headers });
   }
 }
 
@@ -50,7 +62,8 @@ export async function POST(request: NextRequest) {
       const id = z.string().regex(/^[\w-]{1,150}$/).parse(input.id);
       const { db } = adminServices();
       const confirmUncertain = z.boolean().optional().parse(input.confirmUncertain) === true;
-      return NextResponse.json({ email: await deliverFiscalDocument(db, user, await readSriCompanyConfig(db), mailKind, id, undefined, confirmUncertain) }, { headers });
+      const resend = z.boolean().optional().parse(input.resend) === true;
+      return NextResponse.json({ email: await deliverFiscalDocument(db, user, await readSriCompanyConfig(db), mailKind, id, undefined, confirmUncertain, resend) }, { headers });
     }
     const correctionId = z.string().regex(/^[\w-]{1,150}$/).optional().parse(input?.correctionId);
     const operationId = z.string().uuid().optional().parse(input?.operationId);

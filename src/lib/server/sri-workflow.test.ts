@@ -14,7 +14,8 @@ import { sriRequest, type FiscalKind, type SriNewDocument } from "./sri-document
 import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "./sri-workflow.ts";
 import { parsePkcs12, issuerRfc2253, verifySriSignedXml } from "./sri-signer.ts";
 import { deliverFiscalInvoice, deliverFiscalDocument } from "./sri-email.ts";
-import { invoiceRidePdf } from "./sri-ride-pdf.ts";
+import { invoiceRidePdf, INNTEL_RIDE_VERSION } from "./sri-ride-pdf.ts";
+import { fiscalRideData } from "./sri-ride-data.ts";
 import { buildInvoiceHtml, sendInvoiceEmail, fiscalEmailRecipients } from "./email-delivery.ts";
 import { initializeVaultKey, seal } from "./vault.ts";
 
@@ -37,6 +38,8 @@ class FiscalDatabase {
   }
   collection(name: string, filters: Filter[] = []) {
     return { doc: (id: string) => this.doc(name + "/" + id), name, filters,
+      limit: (_count: number) => this.collection(name, filters),
+      get: async () => ({ docs: [...this.rows.entries()].filter(([path, row]) => path.startsWith(name + "/") && filters.every(([field, , value]) => row[field] === value)).map(([path]) => this.snap(path)) }),
       where: (key: string, op: string, value: unknown) => this.collection(name, [...filters, [key, op, value]]) };
   }
   async runTransaction<T>(work: (tx: any) => Promise<T>) {
@@ -337,7 +340,9 @@ test("QA SRI: correo recuperable, bloqueo de duplicados y PDF RIDE con datos his
   assert.ok(pdf.length > 5000); assert.ok(pdf.subarray(0, 5).equals(Buffer.from("%PDF-")));
   assert.equal(pdf.toString("latin1").includes("EMISOR NUEVO QUE NO DEBE APARECER"), false);
   assert.ok(pdf.toString("latin1").includes("199.50"));
-  assert.ok(pdf.toString("latin1").includes("Subtotal 5%"));
+  assert.ok(pdf.toString("latin1").includes("SUBTOTAL 5%"));
+  assert.ok(pdf.toString("latin1").includes(`(${result.document.numeroAutorizacion}) Tj`), "Authorization remains a complete text line");
+  assert.ok(pdf.toString("latin1").includes(INNTEL_RIDE_VERSION));
   const html = buildInvoiceHtml({ config: production, invoice: result.document as any });
   assert.match(html, /Subtotal 5%/); assert.match(html, /\$190\.00/); assert.doesNotMatch(html, /Subtotal 15%/);
   let attempts = 0;
@@ -349,6 +354,35 @@ test("QA SRI: correo recuperable, bloqueo de duplicados y PDF RIDE con datos his
   assert.equal(attempts, 2);
   assert.equal(storage.read(ref.path)!.estadoSRI, "AUTORIZADO");
   assert.equal(storage.read(ref.path)!.total, 199.5);
+  const beforeResend = storage.read(ref.path)!;
+  const sequences = [...storage.rows.entries()].filter(([key]) => key.startsWith("sequences/"));
+  await deliverFiscalDocument(db, user, production, "factura", ref.id, async input => {
+    attempts++;
+    assert.deepEqual(input.omitRecipients, [], "An explicit resend must deliver the corrected attachment again");
+    assert.equal(input.invoice.sourceNumber, "010-001-000000093");
+    assert.equal(input.invoice.numeroAutorizacion, beforeResend.numeroAutorizacion);
+    return { sent: true, recipients: ["qa@example.test"], messageId: "updated-pdf" };
+  }, false, true);
+  const resent = storage.read(ref.path)!;
+  assert.equal(attempts, 3);
+  assert.equal(resent.emailRideVersion, INNTEL_RIDE_VERSION);
+  assert.equal(resent.emailDeliveryHistory.length, 1);
+  assert.equal(resent.emailDeliveryHistory[0].messageId, "local-accepted");
+  assert.equal(resent.claveAcceso, beforeResend.claveAcceso);
+  assert.equal(resent.total, beforeResend.total);
+  assert.deepEqual([...storage.rows.entries()].filter(([key]) => key.startsWith("sequences/")), sequences);
+});
+
+test("RIDE: screen and email share original sale, due date and authorized guide in the same environment", async () => {
+  const { db, storage } = await setup();
+  storage.rows.get("billingInvoices/sale-qa")!.creditDueDate = "2026-12-16";
+  storage.rows.set("billingRemissionGuides/trial", { invoiceId: "invoice-qa", ambiente: "1", estadoSRI: "AUTORIZADO", xmlAutorizado: "fixture", documentNumber: "001-001-000000002" });
+  storage.rows.set("billingRemissionGuides/pending", { invoiceId: "invoice-qa", ambiente: "2", estadoSRI: "PENDIENTE", documentNumber: "001-001-000000003" });
+  storage.rows.set("billingRemissionGuides/live", { invoiceId: "invoice-qa", ambiente: "2", estadoSRI: "AUTORIZADO", xmlAutorizado: "fixture", documentNumber: "001-001-000000004" });
+  const result = await fiscalRideData(db, "factura", { id: "invoice-qa", relatedSaleId: "sale-qa", ambiente: "2" });
+  assert.equal(result.sourceNumber, "010-001-000000093");
+  assert.equal(result.guideNumber, "001-001-000000004");
+  assert.equal(result.creditDueDate, "2026-12-16");
 });
 
 test("QA SRI: no se envía correo de pruebas y un envío ambiguo exige confirmación", async () => {

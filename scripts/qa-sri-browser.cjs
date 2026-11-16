@@ -40,7 +40,9 @@ try{
   await wait('!!document.querySelector("#login-email")');await set('#login-email','qa.sri.owner@example.test');await set('#login-password','Synthetic-local-QA-Only#42');await click('Iniciar sesión');
   await wait(`!!document.querySelector('button[title="Ver / Imprimir RIDE PDF"]')`);
   await evaluate(`document.querySelector('button[title="Ver / Imprimir RIDE PDF"]').click()`);await settle();
-  await wait('document.body.innerText.includes("RIDE ELECTRÓNICO")');await screenshot('ride-authorized-desktop');
+  await wait(`!!document.querySelector('iframe[title="PDF RIDE autorizado INNTEL"]')`);
+  await wait(`![...document.querySelectorAll('button')].find(button=>button.textContent.trim()==='Imprimir RIDE')?.disabled`);
+  await screenshot('ride-authorized-desktop');
   await cdp('Page.navigate',{url:base+'/clientes'});
   await wait(`!!document.querySelector('button[title="Ver Facturas y Notas de Venta del Cliente"]')`);
   await evaluate(`document.querySelector('button[title="Ver Facturas y Notas de Venta del Cliente"]').click()`);await settle();

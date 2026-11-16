@@ -25,7 +25,7 @@ import {
   isFiscalAuthorized,
   fiscalStateLabel,
 } from "@/lib/sri-service";
-import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
+import { downloadAuthorizedFiscalXml, authorizedFiscalPdf } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
 
@@ -57,6 +57,11 @@ export function RidePreviewModal({
   initialFormat = "ride",
 }: RidePreviewModalProps) {
   const printAreaRef = useRef<HTMLDivElement>(null);
+  const pdfFrame = useRef<HTMLIFrameElement>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState("");
+  const [pdfReady, setPdfReady] = useState(false);
+  const [pdfRevision, setPdfRevision] = useState(0);
   const { showError } = useToast();
   const barcodeRef = useRef<SVGSVGElement>(null);
   const [copiedKey, setCopiedKey] = useState(false);
@@ -88,6 +93,19 @@ export function RidePreviewModal({
     const observer = new ResizeObserver(fit); observer.observe(name); fit();
     return () => observer.disconnect();
   }, [isOpen, format, doc, companyConfig]);
+
+  const pdfKind = invoice ? "factura" : creditNote ? "nota_credito" : debitNote ? "nota_debito" : withholding ? "retencion" : "guia_remision";
+  const usesAuthorizedPdf = !!doc && invoice?.documentType !== "nota_venta" && isFiscalAuthorized(doc) && format === "ride";
+  useEffect(() => {
+    setPdfUrl(null); setPdfError(""); setPdfReady(false);
+    if (!isOpen || !usesAuthorizedPdf || !doc?.id) return;
+    const controller = new AbortController(); let cancelled = false, url: string | undefined;
+    authorizedFiscalPdf(pdfKind, doc.id, controller.signal).then(blob => {
+      if (cancelled) return;
+      url = URL.createObjectURL(blob); setPdfUrl(url);
+    }).catch(error => { if (!cancelled) setPdfError(error.message || "No se pudo cargar el PDF autorizado."); });
+    return () => { cancelled = true; controller.abort(); if (url) URL.revokeObjectURL(url); };
+  }, [isOpen, usesAuthorizedPdf, doc?.id, pdfKind, pdfRevision]);
 
   if (!isOpen) return null;
 
@@ -239,6 +257,12 @@ export function RidePreviewModal({
   };
 
   const handlePrint = () => {
+    if (usesAuthorizedPdf) {
+      if (!pdfUrl || !pdfReady) return;
+      try { if (!pdfFrame.current?.contentWindow) throw new Error("Visor no disponible"); pdfFrame.current.contentWindow.focus(); pdfFrame.current.contentWindow.print(); }
+      catch { window.open(pdfUrl, "_blank", "noopener,noreferrer"); }
+      return;
+    }
     if (printAreaRef.current) {
       printHtmlElement(
         printAreaRef.current,
@@ -269,14 +293,22 @@ export function RidePreviewModal({
             <div role="group" aria-label="Acciones del comprobante" className="flex flex-wrap items-center gap-2">
               {!isNotaVenta && claveAcceso && <button type="button" onClick={handleCopyClave} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100">{copiedKey ? <Check className="size-4" /> : <Copy className="size-4" />}{copiedKey ? "Clave copiada" : "Copiar clave"}</button>}
               {!isNotaVenta && <button type="button" onClick={handleDownloadXml} disabled={!fiscalAuthorized} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"><Download className="size-4" />{xmlDownloaded ? "Descargado" : "Descargar XML"}</button>}
-              <button type="button" onClick={handlePrint} disabled={!isNotaVenta && !fiscalAuthorized} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"><Printer className="size-4" />{format === "ticket" ? "Imprimir ticket" : isNotaVenta ? "Imprimir nota" : "Imprimir RIDE"}</button>
+              {usesAuthorizedPdf && <button type="button" disabled={!pdfUrl} className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40" onClick={() => { if (!pdfUrl) return; const link = document.createElement("a"); link.href = pdfUrl; link.download = `RIDE-${pdfKind}-${docNumber}.pdf`; document.body.appendChild(link); link.click(); link.remove(); }}><Download className="size-4" />Descargar PDF</button>}
+              <button type="button" onClick={handlePrint} disabled={!isNotaVenta && (!fiscalAuthorized || usesAuthorizedPdf && !pdfReady)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"><Printer className="size-4" />{format === "ticket" ? "Imprimir ticket" : isNotaVenta ? "Imprimir nota" : "Imprimir RIDE"}</button>
             </div>
           </div>
         </header>
 
         {/* Contenedor del documento imprimible */}
         <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6 text-slate-900 bg-slate-100/70 print:max-h-none print:overflow-visible print:p-0 print:bg-white">
-          {format === "ticket" && isInvoice && invoice ? (
+          {usesAuthorizedPdf ? (
+            <div className="space-y-2" data-authorized-ride-pdf>
+              {pdfError ? <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-700">{pdfError}<button type="button" className="ml-3 underline" onClick={() => setPdfRevision(value => value + 1)}>Reintentar</button></div> : !pdfUrl ? <p role="status" className="p-10 text-center text-sm text-slate-500">Cargando PDF RIDE autorizado…</p> : <>
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-block text-xs font-medium text-blue-700 underline">Abrir PDF en otra pestaña</a>
+                <iframe ref={pdfFrame} title="PDF RIDE autorizado INNTEL" src={`${pdfUrl}#toolbar=0&navpanes=0&view=FitH`} onLoad={() => setPdfReady(true)} className="h-[72dvh] min-h-80 w-full rounded border bg-white" />
+              </>}
+            </div>
+          ) : format === "ticket" && isInvoice && invoice ? (
             /* =====================================================
                VISTA TICKET TÉRMICO POS (80mm)
                ===================================================== */
@@ -429,7 +461,7 @@ export function RidePreviewModal({
                   {isNotaVenta ? <><p className="font-semibold">COMPROBANTE INTERNO · SIN VALIDEZ TRIBUTARIA</p><p>Estado: {doc.status === "anulada" ? "ANULADO" : "REGISTRADO"}</p></> : <>
                     <div className="flex flex-wrap justify-between gap-2"><p><strong>Ambiente:</strong> {docEnvironment === "2" ? "PRODUCCIÓN" : "PRUEBAS"}</p><p><strong>Emisión:</strong> NORMAL</p></div>
                     <div><p className="font-semibold">Clave de acceso:</p><p className="break-all font-mono text-[8px] select-all">{claveAcceso || "Pendiente"}</p></div>
-                    <p><strong>N.º autorización:</strong> <span className="break-all">{fiscalAuthorized ? doc.numeroAutorizacion : "Pendiente"}</span></p>
+                    <div><p className="font-semibold">N.º autorización:</p><p className="whitespace-nowrap font-mono text-[8px] select-all">{fiscalAuthorized ? doc.numeroAutorizacion : "Pendiente"}</p></div>
                     <p><strong>Fecha y hora de autorización:</strong> {fiscalAuthorized && doc.authorizationDate ? new Date(doc.authorizationDate).toLocaleString("es-EC", { timeZone: "America/Guayaquil" }) : "Pendiente"}</p>
                     {/^\d{49}$/.test(claveAcceso || "") && <div className="min-w-0 text-center"><svg ref={barcodeRef} className="mx-auto h-10 w-full" role="img" aria-label="Código de barras de la clave de acceso" /><p className="break-all font-mono text-[8px] select-all">{claveAcceso}</p></div>}
                     {!fiscalAuthorized && <p className="font-semibold text-amber-800">{fiscalStateLabel(doc)} · SIN VALIDEZ TRIBUTARIA</p>}

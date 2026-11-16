@@ -311,9 +311,9 @@ export function BillingManager() {
 
   const fiscalMailAction = (kind: FiscalKind, document: SriFiscalEvidence & { id: string; claveAcceso?: string }) => {
     if ((document.ambiente || document.claveAcceso?.[23]) !== "2" || !isFiscalAuthorized(document) || !canUser(currentUser, "facturacion", "canAuthorizeSri")) return null;
-    return <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Estado y envío de correo SRI" onClick={() => showConfirm("Correo del documento", "Enviar PDF RIDE y XML autorizado al destinatario y a las copias configuradas. Los destinatarios ya confirmados se omiten. Si el intento anterior quedó sin confirmación, revisa el proveedor antes de repetirlo: podría duplicarse.", async () => {
+    return <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Enviar o reenviar PDF actualizado" onClick={() => showConfirm("Correo del documento", "Enviar PDF RIDE y XML autorizado al destinatario y a las copias configuradas. Si el correo ya fue enviado, se reenviará una copia con el PDF actual. En entregas parciales se omiten los destinatarios confirmados. Si el intento anterior quedó sin confirmación, revisa el proveedor antes de repetirlo: podría duplicarse.", async () => {
       try {
-        const result = await api<{ email: { sent: boolean; error?: string; skippedReason?: string } }>("/api/sri/emitir", { action: "reenviar_correo", documentKind: kind, id: document.id, confirmUncertain: true });
+        const result = await api<{ email: { sent: boolean; error?: string; skippedReason?: string } }>("/api/sri/emitir", { action: "reenviar_correo", documentKind: kind, id: document.id, confirmUncertain: true, resend: true });
         await refresh();
         if (result.email.sent) showSuccess("Correo confirmado", result.email.skippedReason || "PDF y XML aceptados por el servidor de correo.");
         else showWarning("Correo pendiente", result.email.error || result.email.skippedReason || "Revisa la configuración SMTP y el correo del destinatario.");
