@@ -296,6 +296,7 @@ export async function processFiscalDocument(
         || emission?.recepcion.mensajes.some(m => ["43", "70"].includes(m.identificador || ""))),
       sriCorrectionReady: current.fiscalWorkflowVersion === 1 && (authorization?.estado === "NO AUTORIZADO"
         || (state === "DEVUELTA" && authorization?.sinRegistro === true)),
+      ...(verified && ambiente === "2" ? { emailStatus: current.emailStatus || (config.emailEnabled ? "pendiente" : "desactivado") } : {}),
       xmlAutorizado: xmlAutorizado || null, numeroAutorizacion: verified ? authorization?.numeroAutorizacion : null,
       authorizationDate: verified ? authorization?.fechaAutorizacion : null,
       ...(verified && ambiente === "2" && ["nota_credito", "nota_debito", "retencion"].includes(kind)

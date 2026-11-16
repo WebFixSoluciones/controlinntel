@@ -1,7 +1,10 @@
 import nodemailer from "nodemailer";
 import { adminServices } from "./admin.ts";
-import { invoiceRidePdf } from "./sri-ride-pdf.ts";
-import type { SriCompanyConfig, SriInvoice } from "@/types";
+import { fiscalRidePdf } from "./sri-ride-pdf.ts";
+import { fiscalEmailHtml, fiscalMailLabels, fiscalMailAmount, type FiscalMailKind } from "./fiscal-email-format.ts";
+import type { RecordData } from "../commercial-core.ts";
+import { inntelEmailLogo } from "./email-brand.ts";
+import type { SriCompanyConfig } from "@/types";
 
 /**
  * Entrega de documentos electrónicos por correo.
@@ -33,6 +36,7 @@ export interface EmailAttachment {
   filename: string;
   content: string | Buffer;
   contentType?: string;
+  cid?: string;
 }
 
 const DEFAULT_PORT = 587;
@@ -131,7 +135,7 @@ export interface SendEmailInput {
 }
 
 /** Envía un correo con la configuración indicada. Devuelve el `messageId`. */
-export async function sendEmail(input: SendEmailInput): Promise<string> {
+export async function sendEmailDetailed(input: SendEmailInput): Promise<{ messageId: string; accepted: string[]; rejected: string[] }> {
   const to = input.to.filter(isValidEmail);
   if (to.length === 0) throw new Error("No hay destinatarios válidos para enviar el correo.");
   if (!input.password) throw new Error("Falta la contraseña de la cuenta de correo.");
@@ -151,7 +155,8 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
       html: input.html,
       attachments: input.attachments,
     });
-    return String(info?.messageId || "");
+    const address = (value: any) => String(typeof value === "string" ? value : value?.address || "").toLowerCase();
+    return { messageId: String(info?.messageId || ""), accepted: (info.accepted || []).map(address), rejected: (info.rejected || []).map(address) };
   } catch (error: any) {
     throw new Error(normalizeSmtpError(error));
   } finally {
@@ -161,6 +166,12 @@ export async function sendEmail(input: SendEmailInput): Promise<string> {
       /* el transporte ya está cerrado */
     }
   }
+}
+
+export async function sendEmail(input: SendEmailInput): Promise<string> {
+  const result = await sendEmailDetailed(input);
+  if (result.rejected.length) throw new Error("El proveedor rechazó uno o más destinatarios.");
+  return result.messageId;
 }
 
 function normalizeSmtpError(error: any): string {
@@ -195,99 +206,31 @@ export async function verifyEmailConnection(settings: EmailSettings, password: s
   }
 }
 
-function money(value: number): string {
-  return `$${Number(value || 0).toFixed(2)}`;
-}
-
-function escapeHtml(value: string): string {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 export interface InvoiceEmailInput {
   config: SriCompanyConfig;
-  invoice: SriInvoice;
+  invoice: RecordData;
+  documentKind?: FiscalMailKind;
+  omitRecipients?: string[];
   xmlFirmado?: string;
   numeroAutorizacion?: string;
   fechaAutorizacion?: string;
 }
 
 export function buildInvoiceHtml(input: InvoiceEmailInput): string {
-  const { config, invoice } = input;
-  const empresa = escapeHtml(config.razonSocial || "INNTEL CORP S.A.");
-  const bases = new Map<number, number>();
-  for (const item of invoice.items || []) bases.set(item.ivaRate, (bases.get(item.ivaRate) || 0) + Math.round(item.subtotal * 100));
-  const baseRows = [...bases].sort(([a], [b]) => a - b).map(([rate, base]) => `<tr><td style="padding:3px 8px;">Subtotal ${rate}%</td><td style="padding:3px 8px;text-align:right;">${money(base / 100)}</td></tr>`).join("");
-  const filas = (invoice.items || [])
-    .map(
-      (item) => `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${escapeHtml(item.name)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">${Number(item.quantity || 0)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(item.unitPrice)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(item.total)}</td>
-      </tr>`
-    )
-    .join("");
+  return fiscalEmailHtml(input.documentKind || "factura", input.invoice, input.config);
+}
 
-  const autorizacion = input.numeroAutorizacion
-    ? `<p style="margin:4px 0;font-size:13px;color:#065f46;">Autorización SRI: <strong>${escapeHtml(
-        input.numeroAutorizacion
-      )}</strong>${input.fechaAutorizacion ? ` · ${escapeHtml(input.fechaAutorizacion)}` : ""}</p>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-  <div style="max-width:640px;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
-    <div style="background:#0f172a;padding:20px 24px;color:#ffffff;">
-      <h1 style="margin:0;font-size:18px;letter-spacing:.3px;">${empresa}</h1>
-      <p style="margin:6px 0 0;font-size:13px;color:#cbd5e1;">Comprobante electrónico autorizado por el SRI</p>
-    </div>
-    <div style="padding:24px;">
-      <p style="margin:0 0 12px;font-size:14px;">Estimado(a) <strong>${escapeHtml(
-        invoice.clientName || "cliente"
-      )}</strong>,</p>
-      <p style="margin:0 0 16px;font-size:14px;line-height:1.5;">
-        Adjuntamos su comprobante electrónico <strong>${escapeHtml(
-          invoice.documentNumber
-        )}</strong> por un valor total de <strong>${money(invoice.total)}</strong>.
-      </p>
-      ${autorizacion}
-      <p style="margin:10px 0 4px;font-size:12px;color:#475569;">Clave de acceso SRI</p>
-      <p style="margin:0 0 18px;font-family:Consolas,monospace;font-size:12px;word-break:break-all;">${escapeHtml(
-        invoice.claveAcceso
-      )}</p>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead>
-          <tr style="background:#f8fafc;text-align:left;">
-            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Detalle</th>
-            <th style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center;">Cant.</th>
-            <th style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">P. Unit.</th>
-            <th style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">Total</th>
-          </tr>
-        </thead>
-        <tbody>${filas}</tbody>
-      </table>
-      <table style="width:100%;margin-top:12px;font-size:13px;">
-        ${baseRows}
-        <tr><td style="padding:3px 8px;">IVA</td><td style="padding:3px 8px;text-align:right;">${money(
-          invoice.ivaTotal
-        )}</td></tr>
-        <tr><td style="padding:6px 8px;font-weight:bold;border-top:1px solid #e2e8f0;">TOTAL</td><td style="padding:6px 8px;text-align:right;font-weight:bold;border-top:1px solid #e2e8f0;">${money(
-          invoice.total
-        )}</td></tr>
-      </table>
-      <p style="margin:20px 0 0;font-size:12px;color:#64748b;">
-        El XML firmado del comprobante se adjunta a este mensaje. Conserve este correo como respaldo tributario.
-      </p>
-    </div>
-    <div style="background:#f8fafc;padding:14px 24px;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;">
-      ${empresa} · RUC ${escapeHtml(config.ruc || "")} · ${escapeHtml(config.direccionMatriz || "")}
-    </div>
-  </div>
-</body></html>`;
+export function fiscalEmailRecipients(input: InvoiceEmailInput) {
+  const settings = emailSettingsFromConfig(input.config);
+  const client = settings.notifyClient ? splitEmails(input.invoice.clientEmail) : [];
+  const company = settings.notifyCompany ? splitEmails(input.config.emailNotificaciones || settings.fromEmail) : [];
+  const unique = (values: string[]) => [...new Set(values.map(value => value.toLowerCase()))];
+  if (settings.notifyClient && !client.length) throw new Error("El destinatario no tiene un correo válido. Corrige su ficha y vuelve a enviar el documento.");
+  if (settings.notifyCompany && !company.length) throw new Error("Configura el correo de notificaciones de la empresa.");
+  const omitted = new Set((input.omitRecipients || []).map(value => value.toLowerCase()));
+  const to = unique(client).filter(value => !omitted.has(value));
+  const bcc = unique([...company, ...splitEmails(settings.copyTo)]).filter(value => !to.includes(value) && !omitted.has(value));
+  return { settings, to, bcc };
 }
 
 export interface InvoiceEmailResult {
@@ -297,88 +240,42 @@ export interface InvoiceEmailResult {
   error?: string;
   messageId?: string;
   deliveryUncertain?: boolean;
+  partial?: boolean;
+  rejected?: string[];
 }
 
 /**
  * Envía el comprobante autorizado por correo. Es "best effort": si el correo
  * falla, la emisión no se revierte; el resultado se reporta por separado.
  */
-export async function sendInvoiceEmail(input: InvoiceEmailInput): Promise<InvoiceEmailResult> {
+export async function sendInvoiceEmail(input: InvoiceEmailInput, dependencies = { readPassword: readEmailPassword, send: sendEmailDetailed }): Promise<InvoiceEmailResult> {
+  const kind = input.documentKind || "factura", label = fiscalMailLabels[kind];
   const settings = emailSettingsFromConfig(input.config);
-  const recipients: string[] = [];
-
-  if (settings.enabled && settings.notifyClient) {
-    const cliente = splitEmails(input.invoice.clientEmail);
-    recipients.push(...cliente);
-  }
-
-  const copiaEmpresa = settings.notifyCompany
-    ? splitEmails(input.config.emailNotificaciones || settings.fromEmail)
-    : [];
-  const copiaExtra = splitEmails(settings.copyTo);
-
-  const to = [...new Set(recipients)];
-  const cc = [...new Set([...copiaEmpresa, ...copiaExtra])].filter((email) => !to.includes(email));
-
-  if (!settings.enabled) {
-    return { sent: false, recipients: [], skippedReason: "La entrega por correo está desactivada." };
-  }
-  if (!isEmailSettingsComplete(settings)) {
-    return { sent: false, recipients: [], skippedReason: "La configuración SMTP está incompleta." };
-  }
-  if (to.length === 0 && cc.length === 0) {
-    return { sent: false, recipients: [], skippedReason: "El comprobante no tiene destinatarios configurados." };
-  }
-
+  if (!settings.enabled) return { sent: false, recipients: [], skippedReason: "La entrega por correo está desactivada." };
+  if (!isEmailSettingsComplete(settings)) return { sent: false, recipients: [], skippedReason: "La configuración SMTP está incompleta." };
+  let targets: ReturnType<typeof fiscalEmailRecipients>;
+  try { targets = fiscalEmailRecipients(input); } catch (error) { return { sent: false, recipients: [], error: (error as Error).message }; }
+  const { to, bcc } = targets;
+  if (!to.length && !bcc.length) return input.omitRecipients?.length ? { sent: true, recipients: input.omitRecipients, skippedReason: "Todos los destinatarios ya fueron confirmados." } : { sent: false, recipients: [], skippedReason: "No hay destinatarios configurados." };
+  let attachments: EmailAttachment[];
   try {
-    const password = await readEmailPassword();
-    if (!password) {
-      return {
-        sent: false,
-        recipients: [...to, ...cc],
-        skippedReason: "No hay contraseña SMTP guardada en el servidor.",
-      };
-    }
-
-    const attachments: EmailAttachment[] = [];
-    attachments.push({ filename: `RIDE-${input.invoice.documentNumber}.pdf`, content: invoiceRidePdf(input.invoice, input.config), contentType: "application/pdf" });
-    if (input.xmlFirmado) {
-      attachments.push({
-        filename: `${input.invoice.documentNumber}.xml`,
-        content: input.xmlFirmado,
-        contentType: "application/xml",
-      });
-    }
-
-    const messageId = await sendEmail({
-      settings,
-      password,
-      to: to.length > 0 ? to : cc,
-      cc: to.length > 0 ? cc : [],
-      subject: `Comprobante electrónico ${input.invoice.documentNumber} - ${
-        input.config.nombreComercial || input.config.razonSocial || "INNTEL CORP"
-      }`,
-      text: [
-        `Comprobante electrónico ${input.invoice.documentNumber}`,
-        `Cliente: ${input.invoice.clientName}`,
-        `Total: ${money(input.invoice.total)}`,
-        `Clave de acceso: ${input.invoice.claveAcceso}`,
-        input.numeroAutorizacion ? `Autorización SRI: ${input.numeroAutorizacion}` : "",
-        "El XML firmado del comprobante se adjunta a este mensaje.",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      html: buildInvoiceHtml(input),
-      attachments,
+    if (!input.invoice.xmlAutorizado || input.invoice.estadoSRI !== "AUTORIZADO") throw new Error("El documento no está autorizado.");
+    attachments = [
+      { filename: `RIDE-${kind}-${input.invoice.documentNumber}.pdf`, content: fiscalRidePdf(kind, input.invoice, input.config), contentType: "application/pdf" },
+      { filename: `${kind}-${input.invoice.documentNumber}.xml`, content: input.invoice.xmlAutorizado, contentType: "application/xml" },
+      { filename: "inntel.png", content: inntelEmailLogo, contentType: "image/png", cid: "inntel-logo" },
+    ];
+  } catch { return { sent: false, recipients: [], error: "No se pudieron preparar el PDF y XML autorizados." }; }
+  try {
+    const password = await dependencies.readPassword();
+    if (!password) return { sent: false, recipients: [], skippedReason: "No hay contraseña SMTP guardada en el servidor." };
+    const total = fiscalMailAmount(kind, input.invoice);
+    const receipt = await dependencies.send({ settings, password, to: to.length ? to : bcc, bcc: to.length ? bcc : [],
+      subject: `${label} ${input.invoice.documentNumber} | ${input.config.nombreComercial || "INNTEL CORP"}`,
+      text: [label, `Número: ${input.invoice.documentNumber}`, `Destinatario: ${input.invoice.clientName || input.invoice.destClientName || ""}`, total === undefined ? "" : `Valor USD: ${total.toFixed(2)}`, `Clave de acceso: ${input.invoice.claveAcceso}`, "PDF RIDE y XML autorizado adjuntos."].filter(Boolean).join("\n"),
+      html: buildInvoiceHtml(input), attachments,
     });
-
-    return { sent: true, recipients: [...new Set([...to, ...cc])], messageId };
-  } catch (error: any) {
-    return {
-      sent: false,
-      recipients: [...new Set([...to, ...cc])],
-      error: error?.message || "No se pudo enviar el comprobante por correo.",
-      deliveryUncertain: true,
-    };
-  }
+    const unconfirmed = [...to, ...bcc].some(address => !receipt.accepted.includes(address) && !receipt.rejected.includes(address));
+    return { deliveryUncertain: unconfirmed, sent: !unconfirmed && receipt.rejected.length === 0, partial: receipt.rejected.length > 0, recipients: receipt.accepted, rejected: receipt.rejected, messageId: receipt.messageId, ...(receipt.rejected.length ? { error: "El proveedor rechazó algunos destinatarios; se conservan los envíos ya aceptados." } : {}) };
+  } catch { return { sent: false, recipients: [], error: "El proveedor de correo no confirmó la entrega. Revisa la conexión o el registro SMTP antes de repetir el envío.", deliveryUncertain: true }; }
 }

@@ -13,9 +13,9 @@ import { autorizacionComprobante } from "./sri-client.ts";
 import { sriRequest, type FiscalKind, type SriNewDocument } from "./sri-documents.ts";
 import { correctRejectedDocument, processFiscalDocument, reserveFiscalDocument, deleteTestInvoice } from "./sri-workflow.ts";
 import { parsePkcs12, issuerRfc2253, verifySriSignedXml } from "./sri-signer.ts";
-import { deliverFiscalInvoice } from "./sri-email.ts";
+import { deliverFiscalInvoice, deliverFiscalDocument } from "./sri-email.ts";
 import { invoiceRidePdf } from "./sri-ride-pdf.ts";
-import { buildInvoiceHtml } from "./email-delivery.ts";
+import { buildInvoiceHtml, sendInvoiceEmail, fiscalEmailRecipients } from "./email-delivery.ts";
 import { initializeVaultKey, seal } from "./vault.ts";
 
 type Row = Record<string, any>;
@@ -395,4 +395,73 @@ test("QA SRI: precio no representable y compra anulada se rechazan antes de rese
   const claveAcceso = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: "1790012345001", ambiente: "1", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "87654321" });
   storage.rows.set("purchaseInvoices/void", { status: "anulada", supplierRuc: "1790012345001", date: getEcuadorDate(), claveAcceso, documentNumber: "001-001-000000001" });
   await assert.rejects(reserve({ kind: "retencion", purchaseInvoiceId: "void", supportCode: "01", relatedParty: false, paymentCode: "20", items: [{ taxType: "RENTA", code: "312", percentage: 1.75, taxBase: 100 }] }), /sustento consistentes/);
+});
+
+test("Correo SRI: cinco documentos autorizados entregan PDF/XML/logo al destinatario y copia privada a empresa", async t => {
+  const { storage, db } = await setup();
+  const production = { ...config, ambiente: "2" as const, emailEnabled: true, emailNotifyClient: true, emailNotifyCompany: true,
+    emailHost: "smtp.example.test", emailUser: "facturacion@example.test", emailFrom: "facturacion@example.test", emailNotificaciones: "empresa@example.test", emailCopyTo: "auditoria@example.test" };
+  storage.rows.set("sriCompanyConfig/sri-config-inntel", production);
+  const reserve = (body: SriNewDocument) => reserveFiscalDocument(db, user, production, body);
+  t.mock.method(globalThis, "fetch", async (url: string, init: RequestInit) => {
+    if (url.includes("Recepcion")) return reception("RECIBIDA");
+    const key = String(init.body).match(/<claveAccesoComprobante>(\d{49})<\/claveAccesoComprobante>/)?.[1];
+    const document = [...storage.rows.values()].find(row => row.fiscalWorkflowVersion === 1 && row.claveAcceso === key);
+    return resultXml(key!, authorized(key!, document!.xmlFirmado, "PRODUCCIÓN"), 1);
+  });
+  const invoice = await reserve({ kind: "factura", saleId: "sale-qa" });
+  await processFiscalDocument(db, user, production, "factura", invoice, "emitir");
+  const nc = await reserve({ kind: "nota_credito", invoiceId: invoice.id, reason: "Devolución QA", items: [{ id: "part", quantity: 1 }] });
+  const nd = await reserve({ kind: "nota_debito", invoiceId: invoice.id, ivaRate: 5, paymentCode: "20", reasons: [{ reason: "Ajuste QA", amount: 10 }] });
+  const guide = await reserve({ kind: "guia_remision", invoiceId: invoice.id, startDate: getEcuadorDate(), endDate: getEcuadorDate(), carrierName: "Transportista QA", carrierRuc: "1790016919001", licensePlate: "ABC1234", originAddress: "Quito QA", destAddress: "Destino QA", destClientName: "Cliente QA", destClientRuc: "1710034065", route: "Ruta QA", reason: "Entrega QA", items: [{ name: "Equipo", quantity: 1, unit: "unidad", sku: "QA" }] });
+  const claveAcceso = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: "1790012345001", ambiente: "2", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "87654321" });
+  storage.rows.set("suppliers/qa", { email: "proveedor@example.test" });
+  storage.rows.set("purchaseInvoices/qa", { supplierId: "qa", supplierRuc: "1790012345001", supplierName: "Proveedor QA", date: getEcuadorDate(), claveAcceso, documentNumber: "001-001-000000001", subtotal: 100, ivaAmount: 15, total: 115, items: [{ ivaRate: 15, subtotal: 100, ivaAmount: 15 }] });
+  const retention = await reserve({ kind: "retencion", purchaseInvoiceId: "qa", supportCode: "01", relatedParty: false, paymentCode: "20", items: [{ taxType: "IVA", code: "1", percentage: 30, taxBase: 15 }] });
+  let deliveries = 0;
+  for (const [kind, ref] of [["factura", invoice], ["nota_credito", nc], ["nota_debito", nd], ["guia_remision", guide], ["retencion", retention]] as const) {
+    await processFiscalDocument(db, user, production, kind, ref, "emitir");
+    const result = await deliverFiscalDocument(db, user, production, kind, ref.id, input => sendInvoiceEmail(input, {
+      readPassword: async () => "SYNTHETIC-LOCAL-SMTP",
+      send: async message => {
+        deliveries++;
+        assert.deepEqual(message.to, [kind === "retencion" ? "proveedor@example.test" : "cliente@example.test"]);
+        assert.deepEqual(message.bcc, ["empresa@example.test", "auditoria@example.test"]); assert.equal(message.cc, undefined);
+        assert.equal(message.attachments!.length, 3);
+        const pdfBytes = message.attachments![0].content;
+        assert.ok(Buffer.isBuffer(pdfBytes));
+        assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
+        assert.match(String(message.attachments![1].content), /<estado>AUTORIZADO<\/estado>/);
+        assert.equal(message.attachments![2].cid, "inntel-logo");
+        assert.match(message.html!, /cid:inntel-logo/);
+        assert.ok(message.subject.includes(storage.read(ref.path)!.documentNumber));
+        const exportPath = process.env.SRI_QA_EMAIL_OUTPUT;
+        if (exportPath) { mkdirSync(exportPath, { recursive: true }); writeFileSync(join(exportPath, kind + ".html"), message.html!); writeFileSync(join(exportPath, kind + ".pdf"), message.attachments![0].content); writeFileSync(join(exportPath, "logo.png"), message.attachments![2].content); }
+        return { messageId: "local-accepted", accepted: [...message.to, ...message.bcc!], rejected: [] };
+      },
+    }));
+    assert.equal(result.sent, true); assert.equal(storage.read(ref.path)!.emailStatus, "enviado");
+    await deliverFiscalDocument(db, user, production, kind, ref.id, async () => { throw Error("No debe duplicar un envío confirmado"); });
+  }
+  assert.equal(deliveries, 5);
+});
+
+test("Correo SRI: faltan destinatarios, escape HTML y reintento de copia parcial sin repetir al cliente", async () => {
+  const { storage, db } = await setup();
+  const production = { ...config, emailEnabled: true, emailHost: "smtp.example.test", emailUser: "mail@example.test", emailNotifyClient: true, emailNotifyCompany: true, emailNotificaciones: "company@example.test" };
+  assert.throws(() => fiscalEmailRecipients({ config: production, invoice: { clientEmail: "" } }), /correo válido/);
+  const html = buildInvoiceHtml({ config: production, invoice: { clientName: '<img src=x onerror="alert(1)">', documentNumber: "QA", items: [], total: 12, date: "2026-11-16" } });
+  assert.equal(html.includes('<img src=x'), false); assert.ok(html.includes("&lt;img"));
+  const key = generarClaveAccesoSRI({ fechaEmision: getEcuadorDate(), tipoComprobante: "01", ruc: production.ruc, ambiente: "2", establecimiento: "001", puntoEmision: "001", secuencial: 1, codigoNumerico: "87654321" });
+  storage.rows.set("billingInvoices/email-qa", { documentType: "factura", ambiente: "2", estadoSRI: "AUTORIZADO", claveAcceso: key, clientEmail: "client@example.test", xmlAutorizado: "local fixture" });
+  await deliverFiscalInvoice(db, user, production, "email-qa", async () => ({ sent: false, partial: true, recipients: ["client@example.test"], rejected: ["company@example.test"] }));
+  assert.equal(storage.read("billingInvoices/email-qa")!.emailStatus, "parcial");
+  await deliverFiscalInvoice(db, user, production, "email-qa", async input => {
+    const plan = fiscalEmailRecipients(input);
+    assert.deepEqual(plan.to, []); assert.deepEqual(plan.bcc, ["company@example.test"]);
+    return { sent: true, recipients: plan.bcc };
+  });
+  assert.deepEqual(storage.read("billingInvoices/email-qa")!.emailAcceptedRecipients, ["client@example.test", "company@example.test"]);
+  storage.rows.get("billingInvoices/email-qa")!.status = "anulada";
+  await assert.rejects(deliverFiscalInvoice(db, user, production, "email-qa"), { status: 409 });
 });

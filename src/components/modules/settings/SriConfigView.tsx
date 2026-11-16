@@ -56,7 +56,7 @@ const EMPTY_EMAIL_FORM: EmailFormState = {
   emailReplyTo: "",
   emailCopyTo: "",
   emailNotifyClient: true,
-  emailNotifyCompany: false,
+  emailNotifyCompany: true,
 };
 
 interface CertificateResponse {
@@ -318,12 +318,12 @@ export function SriConfigView() {
     return rest;
   };
 
-  const saveEmailConfig = async () => {
+  const saveEmailConfig = async (overrides: Partial<EmailFormState> = {}) => {
     const response = await api<{ message: string; config: EmailFormState; complete: boolean }>(
       "/api/settings/email",
       {
         action: "guardar",
-        config: emailConfigPayload(),
+        config: { ...emailConfigPayload(), ...overrides },
         password: emailPassword.trim() ? emailPassword : undefined,
       }
     );
@@ -344,9 +344,9 @@ export function SriConfigView() {
       const response = await saveEmailConfig();
       showSuccess(
         "Correo Guardado",
-        response.complete
-          ? "Los documentos autorizados se enviarán automáticamente por correo."
-          : "Configuración guardada. Completa los datos para habilitar el envío."
+        response.complete && response.config.emailEnabled
+          ? "Los documentos autorizados de producción se enviarán automáticamente por correo."
+          : "Configuración guardada. Revisa que el envío automático y sus destinatarios estén activados."
       );
     } catch (err: any) {
       showError("No se Pudo Guardar", err?.message || "No se pudo guardar la configuración de correo.");
@@ -1120,7 +1120,7 @@ export function SriConfigView() {
             {emailComplete ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>Listo para Enviar</span>
+                <span>{emailForm.emailEnabled ? "Envío automático activo" : "SMTP listo · envío desactivado"}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
@@ -1136,7 +1136,7 @@ export function SriConfigView() {
                 onChange={(e) => setEmailForm({ ...emailForm, emailEnabled: e.target.checked })}
                 className="w-4 h-4 rounded text-[#004ac6] border-slate-300 focus:ring-[#004ac6] cursor-pointer"
               />
-              <span>Envío automático</span>
+              <span>Envío automático al autorizar</span>
             </label>
           </div>
         </div>
@@ -1274,6 +1274,12 @@ export function SriConfigView() {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
+            {(!emailForm.emailEnabled || !emailForm.emailNotifyClient || !emailForm.emailNotifyCompany) && <button type="button" disabled={emailBusy || !canEditSri} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" onClick={async () => {
+              setEmailBusy(true);
+              try { await saveEmailConfig({ emailEnabled: true, emailNotifyClient: true, emailNotifyCompany: true }); showSuccess("Envío completo activado", "Los próximos documentos autorizados de producción se enviarán al destinatario y a la empresa."); }
+              catch (error: any) { showError("No se pudo activar", error.message); }
+              finally { setEmailBusy(false); }
+            }}>Activar cliente y empresa</button>}
             <button
               type="button"
               onClick={handleSaveEmail}
@@ -1309,8 +1315,7 @@ export function SriConfigView() {
         </div>
 
         <p className="text-[10px] text-slate-500">
-          Al autorizarse una factura, el SRI y el RIDE se envían por correo al cliente. La contraseña SMTP se guarda cifrada
-          en el servidor y nunca se devuelve al navegador.
+          Al autorizar documentos de producción (facturas, notas de crédito y débito, retenciones y guías), se envían PDF RIDE y XML al destinatario y a las copias activadas. Los comprobantes de pruebas no se envían. La contraseña SMTP se conserva únicamente en el servidor y no se devuelve al navegador.
         </p>
       </div>
     </form>

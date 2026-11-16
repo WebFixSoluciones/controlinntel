@@ -73,7 +73,7 @@ function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { claveAcceso?: string
   return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><span className={`whitespace-nowrap rounded border px-1.5 text-[10px] font-medium leading-[15px] ${color}`}>
     {fiscalStateLabel(doc)}
   </span>{environment === "1" && <span className="text-[9px] font-medium leading-[11px] text-sky-700">PRUEBAS</span>}</span>
-    {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="mt-1 block text-[10px] text-slate-500">Correo: {({enviado:"confirmado",enviando:"en curso",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
+    {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="mt-1 block text-[10px] text-slate-500">Correo: {({enviado:"confirmado",enviando:"en curso",pendiente:"pendiente",desactivado:"automático desactivado",parcial:"entrega parcial",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
     {doc.commercialReconciliationStatus === "pendiente" && <span className="mt-1 block text-[10px] font-semibold text-amber-700">Requiere conciliación de cartera</span>}
   </>;
 }
@@ -308,6 +308,18 @@ export function BillingManager() {
       return matchSearch && matchesDateAndBatch(nd.date, nd.documentNumber);
     });
   }, [billingDebitNotes, searchTerm, batchFilter, dateFrom, dateTo]);
+
+  const fiscalMailAction = (kind: FiscalKind, document: SriFiscalEvidence & { id: string; claveAcceso?: string }) => {
+    if ((document.ambiente || document.claveAcceso?.[23]) !== "2" || !isFiscalAuthorized(document) || !canUser(currentUser, "facturacion", "canAuthorizeSri")) return null;
+    return <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Estado y envío de correo SRI" onClick={() => showConfirm("Correo del documento", "Enviar PDF RIDE y XML autorizado al destinatario y a las copias configuradas. Los destinatarios ya confirmados se omiten. Si el intento anterior quedó sin confirmación, revisa el proveedor antes de repetirlo: podría duplicarse.", async () => {
+      try {
+        const result = await api<{ email: { sent: boolean; error?: string; skippedReason?: string } }>("/api/sri/emitir", { action: "reenviar_correo", documentKind: kind, id: document.id, confirmUncertain: true });
+        await refresh();
+        if (result.email.sent) showSuccess("Correo confirmado", result.email.skippedReason || "PDF y XML aceptados por el servidor de correo.");
+        else showWarning("Correo pendiente", result.email.error || result.email.skippedReason || "Revisa la configuración SMTP y el correo del destinatario.");
+      } catch (error: any) { showError("No se pudo enviar", error.message); }
+    })}><Mail className="size-4" /></button>;
+  };
 
   const filteredWithholdings = useMemo(() => {
     return billingWithholdings.filter((ret) => {
@@ -815,12 +827,7 @@ export function BillingManager() {
                                 async () => { try { await api(`/api/sri/emitir?id=${encodeURIComponent(inv.id)}`, undefined, "DELETE"); await refresh(); showSuccess("Factura de prueba eliminada", "La nota de venta y los registros de producción se conservaron."); } catch (error: any) { showError("No se pudo eliminar", error.message); } }
                               )} />
                             )}
-                            {!isNotaVenta && inv.ambiente === "2" && isFiscalAuthorized(inv) && canUser(currentUser, "facturacion", "canAuthorizeSri") && (
-                              <button type="button" className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-700" title="Estado y envío de correo SRI" onClick={() => showConfirm("Correo de la factura", "Enviar XML autorizado y RIDE al destinatario de la factura. Si el envío ya fue confirmado, no se duplica. Si quedó sin confirmación, comprueba primero tu proveedor: repetirlo podría duplicar el correo.", async () => {
-                                try { const result = await api<{email:{sent:boolean;error?:string;skippedReason?:string}}>("/api/sri/emitir", { action: "reenviar_correo", id: inv.id, confirmUncertain: true }); await refresh(); if (result.email.sent) showSuccess("Correo confirmado", result.email.skippedReason || "XML y RIDE aceptados por el proveedor de correo."); else showWarning("Correo pendiente", result.email.error || result.email.skippedReason || "Revisa la configuración SMTP."); }
-                                catch (error: any) { showError("No se pudo enviar", error.message); }
-                              })}><Mail className="size-4" /></button>
-                            )}
+                            {!isNotaVenta && fiscalMailAction("factura", inv)}
                             {isNotaVenta && !inv.sriInvoiceId && inv.status !== "anulada" && (
                               <ActionIconButton action="edit" onClick={() => {
                                   setInvoiceToEdit(inv);
@@ -998,6 +1005,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          {fiscalMailAction("nota_credito", nc)}
                           <button
                             onClick={() => handleOpenNcRide(nc)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
@@ -1079,6 +1087,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          {fiscalMailAction("nota_debito", nd)}
                           <button
                             onClick={() => handleOpenDebitNoteRide(nd)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
@@ -1169,6 +1178,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          {fiscalMailAction("retencion", ret)}
                           <button
                             onClick={() => handleOpenWithholdingRide(ret)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
@@ -1259,6 +1269,7 @@ export function BillingManager() {
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
+                          {fiscalMailAction("guia_remision", g)}
                           <button
                             onClick={() => handleOpenRemissionRide(g)}
                             className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"
