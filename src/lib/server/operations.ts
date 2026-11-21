@@ -54,6 +54,9 @@ export async function snapshot(user: UserProfile, database?: Firestore) {
       }
     } catch (queryErr: any) {
       console.warn(`No se pudo consultar la colección ${name} en Firestore:`, queryErr?.message || queryErr);
+      // Never turn a failed read (including a later page) into a successful empty
+      // or partial snapshot: the UI would replace confirmed data with that result.
+      throw new HttpError(503, "No se pudieron cargar todos los datos guardados. Intenta actualizar nuevamente; no se modificó la información.");
     }
     result[entity] = documents.filter(d => entity !== "clientAdvances" || !d.data().deletedAt)
       .filter(d => entity !== "billingInvoices" || canReadBillingDocument(user, d.data()))

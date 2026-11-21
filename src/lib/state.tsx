@@ -722,6 +722,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       { name: "nodes", setter: setNodes, initialData: INITIAL_NODES },
       { name: "ipPools", setter: setIpPools, initialData: INITIAL_IP_POOLS },
       { name: "policies", setter: setPolicies, initialData: INITIAL_POLICIES },
+      // Hydrate persisted documents on every session/refresh, not only after upload.
+      { name: "arcotelFiles", setter: setArcotelFiles, initialData: INITIAL_ARCOTEL_FILES },
+      { name: "clientDocuments", setter: setClientDocuments, initialData: INITIAL_CLIENT_DOCUMENTS },
       { name: "vault", setter: setVault, initialData: INITIAL_VAULT },
       { name: "tickets", setter: setTickets, initialData: INITIAL_TICKETS },
       { name: "ticketSubjects", setter: setTicketSubjects, initialData: [] },
