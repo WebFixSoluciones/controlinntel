@@ -34,7 +34,7 @@ export function reconcileCommercial(data:Record<string,Row[]>):ReconciliationIss
   }
   for(const movement of rows("financialMovements"))if(!bankIds.has(movement.bankAccountId))add("MISSING_BANK","financialMovements",movement,"Movimiento sin cuenta persistida.");
   for(const bank of rows("bankAccounts")) {
-    const movements=rows("financialMovements").filter(m=>m.bankAccountId===bank.id);
+    const movements=rows("financialMovements").filter(m=>m.bankAccountId===bank.id&&m.status!=="anulado");
     if(bank.initialBalance===undefined){add("MISSING_OPENING","bankAccounts",bank,"Falta apertura verificable; no se presume saldo cero.");continue;}
     const expected=cents(bank.initialBalance)+movements.filter(m=>m.category!=="apertura").reduce((sum,m)=>sum+(m.type==="ingreso"?1:-1)*cents(m.amount),0);
     if(expected!==cents(bank.currentBalance))add("BANK_PROJECTION","bankAccounts",bank,"Apertura y movimientos no explican el saldo.",money(expected),Number(bank.currentBalance));

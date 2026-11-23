@@ -65,7 +65,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   } = useApp();
   const monthlyCharges = allCharges.filter(row => inReportPeriod(chargeReportDate(row), from, to));
   const expenses = allExpenses.filter(row => row.status !== "anulado" && inReportPeriod(row.expenseDate, from, to));
-  const financialMovements = allMovements.filter(row => inReportPeriod(row.date, from, to));
+  const financialMovements = allMovements.filter(row => row.status !== "anulado" && inReportPeriod(row.date, from, to));
   const purchaseInvoices = allPurchases.filter(row => !["anulado", "anulada"].includes(String("status" in row ? row.status : "")) && inReportPeriod(row.date, from, to));
   const { showSuccess, showError } = useToast();
   const reportRef = useRef<HTMLDivElement>(null);

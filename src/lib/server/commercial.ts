@@ -13,11 +13,12 @@ import { allocateClientCredit } from "../client-credit.ts";
 import { schemas } from "./schemas.ts";
 import { canUser, canViewServicePrices, canAccessSubmodule, canViewFinancialAmounts } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
+import { assertPurchaseActive, editPurchase, deletePurchase } from "./purchase-corrections.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
-class Context {
+export class Context {
   original = new Map<string, Row | null>();
   writes = new Map<string, Row>();
   db: Firestore; tx: Transaction; user: UserProfile; operationId: string;
@@ -478,6 +479,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     case "supplierCredit":
     case "supplierDebit": {
       const invoice=await c.get("purchaseInvoices",data.purchaseInvoiceId), amount=checkedAmount(data.total),id=randomUUID();
+      assertPurchaseActive(invoice);
       if(data.supplierId!==invoice.supplierId)throw new HttpError(400,"El proveedor no corresponde a la compra.");
       const delta=action==="supplierCredit"?-amount:amount,remaining=cents(invoice.balanceRemaining)+delta;
       if(remaining<0)c.put("supplierCredits",{id:`credit-${id}`,supplierId:invoice.supplierId,sourceNoteId:id,amount:money(-remaining),remaining:money(-remaining),status:"available"});
@@ -758,6 +760,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     }
     case "paySupplier": {
       const invoice=await c.get("purchaseInvoices",data.purchaseInvoiceId), amount=checkedAmount(data.amount), balance=cents(invoice.balanceRemaining);
+      assertPurchaseActive(invoice);
       if(amount>balance) throw new HttpError(409,"El pago excede la cuenta por pagar.");
       const id=randomUUID(), date=checkedDate(data.date);
       let movementId:string|null=null;
@@ -767,9 +770,12 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const payment={...data,id,date,supplierId:invoice.supplierId,supplierName:invoice.supplierName,amount:money(amount),movementId,registeredBy:c.user.uid,createdAt:new Date().toISOString()};
       c.put("supplierPayments",payment); return payment;
     }
+    case "editPurchase": return editPurchase(c, data);
+    case "deletePurchase": return deletePurchase(c, data);
     case "purchase": {
       const supplier=await c.get("suppliers",data.supplierId), id=randomUUID(), date=checkedDate(data.date), key=digest([supplier.id,data.documentNumber]);
-      if((await c.get("purchaseUniqueness",key,false)).id) throw new HttpError(409,"Compra ya registrada.");
+      const reservation=await c.get("purchaseUniqueness",key,false);
+      if(reservation.id&&!reservation.released || (await c.list("purchaseInvoices","supplierId",supplier.id)).some(row=>row.documentNumber===data.documentNumber)) throw new HttpError(409,"Compra ya registrada.");
       const calculation=calculateLines((data.items||[]).map((i:Row)=>({...i,unitPrice:i.unitCost}))); let inventory=false;
       for(const item of calculation.items) {
         if(!item.productId) continue;
@@ -853,7 +859,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     : ["editSale", "cancelSale"].includes(command.action) ? "notas_venta"
     : ["recur", "startRun", "processRun"].includes(command.action) ? "recurrentes" : undefined;
   if (salesScreen && !canAccessSubmodule(user, "ventas", salesScreen)) throw new HttpError(403, "No tienes acceso a esta función de Ventas.");
-  const purchaseScreen = command.action === "purchase" ? "registrar_compra" : command.action === "supplierCredit" ? "notas_credito" : command.action === "supplierDebit" ? "notas_debito" : undefined;
+  const purchaseScreen = ["editPurchase", "deletePurchase"].includes(command.action) ? "historial_compras" : command.action === "purchase" ? "registrar_compra" : command.action === "supplierCredit" ? "notas_credito" : command.action === "supplierDebit" ? "notas_debito" : undefined;
   if (purchaseScreen && !canAccessSubmodule(user, "compras", purchaseScreen)) throw new HttpError(403, "No tienes acceso a esta función de Compras.");
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={
@@ -864,7 +870,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["ventas","canCreateInvoice"],processRun:["ventas","canCreateInvoice"],
     editAdvance:["finanzas","canRegisterReceipts"],voidAdvance:["finanzas","canCancelPayments"],
     reverseApplication:["finanzas","canCancelPayments"],
-    purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
+    editPurchase:["compras","canEditPurchase"],deletePurchase:["compras","canDeletePurchase"],purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],
   };
   const grant=grants[command.action];

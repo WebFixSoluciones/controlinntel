@@ -8,7 +8,7 @@ export const commandCollections:Partial<Record<Entity,string>>={
   inventoryTransfers:"inventoryTransfer",inventoryAdjustments:"inventoryAdjustment",billingInvoices:"issueSale / editSale / cancelSale (notas internas)",
   monthlyCharges:"emisión / manualCharge / payCharge / reverseApplication / cancelCharge",clientAdvances:"advance / applyAdvance / applyClientCredit / cancelAdvance",
   bankAccounts:"createBank / editBank / adjustBank",financialMovements:"bankMovement / transfer / cobro / pago",
-  purchaseInvoices:"purchase / paySupplier / ajustes",supplierPayments:"paySupplier",supplierCreditNotes:"supplierCredit",supplierDebitNotes:"supplierDebit",
+  purchaseInvoices:"purchase / editPurchase / deletePurchase / paySupplier / ajustes",supplierPayments:"paySupplier / deletePurchase",supplierCreditNotes:"supplierCredit",supplierDebitNotes:"supplierDebit",
   expenses:"expense",systemUsers:"/api/users",operationLog:"solo servidor; lectura paginada en /api/operations",
   supplierCredits:"supplierCredit / paySupplier con aplicación de saldo",
   auditLogs:"solo servidor, derivada de operationLog",

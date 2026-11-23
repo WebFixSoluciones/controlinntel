@@ -410,7 +410,8 @@ interface AppContextType {
       paidAmount?: number;
     }
   ) => Promise<PurchaseInvoice>;
-  updatePurchaseInvoice: (id: string, updates: Partial<PurchaseInvoice>) => Promise<void>;
+  updatePurchaseInvoice: (id: string, updates: Partial<PurchaseInvoice>, expectedVersion?: number) => Promise<void>;
+  deletePurchaseInvoice: (id: string, reason: string, expectedVersion: number) => Promise<void>;
 
   addSupplierCreditNote: (
     note: Omit<SupplierCreditNote, "id" | "createdAt">
@@ -1971,11 +1972,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     data: Omit<PurchaseInvoice, "id" | "createdAt" | "paidAmount" | "balanceRemaining"> & { paidAmount?: number }
   ): Promise<PurchaseInvoice> => runCommercial<PurchaseInvoice>("purchase", data);
 
-  const updatePurchaseInvoice = async (id: string, updates: Partial<PurchaseInvoice>): Promise<void> => {
-    await syncToFirestore("purchaseInvoices", id, updates);
-    setPurchaseInvoices((prev) =>
-      prev.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv))
-    );
+  const updatePurchaseInvoice = async (id: string, updates: Partial<PurchaseInvoice>, expectedVersion?: number): Promise<void> => {
+    await runCommercial("editPurchase", { id, updates, expectedVersion: expectedVersion ?? purchaseInvoices.find(row => row.id === id)?.version ?? 0 });
+  };
+
+  const deletePurchaseInvoice = async (id: string, reason: string, expectedVersion: number): Promise<void> => {
+    await runCommercial("deletePurchase", { id, reason, expectedVersion });
   };
 
   const addSupplierCreditNote = async (note: Omit<SupplierCreditNote, "id" | "createdAt">): Promise<SupplierCreditNote> =>
@@ -2193,6 +2195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deleteSupplier,
           addPurchaseInvoice,
           updatePurchaseInvoice,
+          deletePurchaseInvoice,
           addSupplierCreditNote,
           addSupplierDebitNote,
           addBankAccount,

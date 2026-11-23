@@ -29,7 +29,7 @@ export function WithholdingModal({ isOpen, onClose, initialPurchaseId, correctio
   const [ivaRate, setIvaRate] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const available = purchaseInvoices.filter(purchase => /^\d{49}$/.test(purchase.claveAcceso || ""));
+  const available = purchaseInvoices.filter(purchase => purchase.status !== "anulada" && /^\d{49}$/.test(purchase.claveAcceso || ""));
 
   useEffect(() => {
     if (!isOpen) return;

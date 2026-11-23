@@ -165,7 +165,7 @@ function FinanzasContent() {
   }
 
   const pendingCxPCount = purchaseInvoices.filter(
-    (inv) => inv.paymentStatus === "pendiente" || inv.paymentStatus === "abono_parcial"
+    (inv) => inv.status !== "anulada" && (inv.paymentStatus === "pendiente" || inv.paymentStatus === "abono_parcial")
   ).length;
 
   const pendingCxCCount = monthlyCharges.filter(

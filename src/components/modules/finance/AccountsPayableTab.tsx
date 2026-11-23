@@ -114,7 +114,7 @@ export function AccountsPayableTab() {
   };
 
   const pendingInvoices = (purchaseInvoices || []).filter(
-    (inv) => inv && (safeFloat(inv.balanceRemaining) > 0 || inv.paymentStatus !== "pagado")
+    (inv) => inv && inv.status !== "anulada" && (safeFloat(inv.balanceRemaining) > 0 || inv.paymentStatus !== "pagado")
   );
 
   const filteredInvoices = pendingInvoices.filter((inv) => {
@@ -143,7 +143,7 @@ export function AccountsPayableTab() {
   const totalVencidas = pendingInvoices
     .filter((inv) => getDueStatus(inv.dueDate).color === "red")
     .reduce((sum, inv) => sum + (safeFloat(inv.balanceRemaining) || 0), 0);
-  const totalPagadoHistorico = (purchaseInvoices || []).reduce((sum, inv) => sum + (safeFloat(inv.paidAmount) || 0), 0);
+  const totalPagadoHistorico = (purchaseInvoices || []).filter(inv => inv.status !== "anulada").reduce((sum, inv) => sum + (safeFloat(inv.paidAmount) || 0), 0);
 
   return (
     <div className="space-y-5">

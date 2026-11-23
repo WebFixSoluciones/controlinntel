@@ -52,6 +52,12 @@ export type PurchasePaymentCondition = "contado" | "credito";
 export type PurchasePaymentStatus = "pagado" | "pendiente" | "abono_parcial";
 
 export interface PurchaseInvoice {
+  version?: number;
+  status?: "registrado" | "anulada";
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  cancelledPaidAmount?: number;
   id: string;
   documentNumber: string; // ej. "001-002-000012345"
   claveAcceso?: string;   // 49 dígitos oficiales si es XML SRI
@@ -143,6 +149,7 @@ export interface BankAccount {
 }
 
 export interface FinancialMovement {
+  status?: "anulado";
   id: string;
   type: "ingreso" | "egreso";
   date: string;
@@ -158,6 +165,8 @@ export interface FinancialMovement {
 }
 
 export interface SupplierPaymentRecord {
+  status?: "anulado";
+  movementId?: string | null;
   supplierCreditId?: string;
   id: string;
   purchaseInvoiceId: string;
@@ -216,6 +225,8 @@ export interface ClientActions {
 }
 
 export interface PurchaseActions {
+  canEditPurchase?: boolean;
+  canDeletePurchase?: boolean;
   canCreateSupplier: boolean;
   canRegisterPurchase: boolean;
   canApprovePayments: boolean;    // 🔒 Autorizar pagos a proveedores

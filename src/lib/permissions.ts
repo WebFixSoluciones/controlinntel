@@ -154,6 +154,8 @@ export const DEFAULT_CLIENT_ACTIONS: ClientActions = {
 };
 
 export const DEFAULT_PURCHASE_ACTIONS: PurchaseActions = {
+  canEditPurchase: true,
+  canDeletePurchase: false,
   canCreateSupplier: true,
   canRegisterPurchase: true,
   canApprovePayments: true,

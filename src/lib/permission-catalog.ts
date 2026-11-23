@@ -4,6 +4,7 @@ import { editableModulePermissions } from "./permissions.ts";
 export type PermissionItem = {path:string;label:string;reserved?:boolean};
 export type PermissionSection = {key:string;label:string;items:PermissionItem[]};
 const labels:Record<string,string> = {
+ canEditPurchase:"Editar compras",canDeletePurchase:"Eliminar compras y revertir sus movimientos",
  canCreateTicket:"Crear tickets",canEditTicket:"Editar y asignar tickets",canReplyTicket:"Responder tickets y guardar notas",canDeleteTicket:"Eliminar tickets",canManageSubjects:"Administrar asuntos de soporte",canResolveTickets:"Resolver y cerrar tickets",canCreateProject:"Crear proyectos",canEditProject:"Editar proyectos y su gestión",canDeleteProject:"Eliminar proyectos",canManageClientTasks:"Crear, editar y eliminar tareas de clientes",canManageRegulatoryData:"Editar parámetros y registros regulatorios",canManageRegulatoryFiles:"Subir y reemplazar archivos regulatorios",canEditGeneralSettings:"Guardar configuración general",canEditSriSettings:"Guardar SRI, firma y correo",
  canViewServicePrices:"Ver tarifas de servicios",canViewProductPrices:"Ver precios de productos",canViewFinancialAmounts:"Ver importes comerciales y financieros",
  canCreateClient:"Crear clientes",canEditClient:"Editar clientes y asignar servicios",canEditServicePrices:"Cambiar tarifas de servicios del cliente",canUploadContracts:"Subir contratos y archivos",canDeleteContracts:"Eliminar archivos del cliente",canDeleteClient:"Retirar clientes",

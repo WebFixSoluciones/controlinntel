@@ -19,6 +19,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import { PurchaseInvoice } from "@/types";
+import { Pencil, Trash2 } from "lucide-react";
+import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
 
 interface PurchaseHistoryTabProps {
   onOpenNewPurchase: () => void;
@@ -40,6 +42,8 @@ export function PurchaseHistoryTab({
   const [dateTo, setDateTo] = useState("");
   const invalidRange = !!dateFrom && !!dateTo && dateFrom > dateTo;
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
+  const [correction, setCorrection] = useState<{ invoice: PurchaseInvoice; mode: "edit" | "delete" } | null>(null);
+  const activeInvoices = purchaseInvoices.filter(inv => inv.status !== "anulada");
 
   // Filters
   const filteredInvoices = purchaseInvoices.filter((inv) => {
@@ -54,7 +58,7 @@ export function PurchaseHistoryTab({
       filterSupplier === "todos" || inv.supplierId === filterSupplier;
 
     const matchStatus =
-      filterStatus === "todos" || inv.paymentStatus === filterStatus;
+      filterStatus === "eliminadas" ? inv.status === "anulada" : inv.status !== "anulada" && (filterStatus === "todos" || inv.paymentStatus === filterStatus);
 
     return !invalidRange && matchSearch && matchSupplier && matchStatus && inReportPeriod(inv.date, dateFrom, dateTo);
   });
@@ -101,6 +105,7 @@ export function PurchaseHistoryTab({
             <option value="pagado">Pagado</option>
             <option value="abono_parcial">Abono Parcial</option>
             <option value="pendiente">Pendiente</option>
+            <option value="eliminadas">Eliminadas</option>
           </select>
 
           <label className="text-xs text-slate-600">Desde
@@ -125,24 +130,24 @@ export function PurchaseHistoryTab({
       </div>
 
       {invalidRange && <p id="purchase-date-error" role="alert" className="text-xs text-red-600">La fecha Desde no puede ser posterior a Hasta.</p>}
-      <p role="status" className="text-xs text-slate-600 tabular-nums">{filteredInvoices.length} de {purchaseInvoices.length} compras · Total filtrado: ${money(filteredInvoices.reduce((sum, invoice) => sum + cents(invoice.total), 0)).toFixed(2)}</p>
+      <p role="status" className="text-xs text-slate-600 tabular-nums">{filteredInvoices.length} de {filterStatus === "eliminadas" ? purchaseInvoices.length - activeInvoices.length : activeInvoices.length} compras {filterStatus === "eliminadas" ? "eliminadas" : "activas"} · Total filtrado: ${money(filteredInvoices.reduce((sum, invoice) => sum + cents(invoice.total), 0)).toFixed(2)}</p>
 
       {/* Table of Invoices */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse min-w-[1100px]">
+          <table className="table-fixed w-full text-left text-xs border-collapse min-w-[1280px]">
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4 w-1/12">Fecha</th>
-                <th className="py-3 px-4 w-2/12">N° Comprobante</th>
-                <th className="py-3 px-4 w-3/12">Proveedor / RUC</th>
-                <th className="py-3 px-4 w-1/12 text-center">Condición</th>
-                <th className="py-3 px-4 w-1/12 text-right">Subtotal</th>
-                <th className="py-3 px-4 w-1/12 text-right">IVA</th>
-                <th className="py-3 px-4 w-1/12 text-right font-black">Total Factura</th>
-                <th className="py-3 px-4 w-1/12 text-center">Estado Pago</th>
-                <th className="py-3 px-4 w-1/12 text-center">Inventario</th>
-                <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                <th className="py-3 px-4 w-[8%]">Fecha</th>
+                <th className="py-3 px-4 w-[14%]">N° Comprobante</th>
+                <th className="py-3 px-4 w-[20%]">Proveedor / RUC</th>
+                <th className="py-3 px-4 w-[7%] text-center">Condición</th>
+                <th className="py-3 px-4 w-[7%] text-right">Subtotal</th>
+                <th className="py-3 px-4 w-[6%] text-right">IVA</th>
+                <th className="py-3 px-4 w-[8%] text-right font-black">Total Factura</th>
+                <th className="py-3 px-4 w-[8%] text-center">Estado Pago</th>
+                <th className="py-3 px-4 w-[7%] text-center">Inventario</th>
+                <th className="py-3 px-4 w-[15%] text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -203,14 +208,16 @@ export function PurchaseHistoryTab({
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
-                            isPaid
+                            inv.status === "anulada"
+                              ? "bg-slate-100 text-slate-600 border border-slate-300"
+                              : isPaid
                               ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
                               : isPartial
                               ? "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
                               : "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]"
                           }`}
                         >
-                          {isPaid ? "Pagado" : isPartial ? "Abono Parcial" : "Pendiente"}
+                          {inv.status === "anulada" ? "Eliminada" : isPaid ? "Pagado" : isPartial ? "Abono Parcial" : "Pendiente"}
                         </span>
                       </td>
 
@@ -222,7 +229,7 @@ export function PurchaseHistoryTab({
                               : "bg-[#f1f5f9] text-[#64748b] border border-[#cbd5e1]"
                           }`}
                         >
-                          {inv.inventoryStatus === "ingresado" ? "Ingresado" : "N/A"}
+                          {inv.inventoryStatus === "ingresado" ? inv.status === "anulada" ? "Revertido" : "Ingresado" : "N/A"}
                         </span>
                       </td>
 
@@ -236,7 +243,10 @@ export function PurchaseHistoryTab({
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {onOpenWithholdingForInvoice && canAccessSubmodule(currentUser, "compras", "retenciones") && canUser(currentUser, "compras", "canEmitWithholding") && (
+                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canEditPurchase") && <button onClick={() => setCorrection({ invoice: inv, mode: "edit" })} title="Editar compra" aria-label={`Editar compra ${inv.documentNumber}`} className="rounded-lg p-1.5 text-blue-700 hover:bg-blue-50"><Pencil className="h-4 w-4" /></button>}
+                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canDeletePurchase") && <button onClick={() => setCorrection({ invoice: inv, mode: "delete" })} title="Eliminar compra" aria-label={`Eliminar compra ${inv.documentNumber}`} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>}
+
+                          {inv.status !== "anulada" && onOpenWithholdingForInvoice && canAccessSubmodule(currentUser, "compras", "retenciones") && canUser(currentUser, "compras", "canEmitWithholding") && (
                             <button
                               onClick={() => onOpenWithholdingForInvoice(inv)}
                               className="p-1.5 rounded-lg text-[#059669] hover:bg-[#ecfdf5] transition-colors cursor-pointer"
@@ -246,7 +256,7 @@ export function PurchaseHistoryTab({
                             </button>
                           )}
 
-                          {onOpenCreditNoteForInvoice && canAccessSubmodule(currentUser, "compras", "notas_credito") && canUser(currentUser, "compras", "canRegisterPurchase") && (
+                          {inv.status !== "anulada" && onOpenCreditNoteForInvoice && canAccessSubmodule(currentUser, "compras", "notas_credito") && canUser(currentUser, "compras", "canRegisterPurchase") && (
                             <button
                               onClick={() => onOpenCreditNoteForInvoice(inv)}
                               className="p-1.5 rounded-lg text-[#b45309] hover:bg-[#fffbeb] transition-colors cursor-pointer"
@@ -265,6 +275,8 @@ export function PurchaseHistoryTab({
           </table>
         </div>
       </div>
+
+      {correction && <PurchaseCorrectionDialog key={`${correction.mode}-${correction.invoice.id}`} invoice={correction.invoice} mode={correction.mode} onClose={() => setCorrection(null)} />}
 
       {/* Invoice Detail Modal */}
       {selectedInvoice && (
@@ -288,6 +300,7 @@ export function PurchaseHistoryTab({
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedInvoice.status === "anulada" && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><strong>Compra eliminada</strong><p>{selectedInvoice.cancellationReason}</p><p>{selectedInvoice.cancelledAt?.slice(0, 10)} · Responsable: {selectedInvoice.cancelledBy}</p><p>Pagos revertidos: ${(selectedInvoice.cancelledPaidAmount || 0).toFixed(2)}</p></div>}
               {/* Clave de Acceso */}
               {selectedInvoice.claveAcceso && (
                 <div className="p-3 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] text-xs">
@@ -335,7 +348,7 @@ export function PurchaseHistoryTab({
                 </div>
                 <div>
                   <span className="text-[#737686]">Estado:</span>{" "}
-                  <strong className="text-[#0b1c30] capitalize">{selectedInvoice.paymentStatus}</strong>
+                  <strong className="text-[#0b1c30] capitalize">{selectedInvoice.status === "anulada" ? "Eliminada" : selectedInvoice.paymentStatus}</strong>
                 </div>
                 <div>
                   <span className="text-[#737686]">Monto Pagado:</span>{" "}

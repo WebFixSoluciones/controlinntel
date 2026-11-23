@@ -58,7 +58,7 @@ export function SupplierCreditNotesTab({
   );
   const [notes, setNotes] = useState<string>("");
 
-  const selectedInvoice = purchaseInvoices.find((inv) => inv.id === selectedInvoiceId);
+  const selectedInvoice = purchaseInvoices.find((inv) => inv.status !== "anulada" && inv.id === selectedInvoiceId);
 
   const handleOpenModal = (invoice?: PurchaseInvoice) => {
     if (invoice) {
@@ -250,7 +250,7 @@ export function SupplierCreditNotesTab({
                   className="w-full px-3 py-2 bg-white border border-[#cbd5e1] rounded-lg text-xs font-medium text-[#0b1c30]"
                 >
                   <option value="">-- Seleccionar Factura --</option>
-                  {purchaseInvoices.map((inv) => (
+                  {purchaseInvoices.filter(inv => inv.status !== "anulada").map((inv) => (
                     <option key={inv.id} value={inv.id}>
                       {inv.documentNumber} - {inv.supplierName} (${inv.total.toFixed(2)}) - Saldo: ${inv.balanceRemaining.toFixed(2)}
                     </option>

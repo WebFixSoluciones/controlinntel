@@ -162,7 +162,7 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
     if(entity==="monthlyCharges") {
       if(!old.exists||Object.keys(input).some(key=>!["id","version","maxPaymentDate","notes","updatedAt"].includes(key)))throw new HttpError(400,"Solo fecha de vencimiento y notas se editan desde este formulario.");
     }
-    if(entity==="purchaseInvoices"&&(!old.exists||Object.keys(input).some(key=>!["id","version","notes","dueDate","updatedAt"].includes(key))))throw new HttpError(400,"Utiliza compras y pagos para modificar importes o partidas.");
+    if(entity==="purchaseInvoices")throw new HttpError(400,"Utiliza Editar compra para preservar los permisos, movimientos e historial del comprobante.");
     if (old.exists && version !== undefined && old.data()?.version !== version) throw new HttpError(409,"El registro cambió. Actualiza y vuelve a intentarlo.");
     const merged={...old.data(),...input};
     for(const [key,value] of Object.entries(merged)) if(value===null) delete merged[key];
@@ -282,18 +282,6 @@ export async function save(user:UserProfile, entity:Entity, input:DocumentData, 
         }
       }
       if (!isClosedTicketStatus(data.status)) delete data.resolvedAt;
-    }
-    if (entity==="purchaseInvoices" && !old.exists) {
-      const rucClean = String(data.supplierRuc || "").replace(/\D/g, "");
-      const docClean = String(data.documentNumber || "").trim();
-      if (rucClean && docClean) {
-        const dupRef = db.collection("purchaseUniqueness").doc(`${rucClean}_${docClean}`);
-        const dupSnap = await tx.get(dupRef);
-        if (dupSnap.exists) {
-          throw new HttpError(409, `Factura de compra ${docClean} ya fue registrada para el RUC ${rucClean}.`);
-        }
-        tx.create(dupRef, { createdAt: now(), invoiceId: reference.id });
-      }
     }
     const updated={...data,id:reference.id,version:(old.data()?.version||0)+1,createdAt:old.data()?.createdAt||now(),updatedAt:now()};
     tx.set(reference,updated);

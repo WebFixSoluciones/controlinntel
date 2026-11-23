@@ -17,6 +17,7 @@ export type TaxMode = "EXCLUIDO" | "INCLUIDO";
 
 export type KardexMovementType =
   | "PURCHASE_RECEIPT"     // Entrada por compra a proveedor
+  | "PURCHASE_CANCELLATION" // Reversión de recepción por eliminación de compra
   | "SALE"                 // Salida por venta / facturación
   | "POSITIVE_ADJUSTMENT"  // Ajuste positivo (ingreso por sobrante / corrección)
   | "NEGATIVE_ADJUSTMENT"  // Ajuste negativo (egreso por faltante / daño)

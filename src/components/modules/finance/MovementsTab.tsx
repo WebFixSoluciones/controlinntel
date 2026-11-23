@@ -80,7 +80,7 @@ export function MovementsTab() {
   };
 
   const filteredMovements = (financialMovements || []).filter((m) => {
-    if (!m) return false;
+    if (!m || m.status === "anulado") return false;
     const q = (searchQuery || "").toLowerCase();
     const desc = (m.description || "").toLowerCase();
     const cat = categoryLabel(m.category).toLowerCase();

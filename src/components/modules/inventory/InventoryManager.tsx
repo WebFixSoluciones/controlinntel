@@ -67,6 +67,11 @@ export function getKardexBadge(type: KardexMovementType | string) {
         label: "Devolución Proveedor (-)",
         className: "bg-amber-100 text-amber-800 border border-amber-200",
       };
+    case "PURCHASE_CANCELLATION":
+      return {
+        label: "Eliminación de compra (-)",
+        className: "bg-rose-100 text-rose-800 border border-rose-200",
+      };
     case "TRANSFER_IN":
       return {
         label: "Traslado Entrada (+)",
