@@ -12,7 +12,7 @@ export const nodeSchema = z.object({
   // Administrative status and legacy network status are both used by existing forms.
   status: z.enum(["activo", "suspendido", "retirado", "reportado", "no_reportado", "online", "offline", "warning"]),
   coordinates: z.object({ lat: z.number().finite().min(-90).max(90), lng: z.number().finite().min(-180).max(180) }).optional(),
-  providers: z.array(z.object({ id: text, providerName: text, capacityMbps: capacity }).passthrough()).max(100).optional(),
+  providers: z.array(z.object({ id: text, providerName: text, capacityMbps: capacity, notes: z.string().max(2000).optional() }).passthrough()).max(100).optional(),
   services: z.array(z.object({ id: text, systemName: text, linkOrIp: z.string().max(2000).optional(), username: z.string().max(500).optional(), password: z.string().max(4096).optional(), notes: z.string().max(2000).optional() }).passthrough()).max(100).optional(),
 }).passthrough();
 

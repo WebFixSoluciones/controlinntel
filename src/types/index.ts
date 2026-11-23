@@ -231,6 +231,7 @@ export interface VaultCredential {
 }
 
 export interface NodeCarrierProvider {
+  notes?: string;
   id: string;
   providerName: string;
   capacityMbps: number;

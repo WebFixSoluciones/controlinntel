@@ -9,6 +9,8 @@ import { nodeSchema, nodeField } from "@/lib/node-schema";
 import { validationIssues, type FieldError } from "@/lib/validation-issues";
 import { ApiError } from "@/lib/api-error";
 import { NodeSystemCredentials } from "./NodeSystemCredentials";
+import { canAccessModule, canUser } from "@/lib/permissions";
+import { updateNodeSystem } from "@/lib/node-system-editor";
 import {
   Client,
   NodeLocation,
@@ -57,7 +59,8 @@ export function ClientNodeModal({
   client,
   nodeToEdit,
 }: ClientNodeModalProps) {
-  const { addNode, updateNode } = useApp();
+  const { addNode, updateNode, currentUser } = useApp();
+  const canEditCredentials = canAccessModule(currentUser, "red") && canUser(currentUser, "red", "canEditRouterCredentials");
   const { showSuccess, showError } = useToast();
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
@@ -87,6 +90,7 @@ export function ClientNodeModal({
   const [newProvCircuit, setNewProvCircuit] = useState("");
   const [newProvIpv4List, setNewProvIpv4List] = useState<string[]>([""]);
   const [newProvIpv6, setNewProvIpv6] = useState("");
+  const [newProvNotes, setNewProvNotes] = useState("");
   const [editingProvId, setEditingProvId] = useState<string | null>(null);
 
   // Servicios y Credenciales del Sistema (Separación de Usuario y Clave con temporizador de 20s)
@@ -98,9 +102,12 @@ export function ClientNodeModal({
   const [newSysUsername, setNewSysUsername] = useState("");
   const [newSysPassword, setNewSysPassword] = useState("");
   const [newSysNotes, setNewSysNotes] = useState("");
+  const [editingSysId, setEditingSysId] = useState<string | null>(null);
+  const systemFormRef = useRef<HTMLDivElement>(null);
+  const systemNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { setNewSysPassword(""); setServices([]); setEditingSysId(null); return; }
     setFieldErrors([]); setSaveError(""); setSaving(false);
 
     if (nodeToEdit) {
@@ -154,7 +161,9 @@ export function ClientNodeModal({
     setNewProvCircuit("");
     setNewProvIpv4List([""]);
     setNewProvIpv6("");
+    setNewProvNotes("");
     setNewSysName("");
+    setEditingSysId(null);
     setActiveCredentialField(null);
     setNewSysLink("");
     setNewSysUsername("");
@@ -235,6 +244,7 @@ export function ClientNodeModal({
                 ipv4Subnet: validIps.length > 0 ? validIps.join(", ") : undefined,
                 ipv4Subnets: validIps.length > 0 ? validIps : undefined,
                 ipv6Prefix: newProvIpv6.trim() || undefined,
+                notes: newProvNotes.trim(),
               }
             : p
         )
@@ -249,6 +259,7 @@ export function ClientNodeModal({
         ipv4Subnet: validIps.length > 0 ? validIps.join(", ") : undefined,
         ipv4Subnets: validIps.length > 0 ? validIps : undefined,
         ipv6Prefix: newProvIpv6.trim() || undefined,
+        notes: newProvNotes.trim(),
       };
       setProviders([...providers, newProv]);
     }
@@ -258,6 +269,7 @@ export function ClientNodeModal({
     setNewProvCircuit("");
     setNewProvIpv4List([""]);
     setNewProvIpv6("");
+    setNewProvNotes("");
   };
 
   const handleStartEditProvider = (p: NodeCarrierProvider) => {
@@ -270,6 +282,7 @@ export function ClientNodeModal({
       : (p.ipv4Subnet ? p.ipv4Subnet.split(",").map((s) => s.trim()).filter(Boolean) : [""]);
     setNewProvIpv4List(ips.length > 0 ? ips : [""]);
     setNewProvIpv6(p.ipv6Prefix || "");
+    setNewProvNotes(p.notes || "");
   };
 
   const handleCancelEditProvider = () => {
@@ -279,6 +292,7 @@ export function ClientNodeModal({
     setNewProvCircuit("");
     setNewProvIpv4List([""]);
     setNewProvIpv6("");
+    setNewProvNotes("");
   };
 
   const handleRemoveProvider = (id: string) => {
@@ -289,18 +303,53 @@ export function ClientNodeModal({
   };
 
   // Manejador de servicios y credenciales
+  const handleCancelEditService = () => {
+    setEditingSysId(null);
+    setNewSysName(""); setNewSysLink(""); setNewSysUsername(""); setNewSysPassword(""); setNewSysNotes("");
+    setActiveCredentialField(null);
+  };
+
+  const handleEditService = (service: NodeSystemService) => {
+    if (!canEditCredentials) return;
+    if (editingSysId === service.id) { systemNameRef.current?.focus(); return; }
+    if (editingSysId || newSysName.trim() || newSysLink.trim() || newSysUsername || newSysPassword || newSysNotes.trim()) {
+      showError("Sistema pendiente", "Actualiza o cancela la edición actual, o agrega el sistema pendiente, antes de editar otro.");
+      return;
+    }
+    setEditingSysId(service.id);
+    setNewSysName(service.systemName);
+    setNewSysLink(service.linkOrIp || "");
+    setNewSysUsername(service.username || service.credentials?.split("/")[0]?.trim() || "");
+    setNewSysPassword("");
+    setNewSysNotes(service.notes || "");
+    setActiveCredentialField(null);
+    systemFormRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    systemNameRef.current?.focus({ preventScroll: true });
+  };
+
   const handleAddService = () => {
     if (!newSysName.trim()) {
       showError("Sistema Requerido", "Ingresa el nombre del sistema o equipo.");
       return;
     }
+    if (editingSysId) {
+      if (!canEditCredentials) { showError("Acceso restringido", "No tienes permiso para editar credenciales."); return; }
+      try {
+        setServices(updateNodeSystem(services, editingSysId, { systemName: newSysName, linkOrIp: newSysLink, username: newSysUsername, password: newSysPassword, notes: newSysNotes }));
+      } catch (error) {
+        showError("No se pudo actualizar el sistema", error instanceof Error ? error.message : "Revisa el sistema seleccionado.");
+        return;
+      }
+      handleCancelEditService();
+      return;
+    }
     const newSrv: NodeSystemService = {
-      id: "srv-" + Date.now(),
+      id: "srv-" + crypto.randomUUID(),
       systemName: newSysName.trim(),
       linkOrIp: newSysLink.trim(),
       username: newSysUsername.trim(),
       password: newSysPassword,
-      notes: newSysNotes.trim() || undefined,
+      notes: newSysNotes.trim(),
     };
     setServices([...services, newSrv]);
     setNewSysName("");
@@ -311,6 +360,7 @@ export function ClientNodeModal({
   };
 
   const handleRemoveService = (id: string) => {
+    if (editingSysId === id) handleCancelEditService();
     setServices(services.filter((s) => s.id !== id));
   };
 
@@ -319,9 +369,10 @@ export function ClientNodeModal({
 
     if (saving) return;
     setFieldErrors([]); setSaveError("");
-    if (newProvName.trim() || newSysName.trim()) {
-      setActiveTab(newProvName.trim() ? "portadores" : "servicios");
-      setSaveError(newProvName.trim() ? "Agrega el proveedor que estás editando antes de guardar el nodo." : "Agrega el sistema que estás editando antes de guardar el nodo.");
+    const providerPending = Boolean(editingProvId || newProvName.trim() || newProvNotes.trim());
+    if (providerPending || editingSysId || newSysName.trim()) {
+      setActiveTab(providerPending ? "portadores" : "servicios");
+      setSaveError(providerPending ? "Agrega o actualiza el proveedor pendiente antes de guardar el nodo." : editingSysId ? "Pulsa Actualizar sistema o cancela su edición antes de guardar el nodo." : "Agrega el sistema que estás editando antes de guardar el nodo.");
       return;
     }
 
@@ -638,7 +689,7 @@ export function ClientNodeModal({
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800">
-                    {editingProvId ? "Modificar Proveedor Portador" : "Añadir Proveedor Portador (Multi-Carrier)"}
+                    {editingProvId ? "Editar Proveedor" : "Añadir Proveedor"}
                   </span>
                   {editingProvId && (
                     <button
@@ -650,10 +701,11 @@ export function ClientNodeModal({
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-start">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Proveedor *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-6 gap-x-3 gap-y-4 items-start">
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${systemFieldId}-provider-name`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Proveedor *</label>
                     <input
+                      id={`${systemFieldId}-provider-name`}
                       type="text"
                       placeholder="Telconet, Lumen, Ufinet..."
                       value={newProvName}
@@ -661,9 +713,10 @@ export function ClientNodeModal({
                       className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Capacidad (Mbps)</label>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${systemFieldId}-provider-capacity`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Capacidad (Mbps)</label>
                     <input
+                      id={`${systemFieldId}-provider-capacity`}
                       type="number"
                       placeholder="Ej: 500"
                       value={newProvCapacity}
@@ -671,9 +724,10 @@ export function ClientNodeModal({
                       className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">ID Circuito</label>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${systemFieldId}-provider-circuit`} className="text-[10px] font-bold text-slate-600 block mb-0.5">ID Circuito</label>
                     <input
+                      id={`${systemFieldId}-provider-circuit`}
                       type="text"
                       placeholder="TCO-9921"
                       value={newProvCircuit}
@@ -681,25 +735,17 @@ export function ClientNodeModal({
                       className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-0.5">
+                  <div className="sm:col-span-3">
+                    <div className="mb-0.5 min-h-5 flex items-center justify-between">
                       <label className="text-[10px] font-bold text-slate-600">
                         IPv4 {newProvIpv4List.length > 1 && `(${newProvIpv4List.length})`}
                       </label>
-                      <button
-                        type="button"
-                        onClick={handleAddIpv4Field}
-                        className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#004ac6] hover:text-[#003da6] bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded-md cursor-pointer transition-colors"
-                        title="Agregar otro campo IPv4"
-                      >
-                        <Plus className="w-2.5 h-2.5" />
-                        <span>IP</span>
-                      </button>
                     </div>
                     <div className="space-y-1.5">
                       {newProvIpv4List.map((ip, idx) => (
                         <div key={idx} className="flex items-center gap-1">
                           <input
+                            aria-label={`IPv4 ${idx + 1}`}
                             type="text"
                             placeholder={idx === 0 ? "181.198.112.112/30" : `IPv4 #${idx + 1}`}
                             value={ip}
@@ -729,9 +775,10 @@ export function ClientNodeModal({
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">IPv6</label>
+                  <div className="sm:col-span-3">
+                    <label htmlFor={`${systemFieldId}-provider-ipv6`} className="text-[10px] font-bold text-slate-600 block mb-0.5 min-h-5">IPv6</label>
                     <input
+                      id={`${systemFieldId}-provider-ipv6`}
                       type="text"
                       placeholder="2800:3f0::/48"
                       value={newProvIpv6}
@@ -741,6 +788,12 @@ export function ClientNodeModal({
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor={`${systemFieldId}-provider-notes`} className="mb-1 block text-[10px] font-bold text-slate-600">Notas del proveedor <span className="font-normal text-slate-400">(opcional)</span></label>
+                  <textarea id={`${systemFieldId}-provider-notes`} rows={2} maxLength={2000} value={newProvNotes} onChange={event => setNewProvNotes(event.target.value)} placeholder="Información adicional, contactos o detalles del enlace…" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs focus:outline-hidden focus:border-[#004ac6]" />
+                </div>
+
+                <p className="text-[10px] text-slate-500">Agrega o actualiza el proveedor y después pulsa Guardar Cambios para guardar el nodo.</p>
                 <div className="flex justify-end gap-2 pt-1">
                   {editingProvId && (
                     <button
@@ -757,7 +810,7 @@ export function ClientNodeModal({
                     className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>{editingProvId ? "Guardar Cambios" : "Agregar Proveedor"}</span>
+                    <span>{editingProvId ? "Actualizar proveedor" : "Agregar Proveedor"}</span>
                   </button>
                 </div>
               </div>
@@ -809,6 +862,7 @@ export function ClientNodeModal({
                               )}
                               {p.ipv6Prefix && <span>IPv6: <strong className="text-slate-700">{p.ipv6Prefix}</strong></span>}
                             </div>
+                            {p.notes && <p className="mt-2 whitespace-pre-wrap break-words text-[11px] text-slate-600">{p.notes}</p>}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -826,14 +880,16 @@ export function ClientNodeModal({
           {/* TAB 3: SISTEMAS, SERVICIOS & CREDENCIALES */}
           {activeTab === "servicios" && (
             <div className="space-y-4">
-              <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+              <div ref={systemFormRef} className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
                 <span className="text-xs font-bold text-slate-800 block">
-                  Añadir Sistema / Servicio & Credenciales de Acceso
+                  {editingSysId ? "Editar Sistema / Servicio & Credenciales de Acceso" : "Añadir Sistema / Servicio & Credenciales de Acceso"}
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Sistema *</label>
+                    <label htmlFor={`${systemFieldId}-name`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Sistema *</label>
                     <input
+                      id={`${systemFieldId}-name`}
+                      ref={systemNameRef}
                       type="text"
                       placeholder="Ej: MIKROTIK CCR2116, SMART OLT, OLT ZTE..."
                       value={newSysName}
@@ -842,8 +898,9 @@ export function ClientNodeModal({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Link / IP</label>
+                    <label htmlFor={`${systemFieldId}-link`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Link / IP</label>
                     <input
+                      id={`${systemFieldId}-link`}
                       type="text"
                       placeholder="Ej: 181.198.112.112:5258 o URL"
                       value={newSysLink}
@@ -883,17 +940,19 @@ export function ClientNodeModal({
                       onFocus={() => setActiveCredentialField("password")}
                       onBlur={() => setActiveCredentialField(null)}
                       spellCheck={false}
-                      placeholder="Contraseña del sistema"
+                      placeholder={editingSysId ? "Dejar vacía para conservar la actual" : "Contraseña del sistema"}
                       value={newSysPassword}
                       onChange={(e) => setNewSysPassword(e.target.value)}
                       className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-mono"
                     />
+                    {editingSysId && <p className="mt-1 text-[10px] text-slate-500">Escribe una contraseña nueva solo si deseas reemplazar la actual.</p>}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-600 block mb-0.5">Observación / Notas</label>
+                  <label htmlFor={`${systemFieldId}-notes`} className="text-[10px] font-bold text-slate-600 block mb-0.5">Observación / Notas</label>
                   <input
+                    id={`${systemFieldId}-notes`}
                     type="text"
                     placeholder="Detalles adicionales del equipo..."
                     value={newSysNotes}
@@ -902,14 +961,16 @@ export function ClientNodeModal({
                   />
                 </div>
 
-                <div className="flex justify-end pt-1">
+                <p className="text-[10px] text-slate-500">{editingSysId ? "Actualiza el sistema y después pulsa Guardar Cambios para guardar el nodo." : "Los sistemas añadidos o actualizados se guardan al pulsar Guardar Cambios en el nodo."}</p>
+                <div className="flex justify-end gap-2 pt-1">
+                  {editingSysId && <button type="button" onClick={handleCancelEditService} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-200">Cancelar edición</button>}
                   <button
                     type="button"
                     onClick={handleAddService}
                     className="px-4 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Agregar Sistema / Servicio</span>
+                    {editingSysId ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                    <span>{editingSysId ? "Actualizar sistema" : "Agregar Sistema / Servicio"}</span>
                   </button>
                 </div>
               </div>
@@ -927,7 +988,10 @@ export function ClientNodeModal({
                   services.map(service => (
                     <div key={service.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1">
                       <NodeSystemCredentials service={service} nodeId={nodeToEdit?.id} />
-                      <ActionIconButton action="delete" type="button" onClick={() => handleRemoveService(service.id)} title="Eliminar sistema" aria-label={`Eliminar sistema ${service.systemName}`} />
+                      <div className="flex flex-col gap-1">
+                        {canEditCredentials && <ActionIconButton action="edit" type="button" onClick={() => handleEditService(service)} title="Editar sistema y credenciales" aria-label={`Editar sistema ${service.systemName}`} aria-pressed={editingSysId === service.id} />}
+                        <ActionIconButton action="delete" type="button" onClick={() => handleRemoveService(service.id)} title="Eliminar sistema" aria-label={`Eliminar sistema ${service.systemName}`} />
+                      </div>
                     </div>
                   ))
                 )}

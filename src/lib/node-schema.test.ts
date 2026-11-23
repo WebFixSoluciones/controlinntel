@@ -32,3 +32,10 @@ test("out-of-range coordinates and oversized secrets fail before persistence", (
   assert.equal(nodeSchema.safeParse({ ...valid(), coordinates: { lat: 91, lng: -78 } }).success, false);
   assert.equal(nodeSchema.safeParse({ ...valid(), services: [{ id: "system", systemName: "Router", password: "x".repeat(4097) }] }).success, false);
 });
+
+test("las notas del proveedor son opcionales y admiten hasta 2000 caracteres", () => {
+  const provider = { id: "carrier", providerName: "Ufinet", capacityMbps: 100 };
+  assert.equal(nodeSchema.safeParse({ ...valid(), providers: [provider] }).success, true);
+  assert.equal(nodeSchema.safeParse({ ...valid(), providers: [{ ...provider, notes: "" }] }).success, true);
+  assert.equal(nodeSchema.safeParse({ ...valid(), providers: [{ ...provider, notes: "x".repeat(2001) }] }).success, false);
+});

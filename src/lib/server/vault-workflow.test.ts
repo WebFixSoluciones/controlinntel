@@ -139,3 +139,16 @@ test("Editar una credencial del nodo conserva las demás y comprueba permiso y v
   await save(admin, "nodes", { services: changed.services.map((service: any) => ({ ...service, password: "" })) }, "node", 2, database.db);
   assert.equal(await revealNodePassword(admin, "node", "router", database.db), "NewSecret#42");
 });
+
+test("las notas opcionales del proveedor se guardan, editan y limpian sin modificar credenciales", async () => {
+  const database = new VaultDatabase();
+  const created = await save(admin, "nodes", { clientId: "a", name: "Nodo QA", address: "Quito", totalCapacityMbps: 100, usedCapacityMbps: 0, status: "activo",
+    providers: [{ id: "carrier", providerName: "Ufinet", capacityMbps: 100, notes: "Contacto de soporte" }],
+    services: [{ id: "router", systemName: "Router", password: "TestSecret#42" }] }, "node", undefined, database.db);
+  assert.equal(created.providers[0].notes, "Contacto de soporte");
+  const updated = await save(admin, "nodes", { providers: [{ ...created.providers[0], notes: "Horario de mantenimiento" }] }, "node", 1, database.db);
+  assert.equal(updated.providers[0].notes, "Horario de mantenimiento");
+  await save(admin, "nodes", { providers: [{ ...updated.providers[0], notes: "" }] }, "node", 2, database.db);
+  assert.equal(database.rows.get("nodes/node").providers[0].notes, "");
+  assert.equal(await revealNodePassword(admin, "node", "router", database.db), "TestSecret#42");
+});
