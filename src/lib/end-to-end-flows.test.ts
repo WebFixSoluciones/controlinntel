@@ -945,6 +945,9 @@ test("Flujo E2E 15: Auditoría Integral de Facturación SRI (5 Comprobantes Ofic
     salesManagerContent.includes("convertQuoteToInvoice"),
     "SalesManager debe permitir convertir cotizaciones directamente a Nota de Venta o Factura SRI"
   );
+  const quoteList = salesManagerContent.split("const filteredQuotes =")[1]?.split("// Totals")[0] ?? "";
+  assert.match(quoteList, /\.sort\(/, "Ventas debe ordenar las cotizaciones después de aplicar los filtros");
+  assert.match(salesManagerContent, /aria-sort=\{quoteSortDirection\}/, "El encabezado de cotizaciones debe indicar el orden activo");
 
   // 3. Verificar que ConvertToSriInvoiceModal permite completar/editar RUC, Razón Social y Correo antes de emitir al SRI
   const convertModalPath = path.resolve(rootDir, "src/components/modules/sales/ConvertToSriInvoiceModal.tsx");

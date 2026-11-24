@@ -10,7 +10,7 @@ La revisión del 24 de noviembre de 2026 partió del commit `27b277ce5896ff075d7
 | Clientes | Directorio y ficha 360°. Desde la ficha se gestionan servicios, documentos, nodos, credenciales, tickets y tareas, según permisos. |
 | Nodos y credenciales | En Clientes → Nodos se editan ubicación, enlaces, proveedores y sistemas. El proveedor admite notas opcionales. Para persistir un cambio, actualiza la fila y guarda el nodo. Deja vacía la contraseña de un sistema para conservar la almacenada. |
 | ARCOTEL | En la ficha del cliente, elige la sección regulatoria y la categoría antes de cargar. Comprueba que el documento aparezca en su lista y pueda descargarse tras recargar. |
-| Ventas | Notas de venta, cotizaciones y recurrencia. Verifica cliente, partida, período y forma de pago antes de confirmar. |
+| Ventas | Notas de venta, cotizaciones y recurrencia. En Cotizaciones, selecciona **Nro. Cotización** para alternar el orden por número. Verifica cliente, partida, período y forma de pago antes de confirmar. |
 | Compras | Registro manual o por XML, historial, notas y retenciones. Las compras elegibles se editan desde Facturas. Las eliminadas quedan en su filtro y la operación registra sus efectos internos. |
 | Facturación SRI | Emisión fiscal, consulta de estados, RIDE y correo. La configuración de ambiente y firma se administra en Configuración → SRI. |
 | Inventarios | Productos, servicios, categorías, existencias por bodega, Kardex, transferencias y ajustes. |

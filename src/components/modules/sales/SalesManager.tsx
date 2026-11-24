@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
-import { activeCommercialDocuments } from "@/lib/sales-policy";
+import { activeCommercialDocuments, compareDocumentsDescending } from "@/lib/sales-policy";
 import { summarizeReceivables } from "@/lib/financial-summary";
 import { findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
 import { useToast } from "@/lib/toast-context";
@@ -19,6 +19,8 @@ import { BillingQuoteModal } from "../billing/BillingQuoteModal";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { RecurringBillingView } from "../billing/RecurringBillingView";
 import {
+  ArrowDown,
+  ArrowUp,
   Plus,
   Search,
   Printer,
@@ -90,6 +92,8 @@ export function SalesManager() {
   // Quotes filters
   const [quoteSearchTerm, setQuoteSearchTerm] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState<string>("all");
+  const [quoteSortDirection, setQuoteSortDirection] = useState<"ascending" | "descending">("descending");
+  const QuoteSortIcon = quoteSortDirection === "descending" ? ArrowDown : ArrowUp;
 
   // Modals state
   const [isNewSaleOpen, setIsNewSaleOpen] = useState(false);
@@ -150,8 +154,10 @@ export function SalesManager() {
 
       const matchStatus = quoteStatusFilter === "all" || q.status === quoteStatusFilter;
       return matchSearch && matchStatus;
-    });
-  }, [billingQuotes, quoteSearchTerm, quoteStatusFilter]);
+    }).sort((a, b) => quoteSortDirection === "descending"
+      ? compareDocumentsDescending(a, b)
+      : compareDocumentsDescending(b, a));
+  }, [billingQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortDirection]);
 
   // Totals
   const totalSalesAmount = useMemo(() => {
@@ -479,7 +485,17 @@ export function SalesManager() {
             <table className="table-fixed w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">Nro. Cotización</th>
+                  <th scope="col" aria-sort={quoteSortDirection} className="py-3 px-4 w-2/12">
+                    <button
+                      type="button"
+                      onClick={() => setQuoteSortDirection(direction => direction === "descending" ? "ascending" : "descending")}
+                      title={quoteSortDirection === "descending" ? "Ordenar de menor a mayor" : "Ordenar de mayor a menor"}
+                      className="inline-flex items-center gap-1 text-left uppercase hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    >
+                      Nro. Cotización
+                      <QuoteSortIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                    </button>
+                  </th>
                   <th className="py-3 px-4 w-2/12">Emisión / Vigencia</th>
                   <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
                   <th className="py-3 px-4 w-2/12 text-right">Total</th>

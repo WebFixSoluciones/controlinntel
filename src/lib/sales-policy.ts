@@ -2,13 +2,15 @@ export function canTradeWithClient(client: { status?: string } | null | undefine
   return Boolean(client && client.status !== "retirado");
 }
 
+type NumberedDocument = { documentNumber?: string; invoiceNumber?: string; quoteNumber?: string };
+
 /** Compare the full series and sequence numerically, independently of issue date. */
 export function compareDocumentsDescending(
-  a: { documentNumber?: string; invoiceNumber?: string },
-  b: { documentNumber?: string; invoiceNumber?: string },
+  a: NumberedDocument,
+  b: NumberedDocument,
 ) {
-  return String(b.documentNumber || b.invoiceNumber || "").localeCompare(
-    String(a.documentNumber || a.invoiceNumber || ""), "es", { numeric: true },
+  return String(b.documentNumber || b.invoiceNumber || b.quoteNumber || "").localeCompare(
+    String(a.documentNumber || a.invoiceNumber || a.quoteNumber || ""), "es", { numeric: true },
   );
 }
 

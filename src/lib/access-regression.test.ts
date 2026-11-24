@@ -91,3 +91,11 @@ test("Cuentas por cobrar se ordenan de mayor a menor por serie y secuencial, sin
   const charges = [{ invoiceNumber: "010-001-000000002" }, { invoiceNumber: "010-001-000000008" }, { invoiceNumber: "010-001-000000004" }, { invoiceNumber: "010-001-000000007" }];
   assert.deepEqual(charges.sort(compareDocumentsDescending).map(charge => charge.invoiceNumber?.slice(-1)), ["8", "7", "4", "2"]);
 });
+
+test("Las cotizaciones se ordenan numéricamente por año y secuencial en ambos sentidos", () => {
+  const quotes = ["COT-2026-9", "COT-2025-0099", "COT-2026-10"].map(quoteNumber => ({ quoteNumber }));
+  const descending = ["COT-2026-10", "COT-2026-9", "COT-2025-0099"];
+
+  assert.deepEqual([...quotes].sort(compareDocumentsDescending).map(quote => quote.quoteNumber), descending);
+  assert.deepEqual([...quotes].sort((a, b) => compareDocumentsDescending(b, a)).map(quote => quote.quoteNumber), [...descending].reverse());
+});
