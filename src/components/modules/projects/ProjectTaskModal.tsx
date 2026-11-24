@@ -447,15 +447,12 @@ export function ProjectTaskModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1 px-6 pt-3 border-b border-slate-100 bg-white">
+        <div role="group" aria-label="Secciones de la tarea" className="soft-tab-strip px-4 sm:px-6 py-2 border-b border-slate-100 bg-white">
           <button
             type="button"
             onClick={() => setActiveTab("general")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "general"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "general"}
+            className="soft-nav-item soft-tab"
           >
             <Layers className="w-4 h-4" />
             <span>Datos</span>
@@ -464,11 +461,8 @@ export function ProjectTaskModal({
           {showFinancialAmounts && (<button
             type="button"
             onClick={() => setActiveTab("presupuesto")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "presupuesto"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "presupuesto"}
+            className="soft-nav-item soft-tab"
           >
             <DollarSign className="w-4 h-4" />
             <span>Presupuestos</span>
@@ -477,11 +471,8 @@ export function ProjectTaskModal({
           <button
             type="button"
             onClick={() => setActiveTab("checklist")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "checklist"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "checklist"}
+            className="soft-nav-item soft-tab"
           >
             <CheckSquare className="w-4 h-4" />
             <span>Checklist</span>
@@ -490,11 +481,8 @@ export function ProjectTaskModal({
           <button
             type="button"
             onClick={() => setActiveTab("tramites")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "tramites"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "tramites"}
+            className="soft-nav-item soft-tab"
           >
             <FileText className="w-4 h-4" />
             <span>Trámites</span>
@@ -503,11 +491,8 @@ export function ProjectTaskModal({
           <button
             type="button"
             onClick={() => setActiveTab("bitacora")}
-            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "bitacora"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "bitacora"}
+            className="soft-nav-item soft-tab"
           >
             <MessageSquare className="w-4 h-4" />
             <span>Bitácora</span>

@@ -1003,9 +1003,8 @@ export function ClientContractTab({ client }: { client: Client }) {
                           key={prod.id}
                           type="button"
                           onClick={() => handleSelectProduct(prod)}
-                          className={`w-full text-left px-3.5 py-2 hover:bg-[#f8f9ff] transition flex items-center justify-between gap-3 cursor-pointer ${
-                            isSelected ? "bg-[#eff4ff] border-l-4 border-[#004ac6]" : ""
-                          }`}
+                          aria-pressed={isSelected}
+                          className="soft-nav-item flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -1015,6 +1014,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                               <span className="font-bold text-xs text-slate-900 truncate">
                                 {prod.name}
                               </span>
+                              {isSelected && <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0 text-[#004ac6]" />}
                               {prod.categoryName && (
                                 <span className="text-[10px] text-slate-400 font-medium">
                                   • {prod.categoryName}

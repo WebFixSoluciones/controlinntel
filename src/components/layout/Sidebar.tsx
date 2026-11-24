@@ -287,11 +287,9 @@ function SidebarContent() {
                       router.push(accessibleSubmodules[0].href);
                     }
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group border-l-4 ${
-                    isCurrentRoute
-                      ? "bg-[#eff4ff] text-[#004ac6] font-bold border-[#004ac6] shadow-2xs"
-                      : "border-transparent text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6]"
-                  }`}
+                  aria-expanded={isOpen}
+                  data-current-module={isCurrentRoute || undefined}
+                  className="soft-nav-item flex w-full items-center justify-between px-3 py-2.5 text-xs font-semibold group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon
@@ -333,11 +331,8 @@ function SidebarContent() {
                       })
                     );
                   }}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group border-l-4 ${
-                    isCurrentRoute
-                      ? "bg-[#eff4ff] text-[#004ac6] font-bold border-[#004ac6] shadow-2xs"
-                      : "border-transparent text-[#434655] hover:bg-[#f8f9ff] hover:text-[#004ac6]"
-                  }`}
+                  aria-current={isCurrentRoute ? "page" : undefined}
+                  className="soft-nav-item flex w-full items-center justify-between px-3 py-2.5 text-xs font-semibold group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <Icon
@@ -350,9 +345,9 @@ function SidebarContent() {
                 </Link>
               )}
 
-              {/* Submodules Accordion Menu with Connecting Left Guide Line */}
+              {/* Submodules */}
               {hasSubmodules && isOpen && (
-                <div className="border-l-2 border-[#cbd5e1] ml-6 pl-2.5 my-1 space-y-1 animate-in fade-in duration-150">
+                <div className="ml-6 my-1 space-y-1">
                   {accessibleSubmodules.map((sub) => {
                     const isSubActive =
                       isCurrentRoute &&
@@ -373,11 +368,8 @@ function SidebarContent() {
                             })
                           );
                         }}
-                        className={`block px-3 py-1.5 rounded-lg text-xs transition-all ${
-                          isSubActive
-                            ? "bg-[#eff4ff] text-[#004ac6] font-bold shadow-2xs border-l-2 border-[#004ac6]"
-                            : "text-[#434655] hover:text-[#004ac6] hover:bg-[#f8f9ff]"
-                        }`}
+                        aria-current={isSubActive ? "page" : undefined}
+                        className="soft-nav-item block px-3 py-1.5 text-xs"
                       >
                         {sub.label}
                       </Link>

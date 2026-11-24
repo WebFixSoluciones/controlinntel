@@ -710,14 +710,11 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
             </div>
 
             {/* Selector de Pestañas Minimalista */}
-            <div className="px-5 pt-3 pb-0 flex items-center gap-4 border-b border-slate-100 text-xs">
+            <div role="group" aria-label="Servicios del cliente" className="soft-tab-strip px-5 py-2 border-b border-slate-100">
               {showContracted && <button type="button"
                 onClick={() => setServicesModalTab("contratados")}
-                className={`pb-2.5 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-                  visibleServicesTab === "contratados"
-                    ? "border-[#004ac6] text-[#004ac6]"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+                aria-pressed={visibleServicesTab === "contratados"}
+                className="soft-nav-item soft-tab"
               >
                 <span>Servicios Contratados</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
@@ -726,11 +723,8 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
               </button>}
               {showBilled && <button type="button"
                 onClick={() => setServicesModalTab("facturados")}
-                className={`pb-2.5 font-semibold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-                  visibleServicesTab === "facturados"
-                    ? "border-[#004ac6] text-[#004ac6]"
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+                aria-pressed={visibleServicesTab === "facturados"}
+                className="soft-nav-item soft-tab"
               >
                 <span>Servicios Facturados</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">

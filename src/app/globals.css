@@ -106,6 +106,68 @@ textarea:not(.rounded-full),
   border-radius: 6px;
 }
 
+/* Shared selection styles for navigation and view switches. */
+.soft-nav-item {
+  border-radius: 6px;
+  color: #434655;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+.soft-nav-item:hover {
+  background-color: #f1f5fa;
+  color: var(--primary);
+}
+
+.soft-nav-item[data-current-module="true"] {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.soft-nav-item[aria-current="page"],
+.soft-nav-item[aria-pressed="true"] {
+  background-color: #e9f1ff;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.soft-nav-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.soft-tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.soft-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.25rem;
+  max-width: 100%;
+  text-align: start;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+
+.soft-tab > svg {
+  flex-shrink: 0;
+}
+
+@media (pointer: coarse) {
+  .soft-nav-item {
+    min-height: 2.75rem;
+  }
+}
+
 /* Reglas maestras de impresión para navegadores y atajos directos */
 @media print {
   header,

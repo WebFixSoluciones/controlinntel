@@ -333,15 +333,12 @@ export function RegisterPurchaseModal({
         </div>
 
         {/* Mode Selector Tabs */}
-        <div className="flex items-center gap-2 px-6 pt-4 border-b border-[#e2e8f0] bg-white">
+        <div role="group" aria-label="Modo de registro de compra" className="soft-tab-strip px-4 sm:px-6 py-2 border-b border-[#e2e8f0] bg-white">
           <button
             type="button"
             onClick={() => setMode("xml")}
-            className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              mode === "xml"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-[#737686] hover:text-[#0b1c30]"
-            }`}
+            aria-pressed={mode === "xml"}
+            className="soft-nav-item soft-tab"
           >
             <UploadCloud className="w-4 h-4" />
             <span>Importar XML del SRI (Recomendado)</span>
@@ -349,11 +346,8 @@ export function RegisterPurchaseModal({
           <button
             type="button"
             onClick={() => setMode("manual")}
-            className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              mode === "manual"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-[#737686] hover:text-[#0b1c30]"
-            }`}
+            aria-pressed={mode === "manual"}
+            className="soft-nav-item soft-tab"
           >
             <Plus className="w-4 h-4" />
             <span>Formulario Manual</span>

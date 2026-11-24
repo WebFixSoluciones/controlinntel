@@ -462,15 +462,12 @@ export function ProjectWorkspace({
         </div>
 
         {/* View Switcher Bar */}
-        <div className="px-6 border-t border-slate-200/80 bg-slate-50/60 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 bg-slate-50/60 px-4 py-2 sm:px-6">
+          <div role="group" aria-label="Vistas del proyecto" className="soft-tab-strip">
             <button
               onClick={() => setActiveTab("kanban")}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "kanban"
-                  ? "border-[#004ac6] text-[#004ac6] bg-white rounded-t-lg"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              aria-pressed={activeTab === "kanban"}
+              className="soft-nav-item soft-tab"
             >
               <Kanban className="w-4 h-4" />
               <span>Canva Notion (Tablero)</span>
@@ -478,11 +475,8 @@ export function ProjectWorkspace({
 
             <button
               onClick={() => setActiveTab("list")}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "list"
-                  ? "border-[#004ac6] text-[#004ac6] bg-white rounded-t-lg"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              aria-pressed={activeTab === "list"}
+              className="soft-nav-item soft-tab"
             >
               <ListTodo className="w-4 h-4" />
               <span>Lista de Tareas</span>
@@ -490,11 +484,8 @@ export function ProjectWorkspace({
 
             <button
               onClick={() => setActiveTab("gantt")}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-                activeTab === "gantt"
-                  ? "border-[#004ac6] text-[#004ac6] bg-white rounded-t-lg"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              aria-pressed={activeTab === "gantt"}
+              className="soft-nav-item soft-tab"
             >
               <TrendingUp className="w-4 h-4" />
               <span>Cronograma de Fechas</span>

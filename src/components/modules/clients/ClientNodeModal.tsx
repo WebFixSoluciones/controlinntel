@@ -458,15 +458,12 @@ export function ClientNodeModal({
         </div>
 
         {/* Pestañas internas */}
-        <div className="flex shrink-0 items-center gap-1 overflow-x-auto px-4 sm:px-6 pt-3 border-b border-slate-100 bg-white">
+        <div role="group" aria-label="Secciones del nodo" className="soft-tab-strip px-4 sm:px-6 py-2 border-b border-slate-100 bg-white">
           <button
             type="button"
             onClick={() => setActiveTab("general")}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "general"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "general"}
+            className="soft-nav-item soft-tab"
           >
             <MapPin className="w-4 h-4" />
             <span>Nodo & Ubicación</span>
@@ -475,11 +472,8 @@ export function ClientNodeModal({
           <button
             type="button"
             onClick={() => setActiveTab("portadores")}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "portadores"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "portadores"}
+            className="soft-nav-item soft-tab"
           >
             <Layers className="w-4 h-4" />
             <span>Proveedores & Enlaces</span>
@@ -488,11 +482,8 @@ export function ClientNodeModal({
           <button
             type="button"
             onClick={() => setActiveTab("servicios")}
-            className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3.5 py-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === "servicios"
-                ? "border-[#004ac6] text-[#004ac6]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
+            aria-pressed={activeTab === "servicios"}
+            className="soft-nav-item soft-tab"
           >
             <Server className="w-4 h-4" />
             <span>Sistemas, Servicios & Credenciales</span>
