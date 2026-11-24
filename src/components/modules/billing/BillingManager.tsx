@@ -44,6 +44,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { fiscalStateLabel, findSaleFiscalInvoice, isFiscalAuthorized } from "@/lib/sri-service";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { api, downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import type { FiscalKind } from "@/lib/server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
@@ -251,7 +252,7 @@ export function BillingManager() {
         matchStatus &&
         matchesDateAndBatch(inv.date, inv.documentNumber)
       );
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingInvoices, searchTerm, statusFilter, batchFilter, dateFrom, dateTo]);
 
   const filteredQuotes = useMemo(() => {

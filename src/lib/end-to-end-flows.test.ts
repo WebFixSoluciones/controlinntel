@@ -930,6 +930,8 @@ test("Flujo E2E 15: Auditoría Integral de Facturación SRI (5 Comprobantes Ofic
       billingManagerContent.includes("return false"),
     "BillingManager debe separar estrictamente las Facturas SRI (01) de las Notas de Venta internas"
   );
+  const invoiceList = billingManagerContent.split("const filteredInvoices =")[1]?.split("const filteredQuotes =")[0] ?? "";
+  assert.match(invoiceList, /\.sort\(compareDocumentsDescending\)/, "Las Facturas SRI se muestran por número de comprobante, de mayor a menor");
 
   // 2. Verificar que SalesManager integra NewSaleView para nueva_venta y conversión de cotizaciones
   const salesManagerPath = path.resolve(rootDir, "src/components/modules/sales/SalesManager.tsx");
