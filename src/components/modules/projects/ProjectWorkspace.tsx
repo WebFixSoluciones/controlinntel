@@ -14,7 +14,7 @@ import {
 } from "@/types";
 import { ProjectTaskModal } from "./ProjectTaskModal";
 import { ProjectGanttModal } from "./ProjectGanttModal";
-import { Kanban, ListTodo, Calendar, TrendingUp, Plus, Search, Filter, CheckCircle2, Clock, AlertTriangle, Building2, Radio, User, DollarSign, CheckSquare, MessageSquare, Edit2, Trash2, X, ChevronDown, Layers, Settings2, Briefcase, ExternalLink, FileText } from "lucide-react";
+import { Kanban, ListTodo, Calendar, TrendingUp, Plus, Search, Clock, Building2, Radio, User, CheckSquare, MessageSquare, X, Briefcase, ExternalLink, FileText } from "lucide-react";
 
 export const COLUMN_COLORS: Record<
   string,

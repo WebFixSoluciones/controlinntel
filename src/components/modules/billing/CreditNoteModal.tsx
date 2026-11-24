@@ -7,9 +7,6 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertTriangle,
-  Receipt,
-  Layers,
-  Trash2,
   Package,
 } from "lucide-react";
 import { isFiscalAuthorized } from "@/lib/sri-service";

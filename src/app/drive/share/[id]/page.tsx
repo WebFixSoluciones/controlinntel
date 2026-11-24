@@ -8,12 +8,7 @@ import {
   HardDrive,
   Download,
   FileText,
-  FileSpreadsheet,
-  Image as ImageIcon,
-  File,
   ShieldCheck,
-  Building2,
-  Calendar,
   ExternalLink,
   Lock,
 } from "lucide-react";

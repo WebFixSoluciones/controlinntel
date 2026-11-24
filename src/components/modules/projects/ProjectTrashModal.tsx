@@ -7,11 +7,9 @@ import {
   X,
   Trash2,
   RotateCcw,
-  AlertTriangle,
   Building2,
   Radio,
   Calendar,
-  Layers,
 } from "lucide-react";
 
 interface ProjectTrashModalProps {

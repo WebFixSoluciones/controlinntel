@@ -7,11 +7,9 @@ import {
   MapPin,
   Search,
   Navigation,
-  Layers,
   ExternalLink,
   Loader2,
   Check,
-  Globe,
 } from "lucide-react";
 
 export interface Coordinates {

@@ -8,12 +8,10 @@ import { validateEmail } from "@/lib/validation-engine";
 import {
   X,
   UserPlus,
-  ShieldAlert,
   ShieldCheck,
   Lock,
   Mail,
   User,
-  Phone,
   Building,
   Check,
   Eye,

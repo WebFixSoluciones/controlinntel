@@ -4,17 +4,14 @@ import {canRoleAction} from "@/lib/permissions";
 import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Client, Ticket, TicketStatus, TicketPriority } from "@/types";
+import { Client, TicketStatus, TicketPriority } from "@/types";
 import {
   Ticket as TicketIcon,
   Plus,
   Eye,
   CheckCircle2,
-  Clock,
-  AlertTriangle,
   User,
   X,
-  ArrowLeft,
   Search,
 } from "lucide-react";
 import { TicketModal } from "../tickets/TicketModal";

@@ -11,7 +11,6 @@ import type { WithholdingReceipt } from "@/types";
 import { printHtmlElement } from "@/lib/print-service";
 import {
   Plus,
-  Percent,
   Search,
   Eye,
   X,

@@ -12,15 +12,11 @@ import { canReadCollection } from "@/lib/persistence-contracts";
 import { printHtmlElement } from "@/lib/print-service";
 import {
   Printer,
-  FileText,
   User,
   Radio,
   KeyRound,
   ShieldCheck,
-  DollarSign,
-  Ticket,
   Kanban,
-  CheckCircle2,
 } from "lucide-react";
 
 interface ClientDossierTabProps {

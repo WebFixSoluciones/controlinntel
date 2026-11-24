@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
-import { Ticket as TicketIcon, Activity, Clock, ShieldCheck, ArrowRight } from "lucide-react";
+import { Ticket as TicketIcon, Activity, ShieldCheck, ArrowRight } from "lucide-react";
 
 export function TicketsRecientesCard() {
   const { tickets } = useApp();

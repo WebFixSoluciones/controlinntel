@@ -8,7 +8,7 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { parseSupplierSriXml } from "@/lib/purchases-service";
-import { UploadCloud, FileText, Plus, Trash2, CheckCircle2, Building2, Boxes, CreditCard, Calendar, Save, FileUp, Receipt, AlertCircle } from "lucide-react";
+import { UploadCloud, FileText, Plus, CheckCircle2, Building2, Boxes, CreditCard, Save, FileUp } from "lucide-react";
 import { PurchaseItem, PurchasePaymentCondition } from "@/types";
 
 interface NewPurchaseViewProps {

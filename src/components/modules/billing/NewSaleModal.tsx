@@ -5,14 +5,9 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { canTradeWithClient } from "@/lib/sales-policy";
 import {
   X,
-  Plus,
-  Trash2,
   Receipt,
-  Building2,
   Package,
   Layers,
-  CreditCard,
-  DollarSign,
   AlertTriangle,
   CheckCircle2,
   User,

@@ -19,20 +19,16 @@ import {
   VaultCredential,
   Ticket,
   TicketStatus,
-  TicketMessage,
   TicketSubject,
   Expense,
   MonthlyCharge,
-  ChargePayment,
   ClientAdvance,
   AuditLog,
   UserProfile,
-  UserRole,
   SystemUser,
   ClientProjectTask,
   Project,
   ProjectCustomColumn,
-  ProjectStatus,
   ProjectNoteItem,
   ClientQuoteOrder,
   ClientVaultItem,
@@ -55,12 +51,8 @@ import {
   DebitNote,
   WithholdingReceipt,
   RemissionGuide,
-  InvoiceItem,
   Supplier,
   PurchaseInvoice,
-  PurchaseItem,
-  PurchasePaymentCondition,
-  PurchasePaymentStatus,
   SupplierCreditNote,
   SupplierDebitNote,
   PurchaseWithholding,
@@ -124,12 +116,12 @@ import { observeVerifiedSession } from "./session-restoration";
 import { vaultMetadata } from "./vault-metadata";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
-import { can, canAccessRoute, firstAccessibleRoute, collectionPermissions, routePermissions, type Entity } from "./permissions";
+import { can, canAccessRoute, firstAccessibleRoute, type Entity } from "./permissions";
 import { DEFAULT_INNTEL_SRI_CONFIG } from "./sri-service";
 import { api } from "./api-client";
 import type { SriRequest, SriSubmission, FiscalKind } from "./server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
-import { getEcuadorDate, addMonthsSafely, calculateContractEndDate, calculateNextRenewalDate } from "./date-utils";
+import { getEcuadorDate, addMonthsSafely, calculateContractEndDate } from "./date-utils";
 import { calculateLines, planServicePeriod } from "./commercial-core";
 import { resolveTicketDepartments } from "./ticket-departments";
 import type { TicketDepartmentRecord, UserRoleTemplate } from "@/types";

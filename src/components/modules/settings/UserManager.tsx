@@ -7,20 +7,13 @@ import { useToast } from "@/lib/toast-context";
 import { SystemUser, UserRole } from "@/types";
 import { UserModal } from "./UserModal";
 import {
-  Users,
   UserPlus,
-  ShieldCheck,
-  ShieldAlert,
   Search,
-  KeyRound,
-  Trash2,
-  Edit2,
   CheckCircle2,
   XCircle,
   Crown,
   Shield,
   Filter,
-  Lock,
 } from "lucide-react";
 
 export function UserManager() {

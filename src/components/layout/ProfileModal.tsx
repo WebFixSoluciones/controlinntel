@@ -10,7 +10,6 @@ import {
   Phone,
   Building,
   ShieldCheck,
-  CheckCircle2,
   Save,
   KeyRound,
 } from "lucide-react";

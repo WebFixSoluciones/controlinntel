@@ -15,8 +15,6 @@ import {
   FileSpreadsheet,
   Shield,
   Upload,
-  Plus,
-  Trash2,
   Edit2,
   X,
   FileCheck,
@@ -24,9 +22,6 @@ import {
   RefreshCw,
   FileUp,
   FileCode,
-  Tag,
-  Calendar,
-  User,
 } from "lucide-react";
 import {
   generateAdhesionContractDocx,

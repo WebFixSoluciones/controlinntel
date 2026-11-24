@@ -14,24 +14,17 @@ import {
   FileSpreadsheet,
   Plus,
   Search,
-  Receipt,
   CreditCard,
   X,
-  TrendingUp,
-  Clock,
   History,
   Trash2,
   Edit2,
-  Calendar,
   Sparkles,
-  ArrowDownCircle,
-  ArrowUpRight,
   AlertCircle,
-  CheckCircle2,
   Undo2,
 } from "lucide-react";
 import { generateBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
-import { MonthlyCharge, ChargePayment, ClientAdvance } from "@/types";
+import { MonthlyCharge, ClientAdvance } from "@/types";
 
 const PAYMENT_METHODS = [
   "Transferencia Bancaria",

@@ -9,15 +9,12 @@ import {
   Eye,
   EyeOff,
   Copy,
-  Trash2,
   Plus,
   Lock,
   Search,
   RotateCcw,
-  Edit2,
   X,
   AlertCircle,
-  ShieldCheck,
 } from "lucide-react";
 
 export function SecureVault({ clientId }: { clientId?: string }) {

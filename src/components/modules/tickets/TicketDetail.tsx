@@ -13,9 +13,8 @@ import {
   TicketStatus,
   TicketPriority,
   TicketDepartment,
-  TicketMessage,
 } from "@/types";
-import { Send, Lock, MessageSquare, User, ShieldAlert, Building2, Phone, Mail, MapPin, Wifi, ExternalLink, CheckCircle2, Clock, RotateCcw, Sparkles, Layers, Calendar, AlertTriangle, Radio, Share2 } from "lucide-react";
+import { Send, Lock, MessageSquare, User, Building2, Phone, Mail, MapPin, Wifi, ExternalLink, CheckCircle2, Clock, RotateCcw, Sparkles, Layers, AlertTriangle } from "lucide-react";
 
 interface TicketDetailProps {
   id: string;

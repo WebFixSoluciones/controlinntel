@@ -4,14 +4,11 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-  calculateWeightedAverageCost,
   calculatePriceWithTax,
   calculatePriceWithoutTax,
-  validateStockAvailability,
-  buildKardexEntry,
 } from "./inventory-service.ts";
 import { validateIdentification } from "./validation-engine.ts";
-import { getEcuadorDate, addMonthsSafely, diffInCalendarDays } from "./date-utils.ts";
+import { getEcuadorDate, addMonthsSafely } from "./date-utils.ts";
 import { safeNumber, safeFloat } from "./print-service.ts";
 import type {
   Client,

@@ -4,7 +4,7 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import React from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { ShieldCheck, Plus, Clock, Trash2 } from "lucide-react";
+import { ShieldCheck, Plus, Clock } from "lucide-react";
 import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 
 interface PoliciesListProps {

@@ -4,14 +4,14 @@ import { BackButton } from "@/components/ui/BackButton";
 
 import { uploadStoredFile } from "@/lib/stored-file-upload";
 
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { Client, ClientDocumentFile } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { planUpload, compressImageFile, formatBytes } from "@/lib/file-upload";
 import { openStoredFile } from "@/lib/file-download";
 import { ClientTabHeader } from "./ClientTabHeader";
-import { HardDrive, Upload, Search, FileText, FileSpreadsheet, Image as ImageIcon, File, Download, Trash2, LayoutGrid, List, X, Sparkles, Folder, FolderPlus, Share2, Link2, Check, MessageCircle, Copy, Lock, ShieldCheck, ChevronRight } from "lucide-react";
+import { HardDrive, Upload, Search, FileText, FileSpreadsheet, Image as ImageIcon, File, Download, LayoutGrid, List, X, Sparkles, Folder, FolderPlus, Share2, Link2, Check, MessageCircle, Copy, ShieldCheck } from "lucide-react";
 
 interface ClientFilesTabProps {
   client: Client;

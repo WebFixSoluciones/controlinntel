@@ -8,7 +8,7 @@ import { api } from "@/lib/api-client";
 import { isClosedTicketStatus } from "@/lib/ticket-status";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Ticket, TicketStatus, TicketDepartment } from "@/types";
+import { Ticket, TicketStatus } from "@/types";
 import {
   Plus,
   Search,
@@ -16,8 +16,6 @@ import {
   MessageSquare,
   Lock,
   Headphones,
-  CheckCircle2,
-  AlertTriangle,
   ListChecks,
   Building2,
 } from "lucide-react";

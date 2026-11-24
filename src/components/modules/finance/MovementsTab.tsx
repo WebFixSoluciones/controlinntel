@@ -4,7 +4,7 @@ import { getEcuadorDate } from "@/lib/date-utils";
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { safeNumber, safeFloat } from "@/lib/print-service";
+import { safeNumber } from "@/lib/print-service";
 import {
   Plus,
   Search,

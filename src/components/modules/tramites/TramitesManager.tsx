@@ -10,20 +10,11 @@ import {
   FileText,
   Plus,
   Search,
-  Filter,
   SlidersHorizontal,
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Building2,
-  Trash2,
-  Edit2,
   History,
-  Tag,
-  ArrowRight,
-  ShieldAlert,
-  ChevronRight,
-  Calendar,
 } from "lucide-react";
 
 export function TramitesManager() {

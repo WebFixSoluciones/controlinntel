@@ -18,8 +18,6 @@ import {
   Ticket as TicketIcon,
   DollarSign,
   FileText,
-  ClipboardList,
-  LogOut,
   Settings,
   Contact2,
   ChevronDown,

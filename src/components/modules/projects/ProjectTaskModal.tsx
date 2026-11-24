@@ -25,10 +25,7 @@ import {
   CheckSquare,
   MessageSquare,
   Plus,
-  Trash2,
   Clock,
-  User,
-  AlertCircle,
   TrendingUp,
   TrendingDown,
   CheckCircle2,
@@ -36,9 +33,6 @@ import {
   Send,
   Briefcase,
   FileText,
-  Tag,
-  ExternalLink,
-  Edit2,
 } from "lucide-react";
 
 export const ISP_FLOW_COLUMNS: { id: ProjectKanbanColumn; label: string; shortLabel: string; color: string; badge: string; dot: string }[] = [

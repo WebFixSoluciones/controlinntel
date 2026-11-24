@@ -7,12 +7,7 @@ import {
   Calendar,
   Clock,
   User,
-  CheckCircle2,
-  AlertTriangle,
-  Building2,
-  Radio,
   Layers,
-  TrendingUp,
 } from "lucide-react";
 
 interface ProjectGanttModalProps {

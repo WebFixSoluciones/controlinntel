@@ -5,7 +5,7 @@ import { canAccessModule } from "@/lib/permissions";
 import { useApp } from "@/lib/state";
 import { monthlyCashSummary } from "@/lib/commercial-core";
 import { getEcuadorDate } from "@/lib/date-utils";
-import { Users, Banknote, Receipt, CreditCard, TrendingUp } from "lucide-react";
+import { Users, Banknote, Receipt, CreditCard } from "lucide-react";
 
 export function MetricsCards() {
   const { clients, financialMovements, currentUser } = useApp();

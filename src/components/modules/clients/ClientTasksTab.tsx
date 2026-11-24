@@ -7,9 +7,7 @@ import { useToast } from "@/lib/toast-context";
 import {
   Client,
   ClientProjectTask,
-  ProjectBoardFlow,
   ProjectKanbanColumn,
-  ProjectChecklistItem,
 } from "@/types";
 import {
   ProjectTaskModal,
@@ -32,23 +30,16 @@ import {
   Square,
   MessageSquare,
   Send,
-  AlertTriangle,
   CheckCircle2,
   Kanban,
   ListTodo,
   Plus,
   Search,
-  Trash2,
-  Edit2,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
   Bell,
-  DollarSign,
-  TrendingUp,
-  Layers,
-  ShieldAlert,
   Briefcase,
   FileText,
 } from "lucide-react";

@@ -14,7 +14,6 @@ import {
   ClientProjectTask,
   Project,
   ProjectCustomColumn,
-  ProjectStatus,
   ClientQuoteOrder,
   ClientVaultItem,
   ClientContractInfo,
@@ -47,7 +46,7 @@ import {
   RegulatoryTramite,
 } from "@/types";
 import { simpleEncrypt } from "./crypto-vault";
-import { DEFAULT_INNTEL_SRI_CONFIG, generarClaveAccesoSRI } from "./sri-service";
+import { DEFAULT_INNTEL_SRI_CONFIG } from "./sri-service";
 
 export const INITIAL_SYSTEM_USERS: SystemUser[] = [];
 

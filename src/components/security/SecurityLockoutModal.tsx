@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { ShieldAlert, AlertTriangle, Lock, Clock, ExternalLink, RefreshCw } from "lucide-react";
+import { ShieldAlert, AlertTriangle, Clock, ExternalLink, RefreshCw } from "lucide-react";
 import { getLockoutState, SecurityIncident } from "@/lib/security-shield";
 
 interface SecurityLockoutModalProps {

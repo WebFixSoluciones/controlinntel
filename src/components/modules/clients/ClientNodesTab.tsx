@@ -13,8 +13,6 @@ import {
   Radio,
   Plus,
   MapPin,
-  Edit2,
-  Trash2,
   ShieldCheck,
   Search,
   ExternalLink,

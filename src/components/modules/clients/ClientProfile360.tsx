@@ -6,7 +6,7 @@ import { useApp } from "@/lib/state";
 import { clientStatusLabel } from "@/lib/client-status";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientContactPerson, MonthlyCharge } from "@/types";
-import { can, canAccessSubmodule, canUser, tabPermissions } from "@/lib/permissions";
+import { can, canAccessSubmodule, canUser } from "@/lib/permissions";
 import { printHtmlElement } from "@/lib/print-service";
 import { ClientTasksTab } from "./ClientTasksTab";
 import { ClientQuotesManager } from "./ClientQuotesManager";
@@ -28,29 +28,19 @@ import {
   Radio,
   KeyRound,
   ShieldCheck,
-  Cloud,
   HardDrive,
   FileSpreadsheet,
   DollarSign,
   Ticket as TicketIcon,
-  Kanban,
   ListTodo,
   FileText,
   Printer,
-  Edit2,
-  Download,
   Copy,
   Check,
-  Globe,
-  Key,
-  Eye,
-  EyeOff,
   ShieldAlert,
-  Server,
   AlertCircle,
   Trash2,
   UserPlus,
-  Users,
   Search,
   X,
   UploadCloud,

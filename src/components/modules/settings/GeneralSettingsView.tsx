@@ -8,14 +8,8 @@ import { bankTransferDetailsSchema, emptyBankTransferDetails } from "@/lib/bank-
 import {
   Building2,
   Globe,
-  Mail,
-  Phone,
-  MapPin,
   Save,
-  Clock,
   Coins,
-  Shield,
-  FileText,
 } from "lucide-react";
 
 export function GeneralSettingsView() {

@@ -23,7 +23,6 @@ import { safeNumber } from "@/lib/print-service";
 import { addDays, calculateLines, previewScheduledService, initialServicePeriod, serviceBillingStart, validDate } from "@/lib/commercial-core";
 import {
   getEcuadorDate,
-  addMonthsSafely,
   diffInCalendarDays,
   formatDateEC,
   calculateContractEndDate,
@@ -33,12 +32,9 @@ import { ProductModal } from "../inventory/ProductModal";
 import { RidePreviewModal } from "../billing/RidePreviewModal";
 import {
   Plus,
-  Trash2,
   ShieldCheck,
   X,
-  Eye,
   CheckCircle2,
-  Calendar,
   Search,
   RefreshCw,
   MessageCircle,
@@ -49,8 +45,6 @@ import {
   ExternalLink,
   Pencil,
   Clock,
-  Globe,
-  Server,
   Sparkles,
 } from "lucide-react";
 

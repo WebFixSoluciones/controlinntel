@@ -5,12 +5,9 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
-  FileText,
   Plus,
-  ArrowUpRight,
   Search,
   X,
-  AlertCircle,
 } from "lucide-react";
 import { PurchaseInvoice, SupplierDebitNote } from "@/types";
 

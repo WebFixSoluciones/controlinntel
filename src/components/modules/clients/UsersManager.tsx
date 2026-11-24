@@ -5,13 +5,10 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
-  ShieldCheck,
   Plus,
   UserCheck,
   UserX,
   Search,
-  Pencil,
-  Trash2,
   Users as UsersIcon,
 } from "lucide-react";
 import { SystemUser, UserModulePermissions } from "@/types";

@@ -21,11 +21,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
-  DollarSign,
-  FileText,
   ShieldAlert,
-  CreditCard,
-  Calendar,
   Plus,
   ExternalLink,
 } from "lucide-react";

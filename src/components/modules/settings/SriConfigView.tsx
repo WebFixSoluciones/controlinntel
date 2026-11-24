@@ -14,9 +14,7 @@ import {
   Save,
   ShieldCheck,
   FileCode2,
-  Server,
   Mail,
-  Phone,
   MapPin,
   FileCheck,
   Key,
@@ -26,7 +24,6 @@ import {
   Wifi,
   Upload,
   AlertTriangle,
-  Trash2,
 } from "lucide-react";
 import { probarConexionServidoresSri, formatearSecuencialSRI } from "@/lib/sri-service";
 

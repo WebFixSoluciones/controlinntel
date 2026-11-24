@@ -9,9 +9,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Plus,
-  Trash2,
-  MapPin,
-  Calendar,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { RemissionGuide, RemissionGuideItem, SriInvoice } from "@/types";

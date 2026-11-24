@@ -5,17 +5,12 @@ import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
-  FileText,
   Plus,
-  Layers,
-  ArrowDownLeft,
-  CheckCircle,
-  AlertCircle,
   Boxes,
   X,
   Search,
 } from "lucide-react";
-import { PurchaseInvoice, SupplierCreditNote } from "@/types";
+import { PurchaseInvoice } from "@/types";
 
 interface SupplierCreditNotesTabProps {
   initialInvoice?: PurchaseInvoice | null;

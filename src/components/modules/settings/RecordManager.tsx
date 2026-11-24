@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import type { Entity } from "@/lib/permissions";
-import { Plus, Edit2, Trash2, Check, X } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export type Field = {
   key: string;

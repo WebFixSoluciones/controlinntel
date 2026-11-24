@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { departmentLabel } from "@/lib/ticket-departments";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { X, Plus, Trash2, Pencil, Check, ListChecks } from "lucide-react";
+import { X, Plus, Check, ListChecks } from "lucide-react";
 import { TicketCategory, TicketDepartment, TicketSubject } from "@/types";
 
 interface TicketSubjectsModalProps {

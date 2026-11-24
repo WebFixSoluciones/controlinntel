@@ -19,17 +19,12 @@ import { BillingQuoteModal } from "../billing/BillingQuoteModal";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { RecurringBillingView } from "../billing/RecurringBillingView";
 import {
-  Receipt,
   Plus,
   Search,
   Printer,
-  Edit2,
-  Trash2,
   FileCheck2,
   CheckCircle2,
   Clock,
-  DollarSign,
-  FileText,
   Check,
   Calendar,
   X,

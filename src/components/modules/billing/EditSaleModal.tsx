@@ -8,19 +8,13 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Plus,
-  Trash2,
   Receipt,
-  Building2,
   Package,
-  Layers,
   CreditCard,
-  DollarSign,
   AlertTriangle,
   CheckCircle2,
   User,
   Search,
-  Calendar,
-  FileText,
   Save,
 } from "lucide-react";
 import { useApp } from "@/lib/state";

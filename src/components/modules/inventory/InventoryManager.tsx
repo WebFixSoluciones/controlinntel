@@ -29,8 +29,6 @@ import {
   Plus,
   Search,
   Download,
-  Edit2,
-  Trash2,
   Eye,
   ShieldAlert,
   Award,

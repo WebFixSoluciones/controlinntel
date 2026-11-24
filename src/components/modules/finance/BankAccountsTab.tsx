@@ -11,7 +11,6 @@ import {
   ArrowRightLeft,
   Wallet,
   X,
-  Edit2,
   Power,
 } from "lucide-react";
 import { BankAccount } from "@/types";

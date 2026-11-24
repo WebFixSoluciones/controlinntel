@@ -18,17 +18,10 @@ import {
   TrendingDown,
   Building2,
   Clock,
-  CheckCircle2,
-  AlertCircle,
   CreditCard,
   Receipt,
   Search,
   Printer,
-  Calendar,
-  Layers,
-  Sparkles,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import {
   ResponsiveContainer,

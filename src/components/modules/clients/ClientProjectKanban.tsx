@@ -7,7 +7,6 @@ import { useToast } from "@/lib/toast-context";
 import {
   Client,
   ClientProjectTask,
-  ProjectBoardFlow,
   ProjectKanbanColumn,
 } from "@/types";
 import {
@@ -27,17 +26,13 @@ import {
   Kanban,
   Plus,
   Clock,
-  User,
   CheckSquare,
   MessageSquare,
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Trash2,
-  Edit2,
   ChevronLeft,
   ChevronRight,
-  Layers,
   CheckCircle2,
 } from "lucide-react";
 

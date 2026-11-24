@@ -2188,9 +2188,9 @@ test("Flujo E2E 36: Renovaciones Recurrentes, Períodos de Contrato, Ciclos Anua
   const stateContent = fs.readFileSync(statePath, "utf8");
 
   assert.ok(
-    stateContent.includes("calculateContractEndDate") &&
-      stateContent.includes("calculateNextRenewalDate"),
-    "state.tsx debe incluir funciones auxiliares para calcular fechas de contrato y próximo cobro"
+    stateContent.includes("newContractEndDate = calculateContractEndDate(") &&
+      stateContent.includes("nextRenewalDate = addMonthsSafely(baseDate, monthsToAdd)"),
+    "renewClientService debe calcular el fin del contrato y la fecha de próximo cobro"
   );
   assert.ok(
     stateContent.includes("renewClientService") &&

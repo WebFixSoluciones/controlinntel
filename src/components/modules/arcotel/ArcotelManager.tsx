@@ -5,8 +5,8 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { ArcotelPolicy, ArcotelPeriodicFile, ArcotelSubsystem, Client } from "@/types";
-import { cleanMojibake, sanitizeObjectTexts } from "@/lib/sanitize-text";
+import { ArcotelSubsystem, Client } from "@/types";
+import { sanitizeObjectTexts } from "@/lib/sanitize-text";
 import { PoliciesList } from "./PoliciesList";
 import { PolicyModal } from "./PolicyModal";
 import { uploadStoredFile } from "@/lib/stored-file-upload";
@@ -16,25 +16,15 @@ import {
   FileSpreadsheet,
   Upload,
   Plus,
-  Trash2,
   Download,
-  Calendar,
-  Globe,
   FileText,
   FileCheck,
-  AlertTriangle,
-  Clock,
-  ExternalLink,
   RotateCcw,
-  CheckCircle2,
-  SlidersHorizontal,
   X,
   Layers,
-  ArrowRight,
   Database,
   Building2,
   Bell,
-  Search,
 } from "lucide-react";
 
 interface ArcotelManagerProps {

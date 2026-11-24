@@ -6,15 +6,6 @@ import {
   Printer,
   FileSpreadsheet,
   CheckCircle2,
-  Building2,
-  FileText,
-  BadgePercent,
-  Calendar,
-  User,
-  MapPin,
-  Phone,
-  Mail,
-  ShieldCheck,
 } from "lucide-react";
 import { ClientQuote, SriCompanyConfig } from "@/types";
 import {

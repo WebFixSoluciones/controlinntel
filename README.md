@@ -1,64 +1,32 @@
-# INNTEL CORP — Sistema Integral de Gestión ISP & ARCOTEL
+# ControlINNTEL
 
-Plataforma empresarial centralizada para la gestión operativa, técnica, financiera (órdenes de pedido y pre-facturación) y regulatoria (ARCOTEL) de **INNTEL CORP S.A.** (Proveedor de Servicios de Telecomunicaciones e Internet - ISP en Ecuador).
+Sistema de gestión operativa, comercial, financiera y regulatoria para INNTEL CORP. Incluye la ficha del cliente, gestión de nodos, ventas, compras, inventarios, finanzas, facturación electrónica SRI y expedientes ARCOTEL.
 
-![INNTEL CORP Logo](/public/logo-inntel.webp)
+![INNTEL CORP](public/logo-inntel.webp)
 
----
+## Desarrollo
 
-## 🚀 Arquitectura Tecnológica & Escalabilidad
+El proyecto usa Next.js, React, TypeScript y Firebase. Usa Node.js 22 actualizado, la misma línea que ejecuta CI, y npm. Instala las versiones registradas en package-lock.json.
 
-- **Frontend & Backend**: Next.js 14 (App Router, TypeScript, React Server Components).
-- **Estilos & UI/UX**: Tailwind CSS con tema **Light Mode por defecto** y paleta corporativa (Azul INNTEL `#0066B3`, Púrpura `#7A4499`, Celeste WebFix `#00AEEF`).
-- **Base de Datos & Servicios**: Google Cloud Firestore / Firebase (`inntelcorp-45c89`) con sincronización en la nube y resiliencia local.
-- **Seguridad**: Cifrado AES-256 en Bóveda de Credenciales, Cabeceras HTTP endurecidas (HSTS, CSP, X-Frame-Options, X-Content-Type-Options) y control de acceso basado en roles (RBAC).
-- **Generador de Documentos**: Creación de contratos Word `.docx` oficiales de ARCOTEL y reportes consolidados en Excel `.xlsx`.
-- **Asistente IA**: Gemini Flash 2.5 Lite integrado con contexto en vivo de telecomunicaciones y filtrado de respuestas por rol.
-
----
-
-## 📦 Módulos Integrados del Sistema
-
-1. **Dashboard Central**: Monitoreo de MRR, abonados activos, estado de POPs y alerta temprana de vencimientos.
-2. **M1 — Clientes & Ficha Consolidada 360°**: Gestión de abonados, validación RUC/Cédula, tablero Kanban de proyectos, contratos y bóveda de cliente.
-3. **M2 — ARCOTEL & Pólizas**: Monitoreo de pólizas de fiel cumplimiento y responsabilidad civil con semáforo de vencimiento.
-4. **M3 — Infraestructura Multi-Nodo & MikroTik**: Supervisión de concentradores PPPoE, capacidad de tráfico (Mbps) y pools IPv4 / IPv6.
-5. **M4 — Mesa de Ayuda NOC & Soporte**: Tickets de soporte categorizados, SLA prioritarios y asignación a cuadrillas.
-6. **M5 — Control Financiero & Pre-Facturación**: Emisión de cobros recurrentes Día 1, órdenes de pedido y exportación en lote en Excel.
-7. **M6 — Automatización de Plantillas Word/Excel**: Contratos de adhesión SAI, formularios de infraestructura técnica y oficios de renovación.
-8. **M7 — Bóveda de Credenciales Cifradas**: Almacén con cifrado AES-256 para credenciales de portales regulatorios (SIETEL, FODETEL, QUIPUX).
-9. **M8 — Configuración & Usuarios (RBAC)**: Gestión de usuarios del sistema, matriz de permisos y administración de Super Admin.
-10. **Asistente IA Gemini Flash**: Soporte operativo interactivo con guardrails de seguridad por rol.
-
----
-
-## 🛡️ Seguridad en Cabeceras HTTP (`next.config.mjs`)
-
-El sistema incluye cabeceras de seguridad estrictas configuradas en el servidor Next.js:
-
-- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
-- `X-Frame-Options: SAMEORIGIN` (prevención de Clickjacking)
-- `X-Content-Type-Options: nosniff` (prevención de MIME-sniffing)
-- `X-XSS-Protection: 1; mode=block`
-- `Referrer-Policy: origin-when-cross-origin`
-- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-
----
-
-## 🛠️ Instalación & Despliegue
-
-```bash
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
+```sh
+npm ci
 npm run dev
-
-# Compilar para producción
-npm run build
-
-# Iniciar en producción
-npm start
 ```
 
-Desarrollado para **INNTEL CORP** por **WebFix Soluciones**.
+Antes de conectarte a servicios externos, consulta la sección de entornos del manual y usa un proyecto de pruebas. `.env.example` describe las variables y `.env.local` queda excluido del repositorio.
+
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+## Documentación
+
+- [Manual de entrega técnica y funcional](docs/ENTREGA_TECNICA.md)
+- [Revisión de integridad y calidad del 24 de noviembre de 2026](docs/AUDITORIA_INTEGRIDAD_2026-11-24.md)
+- [Usuarios y permisos](docs/usuarios-permisos-2026-11-12.md) y [roles y excepciones](docs/roles-y-excepciones-2026-11-13.md)
+- [Guion de aceptación](docs/UAT_GUION_ACEPTACION_2026-10-27.md) e [historial de infraestructura Firebase](docs/FIREBASE.md)
+
+Desarrollado para INNTEL CORP por WebFix Soluciones.

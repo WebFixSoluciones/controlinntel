@@ -10,7 +10,6 @@ import {
   UploadCloud,
   FileText,
   Plus,
-  Trash2,
   CheckCircle,
   AlertCircle,
   Building2,

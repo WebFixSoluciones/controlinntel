@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     name: Typecheck, Lint, Test & Build
@@ -28,7 +31,7 @@ jobs:
         run: npm run lint
 
       - name: Run TypeScript Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Run Unit Tests
         run: npm test

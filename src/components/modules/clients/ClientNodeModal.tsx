@@ -25,7 +25,6 @@ import {
   Server,
   Layers,
   Plus,
-  Trash2,
   Pencil,
   Building2,
   ShieldCheck,

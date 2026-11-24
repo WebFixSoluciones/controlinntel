@@ -7,11 +7,8 @@ import { streetTiles, satelliteTiles } from "@/lib/map-tiles";
 import { NodeLocation } from "@/types";
 import {
   MapPin,
-  Layers,
   ExternalLink,
-  Edit2,
   Radio,
-  Building2,
   AlertCircle,
 } from "lucide-react";
 

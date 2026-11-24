@@ -6,10 +6,7 @@ import {
   X,
   FileText,
   Plus,
-  Trash2,
-  DollarSign,
   AlertTriangle,
-  Receipt,
   CheckCircle2,
 } from "lucide-react";
 import { isFiscalAuthorized } from "@/lib/sri-service";

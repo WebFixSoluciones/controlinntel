@@ -16,13 +16,9 @@ import {
   CheckCircle2,
   Clock,
   AlertTriangle,
-  Trash2,
-  Edit2,
   History,
   X,
   CheckSquare,
-  ShieldAlert,
-  ChevronRight,
   FolderOpen,
 } from "lucide-react";
 

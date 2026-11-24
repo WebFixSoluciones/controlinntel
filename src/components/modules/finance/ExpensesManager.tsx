@@ -2,7 +2,7 @@
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { useRef, useState, type FormEvent } from "react";
-import { Plus, Settings2, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Settings2, X } from "lucide-react";
 import type { Expense } from "@/types";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";

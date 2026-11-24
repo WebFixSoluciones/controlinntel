@@ -12,7 +12,7 @@ import { downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { InvoiceItem, SriInvoice, Client, InventoryProduct } from "@/types";
 import { canUser, canAccessRoute, canAccessSubmodule } from "@/lib/permissions";
-import { Plus, Trash2, Search, UserPlus, CheckCircle2, Zap, Building2, CreditCard, Banknote, Landmark, Clock, FileCode2, Terminal, ShieldCheck, FolderArchive, Package, AlertCircle, X, UserCheck, Sparkles, Loader2, Receipt, Printer, Download, Copy, Check, Share2, Mail, Send, ChevronDown, ChevronUp, Save, Ban, Percent, DollarSign, Calendar, Tag, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Search, UserPlus, CheckCircle2, Zap, CreditCard, Banknote, Landmark, Clock, FileCode2, Terminal, ShieldCheck, FolderArchive, Package, AlertCircle, X, UserCheck, Sparkles, Loader2, Receipt, Printer, Download, Copy, Check, Share2, Mail, Send, ChevronDown, ChevronUp, Save, Ban, DollarSign, Tag, ExternalLink } from "lucide-react";
 import {
 
   validarIdentificacionEcuador,

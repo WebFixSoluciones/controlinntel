@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { RegulatoryTramite } from "@/types";
-import { X, Check, FileText, Building2, User, Calendar, AlertCircle, CheckSquare } from "lucide-react";
+import { X, Check, FileText, Building2, CheckSquare } from "lucide-react";
 
 interface TramiteModalProps {
   isOpen: boolean;

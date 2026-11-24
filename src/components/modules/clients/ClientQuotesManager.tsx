@@ -6,7 +6,7 @@ import React, { useState, useMemo } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { Client, InvoiceItem, ClientQuote } from "@/types";
-import { FileSpreadsheet, Plus, Trash2, CheckCircle2, Printer, ArrowRightLeft, ShoppingCart, X, Receipt, Eye, Edit2, Search } from "lucide-react";
+import { FileSpreadsheet, Plus, CheckCircle2, Printer, ShoppingCart, X, Search } from "lucide-react";
 import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";

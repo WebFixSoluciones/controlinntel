@@ -1,5 +1,7 @@
 # Firebase de INNTEL
 
+> Registro histórico de octubre de 2026. Para la arquitectura, las variables y los flujos de almacenamiento vigentes en el código, consulta el [manual de entrega](ENTREGA_TECNICA.md).
+
 Proyecto: `inntelcorp-45c89` (número `495714041690`).
 Última verificación: **28 de octubre de 2026**, contra la infraestructura real (sin emuladores): cuentas, ausencia de contraseñas heredadas y cierre de acceso público. Las comprobaciones funcionales de la sección 5 corresponden al 27-oct-2026.
 

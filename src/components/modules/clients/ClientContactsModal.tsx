@@ -12,13 +12,10 @@ import {
   Mail,
   MapPin,
   Briefcase,
-  Trash2,
-  Edit2,
   Plus,
   X,
   Check,
   User,
-  AlertCircle,
 } from "lucide-react";
 
 interface ClientContactsModalProps {

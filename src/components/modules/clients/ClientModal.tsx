@@ -22,7 +22,6 @@ import {
   UserCheck,
   Shield,
   Plus,
-  Trash2,
   Sparkles,
   RefreshCw,
   CheckCircle2,

@@ -5,13 +5,10 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   X,
   FileText,
-  Trash2,
   Package,
-  Calendar,
   CheckCircle2,
   AlertTriangle,
   Search,
-  User,
   Plus,
 } from "lucide-react";
 import { useApp } from "@/lib/state";
