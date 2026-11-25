@@ -35,6 +35,14 @@ Al crear una cotización, busca el cliente por razón social, nombre comercial, 
 
 Los históricos sin número o con una referencia igual al comprobante de venta quedan identificados para revisión. Los cobros sin movimiento vinculado se muestran aparte del total de ingresos con movimiento. El reporte permite hacer el cruce en el extracto, sin marcar automáticamente un pago como conciliado.
 
+### Ajustar un cobro recibido
+
+1. En **Pagos recibidos**, usa **Ver** para identificar el ingreso por cuenta, fecha, importe y comprobantes aplicados. Si una referencia aparece en varios registros, revisa cada importe frente al extracto.
+2. Usa **Editar** cuando el dinero sí ingresó y el dato se registró mal. Indica el motivo y revisa el impacto. Corregir la referencia conserva los saldos. Cambiar el importe actualiza el ingreso, el abono y la deuda pendiente. Cambiar la cuenta mueve el importe entre los saldos internos, conservando el comprobante de venta.
+3. Usa **Anular** para un ingreso registrado por error o duplicado. Se revierte su efecto sobre el banco y la cartera, y queda el historial. Si el dinero sí ingresó y solo estaba aplicado a una venta equivocada, usa la reversión del abono en Cobranzas para conservar el dinero como saldo a favor y aplicarlo correctamente.
+
+Los anticipos aplicados conservan sus abonos ya realizados. Para anularlos, primero se revisan y revierten las aplicaciones vigentes. Los cobros desaplicados con crédito vinculado admiten correcciones de fecha y referencia. Los históricos cuyo vínculo no puede comprobarse quedan disponibles para consulta. Estas acciones conservan el documento fiscal y su estado. Las transferencias o devoluciones reales se gestionan por el banco.
+
 ## Arquitectura y contratos
 
 | Capa | Ubicación y responsabilidad |

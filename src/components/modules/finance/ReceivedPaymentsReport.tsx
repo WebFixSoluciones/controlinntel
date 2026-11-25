@@ -3,15 +3,18 @@
 import { createSearchMatcher } from "@/lib/search";
 
 import { useMemo, useState } from "react";
+import { Eye } from "lucide-react";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { inReportPeriod } from "@/lib/company-reporting";
 import { cents, money } from "@/lib/commercial-core";
-import { receivedPayments } from "@/lib/payment-report";
+import { receivedPayments, type ReceivedPayment } from "@/lib/payment-report";
 import { canUser } from "@/lib/permissions";
 import { canReadCollection } from "@/lib/persistence-contracts";
 import { downloadReport, type ReportColumn } from "@/lib/report-export";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
+import { ReceivedPaymentDialog, type ReceivedPaymentDialogMode } from "./ReceivedPaymentDialog";
 
 const columns: ReportColumn[] = [
   { key: "date", label: "Fecha del pago", date: true },
@@ -37,6 +40,7 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
   const [accountId, setAccountId] = useState("");
   const [status, setStatus] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [selected, setSelected] = useState<{ row: ReceivedPayment; mode: ReceivedPaymentDialogMode } | null>(null);
   const receipts = useMemo(() => receivedPayments({ financialMovements, monthlyCharges, clientAdvances, bankAccounts }),
     [financialMovements, monthlyCharges, clientAdvances, bankAccounts]);
   const accounts = [...new Map(receipts.filter(row => row.accountId).map(row => [row.accountId, row.account || row.accountId])).entries()]
@@ -48,6 +52,9 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
   const page = useDocumentPagination(results, [from, to, accountId, status, search]);
   const total = money(results.reduce((sum, row) => sum + (row.movementId ? cents(row.amount) : 0), 0));
   const canExport = canUser(currentUser, "finanzas", "canExportReports");
+  const canEdit = canUser(currentUser, "finanzas", "canRegisterReceipts");
+  const canVoid = canUser(currentUser, "finanzas", "canCancelPayments");
+  const duplicateCount = selected?.row.reference ? receipts.filter(row => row.movementId && row.date === selected.row.date && row.accountId === selected.row.accountId && row.reference === selected.row.reference).length : 0;
 
   async function exportPayments(format: "xlsx" | "csv") {
     setExporting(true);
@@ -66,7 +73,7 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
   return <section className="overflow-hidden rounded-xl border border-slate-200 bg-white text-xs">
     <div className="space-y-3 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="text-base font-semibold">Pagos recibidos</h2><p className="mt-1 text-slate-600">Cruza la cuenta, fecha, importe y comprobante del pago con el extracto bancario.</p></div>
+        <h2 className="text-base font-semibold">Pagos recibidos</h2>
         {canExport && <div className="flex flex-wrap gap-2"><button type="button" disabled={exporting || !results.length} className={action} onClick={() => void exportPayments("xlsx")}>Exportar Excel</button><button type="button" disabled={exporting || !results.length} className={action} onClick={() => void exportPayments("csv")}>Exportar CSV</button></div>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -78,7 +85,7 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
     </div>
     <div role="region" aria-label="Listado de pagos recibidos" tabIndex={0} className="overflow-x-auto">
       <table className="w-full min-w-[60rem] text-left">
-        <thead className="bg-[#f8f9ff] text-[#004ac6]"><tr>{["Fecha", "Cuenta / Forma de pago", "Comprobante del pago", "Cliente / RUC", "Comprobantes de venta", "Importe", "Estado de referencia"].map(label => <th key={label} scope="col" className="px-4 py-3">{label}</th>)}</tr></thead>
+        <thead className="bg-[#f8f9ff] text-[#004ac6]"><tr>{["Fecha", "Cuenta / Forma de pago", "Comprobante del pago", "Cliente / RUC", "Comprobantes de venta", "Importe", "Estado de referencia", "Acciones"].map(label => <th key={label} scope="col" className={`px-4 py-3 ${label === "Acciones" ? "text-right" : ""}`}>{label}</th>)}</tr></thead>
         <tbody className="divide-y divide-slate-100">
           {page.rows.map(row => <tr key={row.id} className="hover:bg-slate-50">
             <td className="whitespace-nowrap px-4 py-3">{row.date || "—"}</td>
@@ -88,11 +95,24 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
             <td className="px-4 py-3">{row.documents || row.kind}{row.originDocument && row.originDocument !== row.documents && <small className="block text-slate-500">Origen {row.originDocument}</small>}</td>
             <td className="whitespace-nowrap px-4 py-3 text-right font-mono">${row.amount.toFixed(2)}</td>
             <td className="px-4 py-3">{row.status}</td>
+            <td className="px-4 py-3">
+              <div className="flex justify-end gap-1.5">
+                <button type="button" aria-label="Ver detalle del pago" title="Ver detalle del pago" onClick={() => setSelected({ row, mode: "view" })}
+                  className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-600">
+                  <Eye aria-hidden="true" className="size-4" />
+                </button>
+                {canEdit && <ActionIconButton action="edit" label="Editar cobro" title={row.correction ? "Editar cobro" : "El vínculo del cobro requiere revisión"}
+                  disabled={!row.correction} onClick={() => setSelected({ row, mode: "edit" })} />}
+                {canVoid && <ActionIconButton action="delete" label="Anular cobro" title={row.correction?.canVoid ? "Anular cobro" : "Revisa el vínculo o las aplicaciones en el detalle"}
+                  disabled={!row.correction?.canVoid} onClick={() => setSelected({ row, mode: "void" })} />}
+              </div>
+            </td>
           </tr>)}
-          {!results.length && <tr><td colSpan={7} className="p-8 text-center text-slate-500">No hay pagos con estos filtros.</td></tr>}
+          {!results.length && <tr><td colSpan={8} className="p-8 text-center text-slate-500">No hay pagos con estos filtros.</td></tr>}
         </tbody>
       </table>
     </div>
     <DocumentTablePagination {...page.controls} />
+    {selected && <ReceivedPaymentDialog key={`${selected.row.id}-${selected.mode}`} row={selected.row} mode={selected.mode} duplicateCount={duplicateCount} onClose={() => setSelected(null)} />}
   </section>;
 }

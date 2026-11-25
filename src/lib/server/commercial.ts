@@ -14,8 +14,9 @@ import { schemas } from "./schemas.ts";
 import { canUser, canViewServicePrices, canAccessSubmodule, canViewFinancialAmounts } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 import { assertPurchaseActive, editPurchase, deletePurchase } from "./purchase-corrections.ts";
+import { assertReceiptVersion, correctDirectReceipt, receiptChange, verifyReceiptAccount } from "./received-payment-corrections.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "editReceivedPayment", "voidReceivedPayment", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
 export class Context {
@@ -627,6 +628,39 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       return issueRecurringSale(c, client.id, eligible, selected.every(service => service.paymentMethod === method) ? method : undefined);
     }
     case "payCharge": return payCharge(c,data);
+    case "editReceivedPayment":
+    case "voidReceivedPayment": {
+      const reason = typeof data.reason === "string" ? data.reason.trim().slice(0, 500) : "";
+      if (reason.length < 3) throw new HttpError(400, "Indica el motivo del ajuste.");
+      if (typeof data.movementId !== "string") throw new HttpError(400, "Selecciona el movimiento del cobro.");
+      const movement = await c.get("financialMovements", data.movementId);
+      if (movement.status === "anulado" || movement.type !== "ingreso" || !["cobro_cliente", "anticipo_cliente"].includes(movement.category) || cents(movement.amount) <= 0) {
+        throw new HttpError(409, "El movimiento ya fue anulado o no corresponde a un cobro recibido.");
+      }
+      assertReceiptVersion(movement, data.expectedVersion);
+      const voiding = action === "voidReceivedPayment";
+      const audit = { correctionReason: reason, correctedAt: new Date().toISOString(), correctedBy: c.user.uid, correctionOperationId: c.operationId };
+      if (movement.category === "anticipo_cliente") {
+        if (typeof movement.relatedEntityId !== "string") throw new HttpError(409, "Falta el vínculo con el anticipo de origen.");
+        const advance = await c.get("clientAdvances", movement.relatedEntityId);
+        if (advance.movementId !== movement.id || advance.sourcePaymentId) throw new HttpError(409, "El cobro no corresponde al movimiento original del anticipo.");
+        assertReceiptVersion(advance, data.expectedOriginVersion);
+        const target = { id: advance.id, expectedVersion: data.expectedOriginVersion };
+        if (voiding) {
+          await execute(c, "voidAdvance", target);
+        } else {
+          const change = receiptChange(c, movement, data);
+          await verifyReceiptAccount(c, movement, change);
+          await execute(c, "editAdvance", { ...target, ...change, clientId: advance.clientId, monthsCovered: advance.monthsCovered, notes: advance.notes });
+        }
+        c.put("financialMovements", { ...await c.get("financialMovements", movement.id), ...audit });
+      } else {
+        await correctDirectReceipt(c, movement, data, voiding, audit);
+      }
+      const updated = await c.get("financialMovements", movement.id);
+      const receipt = (row: Row) => ({ amount: row.amount, accountId: row.bankAccountId, date: row.date, reference: row.referenceNumber, method: row.paymentMethod, status: row.status });
+      return { movementId: movement.id, reason, before: receipt(movement), after: receipt(updated) };
+    }
     case "applyAdvance": return payCharge(c,{...data,method:"Anticipo de Cliente"});
     case "applyClientCredit": {
       const charge = await c.get("monthlyCharges", data.chargeId);
@@ -689,9 +723,9 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const bank = sameBank ? sourceBank : await c.get("bankAccounts", data.bankAccountId);
       if ((!sameBank || amount !== cents(old.amount)) && bank.status !== "activa") throw new HttpError(400, "Selecciona una cuenta activa para corregir el importe.");
       const sourceBalance = cents(sourceBank.currentBalance) - cents(old.amount) + (sameBank ? amount : 0);
-      if (sourceBalance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "Saldo bancario insuficiente para corregir el anticipo.");
+      if ((!sameBank || amount < cents(old.amount)) && sourceBalance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "Saldo bancario insuficiente para corregir el anticipo.");
       if ((!sameBank || amount < cents(old.amount)) && !canUser(c.user, "finanzas", "canCancelPayments")) throw new HttpError(403, "No tienes permiso para revertir importes recibidos.");
-      c.put("bankAccounts", { ...sourceBank, currentBalance: money(sourceBalance) });
+      if (!sameBank || amount !== cents(old.amount)) c.put("bankAccounts", { ...sourceBank, currentBalance: money(sourceBalance) });
       if (!sameBank) c.put("bankAccounts", { ...bank, currentBalance: money(cents(bank.currentBalance) + amount) });
       const method = String(data.method || old.method).slice(0, 100), reference = String(data.reference || "").trim().slice(0, 200);
       c.put("financialMovements", { ...movement, amount: money(amount), date, bankAccountId: bank.id, bankAccountName: bank.bankName, paymentMethod: method, referenceNumber: reference, description: `Anticipo ${client.businessName}` });
@@ -863,6 +897,9 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
   if (salesScreen && !canAccessSubmodule(user, "ventas", salesScreen)) throw new HttpError(403, "No tienes acceso a esta función de Ventas.");
   const purchaseScreen = ["editPurchase", "deletePurchase"].includes(command.action) ? "historial_compras" : command.action === "purchase" ? "registrar_compra" : command.action === "supplierCredit" ? "notas_credito" : command.action === "supplierDebit" ? "notas_debito" : undefined;
   if (purchaseScreen && !canAccessSubmodule(user, "compras", purchaseScreen)) throw new HttpError(403, "No tienes acceso a esta función de Compras.");
+  if (["editReceivedPayment", "voidReceivedPayment"].includes(command.action) && !canAccessSubmodule(user, "finanzas", "reportes")) {
+    throw new HttpError(403, "No tienes acceso al reporte de pagos recibidos.");
+  }
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={
     createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],
@@ -871,7 +908,7 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],createBank:["finanzas","canManageBankAccounts"],editBank:["finanzas","canManageBankAccounts"],adjustBank:["finanzas","canManageBankAccounts"],transfer:["finanzas","canTransferFunds"],manualCharge:["finanzas","canRegisterReceipts"],
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["ventas","canCreateInvoice"],processRun:["ventas","canCreateInvoice"],
     editAdvance:["finanzas","canRegisterReceipts"],voidAdvance:["finanzas","canCancelPayments"],
-    reverseApplication:["finanzas","canCancelPayments"],
+    reverseApplication:["finanzas","canCancelPayments"],editReceivedPayment:["finanzas","canRegisterReceipts"],voidReceivedPayment:["finanzas","canCancelPayments"],
     editPurchase:["compras","canEditPurchase"],deletePurchase:["compras","canDeletePurchase"],purchase:["compras","canRegisterPurchase"],paySupplier:["compras","canApprovePayments"],supplierCredit:["compras","canRegisterPurchase"],supplierDebit:["compras","canRegisterPurchase"],
     createProduct:["inventarios",command.data.type==="servicio"?"canCreateService":"canCreateProduct"],editProduct:["inventarios","canEditProduct"],inventoryTransfer:["inventarios","canTransferWarehouses"],inventoryAdjustment:["inventarios","canAdjustStock"],
   };

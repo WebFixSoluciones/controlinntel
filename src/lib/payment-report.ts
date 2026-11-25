@@ -1,8 +1,22 @@
-import { cents, externalCash, money, type RecordData as Row } from "./commercial-core.ts";
+import { cents, chargeBalance, externalCash, money, type RecordData as Row } from "./commercial-core.ts";
 
 export type PaymentReportSource = Partial<Record<"financialMovements" | "monthlyCharges" | "clientAdvances" | "bankAccounts", Row[]>>;
 
-type Receipt = {
+export type ReceiptCorrection = {
+  kind: "charge" | "advance" | "released";
+  originVersion: number;
+  movementVersion: number;
+  canVoid: boolean;
+  minimumAmount: number;
+  pendingBalance?: number;
+  creditRemaining?: number;
+};
+
+export type ReceivedPaymentAction = "editReceivedPayment" | "voidReceivedPayment";
+export type ReceivedPaymentChange = { movementId: string; expectedVersion: number; expectedOriginVersion: number; reason: string;
+  date?: string; amount?: number; bankAccountId?: string; method?: string; reference?: string };
+
+export type ReceivedPayment = {
   id: string;
   date: string;
   amount: number;
@@ -16,12 +30,14 @@ type Receipt = {
   documents: string;
   kind: "Cobro" | "Anticipo";
   movementId: string;
+  correction?: ReceiptCorrection;
+  correctionReason?: string;
   status: "Con comprobante" | "Sin comprobante" | "Revisar referencia de venta" | "Sin movimiento vinculado";
 };
 
 const field = (value: unknown) => String(value ?? "").trim();
 
-export function receivedPayments({ financialMovements = [], monthlyCharges = [], clientAdvances = [], bankAccounts = [] }: PaymentReportSource): Receipt[] {
+export function receivedPayments({ financialMovements = [], monthlyCharges = [], clientAdvances = [], bankAccounts = [] }: PaymentReportSource): ReceivedPayment[] {
   const charges = new Map(monthlyCharges.map(charge => [charge.id, charge]));
   const accounts = new Map(bankAccounts.map(account => [account.id, account]));
   const advances = new Map(clientAdvances.map(advance => [advance.id, advance]));
@@ -33,7 +49,28 @@ export function receivedPayments({ financialMovements = [], monthlyCharges = [],
   const linked = new Set<Row>();
   const movementsById = new Map(financialMovements.map(movement => [movement.id, movement]));
 
-  function receipt({ charge, payment, advance, movement }: { charge?: Row; payment?: Row; advance?: Row; movement?: Row }): Receipt {
+  function correctionFor(movement?: Row, charge?: Row, payment?: Row, advance?: Row): ReceiptCorrection | undefined {
+    if (!movement?.id) return;
+    const movementVersion = Number(movement.version || 0);
+    if (movement.category === "anticipo_cliente" && advance && advance.id === movement.relatedEntityId && advance.movementId === movement.id && !advance.sourcePaymentId && advance.status !== "anulado" && !advance.deletedAt && typeof advance.amount === "number" && typeof advance.remaining === "number") {
+      const minimumAmount = money(cents(advance.amount) - cents(advance.remaining));
+      return { kind: "advance", movementVersion, originVersion: Number(advance.version || 0),
+        canVoid: minimumAmount === 0 && !(advance.applications || []).some((item: Row) => item.status !== "reversed"),
+        minimumAmount, creditRemaining: money(cents(advance.remaining)) };
+    }
+    if (movement.category !== "cobro_cliente" || !charge || !payment || charge.id !== movement.chargeId || payment.id !== movement.relatedEntityId || payment.movementId !== movement.id || payment.advanceId) return;
+    const originVersion = Number(charge.version || 0);
+    if (payment.status === "reversed") {
+      if (advance?.sourcePaymentId === payment.id && advance?.sourceChargeId === charge.id) {
+        return { kind: "released", movementVersion, originVersion, canVoid: false, minimumAmount: money(cents(movement.amount)) };
+      }
+      return;
+    }
+    if (charge.status === "anulado" || typeof charge.total !== "number") return;
+    return { kind: "charge", movementVersion, originVersion, canVoid: true, minimumAmount: 0.01, pendingBalance: money(chargeBalance(charge)) };
+  }
+
+  function receipt({ charge, payment, advance, movement }: { charge?: Row; payment?: Row; advance?: Row; movement?: Row }): ReceivedPayment {
     const originDocument = field(charge?.invoiceNumber);
     const reference = field(movement?.referenceNumber) || field(payment?.reference) || field(advance?.reference);
     const accountId = field(movement?.bankAccountId || payment?.bankAccountId || advance?.bankAccountId);
@@ -48,6 +85,8 @@ export function receivedPayments({ financialMovements = [], monthlyCharges = [],
     return {
       id: field(movement?.id || payment?.id || advance?.id),
       movementId: field(movement?.id),
+      correction: correctionFor(movement, charge, payment, advance),
+      correctionReason: field(movement?.correctionReason) || undefined,
       date: field(movement?.date || payment?.date || advance?.date).slice(0, 10),
       amount: money(cents(movement?.amount ?? payment?.amount ?? advance?.amount)),
       reference,

@@ -1,6 +1,7 @@
 "use client";
 
 import type { DocumentTemplate } from "@/types";
+import type { ReceivedPaymentAction, ReceivedPaymentChange } from "./payment-report";
 import { ApiError } from "./api-error";
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ToastProvider } from "./toast-context";
@@ -415,6 +416,7 @@ interface AppContextType {
   updateBankAccount: (id: string, updates: Partial<BankAccount>) => Promise<void>;
   adjustBankBalance: (bankAccountId: string, delta: number, reason: string) => Promise<void>;
   reverseChargePayment: (chargeId: string, paymentId: string) => Promise<void>;
+  correctReceivedPayment: (action: ReceivedPaymentAction, change: ReceivedPaymentChange) => Promise<void>;
 
   addSupplierPayment: (payment: Omit<SupplierPaymentRecord, "id" | "createdAt">) => Promise<SupplierPaymentRecord>;
   addFinancialMovement: (movement: Omit<FinancialMovement, "id" | "createdAt">) => Promise<FinancialMovement>;
@@ -1649,6 +1651,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("reverseApplication", { chargeId, paymentId });
   };
 
+  const correctReceivedPayment = async (action: ReceivedPaymentAction, change: ReceivedPaymentChange) => {
+    await runCommercial(action, change);
+  };
+
   const addClientAdvance = async (
     advanceData: Omit<ClientAdvance, "id" | "remaining" | "status" | "applications">
   ): Promise<ClientAdvance> => runCommercial<ClientAdvance>("advance", advanceData);
@@ -2194,6 +2200,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updateBankAccount,
           adjustBankBalance,
           reverseChargePayment,
+          correctReceivedPayment,
           addSupplierPayment,
           addFinancialMovement,
           transferBetweenAccounts,
