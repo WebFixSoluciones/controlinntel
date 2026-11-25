@@ -1,5 +1,6 @@
 "use client";
 
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { useMemo, useState } from "react";
 import { Search, FileText, Eye } from "lucide-react";
 import type { Client } from "@/types";
@@ -22,6 +23,8 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
     return (type === "todos" || (document.documentType || "factura") === type)
       && (!query || `${document.documentNumber} ${(document.items || []).map(item => item.name).join(" ")}`.toLocaleLowerCase("es").includes(query));
   });
+  const invoicesPage = useDocumentPagination(visible, [client.id, search, type]);
+
   const selected = documents.find(document => document.id === selectedId);
   if (!canReadCollection(currentUser, "billingInvoices")) return <p role="alert" className="text-sm text-slate-600">No tienes acceso al historial de facturación.</p>;
 
@@ -44,7 +47,7 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
         <table className="w-full min-w-[700px] text-left text-xs">
           <thead className="bg-slate-50 text-slate-600"><tr>{["Comprobante", "Tipo", "Fecha de emisión", "Concepto", "Total", "Estado", "Acciones"].map(label => <th key={label} className="px-4 py-3 font-semibold">{label}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">
-            {visible.map(document => <tr key={document.id} className="hover:bg-slate-50">
+            {invoicesPage.rows.map(document => <tr key={document.id} className="hover:bg-slate-50">
               <td className="px-4 py-3"><button type="button" onClick={() => setSelectedId(document.id)} className="font-semibold text-[#004ac6] hover:underline whitespace-nowrap">{document.documentNumber}</button></td>
               <td className="px-4 py-3 whitespace-nowrap">{document.documentType === "nota_venta" ? "Nota de venta" : "Factura"}</td>
               <td className="px-4 py-3 whitespace-nowrap">{document.date?.slice(0, 10)}</td>
@@ -57,6 +60,7 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
           </tbody>
         </table>
       </div>
+      <DocumentTablePagination {...invoicesPage.controls} />
       <p className="px-4 py-3 border-t border-slate-100 text-xs text-slate-500">{visible.length} de {documents.length} comprobantes emitidos</p>
     </div>
     <RidePreviewModal isOpen={Boolean(selected)} invoice={selected} onClose={() => setSelectedId(null)} companyConfig={sriCompanyConfig} />

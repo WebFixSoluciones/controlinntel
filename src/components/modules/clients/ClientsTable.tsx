@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -186,6 +187,8 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
     return () => { cancelled = true; };
   }, [selectedInvoicesClient, canHistory]);
   const history = historyData || clientSalesHistory([], []);
+  const historyPage = useDocumentPagination(history.rows, [selectedInvoicesClient?.id]);
+
 
   // Handle client delete request with strict validation
   const handleRequestDelete = (client: Client, e: React.MouseEvent) => {
@@ -471,7 +474,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
               {historyLoading ? <p className="p-6 text-center text-sm text-slate-500">Cargando historial…</p> : historyError ? <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{historyError}</p> : history.rows.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">Sin comprobantes vigentes para este cliente.</p> : (
                 <table className="w-full min-w-[850px] text-left text-xs">
                   <thead className="sticky top-0 bg-slate-50 text-blue-700"><tr>{["Comprobante", "Tipo", "Fecha", "Forma de pago", "Total", "Saldo", "Estado"].map(label => <th key={label} className="whitespace-nowrap border-b px-3 py-3 font-semibold">{label}</th>)}</tr></thead>
-                  <tbody className="divide-y">{history.rows.map(row => <tr key={row.id} className="hover:bg-slate-50">
+                  <tbody className="divide-y">{historyPage.rows.map(row => <tr key={row.id} className="hover:bg-slate-50">
                     <td className="px-3 py-3 font-mono font-semibold">{row.documentNumber}{row.sourceNumber && <span className="mt-1 block text-[10px] font-normal text-slate-500">Origen: {row.sourceNumber}</span>}{row.testDocuments?.length > 0 && <span className="mt-1 block max-w-64 text-[10px] font-normal text-slate-500">Pruebas SRI: {row.testDocuments.join(", ")}</span>}</td>
                     <td className="px-3 py-3">{row.kind}</td><td className="whitespace-nowrap px-3 py-3">{row.date}</td><td className="px-3 py-3 capitalize">{row.paymentMethod}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right font-mono">${row.total.toFixed(2)}</td><td className="whitespace-nowrap px-3 py-3 text-right font-mono">{row.pending === null ? "Por conciliar" : `$${row.pending.toFixed(2)}`}</td>
@@ -480,6 +483,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                 </table>
               )}
             </div>
+            <DocumentTablePagination {...historyPage.controls} />
             </div>
             <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t bg-slate-50 px-4 py-3"><span className="text-[11px] text-slate-500">Las facturas de prueba y los documentos anulados no forman parte de los totales.</span><button type="button" className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white" onClick={() => setSelectedInvoicesClient(null)}>Cerrar</button></footer>
           </section>

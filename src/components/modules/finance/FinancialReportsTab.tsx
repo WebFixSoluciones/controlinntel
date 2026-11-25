@@ -1,5 +1,7 @@
 "use client";
 
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
+
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { chargeBalance, externalCash, money } from "@/lib/commercial-core";
@@ -161,6 +163,43 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   }, [bankAccounts]);
 
   const chartData = useMemo(() => reportCashSeries(cashMovements, from, to), [cashMovements, from, to]);
+
+  const visibleCharges = monthlyCharges
+    .filter((c) => c.status !== "anulado")
+    .filter((c) => {
+      const q = searchQuery.toLowerCase();
+      const matchesQuery =
+        c.clientName.toLowerCase().includes(q) ||
+        (c.clientRuc || "").includes(q) ||
+        (c.invoiceNumber || "").toLowerCase().includes(q);
+      const matchesStatus = filterStatus === "todos" || c.status === filterStatus;
+      return matchesQuery && matchesStatus;
+    });
+  const chargesPage = useDocumentPagination(visibleCharges, [activeTab, from, to, filterStatus, searchQuery]);
+
+  const visibleReceivables = cxcList
+    .filter((c) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        c.clientName.toLowerCase().includes(q) ||
+        (c.clientRuc || "").includes(q) ||
+        c.invoiceNumber.toLowerCase().includes(q)
+      );
+    });
+  const receivablesPage = useDocumentPagination(visibleReceivables, [activeTab, from, to, searchQuery]);
+
+  const visiblePayables = cxpList
+    .filter((i) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        i.supplierName.toLowerCase().includes(q) ||
+        (i.supplierRuc || "").includes(q) ||
+        i.documentNumber.toLowerCase().includes(q)
+      );
+    });
+  const payablesPage = useDocumentPagination(visiblePayables, [activeTab, from, to, searchQuery]);
+
+  const expensesPage = useDocumentPagination(filteredExpenses, [activeTab, from, to, searchQuery, filterCategory]);
 
   // EXPORTACIÓN DINÁMICA A CSV SEGÚN EL REPORTE ACTIVO
   const handleExportCsv = async (format: "csv" | "xlsx" = "csv") => {
@@ -761,25 +800,14 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {monthlyCharges
-                  .filter((c) => c.status !== "anulado")
-                  .filter((c) => {
-                    const q = searchQuery.toLowerCase();
-                    const matchesQuery =
-                      c.clientName.toLowerCase().includes(q) ||
-                      (c.clientRuc || "").includes(q) ||
-                      (c.invoiceNumber || "").toLowerCase().includes(q);
-                    const matchesStatus = filterStatus === "todos" || c.status === filterStatus;
-                    return matchesQuery && matchesStatus;
-                  })
-                  .map((c) => {
+                {visibleCharges.map((c, index) => {
                     const isPaid = c.status === "pagado";
                     const isCancelled = c.status === "anulado";
                     const paid = isCancelled ? 0 : c.paidAmount ?? (isPaid ? c.total : 0);
                     const bal = isCancelled ? 0 : c.balanceRemaining ?? (isPaid ? 0 : c.total - paid);
 
                     return (
-                      <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
+                      <tr key={c.id} className={chargesPage.printableRowClass(index) + " hover:bg-[#f8f9ff] transition-colors"}>
                         <td className="py-3 px-4 font-mono font-bold text-slate-900">
                           {c.invoiceNumber || "S/N"}
                         </td>
@@ -822,6 +850,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...chargesPage.controls} />
         </div>
       )}
 
@@ -864,8 +893,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {filteredExpenses.map((e) => (
-                    <tr key={e.id} className="hover:bg-[#f8f9ff] transition-colors">
+                {filteredExpenses.map((e, index) => (
+                    <tr key={e.id} className={expensesPage.printableRowClass(index) + " hover:bg-[#f8f9ff] transition-colors"}>
                       <td className="py-3 px-4 font-mono text-slate-600">{e.expenseDate}</td>
                       <td className="py-3 px-4 font-bold text-slate-900">{e.supplierName}</td>
                       <td className="py-3 px-4">
@@ -885,6 +914,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...expensesPage.controls} />
         </div>
       )}
 
@@ -923,17 +953,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {cxcList
-                  .filter((c) => {
-                    const q = searchQuery.toLowerCase();
-                    return (
-                      c.clientName.toLowerCase().includes(q) ||
-                      (c.clientRuc || "").includes(q) ||
-                      c.invoiceNumber.toLowerCase().includes(q)
-                    );
-                  })
-                  .map((c) => (
-                    <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
+                {visibleReceivables.map((c, index) => (
+                    <tr key={c.id} className={receivablesPage.printableRowClass(index) + " hover:bg-[#f8f9ff] transition-colors"}>
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">{c.invoiceNumber}</td>
                       <td className="py-3 px-3 font-mono text-slate-600">{c.saleDate}</td>
                       <td className="py-3 px-3 font-mono text-amber-700">{c.dueDate}</td>
@@ -952,6 +973,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...receivablesPage.controls} />
         </div>
       )}
 
@@ -990,17 +1012,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
-                {cxpList
-                  .filter((i) => {
-                    const q = searchQuery.toLowerCase();
-                    return (
-                      i.supplierName.toLowerCase().includes(q) ||
-                      (i.supplierRuc || "").includes(q) ||
-                      i.documentNumber.toLowerCase().includes(q)
-                    );
-                  })
-                  .map((i) => (
-                    <tr key={i.id} className="hover:bg-[#f8f9ff] transition-colors">
+                {visiblePayables.map((i, index) => (
+                    <tr key={i.id} className={payablesPage.printableRowClass(index) + " hover:bg-[#f8f9ff] transition-colors"}>
                       <td className="py-3 px-4 font-mono font-bold text-slate-900">{i.documentNumber}</td>
                       <td className="py-3 px-3 font-mono text-slate-600">{i.date}</td>
                       <td className="py-3 px-3 font-mono text-purple-700">{i.dueDate}</td>
@@ -1019,6 +1032,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...payablesPage.controls} />
         </div>
       )}
 

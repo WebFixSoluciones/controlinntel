@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
@@ -139,6 +140,8 @@ export function AccountsPayableTab() {
     return matchSearch && matchDue;
   });
 
+  const invoicesPage = useDocumentPagination(filteredInvoices, [searchQuery, filterDueStatus]);
+
   const totalCxP = pendingInvoices.reduce((sum, inv) => sum + (safeFloat(inv.balanceRemaining) || 0), 0);
   const totalVencidas = pendingInvoices
     .filter((inv) => getDueStatus(inv.dueDate).color === "red")
@@ -235,7 +238,7 @@ export function AccountsPayableTab() {
                 </td>
               </tr>
             ) : (
-              filteredInvoices.map((inv) => {
+              invoicesPage.rows.map((inv) => {
                 const dueInfo = getDueStatus(inv.dueDate);
 
                 return (
@@ -287,6 +290,7 @@ export function AccountsPayableTab() {
             )}
           </tbody>
         </table>
+        <DocumentTablePagination {...invoicesPage.controls} />
       </div>
 
       {/* Modal Registrar Pago */}

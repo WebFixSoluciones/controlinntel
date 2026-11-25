@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import { useRef, useState, type FormEvent } from "react";
@@ -53,6 +54,8 @@ export function ExpensesManager() {
     [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
       .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(filterQuery)))
   ).sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
+  const expensesPage = useDocumentPagination(filteredExpenses, [filterQuery, categoryFilter]);
+
   const accountNames = new Map(bankAccounts.map(account => [account.id, account.bankName]));
   const filterCategories = new Map([...expenses.map(expense => [expense.category, expense.category.replaceAll("_", " ")] as const), ...categoryNames]);
 
@@ -151,7 +154,7 @@ export function ExpensesManager() {
               <tr><th className="p-3">Fecha</th><th className="p-3">Proveedor / Beneficiario</th><th className="p-3">Categoría</th><th className="p-3">Concepto / Referencia</th><th className="p-3">Cuenta</th><th className="p-3 text-right">Monto</th>{canRegister && <th className="p-3 text-right">Acciones</th>}</tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredExpenses.map(expense => (
+              {expensesPage.rows.map(expense => (
                 <tr key={expense.id}>
                   <td className="p-3 whitespace-nowrap">{expense.expenseDate}</td>
                   <td className="p-3 font-semibold">{expense.supplierName}{expense.supplierRuc && <span className="block font-normal text-slate-500">{expense.supplierRuc}</span>}</td>
@@ -169,6 +172,7 @@ export function ExpensesManager() {
             </tbody>
           </table>
         </div>
+        <DocumentTablePagination {...expensesPage.controls} />
       </div>
 
       {modal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">

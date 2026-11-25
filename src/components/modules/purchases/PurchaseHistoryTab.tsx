@@ -1,5 +1,6 @@
 "use client";
 
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule, canUser } from "@/lib/permissions";
@@ -57,6 +58,8 @@ export function PurchaseHistoryTab({
 
     return !invalidRange && matchSearch && matchSupplier && matchStatus && inReportPeriod(inv.date, dateFrom, dateTo);
   });
+
+  const invoicesPage = useDocumentPagination(filteredInvoices, [searchQuery, filterSupplier, filterStatus, dateFrom, dateTo]);
 
   return (
     <div className="space-y-6">
@@ -153,7 +156,7 @@ export function PurchaseHistoryTab({
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map((inv) => {
+                invoicesPage.rows.map((inv) => {
                   const isPaid = inv.paymentStatus === "pagado";
                   const isPartial = inv.paymentStatus === "abono_parcial";
 
@@ -269,6 +272,7 @@ export function PurchaseHistoryTab({
             </tbody>
           </table>
         </div>
+        <DocumentTablePagination {...invoicesPage.controls} />
       </div>
 
       {correction && <PurchaseCorrectionDialog key={`${correction.mode}-${correction.invoice.id}`} invoice={correction.invoice} mode={correction.mode} onClose={() => setCorrection(null)} />}

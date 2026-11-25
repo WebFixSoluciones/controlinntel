@@ -1,4 +1,6 @@
 "use client";
+
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -143,6 +145,9 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
       return matchSearch && matchStatus;
     });
   }, [charges, cobrosSearch, cobrosStatusFilter]);
+
+  const chargesPage = useDocumentPagination(filteredCharges, [client?.id, cobrosSearch, cobrosStatusFilter]);
+  const statementPage = useDocumentPagination(currentCharges, [client?.id, isAccountStatementOpen]);
 
   const cobrosCounts = useMemo(() => {
     return {
@@ -806,7 +811,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                        {filteredCharges.map((c) => (
+                        {chargesPage.rows.map((c) => (
                           <tr key={c.id} className="hover:bg-slate-50/70">
                             <td className="py-3 px-4 font-mono font-bold text-slate-900 truncate">{c.invoiceNumber}</td>
                             <td className="py-3 px-4 font-semibold">
@@ -850,6 +855,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                         ))}
                       </tbody>
                     </table>
+                    <DocumentTablePagination {...chargesPage.controls} />
                   </div>
                 )}
               </div>
@@ -1098,10 +1104,10 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                           </td>
                         </tr>
                       ) : (
-                        currentCharges.map((c) => {
+                        currentCharges.map((c, index) => {
                           const balance = money(chargeBalance(c));
                           return (
-                            <tr key={c.id}>
+                            <tr key={c.id} className={statementPage.printableRowClass(index)}>
                               <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
                                 {c.invoiceNumber}
                               </td>
@@ -1135,6 +1141,8 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                     </tbody>
                   </table>
                 </div>
+
+                <DocumentTablePagination {...statementPage.controls} />
 
                 {/* Cuentas Bancarias para Depósito */}
                 {bankAccounts && bankAccounts.length > 0 && (

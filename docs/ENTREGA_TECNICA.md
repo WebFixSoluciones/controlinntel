@@ -20,6 +20,8 @@ La revisión del 24 de noviembre de 2026 partió del commit `27b277ce5896ff075d7
 
 El repositorio conserva un componente de asistente Gemini y su adaptador. En la versión revisada no se encontró una entrada activa que monte el componente. El manual documenta los flujos disponibles desde la aplicación.
 
+Los listados comerciales, fiscales y financieros permiten mostrar 10, 20 o 30 filas por página. Usa **Anterior** y **Siguiente** al pie de la tabla. La búsqueda y los filtros se aplican al listado completo. Los totales, las exportaciones y la impresión de reportes abarcan todos los resultados que correspondan a la vista.
+
 ## Arquitectura y contratos
 
 | Capa | Ubicación y responsabilidad |

@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -340,6 +341,14 @@ export function BillingManager() {
         !findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente)
     );
   }, [billingInvoices, sriCompanyConfig.ambiente]);
+
+  const invoicesPage = useDocumentPagination(filteredInvoices, [activeTab, searchTerm, statusFilter, batchFilter, dateFrom, dateTo]);
+  const quotesPage = useDocumentPagination(filteredQuotes, [activeTab, searchTerm, statusFilter, dateFrom, dateTo]);
+  const creditNotesPage = useDocumentPagination(filteredCreditNotes, [activeTab, searchTerm, batchFilter, dateFrom, dateTo]);
+  const debitNotesPage = useDocumentPagination(filteredDebitNotes, [activeTab, searchTerm, batchFilter, dateFrom, dateTo]);
+  const withholdingsPage = useDocumentPagination(filteredWithholdings, [activeTab, searchTerm, batchFilter, dateFrom, dateTo]);
+  const remissionGuidesPage = useDocumentPagination(filteredRemissionGuides, [activeTab, searchTerm, batchFilter, dateFrom, dateTo]);
+  const pendingSalesPage = useDocumentPagination(pendingSalesForSri, [isSelectSaleForSriOpen, sriCompanyConfig.ambiente]);
 
   // Actions
   const handleOpenRide = (inv: SriInvoice) => {
@@ -706,7 +715,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredInvoices.map((inv) => {
+                  invoicesPage.rows.map((inv) => {
                     const isNotaVenta = inv.documentType === "nota_venta";
                     const isDraft = inv.status === "borrador";
                     const originSale = inv.relatedSaleId
@@ -828,6 +837,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...invoicesPage.controls} />
         </div>
       )}
 
@@ -857,7 +867,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredQuotes.map((q) => (
+                  quotesPage.rows.map((q) => (
                     <tr key={q.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {q.quoteNumber}
@@ -938,6 +948,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...quotesPage.controls} />
         </div>
       )}
 
@@ -966,7 +977,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredCreditNotes.map((nc) => (
+                  creditNotesPage.rows.map((nc) => (
                     <tr key={nc.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {nc.documentNumber}
@@ -1020,6 +1031,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...creditNotesPage.controls} />
         </div>
       )}
 
@@ -1048,7 +1060,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredDebitNotes.map((nd) => (
+                  debitNotesPage.rows.map((nd) => (
                     <tr key={nd.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-semibold text-[#0b1c30]">
                         {nd.documentNumber}
@@ -1102,6 +1114,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...debitNotesPage.controls} />
         </div>
       )}
 
@@ -1130,7 +1143,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredWithholdings.map((ret) => (
+                  withholdingsPage.rows.map((ret) => (
                     <tr key={ret.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {ret.documentNumber}
@@ -1193,6 +1206,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...withholdingsPage.controls} />
         </div>
       )}
 
@@ -1221,7 +1235,7 @@ export function BillingManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredRemissionGuides.map((g) => (
+                  remissionGuidesPage.rows.map((g) => (
                     <tr key={g.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">
                         {g.documentNumber}
@@ -1284,6 +1298,7 @@ export function BillingManager() {
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...remissionGuidesPage.controls} />
         </div>
       )}
 
@@ -1650,7 +1665,7 @@ export function BillingManager() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {pendingSalesForSri.map((sale) => (
+                      {pendingSalesPage.rows.map((sale) => (
                         <tr key={sale.id} className="hover:bg-slate-50">
                           <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
                             {sale.documentNumber}
@@ -1682,6 +1697,7 @@ export function BillingManager() {
                   </table>
                 </div>
               )}
+              <DocumentTablePagination {...pendingSalesPage.controls} />
             </div>
 
             <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">

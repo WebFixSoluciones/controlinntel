@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
@@ -251,6 +252,8 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
       return matchSearch && matchStatus;
     });
   }, [quotes, searchQuery, statusFilter]);
+  const quotesPage = useDocumentPagination(filteredQuotes, [client.id, searchQuery, statusFilter]);
+
 
   // Open modal for new quote
   const handleOpenModal = () => {
@@ -502,7 +505,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredQuotes.map((q) => (
+                {quotesPage.rows.map((q) => (
                   <tr key={q.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* N° Cotización */}
                     <td className="py-3.5 px-4 font-mono font-bold text-[#004ac6] whitespace-nowrap">
@@ -592,6 +595,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             </table>
           </div>
         )}
+        <DocumentTablePagination {...quotesPage.controls} />
       </div>
 
       {/* Modal: Vista Previa e Impresión Oficial */}

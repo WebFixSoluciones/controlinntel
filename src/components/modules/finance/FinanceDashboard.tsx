@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -223,6 +224,9 @@ export function FinanceDashboard({
       return name.includes(q) || ruc.includes(q) || method.includes(q);
     });
   }, [clientAdvances, advSearchQuery]);
+
+  const chargesPage = useDocumentPagination(filteredCharges, [activeTab, searchQuery, statusFilter, typeFilter, startDate, endDate]);
+  const advancesPage = useDocumentPagination(filteredAdvances, [activeTab, advSearchQuery]);
 
   const handleExportBatch = async () => {
     if (filteredCharges.length === 0) {
@@ -521,7 +525,7 @@ export function FinanceDashboard({
                     </td>
                   </tr>
                 ) : (
-                  filteredCharges.map((charge) => {
+                  chargesPage.rows.map((charge) => {
                     const isCancelled = charge.status === "anulado";
                     const isPaid = charge.status === "pagado";
                     const isPartial = charge.status === "parcial";
@@ -670,6 +674,7 @@ export function FinanceDashboard({
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...chargesPage.controls} />
         </div>
       )}
 
@@ -726,7 +731,7 @@ export function FinanceDashboard({
                     </td>
                   </tr>
                 ) : (
-                  (filteredAdvances || []).map((adv) => {
+                  advancesPage.rows.map((adv) => {
                     const isAvailable = adv.status === "vigente" && adv.remaining > 0;
                     const isCancelled = adv.status === "anulado";
                     const wasRefunded = safeFloat(adv.refundedAmount) > 0;
@@ -829,6 +834,7 @@ export function FinanceDashboard({
               </tbody>
             </table>
           </div>
+          <DocumentTablePagination {...advancesPage.controls} />
         </div>
       )}
 

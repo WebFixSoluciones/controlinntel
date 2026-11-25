@@ -1,6 +1,7 @@
 "use client";
 
 
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import React, { useState, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
@@ -62,6 +63,8 @@ export function PurchaseWithholdingsTab({
   ].filter(row => [row.supplierName, row.supplierRuc, row.documentNumber, row.claveAcceso].some(value => value.toLowerCase().includes(searchQuery.trim().toLowerCase())))
     .sort((a, b) => b.date.localeCompare(a.date) || b.documentNumber.localeCompare(a.documentNumber));
 
+  const withholdingsPage = useDocumentPagination(filtered, [searchQuery]);
+
   return (
     <div className="space-y-6">
       {/* Unified Toolbar */}
@@ -108,7 +111,7 @@ export function PurchaseWithholdingsTab({
                 </td>
               </tr>
             ) : (
-              filtered.map((w) => (
+              withholdingsPage.rows.map((w) => (
                 <tr key={w.id} className="hover:bg-[#f8f9ff]/60 transition-colors">
                   <td className="py-3 px-4 text-[#0b1c30] font-medium">{w.date}</td>
                   <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{w.documentNumber}<span className="block text-[10px] text-slate-600">{w.statusLabel}</span></td>
@@ -139,6 +142,7 @@ export function PurchaseWithholdingsTab({
             )}
           </tbody>
         </table>
+        <DocumentTablePagination {...withholdingsPage.controls} />
       </div>
 
       <WithholdingModal isOpen={isModalOpen || !!initialInvoice} initialPurchaseId={initialInvoice?.id}

@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -158,6 +159,9 @@ export function SalesManager() {
       ? compareDocumentsDescending(a, b)
       : compareDocumentsDescending(b, a));
   }, [billingQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortDirection]);
+
+  const salesPage = useDocumentPagination(filteredSales, [activeTab, searchTerm, sriFilter, dateFrom, dateTo, clientFilter]);
+  const quotesPage = useDocumentPagination(filteredQuotes, [activeTab, quoteSearchTerm, quoteStatusFilter, quoteSortDirection]);
 
   // Totals
   const totalSalesAmount = useMemo(() => {
@@ -339,7 +343,7 @@ export function SalesManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredSales.map((sale) => {
+                  salesPage.rows.map((sale) => {
                     const linkedSriInv = findSaleFiscalInvoice(sale, billingInvoices, sriCompanyConfig.ambiente);
                     const isFacturada = isFiscalAuthorized(linkedSriInv);
                     const fiscalLabel = isFacturada ? linkedSriInv?.ambiente === "2" ? "Autorizada SRI" : "Autorizada en pruebas" : "Pendiente SRI";
@@ -431,6 +435,7 @@ export function SalesManager() {
                 )}
               </tbody>
             </table>
+            <DocumentTablePagination {...salesPage.controls} />
           </div>
         </div>
       )}
@@ -511,7 +516,7 @@ export function SalesManager() {
                     </td>
                   </tr>
                 ) : (
-                  filteredQuotes.map((q) => (
+                  quotesPage.rows.map((q) => (
                     <tr key={q.id} className="hover:bg-[#f8f9ff] transition">
                       <td className="py-3 px-4 font-mono font-bold text-[#0b1c30]">{q.quoteNumber}</td>
                       <td className="py-3 px-4 text-[#475569]">
@@ -588,6 +593,7 @@ export function SalesManager() {
                 )}
               </tbody>
             </table>
+            <DocumentTablePagination {...quotesPage.controls} />
           </div>
         </div>
       )}

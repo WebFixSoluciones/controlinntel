@@ -1,4 +1,5 @@
 "use client";
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
@@ -135,6 +136,8 @@ export function SupplierCreditNotesTab({
     );
   });
 
+  const creditNotesPage = useDocumentPagination(filteredNotes, [searchQuery]);
+
   return (
     <div className="space-y-6">
       {/* Unified Toolbar */}
@@ -180,7 +183,7 @@ export function SupplierCreditNotesTab({
                 </td>
               </tr>
             ) : (
-              filteredNotes.map((note) => (
+              creditNotesPage.rows.map((note) => (
                 <tr key={note.id} className="hover:bg-[#f8f9ff]/60 transition-colors">
                   <td className="py-3 px-4 text-[#0b1c30] font-medium">{note.date}</td>
                   <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">
@@ -209,6 +212,7 @@ export function SupplierCreditNotesTab({
             )}
           </tbody>
         </table>
+        <DocumentTablePagination {...creditNotesPage.controls} />
       </div>
 
       {/* Modal */}

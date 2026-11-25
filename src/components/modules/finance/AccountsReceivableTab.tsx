@@ -1,5 +1,6 @@
 "use client";
 
+import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { canUser } from "@/lib/permissions";
@@ -32,6 +33,8 @@ export function AccountsReceivableTab() {
       (filterStatus === "pagado" && charge.status === "pagado");
     return matchesSearch && matchesStatus;
   }).sort(compareDocumentsDescending);
+  const chargesPage = useDocumentPagination(filteredCharges, [searchQuery, filterStatus]);
+
   const { totalFacturado, totalRecaudado, totalPendiente } = summarizeReceivables(monthlyCharges);
 
   return (
@@ -122,7 +125,7 @@ export function AccountsReceivableTab() {
                 </td>
               </tr>
             ) : (
-              filteredCharges.map((c) => {
+              chargesPage.rows.map((c) => {
                 const isPaid = c.status === "pagado";
                 const balance = money(chargeBalance(c));
 
@@ -172,6 +175,7 @@ export function AccountsReceivableTab() {
             )}
           </tbody>
         </table>
+        <DocumentTablePagination {...chargesPage.controls} />
       </div>
 
       {selectedCharge && (
