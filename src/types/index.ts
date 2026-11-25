@@ -507,6 +507,7 @@ export interface MonthlyCharge {
 /** Abono o cobro registrado contra un comprobante de venta */
 export interface ChargePayment {
   status?: "reversed";
+  voidedAt?: string;
   id: string;
   date: string;
   amount: number;

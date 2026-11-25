@@ -880,10 +880,10 @@ export function FinanceDashboard({
                         )}
                       </div>
                       <div className="text-right">
-                        <span className="font-mono font-bold text-emerald-700 text-sm block">
+                        <span className={`block font-mono text-sm font-bold ${p.voidedAt ? "text-slate-500 line-through" : "text-emerald-700"}`}>
                           +${safeNumber(p.amount)}
                         </span>
-                        <span className="text-[10px] text-slate-400">{p.status === "reversed" ? "Aplicación revertida" : "Abonado"}</span>
+                        <span className="text-[10px] text-slate-500">{p.voidedAt ? "Cobro anulado" : p.status === "reversed" ? "Aplicación revertida" : "Abonado"}</span>
                         {p.status !== "reversed" && historyCharge.status !== "anulado" && <button type="button" className="block text-xs text-blue-700 underline mt-1" onClick={() => showConfirm("Revertir aplicación", "La deuda volverá a quedar pendiente y el dinero quedará disponible como anticipo. No se devuelve dinero del banco.", async () => {try{await reverseChargePayment(historyCharge.id,p.id);setHistoryCharge(null);showSuccess("Aplicación revertida","Saldo disponible y deuda actualizados.");}catch(error){showError("No se pudo revertir",error instanceof Error?error.message:"Revisa el historial.");}})}>Revertir aplicación</button>}
                       </div>
                     </div>
