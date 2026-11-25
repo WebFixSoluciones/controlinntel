@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
@@ -43,13 +45,9 @@ export function PurchaseHistoryTab({
   const activeInvoices = purchaseInvoices.filter(inv => inv.status !== "anulada");
 
   // Filters
+  const matches = createSearchMatcher(searchQuery);
   const filteredInvoices = purchaseInvoices.filter((inv) => {
-    const query = searchQuery.toLowerCase();
-    const matchSearch =
-      inv.supplierName.toLowerCase().includes(query) ||
-      inv.supplierRuc.includes(query) ||
-      inv.documentNumber.includes(query) ||
-      (inv.claveAcceso && inv.claveAcceso.includes(query));
+    const matchSearch = matches(inv.supplierName, inv.supplierRuc, inv.documentNumber, inv.claveAcceso);
 
     const matchSupplier =
       filterSupplier === "todos" || inv.supplierId === filterSupplier;

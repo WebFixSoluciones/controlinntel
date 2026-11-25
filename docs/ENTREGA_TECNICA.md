@@ -24,6 +24,8 @@ Los listados comerciales, fiscales y financieros permiten mostrar 10, 20 o 30 fi
 
 En los listados de comprobantes, el orden inicial es numérico de mayor a menor por serie y secuencial. Los gastos, anticipos, pagos recibidos y movimientos aparecen del más reciente al más antiguo. Los archivos de **Reportes → Ventas** y **Reportes → Compras** usan el mismo orden que la tabla.
 
+Al crear una cotización, busca el cliente por razón social, nombre comercial, RUC o cédula y selecciónalo en el resultado. En los listados de ventas, compras, facturación y finanzas, las búsquedas aceptan palabras parciales sin tildes e identificadores con o sin separadores.
+
 ## Registro de pagos y cruce bancario
 
 1. En **Finanzas → Cobranzas**, abre el comprobante y usa **Registrar cobro**. Selecciona la cuenta que recibió el dinero e ingresa la fecha, el importe y el número del comprobante del pago tal como aparece en el banco.

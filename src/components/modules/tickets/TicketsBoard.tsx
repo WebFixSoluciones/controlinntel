@@ -1,5 +1,7 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+
 import React, { useState, useMemo } from "react";
 import { canManageTicketDepartments, canRoleAction } from "@/lib/permissions";
 import { departmentLabel, DEFAULT_TICKET_DEPARTMENT } from "@/lib/ticket-departments";
@@ -65,6 +67,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
 
   // Filtered tickets
   const filtered = useMemo(() => {
+    const matches = createSearchMatcher(query);
     return tickets
       .filter((t) => {
         // Status filter
@@ -89,20 +92,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
         // Assignee filter
         if (filterAssignee !== "todos" && t.assignedToName !== filterAssignee) return false;
 
-        // Search text
-        if (query.trim()) {
-          const q = query.toLowerCase();
-          const matches =
-            t.ticketNumber.toLowerCase().includes(q) ||
-            t.previousTicketNumber?.toLowerCase().includes(q) ||
-            t.clientName.toLowerCase().includes(q) ||
-            t.title.toLowerCase().includes(q) ||
-            (t.description && t.description.toLowerCase().includes(q)) ||
-            (t.nodeName && t.nodeName.toLowerCase().includes(q));
-          if (!matches) return false;
-        }
-
-        return true;
+        return matches(t.ticketNumber, t.previousTicketNumber, t.clientName, t.title, t.description, t.nodeName);
       })
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   }, [tickets, query, filterStatus, filterDepartment, filterPriority, filterAssignee]);

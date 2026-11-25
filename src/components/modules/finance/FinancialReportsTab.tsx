@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
@@ -37,7 +39,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { formatFinanceCategory } from "./FinanceDashboard";
-import { expenseCategoriesWithDefaults, expenseCategoryKey } from "@/lib/expense-categories";
+import { expenseCategoriesWithDefaults } from "@/lib/expense-categories";
 import { inReportPeriod, chargeReportDate, purchaseBalance, reportCashSeries } from "@/lib/company-reporting";
 import { CompanyReportsPanel } from "./CompanyReportsPanel";
 
@@ -89,9 +91,9 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const categoryNames = new Map(expenseCategoriesWithDefaults(expenseCategories).map(item => [item.id, item.name]));
   const expenseLabel = (id: string) => categoryNames.get(id) || formatFinanceCategory(id);
   const expenseFilters = new Set([...categoryNames.keys(), ...expenses.map(expense => expense.category)]);
+  const matches = createSearchMatcher(searchQuery);
   const filteredExpenses = expenses.filter(expense => (filterCategory === "todas" || expense.category === filterCategory) &&
-    [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
-      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(searchQuery)))).sort(compareDatesDescending);
+    matches(expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber)).sort(compareDatesDescending);
 
   const flujoMetrics = useMemo(() => summarizeCash(financialMovements), [financialMovements]);
 
@@ -168,36 +170,16 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const chargesByDocument = monthlyCharges.filter(c => c.status !== "anulado").sort(compareDocumentsDescending);
   const visibleCharges = chargesByDocument
     .filter((c) => {
-      const q = searchQuery.toLowerCase();
-      const matchesQuery =
-        c.clientName.toLowerCase().includes(q) ||
-        (c.clientRuc || "").includes(q) ||
-        (c.invoiceNumber || "").toLowerCase().includes(q);
+      const matchesQuery = matches(c.clientName, c.clientRuc, c.invoiceNumber);
       const matchesStatus = filterStatus === "todos" || c.status === filterStatus;
       return matchesQuery && matchesStatus;
     });
   const chargesPage = useDocumentPagination(visibleCharges, [activeTab, from, to, filterStatus, searchQuery]);
 
-  const visibleReceivables = cxcList
-    .filter((c) => {
-      const q = searchQuery.toLowerCase();
-      return (
-        c.clientName.toLowerCase().includes(q) ||
-        (c.clientRuc || "").includes(q) ||
-        c.invoiceNumber.toLowerCase().includes(q)
-      );
-    });
+  const visibleReceivables = cxcList.filter(c => matches(c.clientName, c.clientRuc, c.invoiceNumber));
   const receivablesPage = useDocumentPagination(visibleReceivables, [activeTab, from, to, searchQuery]);
 
-  const visiblePayables = cxpList
-    .filter((i) => {
-      const q = searchQuery.toLowerCase();
-      return (
-        i.supplierName.toLowerCase().includes(q) ||
-        (i.supplierRuc || "").includes(q) ||
-        i.documentNumber.toLowerCase().includes(q)
-      );
-    });
+  const visiblePayables = cxpList.filter(i => matches(i.supplierName, i.supplierRuc, i.documentNumber));
   const payablesPage = useDocumentPagination(visiblePayables, [activeTab, from, to, searchQuery]);
 
   const expensesPage = useDocumentPagination(filteredExpenses, [activeTab, from, to, searchQuery, filterCategory]);
@@ -282,8 +264,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
       ];
     }
 
-    const q = searchQuery.toLowerCase().trim();
-    if (q) rows = rows.filter(row => row.some(value => String(value).toLowerCase().includes(q)));
+    rows = rows.filter(row => matches(...row));
     if (activeTab === "cobranzas" && filterStatus !== "todos") rows = rows.filter(row => row[7] === filterStatus);
     const cleanRows = rows.map(row => row.map((value,index) => {
       if (typeof value === "number") return value;

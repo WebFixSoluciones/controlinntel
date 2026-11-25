@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 
@@ -52,6 +54,7 @@ export function PurchaseWithholdingsTab({
 
   const fiscalRows = billingWithholdings.filter(row => row.purchaseInvoiceId);
   const legacy = purchaseWithholdings.filter(row => !fiscalRows.some(fiscal => fiscal.claveAcceso === row.claveAcceso));
+  const matches = createSearchMatcher(searchQuery);
   const filtered = [
     ...fiscalRows.map(row => ({
       id: row.id, date: row.date, documentNumber: row.documentNumber, supplierName: row.clientName,
@@ -61,7 +64,7 @@ export function PurchaseWithholdingsTab({
       statusLabel: fiscalStateLabel(row), preview: () => setFiscalPreview(row),
     })),
     ...legacy.map(row => ({ ...row, statusLabel: "HISTÓRICO LOCAL", preview: () => setSelectedWithholding(row) })),
-  ].filter(row => [row.supplierName, row.supplierRuc, row.documentNumber, row.claveAcceso].some(value => value.toLowerCase().includes(searchQuery.trim().toLowerCase())))
+  ].filter(row => matches(row.supplierName, row.supplierRuc, row.documentNumber, row.claveAcceso))
     .sort(compareDocumentsDescending);
 
   const withholdingsPage = useDocumentPagination(filtered, [searchQuery]);

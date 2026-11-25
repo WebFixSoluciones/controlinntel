@@ -21,6 +21,11 @@ export const salesLookupFields: Record<string, string[]> = {
   monthlyCharges: ["clientId", "invoiceId", "invoiceNumber", "status", "total", "paidAmount", "balanceRemaining", "month", "year", "saleDate"],
 };
 
+export const fiscalQuoteLookupFields: Partial<Record<string, string[]>> = {
+  clients: ["businessName", "tradeName", "legalRepresentative", "identificationType", "identificationNumber", "email", "phone", "address", "status"],
+  inventoryProducts: ["name", "sku", "description", "type", "unit", "status", "salePrice", "ivaRate"],
+};
+
 export function salesLookupRow(entity: string, row: Record<string, any>) {
   if (entity === "clients" && row.status === "retirado" || entity === "inventoryProducts" && row.status === "inactivo" || entity === "bankAccounts" && row.status !== "activa") return null;
   return Object.fromEntries(["id", ...salesLookupFields[entity] || []].filter(key => key in row).map(key => [key, row[key]]));

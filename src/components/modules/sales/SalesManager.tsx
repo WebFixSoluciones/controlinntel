@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
@@ -38,6 +41,7 @@ export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurre
 export function SalesManager() {
   const {
     currentUser,
+    clients,
     billingInvoices,
     monthlyCharges,
     billingQuotes,
@@ -121,14 +125,12 @@ export function SalesManager() {
     return activeCommercialDocuments(billingInvoices.filter((inv) => inv.documentType === "nota_venta"));
   }, [billingInvoices]);
 
+  const clientsById = useMemo(() => new Map(clients.map(client => [client.id, client])), [clients]);
+
   const filteredSales = useMemo(() => {
+    const matches = createSearchMatcher(searchTerm);
     return salesList.filter((inv) => {
-      const q = searchTerm.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        inv.documentNumber.toLowerCase().includes(q) ||
-        inv.clientName.toLowerCase().includes(q) ||
-        (inv.clientRuc && inv.clientRuc.includes(q));
+      const matchesSearch = matches(inv.documentNumber, inv.clientName, inv.clientRuc, ...clientSearchFields(clientsById.get(inv.clientId)));
 
       const isFacturada = isFiscalAuthorized(findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente));
       const matchesSri =
@@ -142,23 +144,19 @@ export function SalesManager() {
 
       return (!clientFilter || inv.clientId === clientFilter) && matchesSearch && matchesSri && matchesFrom && matchesTo;
     });
-  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo, billingInvoices, sriCompanyConfig.ambiente, clientFilter]);
+  }, [salesList, searchTerm, sriFilter, dateFrom, dateTo, billingInvoices, sriCompanyConfig.ambiente, clientFilter, clientsById]);
 
   const filteredQuotes = useMemo(() => {
+    const matches = createSearchMatcher(quoteSearchTerm);
     return billingQuotes.filter((q) => {
-      const term = quoteSearchTerm.toLowerCase().trim();
-      const matchSearch =
-        !term ||
-        q.quoteNumber.toLowerCase().includes(term) ||
-        q.clientName.toLowerCase().includes(term) ||
-        (q.clientRuc && q.clientRuc.includes(term));
+      const matchSearch = matches(q.quoteNumber, q.clientName, q.clientRuc, ...clientSearchFields(clientsById.get(q.clientId)));
 
       const matchStatus = quoteStatusFilter === "all" || q.status === quoteStatusFilter;
       return matchSearch && matchStatus;
     }).sort((a, b) => quoteSortDirection === "descending"
       ? compareDocumentsDescending(a, b)
       : compareDocumentsDescending(b, a));
-  }, [billingQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortDirection]);
+  }, [billingQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortDirection, clientsById]);
 
   const salesPage = useDocumentPagination(filteredSales, [activeTab, searchTerm, sriFilter, dateFrom, dateTo, clientFilter]);
   const quotesPage = useDocumentPagination(filteredQuotes, [activeTab, quoteSearchTerm, quoteStatusFilter, quoteSortDirection]);

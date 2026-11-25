@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -127,7 +130,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
   // Group recurring clients with their services
   const recurringClientsRows = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    const matches = createSearchMatcher(searchQuery);
     const serviceFilter = new Set(requestedServices.split(",").filter(Boolean));
 
     return clients
@@ -196,18 +199,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       })
       .filter((row): row is NonNullable<typeof row> => {
         if (!row) return false;
-        if (!q) return true;
-        return (
-          row.client.businessName.toLowerCase().includes(q) ||
-          row.client.identificationNumber.toLowerCase().includes(q) ||
-          row.services.some((s) => s.planName.toLowerCase().includes(q))
-        );
+        return matches(...clientSearchFields(row.client), ...row.services.map(service => service.planName));
       });
   }, [clients, clientServices, frequencyFilter, searchQuery, clientFilter, requestedServices, periodKey, selectedMonthNum, selectedYear, periodDocuments]);
 
   // All services enriched with client for Renovaciones tab
   const enrichedServices = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
+    const matches = createSearchMatcher(searchQuery);
     return clientServices
       .filter((s) => s.status !== "retirado")
       .map((svc) => {
@@ -224,13 +222,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         ) {
           return false;
         }
-        if (q) {
-          const match =
-            item.client.businessName.toLowerCase().includes(q) ||
-            item.client.identificationNumber.toLowerCase().includes(q) ||
-            item.svc.planName.toLowerCase().includes(q);
-          if (!match) return false;
-        }
+        if (!matches(...clientSearchFields(item.client), item.svc.planName)) return false;
         if (renewalFilter === "por_renovar") {
           return item.renewal.daysLeft <= 15 || item.svc.status === "por_renovar";
         }

@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
@@ -128,14 +130,8 @@ export function SupplierCreditNotesTab({
     }
   };
 
-  const filteredNotes = supplierCreditNotes.filter((n) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      n.supplierName.toLowerCase().includes(q) ||
-      n.documentNumber.includes(q) ||
-      (n.claveAcceso && n.claveAcceso.includes(q))
-    );
-  }).sort(compareDocumentsDescending);
+  const matches = createSearchMatcher(searchQuery);
+  const filteredNotes = supplierCreditNotes.filter(note => matches(note.supplierName, note.documentNumber, note.claveAcceso)).sort(compareDocumentsDescending);
 
   const creditNotesPage = useDocumentPagination(filteredNotes, [searchQuery]);
 

@@ -1,4 +1,7 @@
 "use client";
+
+import { ClientSearchSelect } from "@/components/ui/ClientSearchSelect";
+import { createSearchMatcher } from "@/lib/search";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -85,14 +88,14 @@ export function BillingQuoteModal({
           .slice(0, 10);
         setDate(today);
         setValidUntil(thirtyDaysLater);
-        setClientId(initialClientId ? eligibleClients.find(client => client.id === initialClientId)?.id || "" : eligibleClients[0]?.id || "");
+        setClientId(initialClientId || "");
         setItems([]);
         setNotes("Validez de la oferta: 30 días calendario. Precios no incluyen impuestos adicionales no descritos.");
         setStatus("enviada");
       }
       setErrorMsg("");
     }
-  }, [isOpen, quoteToEdit, eligibleClients, initialClientId]);
+  }, [isOpen, quoteToEdit, initialClientId]);
 
   if (!isOpen) return null;
 
@@ -191,11 +194,8 @@ export function BillingQuoteModal({
     setItems((prev) => prev.filter((it) => it.id !== itemId));
   };
 
-  const filteredProducts = inventoryProducts.filter((p) => {
-    if (!searchProductTerm.trim()) return true;
-    const q = searchProductTerm.toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-  });
+  const matchesProduct = createSearchMatcher(searchProductTerm);
+  const filteredProducts = inventoryProducts.filter(product => matchesProduct(product.name, product.sku));
 
   // Totales
   const subtotal15 = items.filter((it) => it.ivaRate === 15).reduce((sum, it) => sum + it.subtotal, 0);
@@ -300,19 +300,8 @@ export function BillingQuoteModal({
           {/* Fila 1: Cliente & Fechas */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-lg bg-[#f8f9ff] border border-[#e2e8f0]">
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Cliente:</label>
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="w-full text-xs font-semibold rounded-lg border border-[#e2e8f0] p-2 bg-white text-slate-900"
-              >
-                <option value="">Seleccionar cliente</option>
-                {eligibleClients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.businessName} • {c.identificationNumber}
-                  </option>
-                ))}
-              </select>
+              <p className="text-xs font-semibold text-slate-700 mb-1">Cliente</p>
+              <ClientSearchSelect clients={eligibleClients} value={clientId} onChange={setClientId} label="Cliente de la cotización" required disabled={isSubmitting} />
             </div>
 
             <div>

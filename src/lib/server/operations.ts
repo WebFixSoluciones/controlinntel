@@ -21,7 +21,7 @@ import { isClosedTicketStatus, requiresPublicTicketReply } from "../ticket-statu
 import type { TicketDepartmentRecord } from "@/types";
 import type { UserRoleTemplate } from "@/types";
 import { administrationProfile, resolveAssignedRole, normalizedRole } from "../role-access.ts";
-import { canUseSalesWorkspace, salesLookupFields, salesLookupRow } from "../sales-workspace.ts";
+import { canUseSalesWorkspace, fiscalQuoteLookupFields, salesLookupFields, salesLookupRow } from "../sales-workspace.ts";
 
 const now = () => new Date().toISOString();
 function nodeServicePassword(service?: DocumentData): string {
@@ -35,14 +35,17 @@ export async function snapshot(user: UserProfile, database?: Firestore) {
   await Promise.all(Object.entries(collectionPermissions).map(async ([entity,permission]) => {
     if(entity==="operationLog") {result[entity]=[];return;}
     const readable=canReadCollection(user,entity as Entity);
-    const salesLookup = !readable && canUseSalesWorkspace(user) && entity in salesLookupFields;
+    const salesLookup = !readable && canUseSalesWorkspace(user) && salesLookupFields[entity];
+    const fiscalQuoteLookup = !readable && !salesLookup && fiscalQuoteLookupFields[entity] &&
+      canAccessSubmodule(user, "facturacion", "cotizaciones") && canUser(user, "facturacion", "canCreateQuotes") && fiscalQuoteLookupFields[entity];
+    const lookupFields = salesLookup || fiscalQuoteLookup;
     const commercialIssuer = entity === "sriCompanyConfig" && !readable && (canAccessModule(user, "ventas") || canAccessModule(user, "abonados"));
     const expenseSupplierDirectory = entity === "suppliers" && !readable &&
       canAccessSubmodule(user, "finanzas", "gastos") && canUser(user, "finanzas", "canRegisterExpenses");
-    if (!readable && !salesLookup && !commercialIssuer && !expenseSupplierDirectory) { result[entity]=[]; return; }
+    if (!readable && !lookupFields && !commercialIssuer && !expenseSupplierDirectory) { result[entity]=[]; return; }
     const name = storageName(entity as Entity);
     const collection = db.collection(name);
-    const query = (salesLookup ? collection.select(...salesLookupFields[entity]) : expenseSupplierDirectory ? collection.select("razonSocial", "nombreComercial", "ruc", "status") : collection)
+    const query = (lookupFields ? collection.select(...lookupFields) : expenseSupplierDirectory ? collection.select("razonSocial", "nombreComercial", "ruc", "status") : collection)
       .orderBy("__name__").limit(500);
     const documents = [];
     try {
@@ -64,7 +67,7 @@ export async function snapshot(user: UserProfile, database?: Firestore) {
       .filter(d=>entity!=="vault"||user.role==="superadmin"||d.data().allowedRoles?.includes(user.role)).map(d => {
       const value = {...d.data(),id:d.id} as DocumentData;
       if (commercialIssuer) return redact({ ...quoteCompanyDetails(value), ...Object.fromEntries(["establecimiento", "puntoEmision", "secuencialNotaVenta"].filter(key => key in value).map(key => [key, value[key]])) });
-      if (salesLookup) { const lookup = salesLookupRow(entity, value); return lookup && redact(visibleServiceData(user, entity, lookup)); }
+      if (lookupFields) { const lookup = salesLookupRow(entity, value); return lookup && redact(visibleServiceData(user, entity, lookup)); }
       delete value.passwordHash; delete value.secret; delete value.totpSecret; delete value.pppoePassword;
       if (entity==="systemUsers") value.uid=d.id;
       if (entity==="vault" || entity==="clientVaultItems") delete value.encryptedPassword;

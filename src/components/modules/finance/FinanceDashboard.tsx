@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { ClientSearchSelect } from "@/components/ui/ClientSearchSelect";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { compareDatesDescending, getEcuadorDate } from "@/lib/date-utils";
 
@@ -154,20 +157,10 @@ export function FinanceDashboard({
 
   // Filtrado de Cobros
   const filteredCharges = useMemo(() => {
+    const matches = createSearchMatcher(searchQuery);
     return unifiedCharges.filter((c) => {
       if (!c) return false;
-      const q = (searchQuery || "").toLowerCase().trim();
-      const clientName = (c.clientName || "").toLowerCase();
-      const clientRuc = String(c.clientRuc || "");
-      const invoiceNumber = (c.invoiceNumber || "").toLowerCase();
-      const serviceDescription = (c.serviceDescription || "").toLowerCase();
-
-      const matchesSearch =
-        !q ||
-        clientName.includes(q) ||
-        clientRuc.includes(q) ||
-        invoiceNumber.includes(q) ||
-        serviceDescription.includes(q);
+      const matchesSearch = matches(c.clientName, c.clientRuc, c.invoiceNumber, c.serviceDescription);
 
       const matchesStatus = statusFilter === "todos" || c.status === statusFilter;
 
@@ -215,14 +208,10 @@ export function FinanceDashboard({
   }, [clientAdvances]);
 
   const filteredAdvances = useMemo(() => {
+    const matches = createSearchMatcher(advSearchQuery);
     return (clientAdvances || []).filter((adv) => {
       if (!adv || adv.deletedAt) return false;
-      const q = (advSearchQuery || "").toLowerCase().trim();
-      if (!q) return true;
-      const name = (adv.clientName || "").toLowerCase();
-      const ruc = String(adv.clientRuc || "");
-      const method = (adv.method || "").toLowerCase();
-      return name.includes(q) || ruc.includes(q) || method.includes(q);
+      return matches(adv.clientName, adv.clientRuc, adv.method, adv.reference);
     }).sort(compareDatesDescending);
   }, [clientAdvances, advSearchQuery]);
 
@@ -1055,23 +1044,8 @@ export function FinanceDashboard({
             <form onSubmit={handleCreateAdvance} className="min-h-0 overflow-y-auto p-5 space-y-3.5 text-xs">
               {editingAdvance && <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">Disponible: ${safeNumber(editingAdvance.remaining)} · Ya aplicado o devuelto: ${safeNumber(editingAdvance.amount - editingAdvance.remaining)}. El nuevo importe debe cubrir lo ya utilizado. Esto corrige el registro; una devolución de dinero se registra con la flecha de devolución.</p>}
               <div>
-                <label htmlFor="finance-dashboard-field-10" className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Cliente *
-                </label>
-                <select id="finance-dashboard-field-10"
-                  required
-                  disabled={Boolean(editingAdvance && editingAdvance.amount !== editingAdvance.remaining)}
-                  value={advClientId}
-                  onChange={(e) => setAdvClientId(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                >
-                  <option value="">Seleccionar cliente...</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.businessName} ({c.identificationNumber || "S/RUC"})
-                    </option>
-                  ))}
-                </select>
+                <p className="text-[11px] font-bold text-slate-700 mb-1">Cliente *</p>
+                <ClientSearchSelect clients={clients} value={advClientId} onChange={setAdvClientId} label="Cliente del anticipo" required disabled={Boolean(editingAdvance && editingAdvance.amount !== editingAdvance.remaining)} />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1327,20 +1301,8 @@ export function FinanceDashboard({
 
             <form onSubmit={handleCreateManualCharge} className="p-5 space-y-3.5 text-xs">
               <div>
-                <label htmlFor="finance-dashboard-field-20" className="text-[11px] font-bold text-slate-700 block mb-1">Cliente *</label>
-                <select id="finance-dashboard-field-20"
-                  required
-                  value={manualClientId}
-                  onChange={(e) => setManualClientId(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
-                >
-                  <option value="">Seleccionar cliente...</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.businessName} ({c.identificationNumber || "S/RUC"})
-                    </option>
-                  ))}
-                </select>
+                <p className="text-[11px] font-bold text-slate-700 mb-1">Cliente *</p>
+                <ClientSearchSelect clients={clients} value={manualClientId} onChange={setManualClientId} label="Cliente del cargo" required />
               </div>
 
               <div>

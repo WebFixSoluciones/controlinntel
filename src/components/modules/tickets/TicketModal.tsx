@@ -1,5 +1,8 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
+
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { canManageTicketDepartments, canRoleAction } from "@/lib/permissions";
 import { TicketDepartmentsModal } from "./TicketDepartmentsModal";
@@ -71,13 +74,8 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
 
   const filteredClients = useMemo(() => {
     if (!clientSearch.trim()) return clients.slice(0, 8);
-    const q = clientSearch.toLowerCase();
-    return clients.filter(
-      (c) =>
-        c.businessName.toLowerCase().includes(q) ||
-        c.identificationNumber.toLowerCase().includes(q) ||
-        (c.phone && c.phone.includes(q))
-    ).slice(0, 10);
+    const matches = createSearchMatcher(clientSearch);
+    return clients.filter(client => matches(...clientSearchFields(client), client.phone)).slice(0, 10);
   }, [clients, clientSearch]);
 
   // Mantener el servicio seleccionado válido al cambiar de cliente
@@ -205,7 +203,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                     <input
                       type="text"
                       placeholder="Buscar cliente por nombre o RUC..."
-                      value={clientSearch || (selectedClient ? `${selectedClient.businessName} (${selectedClient.identificationNumber})` : "")}
+                      value={!isClientSearchOpen && selectedClient ? `${selectedClient.businessName} (${selectedClient.identificationNumber})` : clientSearch}
                       onChange={(e) => {
                         setClientSearch(e.target.value);
                         setIsClientSearchOpen(true);

@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
@@ -46,13 +48,14 @@ export function ExpensesManager() {
 
   const selectedSupplier = suppliers.find(supplier => supplier.id === supplierId);
   const supplierKey = expenseCategoryKey(supplierQuery);
+  const matchesSupplier = createSearchMatcher(supplierQuery);
   const supplierMatches = suppliers.filter(supplier => supplier.status !== "inactivo" && supplierKey.length >= 2 &&
-    [supplier.razonSocial, supplier.nombreComercial, supplier.ruc].some(value => value && expenseCategoryKey(value).includes(supplierKey))
+    matchesSupplier(supplier.razonSocial, supplier.nombreComercial, supplier.ruc)
   ).slice(0, 8);
 
+  const matchesExpense = createSearchMatcher(filterQuery);
   const filteredExpenses = expenses.filter(expense => expense.status !== "anulado" && (!categoryFilter || expense.category === categoryFilter) &&
-    [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
-      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(filterQuery)))
+    matchesExpense(expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber)
   ).sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
   const expensesPage = useDocumentPagination(filteredExpenses, [filterQuery, categoryFilter]);
 

@@ -1,11 +1,13 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 
 import { useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
-import { companyPeriodReport, reportNet, purchaseBalance, reportSearchText } from "@/lib/company-reporting";
+import { companyPeriodReport, reportNet, purchaseBalance } from "@/lib/company-reporting";
 import { getEcuadorDate } from "@/lib/date-utils";
 import { canUser } from "@/lib/permissions";
 import { canReadBillingDocument, canReadCollection } from "@/lib/persistence-contracts";
@@ -62,7 +64,8 @@ export function CompanyReportsPanel({ from, to, onPeriodChange, children }: { fr
     rows = report.movements;
   }
   const states = [...new Set(rows.map(row => String(row.status || row.paymentStatus || row.type || "")))].filter(Boolean);
-  const filteredRows = rows.filter(row => (!status || String(row.status || row.paymentStatus || row.type) === status) && columns.some(column => reportSearchText(row[column.key]).includes(reportSearchText(search))));
+  const matches = createSearchMatcher(search);
+  const filteredRows = rows.filter(row => (!status || String(row.status || row.paymentStatus || row.type) === status) && matches(row.clientRuc, row.supplierRuc, ...columns.map(column => row[column.key])));
   const documentsTab = tab === "ventas" || tab === "compras" || tab === "gastos";
   const sortColumn = tab === "ventas" || tab === "compras" ? "documentNumber" : tab === "gastos" ? "expenseDate" : tab === "caja" ? "date" : undefined;
   const documentsPage = useDocumentPagination(filteredRows, [tab, from, to, search, status]);

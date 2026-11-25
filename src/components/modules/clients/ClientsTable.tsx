@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
@@ -116,16 +119,9 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
 
   // Filtered clients list
   const filtered = useMemo(() => {
+    const matches = createSearchMatcher(filter);
     return clients.filter((c) => {
-      const q = filter.toLowerCase().trim();
-      const qNoSpaces = q.replace(/\s+/g, "");
-      const cleanId = limpiarIdentificacion(c.identificationNumber).toLowerCase();
-      const matchesQuery =
-        !q ||
-        c.businessName.toLowerCase().includes(q) ||
-        (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
-        cleanId.includes(qNoSpaces) ||
-        c.email.toLowerCase().includes(qNoSpaces);
+      const matchesQuery = matches(...clientSearchFields(c), c.email);
 
       const matchesStatus = matchesClientStatus(c, statusFilter);
 

@@ -1866,7 +1866,8 @@ test("Flujo E2E 31: Submódulo Bancos Anti-Cuelgue, Cobranzas OPEX y Blindaje In
   const financeDashPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
   const financeDashContent = fs.readFileSync(financeDashPath, "utf8");
   assert.ok(
-    financeDashContent.includes("(c.clientName || \"\").toLowerCase()") &&
+    financeDashContent.includes("createSearchMatcher(searchQuery)") &&
+      financeDashContent.includes("matches(c.clientName, c.clientRuc, c.invoiceNumber, c.serviceDescription)") &&
       financeDashContent.includes("safeFloat") &&
       financeDashContent.includes("safeNumber"),
     "FinanceDashboard debe proteger filtros y totales contra nulos/indefinidos con safeFloat y safeNumber"
@@ -1876,7 +1877,8 @@ test("Flujo E2E 31: Submódulo Bancos Anti-Cuelgue, Cobranzas OPEX y Blindaje In
   const movementsPath = path.resolve(rootDir, "src/components/modules/finance/MovementsTab.tsx");
   const movementsContent = fs.readFileSync(movementsPath, "utf8");
   assert.ok(
-    movementsContent.includes("(m.description || \"\").toLowerCase()") &&
+    movementsContent.includes("createSearchMatcher(searchQuery)") &&
+      movementsContent.includes("matches(m.description, categoryLabel(m.category), m.referenceNumber)") &&
       movementsContent.includes("safeNumber"),
     "MovementsTab debe formatear montos y buscar conceptos de forma segura"
   );

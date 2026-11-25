@@ -53,6 +53,27 @@ test("Revocar el permiso de emisión retira los directorios adicionales; la priv
   assert.deepEqual((await snapshot(revoked, db as unknown as Firestore)).inventoryProducts, []);
 });
 
+test("Facturación puede buscar clientes para cotizar sin acceso al directorio completo ni a la banca", async () => {
+  const modulePermissions = completePermissions({}, {
+    "facturacion.enabled": true, "facturacion.submodules.cotizaciones": true, "facturacion.actions.canCreateQuotes": true,
+    "visibility.canViewFinancialAmounts": true, "visibility.canViewProductPrices": true,
+  });
+  const user = { ...profile(), modulePermissions };
+  const db = new ReadDatabase({
+    clients: [{ id: "qa", businessName: "CLIENTE QA", tradeName: "Comercial QA", identificationNumber: "000101", status: "activo", currentBalance: 99, privateNotes: "PRIVATE" }, { id: "retirado", status: "retirado" }],
+    inventoryProducts: [{ id: "p", name: "Prueba", type: "producto", status: "activo", salePrice: 15, baseCost: 10, stock: 22 }],
+    bankAccounts: [{ id: "bank", bankName: "QA", status: "activa", currentBalance: 500 }],
+  });
+  const data = await snapshot(user, db as unknown as Firestore);
+  assert.equal(canAccessRoute(user, "/clientes"), false);
+  assert.deepEqual(data.clients, [{ id: "qa", businessName: "CLIENTE QA", tradeName: "Comercial QA", identificationNumber: "000101", status: "activo" }]);
+  assert.equal((data.inventoryProducts as any[])[0].salePrice, 15);
+  assert.equal((data.inventoryProducts as any[])[0].stock, undefined);
+  assert.deepEqual(data.bankAccounts, []);
+  const revoked = { ...user, modulePermissions: setPermission(modulePermissions, "facturacion.actions.canCreateQuotes", false) };
+  assert.deepEqual((await snapshot(revoked, db as unknown as Firestore)).clients, []);
+});
+
 test("El historial comercial recibe el resumen de su deuda, sin pagos internos ni deudas ajenas a las notas permitidas", async () => {
   const user = profile(), db = new ReadDatabase({
     billingInvoices: [{ id: "note", documentType: "nota_venta", items: [] }, { id: "sri", documentType: "factura" }],

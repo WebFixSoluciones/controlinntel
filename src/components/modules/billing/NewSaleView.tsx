@@ -1,4 +1,6 @@
 "use client";
+
+import { searchClients } from "@/lib/client-search";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
 
@@ -594,18 +596,8 @@ export function NewSaleView({
   const recurringHref = `/ventas?${recurringParams}`;
 
   const filteredClients = useMemo(() => {
-    const q = clientSearch.trim().toLowerCase();
-    const qNoSpaces = q.replace(/\s+/g, "");
     const eligible = clients.filter(canTradeWithClient);
-    if (!q) return eligible.slice(0, 8);
-    return eligible
-      .filter(
-        (c) =>
-          c.businessName.toLowerCase().includes(q) ||
-          (c.tradeName && c.tradeName.toLowerCase().includes(q)) ||
-          limpiarIdentificacion(c.identificationNumber).toLowerCase().includes(qNoSpaces)
-      )
-      .slice(0, 8);
+    return (clientSearch.trim() ? searchClients(eligible, clientSearch) : eligible).slice(0, 8);
   }, [clients, clientSearch]);
 
   const filteredProducts = useMemo(() => {

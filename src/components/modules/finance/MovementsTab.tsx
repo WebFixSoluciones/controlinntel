@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDatesDescending, getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
@@ -79,14 +81,10 @@ export function MovementsTab() {
     }
   };
 
+  const matches = createSearchMatcher(searchQuery);
   const filteredMovements = (financialMovements || []).filter((m) => {
     if (!m || m.status === "anulado") return false;
-    const q = (searchQuery || "").toLowerCase();
-    const desc = (m.description || "").toLowerCase();
-    const cat = categoryLabel(m.category).toLowerCase();
-    const ref = (m.referenceNumber ? String(m.referenceNumber) : "").toLowerCase();
-
-    const matchSearch = desc.includes(q) || cat.includes(q) || ref.includes(q);
+    const matchSearch = matches(m.description, categoryLabel(m.category), m.referenceNumber);
     const matchType = filterType === "todos" || m.type === filterType;
     const matchBank = filterBank === "todos" || m.bankAccountId === filterBank;
 

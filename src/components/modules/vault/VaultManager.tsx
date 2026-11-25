@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { BackButton } from "@/components/ui/BackButton";
 
 import React, { useState, useEffect } from "react";
@@ -33,12 +36,12 @@ export function VaultManager() {
   const getClientVaultItems = (id: string) =>
     safeVaultItems.filter((v) => v && v.clientId === id);
 
+  const matches = createSearchMatcher(query);
   const filteredClients = safeClients.filter((c) => {
     if (!c || !c.id) return false;
     const items = getClientVaultItems(c.id);
     const servicesText = items.map((i) => `${i?.serviceName || ""} ${i?.notes || ""}`).join(" ");
-    const searchTarget = `${c.businessName || ""} ${c.identificationNumber || ""} ${servicesText}`.toLowerCase();
-    return !query.trim() || searchTarget.includes(query.trim().toLowerCase());
+    return matches(...clientSearchFields(c), servicesText);
   });
 
   return (

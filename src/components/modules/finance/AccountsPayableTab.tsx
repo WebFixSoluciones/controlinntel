@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
@@ -119,17 +121,10 @@ export function AccountsPayableTab() {
     (inv) => inv && inv.status !== "anulada" && (safeFloat(inv.balanceRemaining) > 0 || inv.paymentStatus !== "pagado")
   );
 
+  const matches = createSearchMatcher(searchQuery);
   const filteredInvoices = pendingInvoices.filter((inv) => {
     if (!inv) return false;
-    const q = (searchQuery || "").toLowerCase();
-    const supName = (inv.supplierName || "").toLowerCase();
-    const supRuc = String(inv.supplierRuc || "");
-    const docNum = (inv.documentNumber || "").toLowerCase();
-
-    const matchSearch =
-      supName.includes(q) ||
-      supRuc.includes(q) ||
-      docNum.includes(q);
+    const matchSearch = matches(inv.supplierName, inv.supplierRuc, inv.documentNumber);
 
     const dueInfo = getDueStatus(inv.dueDate);
     const matchDue =

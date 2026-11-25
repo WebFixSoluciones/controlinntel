@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
@@ -78,6 +81,7 @@ export function BillingManager() {
   const router = useRouter();
   const {
     currentUser,
+    clients,
     refresh,
     billingInvoices,
     billingQuotes,
@@ -235,17 +239,15 @@ export function BillingManager() {
   // ==========================================
   // Filtered Lists
   // ==========================================
+  const clientsById = useMemo(() => new Map(clients.map(client => [client.id, client])), [clients]);
+  const matchesSearch = useMemo(() => createSearchMatcher(searchTerm), [searchTerm]);
+
   const filteredInvoices = useMemo(() => {
     return billingInvoices.filter((inv) => {
       // En facturación SRI solo se muestran Facturas Electrónicas
       if (inv.documentType === "nota_venta") return false;
 
-      const q = searchTerm.toLowerCase();
-      const matchSearch =
-        inv.documentNumber.toLowerCase().includes(q) ||
-        inv.clientName.toLowerCase().includes(q) ||
-        inv.clientRuc.includes(q) ||
-        inv.claveAcceso.includes(q);
+      const matchSearch = matchesSearch(inv.documentNumber, inv.clientName, inv.clientRuc, inv.claveAcceso, ...clientSearchFields(clientsById.get(inv.clientId)));
 
       const matchStatus = statusFilter === "all" || (statusFilter === "autorizada" ? isFiscalAuthorized(inv) : inv.status === statusFilter);
       return (
@@ -254,46 +256,31 @@ export function BillingManager() {
         matchesDateAndBatch(inv.date, inv.documentNumber)
       );
     }).sort(compareDocumentsDescending);
-  }, [billingInvoices, searchTerm, statusFilter, batchFilter, dateFrom, dateTo]);
+  }, [billingInvoices, matchesSearch, statusFilter, batchFilter, dateFrom, dateTo, clientsById]);
 
   const filteredQuotes = useMemo(() => {
     return billingQuotes.filter((q) => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch =
-        q.quoteNumber.toLowerCase().includes(search) ||
-        q.clientName.toLowerCase().includes(search) ||
-        q.clientRuc.includes(search);
-
+      const matchSearch = matchesSearch(q.quoteNumber, q.clientName, q.clientRuc, ...clientSearchFields(clientsById.get(q.clientId)));
       const matchStatus = statusFilter === "all" || q.status === statusFilter;
       const matchFrom = !dateFrom || q.date >= dateFrom;
       const matchTo = !dateTo || q.date <= dateTo;
       return matchSearch && matchStatus && matchFrom && matchTo;
     }).sort(compareDocumentsDescending);
-  }, [billingQuotes, searchTerm, statusFilter, dateFrom, dateTo]);
+  }, [billingQuotes, matchesSearch, statusFilter, dateFrom, dateTo, clientsById]);
 
   const filteredCreditNotes = useMemo(() => {
     return billingCreditNotes.filter((nc) => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch =
-        nc.documentNumber.toLowerCase().includes(search) ||
-        nc.invoiceNumber.toLowerCase().includes(search) ||
-        nc.clientName.toLowerCase().includes(search) ||
-        nc.clientRuc.includes(search);
+      const matchSearch = matchesSearch(nc.documentNumber, nc.invoiceNumber, nc.clientName, nc.clientRuc);
       return matchSearch && matchesDateAndBatch(nc.date, nc.documentNumber);
     }).sort(compareDocumentsDescending);
-  }, [billingCreditNotes, searchTerm, batchFilter, dateFrom, dateTo]);
+  }, [billingCreditNotes, matchesSearch, batchFilter, dateFrom, dateTo]);
 
   const filteredDebitNotes = useMemo(() => {
     return billingDebitNotes.filter((nd) => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch =
-        nd.documentNumber.toLowerCase().includes(search) ||
-        nd.modifiedInvoiceNumber.toLowerCase().includes(search) ||
-        nd.clientName.toLowerCase().includes(search) ||
-        nd.clientRuc.includes(search);
+      const matchSearch = matchesSearch(nd.documentNumber, nd.modifiedInvoiceNumber, nd.clientName, nd.clientRuc);
       return matchSearch && matchesDateAndBatch(nd.date, nd.documentNumber);
     }).sort(compareDocumentsDescending);
-  }, [billingDebitNotes, searchTerm, batchFilter, dateFrom, dateTo]);
+  }, [billingDebitNotes, matchesSearch, batchFilter, dateFrom, dateTo]);
 
   const fiscalMailAction = (kind: FiscalKind, document: SriFiscalEvidence & { id: string; claveAcceso?: string }) => {
     if ((document.ambiente || document.claveAcceso?.[23]) !== "2" || !isFiscalAuthorized(document) || !canUser(currentUser, "facturacion", "canAuthorizeSri")) return null;
@@ -309,28 +296,17 @@ export function BillingManager() {
 
   const filteredWithholdings = useMemo(() => {
     return billingWithholdings.filter((ret) => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch =
-        ret.documentNumber.toLowerCase().includes(search) ||
-        ret.invoiceNumber.toLowerCase().includes(search) ||
-        ret.clientName.toLowerCase().includes(search) ||
-        ret.clientRuc.includes(search);
+      const matchSearch = matchesSearch(ret.documentNumber, ret.invoiceNumber, ret.clientName, ret.clientRuc);
       return matchSearch && matchesDateAndBatch(ret.date, ret.documentNumber);
     }).sort(compareDocumentsDescending);
-  }, [billingWithholdings, searchTerm, batchFilter, dateFrom, dateTo]);
+  }, [billingWithholdings, matchesSearch, batchFilter, dateFrom, dateTo]);
 
   const filteredRemissionGuides = useMemo(() => {
     return billingRemissionGuides.filter((g) => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch =
-        g.documentNumber.toLowerCase().includes(search) ||
-        g.carrierName.toLowerCase().includes(search) ||
-        g.licensePlate.toLowerCase().includes(search) ||
-        g.destClientName.toLowerCase().includes(search) ||
-        g.destClientRuc.includes(search);
+      const matchSearch = matchesSearch(g.documentNumber, g.carrierName, g.licensePlate, g.destClientName, g.destClientRuc);
       return matchSearch && matchesDateAndBatch(g.date, g.documentNumber);
     }).sort(compareDocumentsDescending);
-  }, [billingRemissionGuides, searchTerm, batchFilter, dateFrom, dateTo]);
+  }, [billingRemissionGuides, matchesSearch, batchFilter, dateFrom, dateTo]);
 
   // Notas de Venta comerciales pendientes de pasar a Factura Electrónica SRI
   const pendingSalesForSri = useMemo(() => {

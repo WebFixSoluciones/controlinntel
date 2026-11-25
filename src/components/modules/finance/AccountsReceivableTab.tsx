@@ -1,5 +1,7 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -24,10 +26,9 @@ export function AccountsReceivableTab() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [selectedCharge, setSelectedCharge] = useState<MonthlyCharge | null>(null);
 
-  const q = searchQuery.trim().toLowerCase();
+  const matches = createSearchMatcher(searchQuery);
   const filteredCharges = activeReceivables(monthlyCharges).filter(charge => {
-    const matchesSearch = [charge.clientName, charge.clientRuc, charge.invoiceNumber]
-      .some(value => String(value || "").toLowerCase().includes(q));
+    const matchesSearch = matches(charge.clientName, charge.clientRuc, charge.invoiceNumber);
     const matchesStatus = filterStatus === "todos" ||
       (filterStatus === "pendiente" && chargeBalance(charge) > 0) ||
       (filterStatus === "pagado" && charge.status === "pagado");

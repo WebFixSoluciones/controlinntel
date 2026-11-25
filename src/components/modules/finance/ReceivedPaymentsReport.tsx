@@ -1,8 +1,10 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+
 import { useMemo, useState } from "react";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
-import { inReportPeriod, reportSearchText } from "@/lib/company-reporting";
+import { inReportPeriod } from "@/lib/company-reporting";
 import { cents, money } from "@/lib/commercial-core";
 import { receivedPayments } from "@/lib/payment-report";
 import { canUser } from "@/lib/permissions";
@@ -39,10 +41,10 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
     [financialMovements, monthlyCharges, clientAdvances, bankAccounts]);
   const accounts = [...new Map(receipts.filter(row => row.accountId).map(row => [row.accountId, row.account || row.accountId])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], "es"));
-  const query = reportSearchText(search);
+  const matches = createSearchMatcher(search);
   const results = receipts.filter(row => inReportPeriod(row.date, from, to)
     && (!accountId || row.accountId === accountId) && (!status || row.status === status)
-    && [row.reference, row.originDocument, row.documents, row.client, row.ruc].some(value => reportSearchText(value).includes(query)));
+    && matches(row.reference, row.originDocument, row.documents, row.client, row.ruc));
   const page = useDocumentPagination(results, [from, to, accountId, status, search]);
   const total = money(results.reduce((sum, row) => sum + (row.movementId ? cents(row.amount) : 0), 0));
   const canExport = canUser(currentUser, "finanzas", "canExportReports");

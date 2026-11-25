@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
@@ -132,13 +134,9 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   const receiptPrintRef = useRef<HTMLDivElement>(null);
 
   const filteredCharges = useMemo(() => {
+    const matches = createSearchMatcher(cobrosSearch);
     return charges.filter((c) => {
-      const q = cobrosSearch.trim().toLowerCase();
-      const matchSearch =
-        !q ||
-        (c.invoiceNumber && c.invoiceNumber.toLowerCase().includes(q)) ||
-        (c.serviceDescription && c.serviceDescription.toLowerCase().includes(q)) ||
-        `${c.month}/${c.year}`.includes(q);
+      const matchSearch = matches(c.invoiceNumber, c.serviceDescription, c.month + "/" + c.year);
 
       const matchStatus =
         (cobrosStatusFilter === "todos" && c.status !== "anulado") || c.status === cobrosStatusFilter || (cobrosStatusFilter === "pendiente" && c.status === "parcial");

@@ -1,5 +1,7 @@
 "use client";
 
+import { createSearchMatcher } from "@/lib/search";
+
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { useMemo, useState } from "react";
 import { Search, FileText, Eye } from "lucide-react";
@@ -18,10 +20,10 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
   const [type, setType] = useState("todos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const documents = useMemo(() => clientIssuedInvoices(billingInvoices, client.id), [billingInvoices, client.id]);
+  const matches = createSearchMatcher(search);
   const visible = documents.filter(document => {
-    const query = search.trim().toLocaleLowerCase("es");
     return (type === "todos" || (document.documentType || "factura") === type)
-      && (!query || `${document.documentNumber} ${(document.items || []).map(item => item.name).join(" ")}`.toLocaleLowerCase("es").includes(query));
+      && matches(document.documentNumber, ...(document.items || []).map(item => item.name));
   });
   const invoicesPage = useDocumentPagination(visible, [client.id, search, type]);
 

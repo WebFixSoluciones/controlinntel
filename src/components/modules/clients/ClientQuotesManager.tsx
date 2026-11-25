@@ -1,4 +1,6 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
@@ -230,17 +232,9 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
 
   // Filtered quotes based on search query and status filter
   const filteredQuotes = useMemo(() => {
+    const matches = createSearchMatcher(searchQuery);
     return quotes.filter((q) => {
-      const search = searchQuery.trim().toLowerCase();
-      const matchSearch =
-        !search ||
-        q.quoteNumber.toLowerCase().includes(search) ||
-        q.title.toLowerCase().includes(search) ||
-        q.items.some(
-          (it) =>
-            (it.name && it.name.toLowerCase().includes(search)) ||
-            (it.description && it.description.toLowerCase().includes(search))
-        );
+      const matchSearch = matches(q.quoteNumber, q.title, ...q.items.flatMap(item => [item.name, item.description]));
 
       const matchStatus =
         statusFilter === "todos" ||

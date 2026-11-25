@@ -1,4 +1,6 @@
 "use client";
+
+import { ClientSearchSelect } from "@/components/ui/ClientSearchSelect";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -433,18 +435,7 @@ export function NewSaleModal({
               {clientMode === "registered" ? (
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-slate-700">Seleccionar Cliente:</label>
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full text-xs font-semibold rounded-xl border border-slate-300 p-2.5 bg-white text-slate-900 focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-hidden"
-                  >
-                    <option value="">Seleccionar cliente</option>
-                    {eligibleClients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.businessName} - {c.identificationNumber}
-                      </option>
-                    ))}
-                  </select>
+                  <ClientSearchSelect clients={eligibleClients} value={selectedClientId} onChange={setSelectedClientId} label="Cliente de la venta" required />
                 </div>
               ) : clientMode === "final" ? (
                 <div className="p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">

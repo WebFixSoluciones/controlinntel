@@ -1,4 +1,7 @@
 "use client";
+
+import { createSearchMatcher } from "@/lib/search";
+import { clientSearchFields } from "@/lib/client-search";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState } from "react";
@@ -410,15 +413,16 @@ export function ClientNodesManager() {
     }
   };
 
+  const matchesNode = createSearchMatcher(nodeSearch);
   const filteredNodes = nodes.filter((n) => {
     const matchesStatus = !statusFilter || n.status === statusFilter;
     const providersText = n.providers?.map((p) => `${p.providerName} ${p.circuitId} ${p.ipv4Subnet}`).join(" ") || "";
     const servicesText = n.services?.map((s) => `${s.systemName} ${s.linkOrIp}`).join(" ") || "";
-    const target = `${n.name} ${n.address} ${n.mikrotikIp || ""} ${n.upstreamProvider} ${providersText} ${servicesText}`.toLowerCase();
-    const matchesSearch = !nodeSearch.trim() || target.includes(nodeSearch.trim().toLowerCase());
+    const matchesSearch = matchesNode(n.name, n.address, n.mikrotikIp, n.upstreamProvider, providersText, servicesText);
     return matchesStatus && matchesSearch;
   });
 
+  const matchesClient = createSearchMatcher(clientSearch);
   const clientAssociations = clients
     .map((client) => {
       const service = clientServices.find((s) => s.clientId === client.id);
@@ -429,12 +433,7 @@ export function ClientNodesManager() {
         node,
       };
     })
-    .filter((item) => {
-      if (!clientSearch.trim()) return true;
-      const target =
-        `${item.client.businessName} ${item.client.identificationNumber} ${item.node?.name || ""} ${item.service?.ipv4Address || ""}`.toLowerCase();
-      return target.includes(clientSearch.trim().toLowerCase());
-    });
+    .filter(item => matchesClient(...clientSearchFields(item.client), item.node?.name, item.service?.ipv4Address));
 
   const renderStatusBadge = (nodeStatus: NodeLocation["status"]) => {
     switch (nodeStatus) {
