@@ -1,5 +1,5 @@
 "use client";
-import { getEcuadorDate } from "@/lib/date-utils";
+import { compareDatesDescending, getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
@@ -91,7 +91,7 @@ export function MovementsTab() {
     const matchBank = filterBank === "todos" || m.bankAccountId === filterBank;
 
     return matchSearch && matchType && matchBank;
-  });
+  }).sort(compareDatesDescending);
 
   return (
     <div className="space-y-5">

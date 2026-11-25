@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
@@ -76,7 +77,7 @@ export function SupplierDebitNotesTab() {
       n.supplierName.toLowerCase().includes(q) ||
       n.documentNumber.includes(q)
     );
-  });
+  }).sort(compareDocumentsDescending);
 
   const debitNotesPage = useDocumentPagination(filteredNotes, [searchQuery]);
 

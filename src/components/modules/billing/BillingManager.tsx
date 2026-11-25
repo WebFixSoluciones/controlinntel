@@ -268,7 +268,7 @@ export function BillingManager() {
       const matchFrom = !dateFrom || q.date >= dateFrom;
       const matchTo = !dateTo || q.date <= dateTo;
       return matchSearch && matchStatus && matchFrom && matchTo;
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingQuotes, searchTerm, statusFilter, dateFrom, dateTo]);
 
   const filteredCreditNotes = useMemo(() => {
@@ -280,7 +280,7 @@ export function BillingManager() {
         nc.clientName.toLowerCase().includes(search) ||
         nc.clientRuc.includes(search);
       return matchSearch && matchesDateAndBatch(nc.date, nc.documentNumber);
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingCreditNotes, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const filteredDebitNotes = useMemo(() => {
@@ -292,7 +292,7 @@ export function BillingManager() {
         nd.clientName.toLowerCase().includes(search) ||
         nd.clientRuc.includes(search);
       return matchSearch && matchesDateAndBatch(nd.date, nd.documentNumber);
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingDebitNotes, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const fiscalMailAction = (kind: FiscalKind, document: SriFiscalEvidence & { id: string; claveAcceso?: string }) => {
@@ -316,7 +316,7 @@ export function BillingManager() {
         ret.clientName.toLowerCase().includes(search) ||
         ret.clientRuc.includes(search);
       return matchSearch && matchesDateAndBatch(ret.date, ret.documentNumber);
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingWithholdings, searchTerm, batchFilter, dateFrom, dateTo]);
 
   const filteredRemissionGuides = useMemo(() => {
@@ -329,7 +329,7 @@ export function BillingManager() {
         g.destClientName.toLowerCase().includes(search) ||
         g.destClientRuc.includes(search);
       return matchSearch && matchesDateAndBatch(g.date, g.documentNumber);
-    });
+    }).sort(compareDocumentsDescending);
   }, [billingRemissionGuides, searchTerm, batchFilter, dateFrom, dateTo]);
 
   // Notas de Venta comerciales pendientes de pasar a Factura Electrónica SRI
@@ -339,7 +339,7 @@ export function BillingManager() {
         inv.documentType === "nota_venta" &&
         ["registrado", "emitida", "autorizada"].includes(inv.status) &&
         !findSaleFiscalInvoice(inv, billingInvoices, sriCompanyConfig.ambiente)
-    );
+    ).sort(compareDocumentsDescending);
   }, [billingInvoices, sriCompanyConfig.ambiente]);
 
   const invoicesPage = useDocumentPagination(filteredInvoices, [activeTab, searchTerm, statusFilter, batchFilter, dateFrom, dateTo]);

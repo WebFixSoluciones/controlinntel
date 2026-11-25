@@ -1,6 +1,7 @@
 import { cents, money, chargeBalance, validDate, type RecordData as Row } from "./commercial-core.ts";
 import { availableClientCredit } from "./client-credit.ts";
-import { getEcuadorDate, addMonthsSafely } from "./date-utils.ts";
+import { getEcuadorDate, addMonthsSafely, compareDatesDescending } from "./date-utils.ts";
+import { compareDocumentsDescending } from "./sales-policy.ts";
 
 export type ReportSource = Partial<Record<"clients" | "clientServices" | "billingInvoices" | "monthlyCharges" | "financialMovements" | "expenses" | "purchaseInvoices" | "bankAccounts" | "clientAdvances" | "inventoryKardex" | "billingCreditNotes" | "billingDebitNotes" | "supplierCreditNotes" | "supplierDebitNotes", Row[]>>;
 export const chargeReportDate = (row: Row) => row.saleDate || (row.year && row.month ? `${row.year}-${String(row.month).padStart(2, "0")}-01` : "");
@@ -148,7 +149,12 @@ export function companyPeriodReport(source: ReportSource, from = "", to = "") {
       closing: to && created && created > to ? 0 : to ? money(cents(bank.currentBalance || 0) - after(to, false)) : Number(bank.currentBalance || 0) };
   });
   const undatedBankMovements = movements.filter(row => row.bankAccountId && !validDate(String(row.date || "").slice(0, 10))).length;
-  return { sales, purchases, expenses, movements: cash, banks, creditNotes, debitNotes, missingCosts, unknownPurchases, duplicateExpenses, undatedBankMovements, needsExpenseReview: referenceCost > 0 && opex + directPurchaseCost === 0,
+  return {
+    sales: sales.sort(compareDocumentsDescending),
+    purchases: purchases.sort(compareDocumentsDescending),
+    expenses: expenses.sort(compareDatesDescending),
+    movements: cash.sort(compareDatesDescending),
+    banks, creditNotes, debitNotes, missingCosts, unknownPurchases, duplicateExpenses, undatedBankMovements, needsExpenseReview: referenceCost > 0 && opex + directPurchaseCost === 0,
     netSales: money(netSales), saleTotal: money(sales.reduce((sum, row) => sum + cents(row.total), 0)), cost: money(cost), referenceCost: money(referenceCost), opex: money(opex), directPurchaseCost: money(directPurchaseCost),
     purchaseTotal: money(purchases.reduce((sum, row) => sum + cents(row.total), 0)), operatingResult: money(netSales - cost - opex - directPurchaseCost),
     incoming: money(incoming), outgoing: money(outgoing), cashFlow: money(incoming - outgoing),

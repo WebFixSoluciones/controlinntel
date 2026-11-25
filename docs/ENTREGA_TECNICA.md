@@ -22,6 +22,8 @@ El repositorio conserva un componente de asistente Gemini y su adaptador. En la 
 
 Los listados comerciales, fiscales y financieros permiten mostrar 10, 20 o 30 filas por página. Usa **Anterior** y **Siguiente** al pie de la tabla. La búsqueda y los filtros se aplican al listado completo. Los totales, las exportaciones y la impresión de reportes abarcan todos los resultados que correspondan a la vista.
 
+En los listados de comprobantes, el orden inicial es numérico de mayor a menor por serie y secuencial. Los gastos, anticipos, pagos recibidos y movimientos aparecen del más reciente al más antiguo. Los archivos de **Reportes → Ventas** y **Reportes → Compras** usan el mismo orden que la tabla.
+
 ## Registro de pagos y cruce bancario
 
 1. En **Finanzas → Cobranzas**, abre el comprobante y usa **Registrar cobro**. Selecciona la cuenta que recibió el dinero e ingresa la fecha, el importe y el número del comprobante del pago tal como aparece en el banco.

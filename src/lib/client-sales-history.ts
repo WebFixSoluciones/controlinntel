@@ -1,4 +1,5 @@
 import { cents, money, chargeBalance, type RecordData } from "./commercial-core.ts";
+import { compareDocumentsDescending } from "./sales-policy.ts";
 
 export function clientSalesHistory(invoices: RecordData[], charges: RecordData[]) {
   const active = invoices.filter(row => !["anulada", "anulado", "borrador"].includes(row.status));
@@ -31,7 +32,7 @@ export function clientSalesHistory(invoices: RecordData[], charges: RecordData[]
       paymentMethod: charge.paymentMethod || "—", status: charge.status, description: charge.serviceDescription || "",
       pending: money(chargeBalance(charge)), isTest: false, needsReconciliation: !!charge.invoiceId, testDocuments: [] });
   }
-  rows.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.documentNumber).localeCompare(String(a.documentNumber), undefined, { numeric: true }));
+  rows.sort(compareDocumentsDescending);
   const commercial = rows.filter(row => !row.isTest && row.kind !== "Cargo por conciliar");
   return { rows, total: money(commercial.reduce((sum, row) => sum + cents(row.total), 0)), count: commercial.length,
     pending: money(rows.filter(row => !row.isTest && row.pending !== null).reduce((sum, row) => sum + cents(row.pending), 0)),

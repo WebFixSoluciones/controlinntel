@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
@@ -61,7 +62,7 @@ export function PurchaseWithholdingsTab({
     })),
     ...legacy.map(row => ({ ...row, statusLabel: "HISTÓRICO LOCAL", preview: () => setSelectedWithholding(row) })),
   ].filter(row => [row.supplierName, row.supplierRuc, row.documentNumber, row.claveAcceso].some(value => value.toLowerCase().includes(searchQuery.trim().toLowerCase())))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.documentNumber.localeCompare(a.documentNumber));
+    .sort(compareDocumentsDescending);
 
   const withholdingsPage = useDocumentPagination(filtered, [searchQuery]);
 

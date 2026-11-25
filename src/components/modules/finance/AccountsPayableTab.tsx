@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
@@ -138,7 +139,7 @@ export function AccountsPayableTab() {
       (filterDueStatus === "al_dia" && dueInfo.color === "green");
 
     return matchSearch && matchDue;
-  });
+  }).sort(compareDocumentsDescending);
 
   const invoicesPage = useDocumentPagination(filteredInvoices, [searchQuery, filterDueStatus]);
 

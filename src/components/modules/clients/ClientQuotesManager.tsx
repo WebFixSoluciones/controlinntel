@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { BackButton } from "@/components/ui/BackButton";
@@ -213,9 +214,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
       }
     }
 
-    return Array.from(map.values()).sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    return Array.from(map.values()).sort(compareDocumentsDescending);
   }, [clientQuotes, billingQuotes, client]);
 
   // Status counts for quick filters

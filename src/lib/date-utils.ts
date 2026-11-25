@@ -5,6 +5,14 @@
 
 const ECUADOR_TZ = "America/Guayaquil";
 
+export type DatedEntry = { date?: string; saleDate?: string; expenseDate?: string; id?: string };
+
+export function compareDatesDescending(a: DatedEntry, b: DatedEntry): number {
+  const dateA = String(a.date || a.saleDate || a.expenseDate || "");
+  const dateB = String(b.date || b.saleDate || b.expenseDate || "");
+  return dateB.localeCompare(dateA) || String(a.id || "").localeCompare(String(b.id || ""));
+}
+
 /**
  * Obtiene la fecha de hoy o de un timestamp en formato "YYYY-MM-DD" en la zona horaria de Ecuador.
  */

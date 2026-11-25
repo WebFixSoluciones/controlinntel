@@ -3,6 +3,27 @@ import assert from "node:assert/strict";
 import { inReportPeriod, companyPeriodReport, clientCommercialRows, reportSales, purchaseBalance, reportSearchText, reportCashSeries, type ReportSource } from "./company-reporting.ts";
 
 const fiscal = { estadoSRI: "AUTORIZADO", authorizationVerified: true, ambiente: "2" };
+
+test("los reportes ordenan ventas y compras por comprobante y los gastos y movimientos por fecha", () => {
+  const sales = [
+    { id: "nine", documentType: "nota_venta", status: "registrado", documentNumber: "001-010-9", date: "2026-11-20", total: 9 },
+    { id: "manual", documentType: "nota_venta", status: "registrado", documentNumber: "S/N", date: "2026-11-25", total: 5 },
+    { id: "ten", documentType: "nota_venta", status: "registrado", documentNumber: "001-010-10", date: "2026-11-12", total: 10 },
+  ];
+  const first = { id: "first", date: "2026-11-12", expenseDate: "2026-11-12", total: 10, amount: 10 };
+  const last = { id: "last", date: "2026-11-22", expenseDate: "2026-11-22", total: 20, amount: 20 };
+  const report = companyPeriodReport({
+    billingInvoices: sales,
+    purchaseInvoices: [{ ...first, documentNumber: "002-001-2" }, { ...last, documentNumber: "002-001-11" }],
+    expenses: [first, last],
+    financialMovements: [{ ...first, type: "ingreso" }, { ...last, type: "ingreso" }],
+  });
+  assert.deepEqual(report.sales.map(row => row.id), ["ten", "nine", "manual"]);
+  assert.deepEqual(report.purchases.map(row => row.id), ["last", "first"]);
+  assert.deepEqual(report.expenses.map(row => row.id), ["last", "first"]);
+  assert.deepEqual(report.movements.map(row => row.id), ["last", "first"]);
+  assert.deepEqual(sales.map(row => row.id), ["nine", "manual", "ten"]);
+});
 const fixture = (): ReportSource => ({
   clients: [{ id: "a", businessName: "CLIENTE A", identificationNumber: "QA-1", status: "activo" }, { id: "b", businessName: "CLIENTE B", status: "retirado" }],
   billingInvoices: [

@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import React, { useState } from "react";
@@ -57,7 +58,7 @@ export function PurchaseHistoryTab({
       filterStatus === "eliminadas" ? inv.status === "anulada" : inv.status !== "anulada" && (filterStatus === "todos" || inv.paymentStatus === filterStatus);
 
     return !invalidRange && matchSearch && matchSupplier && matchStatus && inReportPeriod(inv.date, dateFrom, dateTo);
-  });
+  }).sort(compareDocumentsDescending);
 
   const invoicesPage = useDocumentPagination(filteredInvoices, [searchQuery, filterSupplier, filterStatus, dateFrom, dateTo]);
 

@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
@@ -118,7 +119,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
   const clientId = client?.id || "";
   const services = clientServices.filter((s) => s.clientId === clientId);
   const charges = monthlyCharges.filter((c) => c.clientId === clientId);
-  const currentCharges = charges.filter((c) => c.status !== "anulado");
+  const currentCharges = charges.filter((c) => c.status !== "anulado").sort(compareDocumentsDescending);
 
   // Cobros & Finanzas state
   const [cobrosSearch, setCobrosSearch] = useState("");
@@ -143,7 +144,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
         (cobrosStatusFilter === "todos" && c.status !== "anulado") || c.status === cobrosStatusFilter || (cobrosStatusFilter === "pendiente" && c.status === "parcial");
 
       return matchSearch && matchStatus;
-    });
+    }).sort(compareDocumentsDescending);
   }, [charges, cobrosSearch, cobrosStatusFilter]);
 
   const chargesPage = useDocumentPagination(filteredCharges, [client?.id, cobrosSearch, cobrosStatusFilter]);

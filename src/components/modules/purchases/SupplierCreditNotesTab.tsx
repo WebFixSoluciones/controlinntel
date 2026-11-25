@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { getEcuadorDate } from "@/lib/date-utils";
 
@@ -134,7 +135,7 @@ export function SupplierCreditNotesTab({
       n.documentNumber.includes(q) ||
       (n.claveAcceso && n.claveAcceso.includes(q))
     );
-  });
+  }).sort(compareDocumentsDescending);
 
   const creditNotesPage = useDocumentPagination(filteredNotes, [searchQuery]);
 

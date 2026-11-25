@@ -1,4 +1,5 @@
 "use client";
+import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 
@@ -6,7 +7,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "@/lib/state";
 import { chargeBalance, externalCash, money } from "@/lib/commercial-core";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "@/lib/financial-summary";
-import { getEcuadorDate } from "@/lib/date-utils";
+import { compareDatesDescending, getEcuadorDate } from "@/lib/date-utils";
 import { useToast } from "@/lib/toast-context";
 import { downloadReport } from "@/lib/report-export";
 import { canUser } from "@/lib/permissions";
@@ -90,7 +91,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
   const expenseFilters = new Set([...categoryNames.keys(), ...expenses.map(expense => expense.category)]);
   const filteredExpenses = expenses.filter(expense => (filterCategory === "todas" || expense.category === filterCategory) &&
     [expense.supplierName, expense.supplierRuc, expense.description, expense.invoiceNumber]
-      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(searchQuery))));
+      .some(value => value && expenseCategoryKey(value).includes(expenseCategoryKey(searchQuery)))).sort(compareDatesDescending);
 
   const flujoMetrics = useMemo(() => summarizeCash(financialMovements), [financialMovements]);
 
@@ -109,7 +110,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
         paidAmount: safeFloat(c.paidAmount || 0),
         balanceRemaining: money(chargeBalance(c)),
         status: c.status,
-      }));
+      })).sort(compareDocumentsDescending);
   }, [monthlyCharges]);
 
   const totalCxCPendiente = useMemo(() => {
@@ -134,7 +135,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
         paidAmount: safeFloat(inv.paidAmount || 0),
         balanceRemaining: purchaseBalance(inv),
         paymentStatus: inv.paymentStatus,
-      }));
+      })).sort(compareDocumentsDescending);
   }, [purchaseInvoices]);
 
   const totalCxPPendiente = useMemo(() => {
@@ -164,8 +165,8 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
   const chartData = useMemo(() => reportCashSeries(cashMovements, from, to), [cashMovements, from, to]);
 
-  const visibleCharges = monthlyCharges
-    .filter((c) => c.status !== "anulado")
+  const chargesByDocument = monthlyCharges.filter(c => c.status !== "anulado").sort(compareDocumentsDescending);
+  const visibleCharges = chargesByDocument
     .filter((c) => {
       const q = searchQuery.toLowerCase();
       const matchesQuery =
@@ -211,7 +212,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
 
     if (activeTab === "cobranzas") {
       headers = ["Comprobante", "Fecha Venta", "Cliente", "RUC", "Total Venta", "Abonado actual", "Saldo Pendiente actual", "Estado"];
-      rows = monthlyCharges.filter(c => c.status !== "anulado").map((c) => [
+      rows = chargesByDocument.map((c) => [
         c.invoiceNumber || "S/N",
         c.saleDate || `${c.year}-${c.month}-01`,
         `"${c.clientName.replace(/"/g, '""')}"`,
@@ -1111,6 +1112,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                 <tbody className="divide-y divide-[#f1f5f9]">
                   {financialMovements
                     .filter((m) => m.type === "ingreso")
+                    .sort(compareDatesDescending)
                     .map((m) => (
                       <tr key={m.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-3 px-4 font-mono text-slate-600">{m.date}</td>

@@ -1,6 +1,6 @@
 "use client";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
-import { getEcuadorDate } from "@/lib/date-utils";
+import { compareDatesDescending, getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
@@ -223,7 +223,7 @@ export function FinanceDashboard({
       const ruc = String(adv.clientRuc || "");
       const method = (adv.method || "").toLowerCase();
       return name.includes(q) || ruc.includes(q) || method.includes(q);
-    });
+    }).sort(compareDatesDescending);
   }, [clientAdvances, advSearchQuery]);
 
   const chargesPage = useDocumentPagination(filteredCharges, [activeTab, searchQuery, statusFilter, typeFilter, startDate, endDate]);
