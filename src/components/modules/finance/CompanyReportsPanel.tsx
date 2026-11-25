@@ -3,6 +3,7 @@
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 
 import { useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { companyPeriodReport, reportNet, purchaseBalance, reportSearchText } from "@/lib/company-reporting";
 import { getEcuadorDate } from "@/lib/date-utils";
@@ -12,16 +13,18 @@ import { downloadReport, type ReportColumn } from "@/lib/report-export";
 import { printHtmlElement } from "@/lib/print-service";
 import { useToast } from "@/lib/toast-context";
 import { ClientCommercialReport } from "../clients/ClientCommercialReport";
+import { ReceivedPaymentsReport } from "./ReceivedPaymentsReport";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 
-type Tab = "resumen" | "clientes" | "ventas" | "compras" | "gastos" | "caja" | "detalle";
+type Tab = "resumen" | "clientes" | "ventas" | "compras" | "gastos" | "caja" | "detalle" | "pagos";
 const button = "rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-50";
 const field = "min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs";
 const cn = (...classes: Parameters<typeof clsx>) => twMerge(clsx(...classes));
 export function CompanyReportsPanel({ from, to, onPeriodChange, children }: { from: string; to: string; onPeriodChange: (from: string, to: string) => void; children: ReactNode }) {
   const source = useApp(), { showError } = useToast();
-  const [tab, setTab] = useState<Tab>("resumen"), [search, setSearch] = useState(""), [status, setStatus] = useState("");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => searchParams.get("reporte") === "pagos" ? "pagos" : "resumen"), [search, setSearch] = useState(""), [status, setStatus] = useState("");
   const root = useRef<HTMLDivElement>(null), report = companyPeriodReport(source, from, to);
   const canExport = canUser(source.currentUser, "finanzas", "canExportReports"), canCosts = canUser(source.currentUser, "inventarios", "canViewCosts");
   const partial = report.missingCosts > 0 || report.unknownPurchases > 0 || report.duplicateExpenses > 0 || report.needsExpenseReview;
@@ -66,21 +69,21 @@ export function CompanyReportsPanel({ from, to, onPeriodChange, children }: { fr
   const exportBanks = async () => { try { await downloadReport(report.banks, [{ key: "bankName", label: "Cuenta" }, { key: "accountNumber", label: "Número" }, { key: "status", label: "Estado" }, { key: "opening", label: "Saldo al inicio", money: true }, { key: "closing", label: "Saldo al cierre", money: true }, { key: "current", label: "Saldo actual", money: true }], "Reporte_saldos_bancos", "xlsx", `Desde ${from || "inicio"} hasta ${to || "sin límite"}; todas las cuentas. Saldos reconstruidos con movimientos registrados.${limited ? " Vista limitada por permisos." : ""}${report.undatedBankMovements ? " Hay movimientos sin fecha; reconstrucción incompleta." : ""}`); } catch { showError("No se pudo exportar", "Inténtalo nuevamente."); } };
   const invalid = Boolean(from && to && from > to);
   return <div ref={root} className="min-w-0 space-y-4 text-xs">
-    {limited &&
+    {tab !== "pagos" && limited &&
       <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">Vista limitada por tus permisos. Los documentos de módulos restringidos no se incluyen; este reporte no representa el estado completo de la empresa.</p>}
     <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-base font-semibold">Reportes de la empresa</h2><p className="mt-1 text-slate-500">Ventas, compras, gastos, clientes y movimiento de dinero para revisar el negocio.</p></div>
-        {canExport && tab !== "clientes" && tab !== "detalle" && <div className="flex flex-wrap gap-2 print:hidden"><button disabled={invalid} className={button} onClick={() => void exportFile("xlsx")}>Excel</button><button disabled={invalid} className={button} onClick={() => void exportFile("csv")}>CSV</button><button disabled={invalid} className={button} onClick={() => printHtmlElement(root.current, "Reporte de empresa", "a4", { orientation: "landscape", report: true })}>Imprimir / PDF</button></div>}
+        {canExport && tab !== "clientes" && tab !== "detalle" && tab !== "pagos" && <div className="flex flex-wrap gap-2 print:hidden"><button disabled={invalid} className={button} onClick={() => void exportFile("xlsx")}>Excel</button><button disabled={invalid} className={button} onClick={() => void exportFile("csv")}>CSV</button><button disabled={invalid} className={button} onClick={() => printHtmlElement(root.current, "Reporte de empresa", "a4", { orientation: "landscape", report: true })}>Imprimir / PDF</button></div>}
       </div>
       <div className="mt-4 flex flex-wrap items-end gap-3 print:hidden">
         <label className="grid gap-1 font-semibold">Desde<input aria-label="Reportes desde" type="date" value={from} onChange={event => onPeriodChange(event.target.value, to)} className={field} /></label>
         <label className="grid gap-1 font-semibold">Hasta<input aria-label="Reportes hasta" type="date" value={to} onChange={event => onPeriodChange(from, event.target.value)} className={field} /></label>
         <button className={button} onClick={() => onPeriodChange(getEcuadorDate().slice(0, 7) + "-01", getEcuadorDate())}>Este mes</button><button className={button} onClick={() => onPeriodChange(getEcuadorDate().slice(0, 4) + "-01-01", getEcuadorDate())}>Este año</button><button className={button} onClick={() => onPeriodChange("", "")}>Todo el historial</button>
       </div>
-      <p className="mt-3 text-slate-500">{criteria}</p>
+      {tab !== "pagos" && <p className="mt-3 text-slate-500">{criteria}</p>}
     </section>
-    <nav className="flex min-w-0 max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap print:hidden" aria-label="Secciones de reportes">{([ ["resumen", "Resultados"], ["clientes", "Clientes y servicios"], ["ventas", "Ventas"], ["compras", "Compras"], ["gastos", "Gastos"], ["caja", "Caja y bancos"], ["detalle", "Detalle financiero"] ] as [Tab, string][]).map(([id, label]) => <button key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setStatus(""); setSearch(""); }} className={cn(button, "shrink-0", tab === id && "border-blue-600 bg-blue-50 text-[#004ac6]")}>{label}</button>)}</nav>
-    {invalid ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-rose-700">La fecha Desde no puede ser posterior a Hasta.</p> : tab === "clientes" ? <ClientCommercialReport from={from} to={to} /> : tab === "detalle" ? <><p className="text-slate-500">Los movimientos y documentos respetan el período. Las cuentas por cobrar y pagar de este detalle muestran el saldo actual de los documentos del período; el resumen global incluye toda la cartera actual.</p>{children}</> : <>
+    <nav className="flex min-w-0 max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap print:hidden" aria-label="Secciones de reportes">{([ ["resumen", "Resultados"], ["clientes", "Clientes y servicios"], ["ventas", "Ventas"], ["compras", "Compras"], ["gastos", "Gastos"], ["pagos", "Pagos recibidos"], ["caja", "Caja y bancos"], ["detalle", "Detalle financiero"] ] as [Tab, string][]).map(([id, label]) => <button key={id} aria-pressed={tab === id} onClick={() => { setTab(id); setStatus(""); setSearch(""); }} className={cn(button, "shrink-0", tab === id && "border-blue-600 bg-blue-50 text-[#004ac6]")}>{label}</button>)}</nav>
+    {invalid ? <p role="alert" className="rounded-lg bg-rose-50 p-3 text-rose-700">La fecha Desde no puede ser posterior a Hasta.</p> : tab === "pagos" ? <ReceivedPaymentsReport from={from} to={to} /> : tab === "clientes" ? <ClientCommercialReport from={from} to={to} /> : tab === "detalle" ? <><p className="text-slate-500">Los movimientos y documentos respetan el período. Las cuentas por cobrar y pagar de este detalle muestran el saldo actual de los documentos del período; el resumen global incluye toda la cartera actual.</p>{children}</> : <>
       {tab === "resumen" && <>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-4 tabular-nums">{[["Ventas netas sin IVA", report.netSales], ["Gastos registrados", report.opex], [`Resultado operativo ${partial ? "parcial" : "estimado"}`, canCosts ? report.operatingResult : null], ["Flujo neto de caja", report.cashFlow]].map(([label, value]) => <div key={String(label)} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4"><p className="text-slate-500">{label}</p><strong className={`mt-2 block text-xl [overflow-wrap:anywhere] ${typeof value === "number" && value < 0 ? "text-rose-700" : "text-[#004ac6]"}`}>{typeof value === "number" ? `$${value.toFixed(2)}` : "Sin permiso de costos"}</strong></div>)}</div>
         <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-900">El resultado estimado resta el costo del inventario vendido, las compras de servicios y los gastos registrados. Los costos referenciales del catálogo se muestran aparte para no descontar dos veces el mismo servicio. Las compras de inventario se descuentan al venderlo. Los anticipos son dinero recibido a favor del cliente; no se suman como ventas. Ventas y compras se presentan sin IVA; gastos según el importe registrado.</p>

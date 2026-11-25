@@ -49,9 +49,12 @@ test("QA completo: vendedor con solo Ventas crea cliente, emite octubre, cobra, 
   assert.equal(db.row("clients", b.id).currentBalance, 0); assert.equal(db.row("clients", a.id).currentBalance, 270);
   assert.equal(db.row("inventoryProducts", "product").stock, 98);
   assert.equal(db.list("inventoryKardex")[0].exitQuantity, 2);
-  await command(db, owner, "payCharge", { chargeId: charge.id, amount: 70, method: "transferencia", bankAccountId: "bank", date: "2026-10-02" });
+  await command(db, owner, "payCharge", { chargeId: charge.id, amount: 70, method: "transferencia", bankAccountId: "bank", date: "2026-10-02", reference: " 000070 " });
   await command(db, owner, "payCharge", { chargeId: charge.id, amount: 200, method: "transferencia", bankAccountId: "bank", date: "2026-10-03" });
   assert.equal(db.row("monthlyCharges", charge.id).balanceRemaining, 0); assert.equal(db.row("monthlyCharges", charge.id).status, "pagado"); assert.equal(db.row("clients", a.id).currentBalance, 0); assert.equal(db.row("bankAccounts", "bank").currentBalance, 1270);
+  const firstPayment = db.row("monthlyCharges", charge.id).payments[0];
+  assert.equal(firstPayment.reference, "000070");
+  assert.equal(db.row("financialMovements", firstPayment.movementId).referenceNumber, "000070");
   await assert.rejects(command(db, user, "editSale", { id: invoice.id, updates: { clientId: b.id } }), { status: 403 });
 });
 
@@ -70,7 +73,7 @@ test("QA: pago combinado conserva efectivo, banco, tarjeta, referencias y deuda 
   const invoice = await command(db, user, "issueSale", note(client.id, line(db), { paymentMethod: "transferencia", bankAccountId: "bank", transferenciaRef: "TR-QA", tarjetaRef: "CARD-QA", paymentsBreakdown: { efectivo: 20, transferencia: 50, tarjeta: 30, credito: 50 } }));
   assert.equal(invoice.total, 150); assert.equal(db.row("bankAccounts", "cash").currentBalance, 20); assert.equal(db.row("bankAccounts", "bank").currentBalance, 1080);
   const charge = db.list("monthlyCharges")[0]; assert.equal(charge.paidAmount, 100); assert.equal(charge.balanceRemaining, 50);
-  assert.deepEqual(charge.payments.map((p: any) => [p.method, p.amount, p.reference]), [["efectivo", 20, invoice.documentNumber], ["transferencia", 50, "TR-QA"], ["tarjeta", 30, "CARD-QA"]]);
+  assert.deepEqual(charge.payments.map((p: any) => [p.method, p.amount, p.reference]), [["efectivo", 20, ""], ["transferencia", 50, "TR-QA"], ["tarjeta", 30, "CARD-QA"]]);
   assert.equal(db.list("payments").length, 3); assert.equal(db.row("clients", client.id).currentBalance, 50);
 });
 

@@ -22,6 +22,15 @@ El repositorio conserva un componente de asistente Gemini y su adaptador. En la 
 
 Los listados comerciales, fiscales y financieros permiten mostrar 10, 20 o 30 filas por página. Usa **Anterior** y **Siguiente** al pie de la tabla. La búsqueda y los filtros se aplican al listado completo. Los totales, las exportaciones y la impresión de reportes abarcan todos los resultados que correspondan a la vista.
 
+## Registro de pagos y cruce bancario
+
+1. En **Finanzas → Cobranzas**, abre el comprobante y usa **Registrar cobro**. Selecciona la cuenta que recibió el dinero e ingresa la fecha, el importe y el número del comprobante del pago tal como aparece en el banco.
+2. Si un mismo ingreso se aplicará a varios comprobantes, regístralo una vez en **Finanzas → Anticipos**. Aplica el saldo desde cada comprobante. Las aplicaciones no representan ingresos adicionales.
+3. Abre **Finanzas → Reportes → Pagos recibidos** o el enlace **Reporte de pagos** en Cobranzas. Filtra por fecha del pago y cuenta. El buscador acepta la referencia del pago, números de venta, cliente y RUC o cédula.
+4. Exporta en Excel para cruzar cuenta, fecha, número de operación e importe con el extracto. El archivo separa el comprobante bancario de los comprobantes de venta. Excel conserva como texto referencias como `00089102`. La exportación requiere el permiso **Exportar informes financieros**.
+
+Los históricos sin número o con una referencia igual al comprobante de venta quedan identificados para revisión. Los cobros sin movimiento vinculado se muestran aparte del total de ingresos con movimiento. El reporte permite hacer el cruce en el extracto, sin marcar automáticamente un pago como conciliado.
+
 ## Arquitectura y contratos
 
 | Capa | Ubicación y responsabilidad |

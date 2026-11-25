@@ -125,8 +125,9 @@ export function ChargePaymentModal({ charge, onClose }: { charge: MonthlyCharge;
             </label></>}
           </div>
           {source === "new" && accounts.length === 0 && <p className="text-amber-800">Registra {cash ? "una caja" : "una cuenta bancaria"} activa en Finanzas → Bancos para recibir este pago.</p>}
-          {source === "new" && <label className="block font-semibold">Referencia del pago (opcional)
-            <input className={field} maxLength={200} value={reference} onChange={event => setReference(event.target.value)} />
+          {source === "new" && <label className="block font-semibold">N.º de comprobante del pago
+            <input className={field} maxLength={200} value={reference} placeholder={cash ? "Número del recibo de caja" : "Número de operación del banco"} onChange={event => setReference(event.target.value)} />
+            <span className="mt-1 block font-normal text-slate-600">Copia el número tal como aparece en el comprobante. Los pagos sin número se identificarán en el reporte.</span>
           </label>}
           <label className="block font-semibold">Observaciones (opcional)
             <input className={field} maxLength={500} value={notes} onChange={event => setNotes(event.target.value)} />

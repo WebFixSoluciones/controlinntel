@@ -3,7 +3,7 @@ export async function downloadReport(rows: Record<string, unknown>[], columns: R
   const values = rows.map(row => columns.map(column => column.date && row[column.key] ? String(row[column.key]).slice(0, 10) : row[column.key] ?? ""));
   let blob: Blob;
   if (format === "xlsx") {
-    const ExcelJS = await import("exceljs");
+    const ExcelJS = (await import("exceljs")).default;
     const book = new ExcelJS.Workbook(), sheet = book.addWorksheet("Reporte");
     sheet.addRow(columns.map(column => column.label)); values.forEach(row => sheet.addRow(row));
     columns.forEach((column, index) => { sheet.getColumn(index + 1).width = column.money ? 19 : 34; if (column.money) sheet.getColumn(index + 1).numFmt = '"$"#,##0.00'; });

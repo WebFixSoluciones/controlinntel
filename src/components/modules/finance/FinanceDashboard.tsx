@@ -4,7 +4,8 @@ import { getEcuadorDate } from "@/lib/date-utils";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
-import { canUser } from "@/lib/permissions";
+import { canAccessSubmodule, canUser } from "@/lib/permissions";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useApp } from "@/lib/state";
 import { activeCommercialDocuments } from "@/lib/sales-policy";
@@ -472,14 +473,19 @@ export function FinanceDashboard({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {canAccessSubmodule(currentUser, "finanzas", "reportes") && (
+                <Link href="/finanzas?sub=reportes&reporte=pagos" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#004ac6] hover:bg-blue-50">
+                  Reporte de pagos
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={handleExportBatch}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Exportar Excel</span>
+                <span>Exportar cartera</span>
               </button>
 
               <button
@@ -1158,11 +1164,12 @@ export function FinanceDashboard({
 
                 <div>
                   <label htmlFor="finance-dashboard-field-16" className="text-[11px] font-bold text-slate-700 block mb-1">
-                    N° Referencia
+                    N.º de comprobante del pago
                   </label>
                   <input id="finance-dashboard-field-16"
                     type="text"
-                    placeholder="Ej: Transf. 89102"
+                    placeholder="Ej.: 00089102"
+                    maxLength={200}
                     value={advReference}
                     onChange={(e) => setAdvReference(e.target.value)}
                     className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-hidden focus:border-[#004ac6]"

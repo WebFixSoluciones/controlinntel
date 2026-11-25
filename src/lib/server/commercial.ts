@@ -140,6 +140,7 @@ async function payCharge(c: Context, data: Row) {
   const charge=await c.get("monthlyCharges",data.chargeId), amount=checkedAmount(data.amount);
   if(charge.status==="anulado" || amount>chargeBalance(charge)) throw new HttpError(409,"El abono excede el saldo pendiente o la deuda está anulada.");
   const date=checkedDate(data.date), id=randomUUID();
+  const reference = typeof data.reference === "string" ? data.reference.trim().slice(0, 200) : "";
   let movementId:string|undefined;
   if(data.advanceId) {
     const advance=await c.get("clientAdvances",data.advanceId);
@@ -148,9 +149,9 @@ async function payCharge(c: Context, data: Row) {
     c.put("clientAdvances",{...advance,remaining:money(remaining),status:remaining?"vigente":"aplicado",applications:[...(advance.applications||[]),{id,chargeId:charge.id,invoiceNumber:charge.invoiceNumber,amount:money(amount),date}]});
   } else {
     if(!data.bankAccountId) throw new HttpError(400,"Selecciona la cuenta de recepción, incluida caja para efectivo.");
-    movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"cobro_cliente",description:`Abono ${charge.invoiceNumber}`,paymentMethod:data.method||"transferencia",referenceNumber:data.reference||"",invoiceId:charge.invoiceId||null,chargeId:charge.id});
+    movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"cobro_cliente",description:`Abono ${charge.invoiceNumber}`,paymentMethod:data.method||"transferencia",referenceNumber:reference,invoiceId:charge.invoiceId||null,chargeId:charge.id});
   }
-  const payment={id,date,amount:money(amount),method:data.method||"transferencia",reference:data.reference||"",...(typeof data.notes === "string" && data.notes.trim() ? { notes: data.notes.trim().slice(0, 500) } : {}),...(data.bankAccountId?{bankAccountId:data.bankAccountId}:{}),...(movementId?{movementId}:{}),...(data.advanceId?{advanceId:data.advanceId}:{})};
+  const payment={id,date,amount:money(amount),method:data.method||"transferencia",reference,...(typeof data.notes === "string" && data.notes.trim() ? { notes: data.notes.trim().slice(0, 500) } : {}),...(data.bankAccountId?{bankAccountId:data.bankAccountId}:{}),...(movementId?{movementId}:{}),...(data.advanceId?{advanceId:data.advanceId}:{})};
   const remaining=chargeBalance(charge)-amount;
   c.put("monthlyCharges",{...charge,paidAmount:money(cents(charge.paidAmount??(charge.status==="pagado"?charge.total:0))+amount),balanceRemaining:money(remaining),status:remaining?"parcial":"pagado",paymentDate:date,payments:[...(charge.payments||[]),payment]});
   c.put("payments",{...payment,clientId:charge.clientId,status:"confirmed",operationId:c.operationId});
@@ -270,7 +271,7 @@ async function issueSale(c: Context, input: Row) {
           if(cash.length===1)bankId=cash[0].id;
           else if(methods.length>1)throw new HttpError(400,"Para combinar efectivo con otros pagos, configura una caja de efectivo activa o selecciona su cuenta.");
         }
-        await payCharge(c,{chargeId:charge.id,amount:money(input.paymentsBreakdown ? cents(input.paymentsBreakdown[method]) : immediate),method,bankAccountId:bankId,date,reference:method==="transferencia"?input.transferenciaRef||documentNumber:method==="tarjeta"?input.tarjetaRef||documentNumber:documentNumber});
+        await payCharge(c,{chargeId:charge.id,amount:money(input.paymentsBreakdown ? cents(input.paymentsBreakdown[method]) : immediate),method,bankAccountId:bankId,date,reference:method==="transferencia"?input.transferenciaRef:method==="tarjeta"?input.tarjetaRef:undefined});
       }
     }
     else await c.clientBalance(client.id);
@@ -646,10 +647,11 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
     case "advance": {
       const client=await c.get("clients",data.clientId), amount=checkedAmount(data.amount), id=randomUUID(), date=checkedDate(data.date);
       if (date > c.today) throw new HttpError(400, "La fecha del anticipo no puede ser futura.");
-      const movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"anticipo_cliente",description:`Anticipo ${client.businessName}`,paymentMethod:data.method||"transferencia",referenceNumber:data.reference||""});
+      const reference = typeof data.reference === "string" ? data.reference.trim().slice(0, 200) : "";
+      const movementId=await c.bank(amount,data.bankAccountId,id,{date,category:"anticipo_cliente",description:`Anticipo ${client.businessName}`,paymentMethod:data.method||"transferencia",referenceNumber:reference});
       const advance={id,clientId:client.id,date,amount:money(amount),remaining:money(amount),clientName:client.businessName,clientRuc:client.identificationNumber,status:"vigente",applications:[],movementId,
         bankAccountId:data.bankAccountId,bankAccountName:(await c.get("bankAccounts",data.bankAccountId)).bankName,method:String(data.method||"transferencia").slice(0,100),
-        monthsCovered:Number(data.monthsCovered)||1,reference:String(data.reference||"").trim().slice(0,200),notes:String(data.notes||"").trim().slice(0,500)};
+        monthsCovered:Number(data.monthsCovered)||1,reference,notes:String(data.notes||"").trim().slice(0,500)};
       c.put("clientAdvances",advance); return advance;
     }
     case "editAdvance":
