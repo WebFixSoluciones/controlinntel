@@ -2330,13 +2330,15 @@ test("Flujo E2E 38: Directorio de Clientes con Columna de Servicios Minimalista 
     "ClientsTable debe incluir columna 'Servicios' con botón minimalista 'Ver servicios'"
   );
 
-  // 3. Pop-up minimalista con pestañas de Servicios Contratados y Facturados
+  // 3. Consulta de servicios activos y comprobantes del cliente.
+  const quickView = fs.readFileSync(path.resolve(rootDir, "src/components/modules/clients/ClientServicesQuickView.tsx"), "utf8");
   assert.ok(
-    clientsContent.includes("selectedServicesClient &&") &&
-      clientsContent.includes("Servicios del Cliente") &&
-      clientsContent.includes("Servicios Contratados") &&
-      clientsContent.includes("Servicios Facturados"),
-    "ClientsTable debe desplegar pop-up modal minimalista con servicios contratados y facturados"
+    clientsContent.includes("<ClientServicesQuickView") &&
+      quickView.includes("activeClientServices(clientServices, client.id)") &&
+      quickView.includes("Servicios activos") &&
+      quickView.includes("Historial de comprobantes") &&
+      quickView.includes("overflow-x-auto"),
+    "El acceso rápido debe mostrar servicios activos y permitir leer el historial completo en pantallas estrechas"
   );
 });
 

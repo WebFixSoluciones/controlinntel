@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { clientSalesHistory } from "./client-sales-history.ts";
+import { activeClientServices } from "./client-status.ts";
 import { canViewClientSalesHistory } from "./permissions.ts";
 import { completePermissions, setPermission } from "./permission-catalog.ts";
 
@@ -12,8 +13,10 @@ test("Historial: nota, factura y cobro forman una operación; anulados y pruebas
   const result = clientSalesHistory(notes, charges);
   assert.equal(result.rows.length, 1); assert.equal(result.total, 200); assert.equal(result.count, 1); assert.equal(result.pending, 150);
   assert.equal(result.rows[0].kind, "Nota de venta"); assert.deepEqual(result.rows[0].testDocuments, ["001-010-000000424"]);
-  const live = clientSalesHistory([...notes, { ...notes[2], id: "live", ambiente: "2", documentNumber: "001-010-000000001" }], charges);
+  const live = clientSalesHistory([...notes, { ...notes[2], id: "live", ambiente: "2", documentNumber: "001-010-000000001", date: "2026-11-18" }], charges);
   assert.equal(live.count, 1); assert.equal(live.total, 200); assert.equal(live.rows[0].kind, "Factura SRI");
+  assert.equal(live.rows[0].issuedDate, "2026-11-18");
+  assert.equal(live.rows[0].date, "2026-11-16");
   assert.equal(live.rows[0].sourceNumber, "010-001-000000013"); assert.equal(live.pending, 150);
 });
 
@@ -37,4 +40,15 @@ test("Historial: cartera ausente o duplicada se muestra por conciliar, sin fingi
   assert.equal(duplicated.rows[0].pending, null); assert.equal(duplicated.count, 1); assert.equal(duplicated.total, 200);
   assert.equal(duplicated.pending, 0, "Solo suma saldos registrados sin ambigüedad; la interfaz indica conciliación pendiente");
   assert.equal(duplicated.reconciliationCount, 1);
+});
+
+test("El resumen de servicios muestra solo los activos del cliente y conserva las asignaciones históricas", () => {
+  const services = [
+    { id: "actual", clientId: "cliente", status: "activo" },
+    { id: "anterior", clientId: "cliente", status: "retirado" },
+    { id: "pausado", clientId: "cliente", status: "suspendido" },
+    { id: "otro", clientId: "otro-cliente", status: "activo" },
+  ];
+  assert.deepEqual(activeClientServices(services, "cliente").map(service => service.id), ["actual"]);
+  assert.equal(services.length, 4);
 });

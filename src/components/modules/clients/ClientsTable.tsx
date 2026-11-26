@@ -4,6 +4,7 @@ import { createSearchMatcher } from "@/lib/search";
 import { clientSearchFields } from "@/lib/client-search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { ClientServicesQuickView } from "./ClientServicesQuickView";
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { canViewClientServicePart, canViewClientSalesHistory } from "@/lib/permissions";
@@ -27,7 +28,6 @@ import {
   X,
   ShieldAlert,
   Plus,
-  ExternalLink,
 } from "lucide-react";
 
 interface ClientsTableProps {
@@ -37,9 +37,8 @@ interface ClientsTableProps {
 }
 
 export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTableProps) {
-  const { clients, clientServices, monthlyCharges, billingInvoices, deleteClient, currentUser } = useApp();
+  const { clients, clientServices, monthlyCharges, deleteClient, currentUser } = useApp();
   const canHistory = canViewClientSalesHistory(currentUser);
-  const showServicePrices = canViewClientServicePart(currentUser, "tarifas");
   const showContracted = canViewClientServicePart(currentUser, "contratados");
   const showBilled = canViewClientServicePart(currentUser, "facturados");
   const { showSuccess, showError } = useToast();
@@ -85,27 +84,10 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
   // Modals state
   const [selectedInvoicesClient, setSelectedInvoicesClient] = useState<Client | null>(null);
   const [selectedServicesClient, setSelectedServicesClient] = useState<Client | null>(null);
-  const [servicesModalTab, setServicesModalTab] = useState<"contratados" | "facturados">("contratados");
-  const visibleServicesTab = servicesModalTab === "contratados" && showContracted || !showBilled ? "contratados" : "facturados";
   const [blockedDeleteClient, setBlockedDeleteClient] = useState<{ client: Client; balance: number } | null>(null);
   const [confirmDeleteClient, setConfirmDeleteClient] = useState<Client | null>(null);
   const [confirmDeleteChecked, setConfirmDeleteChecked] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Servicios contratados del cliente seleccionado para el popup
-  const clientContractedServices = useMemo(() => {
-    if (!selectedServicesClient) return [];
-    return clientServices.filter((s) => s.clientId === selectedServicesClient.id);
-  }, [selectedServicesClient, clientServices]);
-
-  // One commercial operation may have a note, a fiscal document and a receivable.
-  const clientBilledServices = useMemo(() => {
-    if (!selectedServicesClient) return [];
-    const matches = (row: { clientId?: string; clientRuc?: string }) => row.clientId === selectedServicesClient.id || row.clientRuc === selectedServicesClient.identificationNumber;
-    return clientSalesHistory(billingInvoices.filter(matches), monthlyCharges.filter(matches)).rows.filter(row => !row.isTest).map(row => ({
-      id: row.id, docNumber: row.documentNumber, date: row.date, description: row.description, amount: row.total, status: row.status,
-    }));
-  }, [selectedServicesClient, monthlyCharges, billingInvoices]);
 
   // Helper: calculate pending balance for any client
   const getClientPendingBalance = useCallback((client: Client): number => {
@@ -343,11 +325,10 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedServicesClient(client);
-                            setServicesModalTab("contratados");
                           }}
                           className="text-xs text-[#004ac6] hover:text-[#003da6] hover:underline font-semibold inline-flex items-center gap-1 transition cursor-pointer"
                           disabled={!showContracted && !showBilled}
-                          title="Ver servicios contratados y facturados"
+                          title="Ver servicios activos e historial de comprobantes"
                         >
                           Ver servicios
                         </button>
@@ -676,203 +657,14 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
         </div>
       )}
 
-      {/* Modal Minimalista de Servicios Contratados y Facturados */}
       {selectedServicesClient && (showContracted || showBilled) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            {/* Header Minimalista */}
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-              <div className="min-w-0 pr-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-sm text-[#0b1c30]">
-                    Servicios del Cliente
-                  </h3>
-                  <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-200/70 text-slate-700">
-                    {limpiarIdentificacion(selectedServicesClient.identificationNumber)}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
-                  {selectedServicesClient.businessName}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedServicesClient(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
-                title="Cerrar"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Selector de Pestañas Minimalista */}
-            <div role="group" aria-label="Servicios del cliente" className="soft-tab-strip px-5 py-2 border-b border-slate-100">
-              {showContracted && <button type="button"
-                onClick={() => setServicesModalTab("contratados")}
-                aria-pressed={visibleServicesTab === "contratados"}
-                className="soft-nav-item soft-tab"
-              >
-                <span>Servicios Contratados</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
-                  {clientContractedServices.length}
-                </span>
-              </button>}
-              {showBilled && <button type="button"
-                onClick={() => setServicesModalTab("facturados")}
-                aria-pressed={visibleServicesTab === "facturados"}
-                className="soft-nav-item soft-tab"
-              >
-                <span>Servicios Facturados</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600">
-                  {clientBilledServices.length}
-                </span>
-              </button>}
-            </div>
-
-            {/* Contenido con scroll */}
-            <div className="p-5 overflow-y-auto flex-1 space-y-3">
-              {visibleServicesTab === "contratados" ? (
-                clientContractedServices.length === 0 ? (
-                  <div className="py-10 text-center space-y-1">
-                    <p className="text-xs font-semibold text-slate-600">
-                      Sin servicios contratados registrados
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Este cliente no tiene planes o servicios asignados en su ficha.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-slate-200">
-                        <tr>
-                          <th className="py-2.5 px-3">Servicio / Plan</th>
-                          <th className="py-2.5 px-3">Categoría</th>
-                          {showServicePrices && <th className="py-2.5 px-3 text-right">Tarifa</th>}
-                          <th className="py-2.5 px-3">Frecuencia</th>
-                          <th className="py-2.5 px-3 text-center">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-[#434655]">
-                        {clientContractedServices.map((srv) => (
-                          <tr key={srv.id} className="hover:bg-slate-50/70 transition">
-                            <td className="py-2.5 px-3">
-                              <div className="font-semibold text-slate-900 text-xs">
-                                {srv.planName || "Servicio"}
-                              </div>
-                              {srv.downloadMbps > 0 && (
-                                <div className="text-[10px] font-mono text-slate-500">
-                                  {srv.downloadMbps} Mbps Bajada / {srv.uploadMbps} Mbps Subida
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 uppercase text-[10px] font-semibold text-slate-500">
-                              {srv.serviceCategory || "Internet"}
-                            </td>
-                            {showServicePrices && <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                              ${(srv.customPrice ?? srv.basePrice ?? 0).toFixed(2)}
-                            </td>}
-                            <td className="py-2.5 px-3 capitalize text-slate-600">
-                              {srv.billingFrequency || "Mensual"}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span
-                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                  srv.status === "activo"
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    : "bg-slate-100 text-slate-600 border border-slate-200"
-                                }`}
-                              >
-                                {srv.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
-              ) : (
-                clientBilledServices.length === 0 ? (
-                  <div className="py-10 text-center space-y-1">
-                    <p className="text-xs font-semibold text-slate-600">
-                      Sin servicios facturados registrados
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Aún no se registran comprobantes o cobros generados para este cliente.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-[11px] uppercase tracking-wider border-b border-slate-200">
-                        <tr>
-                          <th className="py-2.5 px-3 w-[26%]">Comprobante</th>
-                          <th className="py-2.5 px-3 w-[16%]">Fecha / Período</th>
-                          <th className="py-2.5 px-3 w-[36%]">Concepto Facturado</th>
-                          {showServicePrices && <th className="py-2.5 px-3 w-[12%] text-right">Total</th>}
-                          <th className="py-2.5 px-3 w-[10%] text-center">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-[#434655]">
-                        {clientBilledServices.map((b) => (
-                          <tr key={b.id} className="hover:bg-slate-50/70 transition">
-                            <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
-                              {b.docNumber}
-                            </td>
-                            <td className="py-2.5 px-3 font-mono text-slate-600">
-                              {b.date}
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-800 truncate max-w-xs" title={b.description}>
-                              {b.description}
-                            </td>
-                            {showServicePrices && <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
-                              ${b.amount.toFixed(2)}
-                            </td>}
-                            <td className="py-2.5 px-3 text-center">
-                              <span
-                                className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                  b.status === "pagado" || b.status === "autorizada"
-                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                    : "bg-amber-50 text-amber-700 border border-amber-200"
-                                }`}
-                              >
-                                {b.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* Footer Minimalista */}
-            <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => {
-                  const targetClient = selectedServicesClient;
-                  setSelectedServicesClient(null);
-                  onSelectClient(targetClient);
-                }}
-                className="text-xs text-[#004ac6] hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <span>Administrar en Ficha del Cliente</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedServicesClient(null)}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ClientServicesQuickView key={selectedServicesClient.id} client={selectedServicesClient}
+          onClose={() => setSelectedServicesClient(null)}
+          onOpenHistory={canHistory ? () => {
+            setSelectedServicesClient(null);
+            setSelectedInvoicesClient(selectedServicesClient);
+          } : undefined}
+        />
       )}
     </div>
   );

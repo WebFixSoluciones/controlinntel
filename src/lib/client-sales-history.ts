@@ -19,7 +19,7 @@ export function clientSalesHistory(invoices: RecordData[], charges: RecordData[]
     const isTest = document.documentType !== "nota_venta" && (document.ambiente || document.claveAcceso?.[23]) === "1";
     rows.push({ id: document.id, documentNumber: fiscal.documentNumber, sourceNumber: fiscal.id !== document.id ? document.documentNumber : "",
       kind: document.documentType === "nota_venta" && fiscal === document ? "Nota de venta" : isTest ? "Factura SRI · Pruebas" : "Factura SRI",
-      date: document.date, total: Number(document.total || 0), paymentMethod: document.paymentMethod || "—",
+      date: document.date, issuedDate: fiscal.date || document.date, total: Number(document.total || 0), paymentMethod: document.paymentMethod || "—",
       status: fiscal.documentType === "nota_venta" ? document.status : fiscal.estadoSRI || fiscal.status,
       description: (document.items || []).map((item: RecordData) => item.name).join(" + "),
       pending: linked.length === 1 ? money(chargeBalance(linked[0])) : null, isTest,
