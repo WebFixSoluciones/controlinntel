@@ -14,7 +14,7 @@ import { schemas } from "./schemas.ts";
 import { canUser, canViewServicePrices, canAccessSubmodule, canViewFinancialAmounts } from "../permissions.ts";
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 import { assertPurchaseActive, editPurchase, deletePurchase } from "./purchase-corrections.ts";
-import { assertReceiptVersion, correctDirectReceipt, receiptChange, verifyReceiptAccount } from "./received-payment-corrections.ts";
+import { assertReceiptVersion, correctDirectReceipt, correctReleasedAdvance, receiptChange, verifyReceiptAccount } from "./received-payment-corrections.ts";
 
 export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "editReceivedPayment", "voidReceivedPayment", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
@@ -120,7 +120,7 @@ async function expenseMovement(c: Context, expense: Row) {
 
 async function advanceMovement(c: Context, advance: Row) {
   const movement = advance.movementId ? await c.get("financialMovements", advance.movementId, false) : {};
-  if (!movement.id || movement.status === "anulado" || movement.type !== "ingreso" || movement.relatedEntityId !== advance.id
+  if (!movement.id || movement.status === "anulado" || movement.type !== "ingreso" || movement.category !== "anticipo_cliente" || movement.relatedEntityId !== advance.id
     || movement.bankAccountId !== advance.bankAccountId || cents(movement.amount) !== cents(advance.amount)) {
     throw new HttpError(409, "Este saldo proviene de otro cobro o requiere conciliación. Corrige el cobro de origen; no se modificó el saldo bancario.");
   }
@@ -659,7 +659,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
         const advance = await c.get("clientAdvances", movement.relatedEntityId);
         if (advance.movementId !== movement.id || advance.sourcePaymentId) throw new HttpError(409, "El cobro no corresponde al movimiento original del anticipo.");
         assertReceiptVersion(advance, data.expectedOriginVersion);
-        const target = { id: advance.id, expectedVersion: data.expectedOriginVersion };
+        const target = { id: advance.id, expectedVersion: data.expectedOriginVersion, reason };
         if (voiding) {
           await execute(c, "voidAdvance", target);
         } else {
@@ -667,7 +667,6 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
           await verifyReceiptAccount(c, movement, change);
           await execute(c, "editAdvance", { ...target, ...change, clientId: advance.clientId, monthsCovered: advance.monthsCovered, notes: advance.notes });
         }
-        c.put("financialMovements", { ...await c.get("financialMovements", movement.id), ...audit });
       } else {
         await correctDirectReceipt(c, movement, data, voiding, audit);
       }
@@ -711,6 +710,12 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       }
       if (old.status === "anulado") throw new HttpError(409, "El anticipo está anulado o devuelto.");
       if (data.expectedVersion !== undefined && data.expectedVersion !== (old.version || 0)) throw new HttpError(409, "El anticipo cambió. Actualiza el listado antes de continuar.");
+      const reason = typeof data.reason === "string" ? data.reason.trim().slice(0, 500) : "";
+      const released = Boolean(old.sourcePaymentId || old.sourceChargeId);
+      if ((data.reason !== undefined || released) && reason.length < 3) throw new HttpError(400, "Indica el motivo del ajuste.");
+      const audit = reason ? { correctionReason: reason, correctedAt: new Date().toISOString(), correctedBy: c.user.uid, correctionOperationId: c.operationId } : {};
+      if (released) return correctReleasedAdvance(c, old, data, action === "voidAdvance", audit);
+
       const used = cents(old.amount) - cents(old.remaining) - cents(old.refundedAmount || 0);
       const applications = (old.applications || []).filter((item: Row) => item.status !== "reversed");
       if (used < 0 || applications.reduce((sum: number, item: Row) => sum + cents(item.amount), 0) !== used) throw new HttpError(409, "El historial de aplicaciones requiere conciliación.");
@@ -723,8 +728,8 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
         if (balance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "La corrección dejaría la cuenta sin saldo suficiente. Concilia los movimientos antes de eliminar el anticipo.");
         const cancellation = { status: "anulado", cancelledAt: new Date().toISOString(), cancelledBy: c.user.uid };
         c.put("bankAccounts", { ...sourceBank, currentBalance: money(balance) });
-        c.put("financialMovements", { ...movement, ...cancellation });
-        const advance = { ...old, ...cancellation, remaining: 0, deletedAt: new Date().toISOString() };
+        c.put("financialMovements", { ...movement, ...cancellation, ...audit });
+        const advance = { ...old, ...cancellation, ...audit, remaining: 0, deletedAt: cancellation.cancelledAt };
         c.put("clientAdvances", advance);
         return advance;
       }
@@ -739,12 +744,13 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const sourceBalance = cents(sourceBank.currentBalance) - cents(old.amount) + (sameBank ? amount : 0);
       if ((!sameBank || amount < cents(old.amount)) && sourceBalance < 0 && !sourceBank.allowOverdraft) throw new HttpError(409, "Saldo bancario insuficiente para corregir el anticipo.");
       if ((!sameBank || amount < cents(old.amount)) && !canUser(c.user, "finanzas", "canCancelPayments")) throw new HttpError(403, "No tienes permiso para revertir importes recibidos.");
+      const method = String(data.method || old.method).slice(0, 100), reference = String(data.reference || "").trim().slice(0, 200);
+      await verifyReceiptAccount(c, movement, { date, amount: money(amount), bankAccountId: bank.id, method, reference });
       if (!sameBank || amount !== cents(old.amount)) c.put("bankAccounts", { ...sourceBank, currentBalance: money(sourceBalance) });
       if (!sameBank) c.put("bankAccounts", { ...bank, currentBalance: money(cents(bank.currentBalance) + amount) });
-      const method = String(data.method || old.method).slice(0, 100), reference = String(data.reference || "").trim().slice(0, 200);
-      c.put("financialMovements", { ...movement, amount: money(amount), date, bankAccountId: bank.id, bankAccountName: bank.bankName, paymentMethod: method, referenceNumber: reference, description: `Anticipo ${client.businessName}` });
+      c.put("financialMovements", { ...movement, ...audit, amount: money(amount), date, bankAccountId: bank.id, bankAccountName: bank.bankName, paymentMethod: method, referenceNumber: reference, description: `Anticipo ${client.businessName}` });
       const remaining = amount - used - cents(old.refundedAmount || 0);
-      const advance = { ...old, clientId: client.id, clientName: client.businessName, clientRuc: client.identificationNumber, date, amount: money(amount), remaining: money(remaining),
+      const advance = { ...old, ...audit, clientId: client.id, clientName: client.businessName, clientRuc: client.identificationNumber, date, amount: money(amount), remaining: money(remaining),
         method, reference, bankAccountId: bank.id, bankAccountName: bank.bankName, monthsCovered: Number(data.monthsCovered) || 1, notes: String(data.notes || "").trim().slice(0, 500), status: remaining ? "vigente" : "aplicado" };
       c.put("clientAdvances", advance);
       return advance;
@@ -913,6 +919,10 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
   if (purchaseScreen && !canAccessSubmodule(user, "compras", purchaseScreen)) throw new HttpError(403, "No tienes acceso a esta función de Compras.");
   if (["editReceivedPayment", "voidReceivedPayment"].includes(command.action) && !canAccessSubmodule(user, "finanzas", "reportes")) {
     throw new HttpError(403, "No tienes acceso al reporte de pagos recibidos.");
+  }
+  if (["editAdvance", "voidAdvance"].includes(command.action) && !canAccessSubmodule(user, "finanzas", "anticipos") &&
+    !(user.permissionModelVersion !== 2 && canAccessSubmodule(user, "finanzas", "cobranzas"))) {
+    throw new HttpError(403, "No tienes acceso a Anticipos.");
   }
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={

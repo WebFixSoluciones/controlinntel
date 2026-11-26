@@ -1,4 +1,5 @@
 import { cents, chargeBalance, money, validDate, type RecordData as Row } from "../commercial-core.ts";
+import { isUnusedAdvance } from "../client-credit.ts";
 import { canUser } from "../permissions.ts";
 import type { Context } from "./commercial.ts";
 import { HttpError } from "./security.ts";
@@ -31,7 +32,24 @@ export async function verifyReceiptAccount(c: Context, movement: Row, change: Re
   }
 }
 
-export async function correctDirectReceipt(c: Context, movement: Row, data: Row, voiding: boolean, audit: Row) {
+export async function correctReleasedAdvance(c: Context, credit: Row, data: Row, voiding: boolean, audit: Row) {
+  assertReceiptVersion(credit, data.expectedVersion);
+  if (typeof credit.sourcePaymentId !== "string" || typeof credit.sourceChargeId !== "string") {
+    throw new HttpError(409, "El saldo a favor requiere conciliar su cobro de origen.");
+  }
+  if (!voiding && data.clientId !== credit.clientId) throw new HttpError(409, "El saldo a favor pertenece al cliente del cobro de origen.");
+  const charge = await c.get("monthlyCharges", credit.sourceChargeId, false);
+  const payment = (charge.payments || []).find((item: Row) => item.id === credit.sourcePaymentId && item.status === "reversed");
+  const movement = typeof payment?.movementId === "string" ? await c.get("financialMovements", payment.movementId, false) : {};
+  if (movement.category !== "cobro_cliente" || movement.type !== "ingreso" || movement.status === "anulado" ||
+    movement.chargeId !== charge.id || movement.relatedEntityId !== credit.sourcePaymentId) {
+    throw new HttpError(409, "El movimiento del cobro de origen requiere conciliación.");
+  }
+  await correctDirectReceipt(c, movement, { ...data, expectedOriginVersion: Number(charge.version || 0) }, voiding, audit, credit.id);
+  return c.get("clientAdvances", credit.id);
+}
+
+export async function correctDirectReceipt(c: Context, movement: Row, data: Row, voiding: boolean, audit: Row, creditId?: string) {
   if (typeof movement.chargeId !== "string" || typeof movement.relatedEntityId !== "string") {
     throw new HttpError(409, "El cobro no tiene un vínculo verificable con la cartera.");
   }
@@ -45,10 +63,10 @@ export async function correctDirectReceipt(c: Context, movement: Row, data: Row,
   const application = await c.get("paymentApplications", paymentId, false);
   const oldAmount = cents(movement.amount);
   const released = embedded?.status === "reversed";
-  if (matches.length !== 1 || embedded.advanceId || embedded.bankAccountId !== movement.bankAccountId || cents(embedded.amount) !== oldAmount ||
+  if (matches.length !== 1 || embedded.advanceId || embedded.bankAccountId !== movement.bankAccountId || !released && cents(embedded.amount) !== oldAmount ||
     payment.status !== "confirmed" || payment.movementId !== movement.id || payment.bankAccountId !== movement.bankAccountId ||
     payment.clientId !== charge.clientId || cents(payment.amount) !== oldAmount || application.paymentId !== paymentId ||
-    application.chargeId !== charge.id || application.clientId !== charge.clientId || cents(application.amount) !== oldAmount ||
+    application.chargeId !== charge.id || application.clientId !== charge.clientId || cents(application.amount) !== cents(embedded.amount) ||
     application.status !== (released ? "reversed" : "applied") || !released && charge.status === "anulado") {
     throw new HttpError(409, "El vínculo entre el movimiento, el abono y la cartera requiere conciliación.");
   }
@@ -59,19 +77,26 @@ export async function correctDirectReceipt(c: Context, movement: Row, data: Row,
   const changesAccount = accountId !== movement.bankAccountId;
   const changesAmount = newAmount !== oldAmount;
 
+  let credit: Row | undefined;
   if (released) {
-    const credit = await c.get("clientAdvances", `released-${paymentId}`, false);
-    if (voiding || changesAmount || changesAccount || change?.method !== movement.paymentMethod ||
-      credit.sourcePaymentId !== paymentId || credit.sourceChargeId !== charge.id || credit.clientId !== charge.clientId) {
-      throw new HttpError(409, "Este cobro ya se desaplicó. Solo puedes corregir su fecha o referencia con el crédito de origen vinculado.");
+    credit = await c.get("clientAdvances", `released-${paymentId}`, false);
+    if (credit.sourcePaymentId !== paymentId || credit.sourceChargeId !== charge.id || credit.clientId !== charge.clientId ||
+      cents(credit.amount) !== oldAmount || credit.bankAccountId && credit.bankAccountId !== movement.bankAccountId || creditId && credit.id !== creditId) {
+      throw new HttpError(409, "El saldo a favor y el cobro original requieren conciliación.");
+    }
+    if (voiding || changesAmount || changesAccount || change?.method !== movement.paymentMethod) {
+      if (!creditId) throw new HttpError(409, "Este cobro ya se desaplicó. Gestiona el saldo desde Anticipos.");
+      if (!isUnusedAdvance(credit)) throw new HttpError(409, "El saldo tiene aplicaciones o devoluciones. Para corregir su importe o anularlo, primero revisa esos movimientos.");
     }
     if (change && change.date !== movement.date && credit.date && change.date > credit.date) {
       throw new HttpError(400, "La fecha del ingreso no puede ser posterior a la liberación del saldo a favor.");
     }
+  } else if (creditId) {
+    throw new HttpError(409, "El saldo a favor requiere conciliar su cobro de origen.");
   }
 
   const totals: Row = {};
-  if (changesAmount) {
+  if (!released && changesAmount) {
     const total = cents(charge.total);
     const paid = cents(charge.paidAmount ?? (charge.status === "pagado" ? charge.total : 0));
     const recorded = charge.payments.filter((row: Row) => row.status !== "reversed").reduce((sum: number, row: Row) => sum + cents(row.amount), 0);
@@ -101,7 +126,10 @@ export async function correctDirectReceipt(c: Context, movement: Row, data: Row,
   }
 
   const patch = change ? { ...change, bankAccountName: accountName } : { status: "reversed", reversedAt: audit.correctedAt, voidedAt: audit.correctedAt };
-  const payments = charge.payments.map((row: Row) => row.id === paymentId ? { ...row, ...patch } : row);
+  // Once reversed, the applied amount remains a record of what originally settled the charge.
+  const payments = charge.payments.map((row: Row) => row.id === paymentId
+    ? { ...row, ...patch, ...(released ? { amount: row.amount } : {}) }
+    : row);
   const paymentDate = !released && (voiding || change?.date !== movement.date)
     ? payments.filter((row: Row) => row.status !== "reversed" && validDate(row.date)).map((row: Row) => row.date).sort().at(-1)
     : charge.paymentDate;
@@ -115,5 +143,13 @@ export async function correctDirectReceipt(c: Context, movement: Row, data: Row,
     ...(change ? { amount: change.amount, date: change.date, bankAccountId: accountId, bankAccountName: accountName,
       paymentMethod: change.method, referenceNumber: change.reference }
       : { status: "anulado", cancelledAt: audit.correctedAt, cancelledBy: audit.correctedBy }) });
-  if (changesAmount) await c.clientBalance(charge.clientId);
+  if (credit) {
+    const creditPatch = change ? {
+      amount: change.amount, remaining: changesAmount ? change.amount : credit.remaining,
+      bankAccountId: accountId, bankAccountName: accountName, method: change.method, reference: change.reference,
+      ...(creditId && typeof data.notes === "string" ? { notes: data.notes.trim().slice(0, 500) } : {}),
+    } : { remaining: 0, status: "anulado", deletedAt: audit.correctedAt, cancelledAt: audit.correctedAt, cancelledBy: audit.correctedBy };
+    c.put("clientAdvances", { ...credit, ...creditPatch, ...audit });
+  }
+  if (!released && changesAmount) await c.clientBalance(charge.clientId);
 }

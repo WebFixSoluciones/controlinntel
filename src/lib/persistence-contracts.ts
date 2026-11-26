@@ -6,7 +6,7 @@ export const commandCollections:Partial<Record<Entity,string>>={
   clients:"createClient / actualización de perfil",clientServices:"assignService / editService / retireService",
   inventoryProducts:"createProduct / editProduct",inventoryKardex:"efecto de operación de inventario",
   inventoryTransfers:"inventoryTransfer",inventoryAdjustments:"inventoryAdjustment",billingInvoices:"issueSale / editSale / cancelSale (notas internas)",
-  monthlyCharges:"emisión / manualCharge / payCharge / editReceivedPayment / voidReceivedPayment / reverseApplication / cancelCharge",clientAdvances:"advance / applyAdvance / applyClientCredit / cancelAdvance",
+  monthlyCharges:"emisión / manualCharge / payCharge / editReceivedPayment / voidReceivedPayment / reverseApplication / cancelCharge",clientAdvances:"advance / editAdvance / voidAdvance / applyAdvance / applyClientCredit / cancelAdvance",
   bankAccounts:"createBank / editBank / adjustBank",financialMovements:"bankMovement / transfer / cobro / pago",
   purchaseInvoices:"purchase / editPurchase / deletePurchase / paySupplier / ajustes",supplierPayments:"paySupplier / deletePurchase",supplierCreditNotes:"supplierCredit",supplierDebitNotes:"supplierDebit",
   expenses:"expense",systemUsers:"/api/users",operationLog:"solo servidor; lectura paginada en /api/operations",

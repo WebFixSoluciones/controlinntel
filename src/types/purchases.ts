@@ -160,6 +160,7 @@ export interface FinancialMovement {
   bankAccountName: string;
   paymentMethod: "transferencia" | "cheque" | "efectivo" | "tarjeta";
   referenceNumber?: string;
+  chargeId?: string;
   relatedEntityId?: string;
   createdAt: string;
 }

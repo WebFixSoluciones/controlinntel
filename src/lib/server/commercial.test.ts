@@ -153,6 +153,60 @@ test("Se puede corregir la referencia de un cobro desaplicado conservando el ing
   assert.equal(db.row("monthlyCharges", chargeId).balanceRemaining, 115);
 });
 
+test("Desde Anticipos se corrige y anula un saldo liberado sobre el ingreso original", async () => {
+  const db = new Database(initial());
+  const invoice = await run(db, "issueSale", sale());
+  const chargeId = `chg-inv-${invoice.id}`;
+  const payment = await run(db, "payCharge", { chargeId, amount: 30, bankAccountId: "bank", date: "2026-10-20" });
+  await run(db, "reverseApplication", { chargeId, paymentId: payment.id });
+  const id = `released-${payment.id}`;
+  const changes = { id, expectedVersion: 1, clientId: "a", amount: 25, bankAccountId: "bank2", method: "transferencia",
+    date: payment.date, reference: "000591", reason: "Importe y cuenta del extracto" };
+  await run(db, "editAdvance", changes);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1000);
+  assert.equal(db.row("bankAccounts", "bank2").currentBalance, 25);
+  assert.equal(db.row("clientAdvances", id).remaining, 25);
+  assert.equal(db.row("clientAdvances", id).correctionReason, changes.reason);
+  assert.equal(db.row("financialMovements", payment.movementId).referenceNumber, "000591");
+  assert.equal(db.row("monthlyCharges", chargeId).balanceRemaining, 115);
+  assert.equal(db.row("paymentApplications", payment.id).amount, 30);
+  assert.equal(db.row("paymentApplications", payment.id).status, "reversed");
+  assert.equal(db.row("billingInvoices", invoice.id).total, 115);
+  await assert.rejects(run(db, "editAdvance", changes), /cambió/);
+
+  const voiding = { id, expectedVersion: 2, reason: "Registro duplicado" };
+  const operationId = randomUUID();
+  await run(db, "voidAdvance", voiding, operationId);
+  await run(db, "voidAdvance", voiding, operationId);
+  assert.equal(db.row("bankAccounts", "bank2").currentBalance, 0);
+  assert.equal(db.row("clientAdvances", id).status, "anulado");
+  assert.equal(db.row("monthlyCharges", chargeId).balanceRemaining, 115);
+  assert.equal(db.row("financialMovements", payment.movementId).status, "anulado");
+  assert.equal(db.list("financialMovements").length, 1);
+});
+
+test("El saldo liberado y reaplicado permite corregir su referencia pero protege el abono y el banco", async () => {
+  const db = new Database(initial());
+  const first = await run(db, "issueSale", sale());
+  const second = await run(db, "issueSale", sale());
+  const chargeId = `chg-inv-${first.id}`, targetId = `chg-inv-${second.id}`;
+  const payment = await run(db, "payCharge", { chargeId, amount: 30, bankAccountId: "bank", date: "2026-10-20" });
+  await run(db, "reverseApplication", { chargeId, paymentId: payment.id });
+  const id = `released-${payment.id}`;
+  await run(db, "applyAdvance", { advanceId: id, chargeId: targetId, amount: 20 });
+  const changes = { id, expectedVersion: 2, clientId: "a", amount: 30, bankAccountId: "bank", method: "transferencia",
+    date: payment.date, reference: "000700", reason: "Referencia corregida" };
+  const before = structuredClone([...db.rows]);
+  await assert.rejects(run(db, "voidAdvance", changes), /aplicaciones|devoluciones/);
+  await assert.rejects(run(db, "editAdvance", { ...changes, bankAccountId: "bank2" }), /aplicaciones|devoluciones/);
+  assert.deepEqual([...db.rows], before);
+  await run(db, "editAdvance", changes);
+  assert.equal(db.row("clientAdvances", id).remaining, 10);
+  assert.equal(db.row("monthlyCharges", targetId).paidAmount, 20);
+  assert.equal(db.row("bankAccounts", "bank").currentBalance, 1030);
+  assert.equal(db.row("financialMovements", payment.movementId).referenceNumber, "000700");
+});
+
 test("Una nota administrativa histórica admite servicios asignados y mantiene secuencial y período de cartera", async t => {
   t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-15T17:00:00Z") });
   const service = { id: "svc", clientId: "a", inventoryProductId: "srv", planId: "srv", status: "activo", lastBilledPeriod: "2026-11" };

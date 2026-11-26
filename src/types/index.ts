@@ -525,6 +525,7 @@ export interface ChargePayment {
 export interface ClientAdvance {
   version?: number;
   deletedAt?: string;
+  correctionReason?: string;
   sourcePaymentId?: string;
   sourceChargeId?: string;
   id: string;

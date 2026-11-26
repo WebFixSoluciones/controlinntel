@@ -1,5 +1,11 @@
 import { cents, money, CommercialValidationError, type RecordData } from "./commercial-core.ts";
 
+export function isUnusedAdvance(advance: RecordData) {
+  return advance.status === "vigente" && !advance.deletedAt &&
+    advance.amount > 0 && advance.amount === advance.remaining && !advance.refundedAmount &&
+    !(advance.applications || []).some((application: RecordData) => application.status !== "reversed");
+}
+
 /** Only unspent advances belonging to this customer can settle their receivables. */
 export function availableClientCredit(advances: RecordData[], clientId: string) {
   const available = advances.filter(advance => advance.clientId === clientId && advance.status !== "anulado" && cents(advance.remaining || 0) > 0)

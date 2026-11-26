@@ -282,8 +282,8 @@ interface AppContextType {
   ) => Promise<ClientAdvance>;
   applyClientAdvance: (advanceId: string, chargeId: string, amount: number) => Promise<void>;
   applyClientCredit: (chargeId: string, amount: number, date?: string, notes?: string) => Promise<void>;
-  deleteClientAdvance: (id: string, expectedVersion?: number) => Promise<void>;
-  updateClientAdvance: (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number) => Promise<void>;
+  deleteClientAdvance: (id: string, expectedVersion?: number, reason?: string) => Promise<void>;
+  updateClientAdvance: (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number, reason?: string) => Promise<void>;
   refundClientAdvance: (id: string) => Promise<void>;
 
   // Inventory Module
@@ -1671,11 +1671,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("cancelAdvance", { id });
   };
 
-  const deleteClientAdvance = async (id: string, expectedVersion?: number): Promise<void> => {
-    await runCommercial("voidAdvance", { id, expectedVersion });
+  const deleteClientAdvance = async (id: string, expectedVersion?: number, reason?: string): Promise<void> => {
+    await runCommercial("voidAdvance", { id, expectedVersion, reason });
   };
-  const updateClientAdvance = async (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number): Promise<void> => {
-    await runCommercial("editAdvance", { ...changes, id, expectedVersion });
+  const updateClientAdvance = async (id: string, changes: Partial<ClientAdvance>, expectedVersion?: number, reason?: string): Promise<void> => {
+    await runCommercial("editAdvance", { ...changes, id, expectedVersion, reason });
   };
 
   // ==========================================
