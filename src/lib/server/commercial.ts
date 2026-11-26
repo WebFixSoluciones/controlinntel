@@ -87,6 +87,14 @@ export class Context {
 function checkedAmount(value: unknown) { const amount=cents(value); if(amount<=0) throw new HttpError(400,"El importe debe ser mayor que cero."); return amount; }
 function checkedDate(value: string | undefined) { const date=value || getEcuadorDate(); if(!validDate(date)) throw new HttpError(400,"Fecha inválida."); return date; }
 
+function saleTransferDate(value: unknown, today: string) {
+  if (value === undefined || value === "") return undefined;
+  if (typeof value !== "string" || !validDate(value) || value > today) {
+    throw new HttpError(400, "Ingresa una fecha de transferencia válida que no sea futura.");
+  }
+  return value;
+}
+
 async function expenseInput(c: Context, data: Row, old?: Row) {
   const fields = ["supplierId", "supplierName", "bankAccountId", "category", "amount", "expenseDate", "description", "invoiceNumber", "paymentMethod"];
   const input = schemas.expenses.parse(Object.fromEntries(fields.map(key => [key, data[key]])));
@@ -154,7 +162,8 @@ async function payCharge(c: Context, data: Row) {
   }
   const payment={id,date,amount:money(amount),method:data.method||"transferencia",reference,...(typeof data.notes === "string" && data.notes.trim() ? { notes: data.notes.trim().slice(0, 500) } : {}),...(data.bankAccountId?{bankAccountId:data.bankAccountId}:{}),...(movementId?{movementId}:{}),...(data.advanceId?{advanceId:data.advanceId}:{})};
   const remaining=chargeBalance(charge)-amount;
-  c.put("monthlyCharges",{...charge,paidAmount:money(cents(charge.paidAmount??(charge.status==="pagado"?charge.total:0))+amount),balanceRemaining:money(remaining),status:remaining?"parcial":"pagado",paymentDate:date,payments:[...(charge.payments||[]),payment]});
+  const paymentDate = validDate(charge.paymentDate) && charge.paymentDate > date ? charge.paymentDate : date;
+  c.put("monthlyCharges",{...charge,paidAmount:money(cents(charge.paidAmount??(charge.status==="pagado"?charge.total:0))+amount),balanceRemaining:money(remaining),status:remaining?"parcial":"pagado",paymentDate,payments:[...(charge.payments||[]),payment]});
   c.put("payments",{...payment,clientId:charge.clientId,status:"confirmed",operationId:c.operationId});
   c.put("paymentApplications",{id,paymentId:id,chargeId:charge.id,clientId:charge.clientId,amount:money(amount),status:"applied",date});
   await c.clientBalance(charge.clientId);
@@ -170,6 +179,7 @@ function commercialFields(input: Row) {
 async function issueSale(c: Context, input: Row) {
   if(input.documentType!=="nota_venta") throw new HttpError(400,"Este flujo administra notas comerciales; la emisión SRI se gestiona por separado.");
   const isDraft=input.status==="borrador", date=checkedDate(input.date);
+  const transferDate = saleTransferDate(input.transferenciaFecha, c.today);
   if (!["efectivo", "transferencia", "tarjeta", "credito"].includes(input.paymentMethod)) throw new HttpError(400, "Selecciona una forma de pago válida.");
   if (input.administrativePeriod !== undefined && !validDate(`${input.administrativePeriod}-01`)) throw new HttpError(400, "Selecciona un mes válido para el período de la nota.");
   const client=input.clientId==="cf-9999999999999" ? {id:input.clientId,businessName:"Consumidor Final",identificationNumber:"9999999999999"} : await c.get("clients",input.clientId);
@@ -209,7 +219,7 @@ async function issueSale(c: Context, input: Row) {
   if(input.paymentsBreakdown && immediate+cents(input.paymentsBreakdown.credito||0)!==cents(calculated.total)) throw new HttpError(400,"La distribución del pago no coincide con el total calculado.");
   if (!isDraft && immediate < cents(calculated.total) && input.creditDueDate !== undefined && (!validDate(input.creditDueDate) || input.creditDueDate < date)) throw new HttpError(400, "El vencimiento del crédito debe ser válido y no anterior a la emisión.");
   if(client.id==="cf-9999999999999" && immediate<cents(calculated.total) && !isDraft) throw new HttpError(400,"Identifica al cliente antes de conceder crédito.");
-  const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,clientEmail:client.email||"",clientPhone:client.phone||"",clientAddress:client.address||"",status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false};
+  const invoice={...commercialFields(input),...calculated,id,documentNumber,date,saleChannel,series,claveAcceso:"",clientId:client.id,clientName:client.businessName,clientRuc:client.identificationNumber,clientEmail:client.email||"",clientPhone:client.phone||"",clientAddress:client.address||"",status:isDraft?"borrador":"registrado",emailStatus:"pendiente",kardexRegistered:false,transferenciaFecha:isDraft ? transferDate : undefined};
   for(const item of calculated.items) {
     delete item.costUnitSnapshot;
     delete item.costTotalSnapshot;
@@ -272,7 +282,9 @@ async function issueSale(c: Context, input: Row) {
           if(cash.length===1)bankId=cash[0].id;
           else if(methods.length>1)throw new HttpError(400,"Para combinar efectivo con otros pagos, configura una caja de efectivo activa o selecciona su cuenta.");
         }
-        await payCharge(c,{chargeId:charge.id,amount:money(input.paymentsBreakdown ? cents(input.paymentsBreakdown[method]) : immediate),method,bankAccountId:bankId,date,reference:method==="transferencia"?input.transferenciaRef:method==="tarjeta"?input.tarjetaRef:undefined});
+        await payCharge(c,{chargeId:charge.id,amount:money(input.paymentsBreakdown ? cents(input.paymentsBreakdown[method]) : immediate),method,bankAccountId:bankId,
+          date: method === "transferencia" && transferDate ? transferDate : date,
+          reference:method==="transferencia"?input.transferenciaRef:method==="tarjeta"?input.tarjetaRef:undefined});
       }
     }
     else await c.clientBalance(client.id);
@@ -586,10 +598,12 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       }
       if(old.status==="borrador") {
         if(changes.status&&changes.status!=="borrador") { const emitted=await issueSale(c,{...old,...changes,...calculated,documentType:"nota_venta",status:"registrado"});c.put("billingInvoices",{...old,status:"anulada",convertedToInvoiceId:emitted.id});return emitted; }
-        const updated={...old,...changes,...calculated};c.put("billingInvoices",updated);return updated;
+        const transferDate = changes.transferenciaFecha === undefined ? old.transferenciaFecha : saleTransferDate(changes.transferenciaFecha, c.today);
+        const updated={...old,...changes,...calculated,transferenciaFecha:transferDate};c.put("billingInvoices",updated);return updated;
       }
       if(changes.clientId&&changes.clientId!==old.clientId||changes.date&&changes.date!==old.date)throw new HttpError(409,"Cliente y fecha de una venta emitida se conservan. Anula y registra la operación correcta.");
       if(changes.paymentMethod&&changes.paymentMethod!==old.paymentMethod||changes.bankAccountId&&changes.bankAccountId!==old.bankAccountId)throw new HttpError(409,"Administra pagos y cuentas desde Cobranzas.");
+      if (changes.transferenciaFecha !== undefined) throw new HttpError(409, "Corrige la fecha del cobro desde Reportes → Pagos recibidos.");
       const charges=await c.list("monthlyCharges","invoiceId",old.id);
       if(charges.length!==1||charges[0].clientId!==old.clientId)throw new HttpError(409,"La venta requiere conciliación de cartera.");
       const charge=charges[0],paid=cents(charge.paidAmount||0),remaining=cents(calculated.total)-paid;

@@ -48,6 +48,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
   const [paymentMethod, setPaymentMethod] = useState<SriInvoice["paymentMethod"]>("transferencia");
   const [bankAccountId, setBankAccountId] = useState<string>("");
   const [transferenciaRef, setTransferenciaRef] = useState<string>("");
+  const [transferenciaFecha, setTransferenciaFecha] = useState("");
   const [tarjetaRef, setTarjetaRef] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -93,6 +94,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
       setPaymentMethod(invoice.paymentMethod || "transferencia");
       setBankAccountId(invoice.bankAccountId || (bankAccounts[0]?.id || ""));
       setTransferenciaRef(invoice.transferenciaRef || "");
+      setTransferenciaFecha(invoice.transferenciaFecha || "");
       setTarjetaRef(invoice.tarjetaRef || "");
       setWarehouseId(invoice.warehouseId || inventoryWarehouses[0]?.id || "");
 
@@ -137,6 +139,9 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
   }, [isOpen, invoice, clients, inventoryWarehouses, bankAccounts]);
 
   if (!isOpen || !invoice) return null;
+  const canSetTransferDate = invoice.status === "borrador" && (invoice.paymentsBreakdown
+    ? invoice.paymentsBreakdown.transferencia > 0
+    : paymentMethod === "transferencia");
 
   const isNotaVenta = invoice.documentType === "nota_venta";
   const docTitle = isNotaVenta ? "Nota de Venta" : "Comprobante de Venta";
@@ -364,6 +369,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
         paymentMethod,
         bankAccountId: paymentMethod === "transferencia" || paymentMethod === "tarjeta" ? bankAccountId : undefined,
         transferenciaRef: paymentMethod === "transferencia" ? transferenciaRef : undefined,
+        ...(canSetTransferDate ? { transferenciaFecha } : {}),
         tarjetaRef: paymentMethod === "tarjeta" ? tarjetaRef : undefined,
         date: date || invoice.date,
         notes,
@@ -805,6 +811,26 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                       className="w-full text-xs bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:border-[#004ac6]"
                     />
                   </div>
+                </div>
+              )}
+
+              {canSetTransferDate && (
+                <div>
+                  <label htmlFor="edit-sale-transfer-date" className="mb-1 block text-[11px] font-semibold text-slate-600">
+                    Fecha del pago por transferencia
+                  </label>
+                  <input
+                    id="edit-sale-transfer-date"
+                    type="date"
+                    max={getEcuadorDate()}
+                    value={transferenciaFecha}
+                    onChange={event => setTransferenciaFecha(event.target.value)}
+                    aria-describedby="edit-sale-transfer-date-help"
+                    className="w-full rounded-lg border border-[#e2e8f0] bg-white px-2.5 py-1.5 text-xs text-slate-800"
+                  />
+                  <p id="edit-sale-transfer-date-help" className="mt-1 text-[11px] text-slate-600">
+                    Si se deja vacía, se usa la fecha de emisión.
+                  </p>
                 </div>
               )}
 

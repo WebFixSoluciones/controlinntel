@@ -94,6 +94,7 @@ interface SaleDraftData {
   };
   selectedBankAccountId: string;
   transferenciaRef: string;
+  transferenciaFecha?: string;
   tarjetaRef: string;
   paymentTermDays: number;
   creditDueDate: string;
@@ -278,6 +279,7 @@ export function NewSaleView({
     bankAccounts[0]?.id || ""
   );
   const [transferenciaRef, setTransferenciaRef] = useState("");
+  const [transferenciaFecha, setTransferenciaFecha] = useState("");
   const [tarjetaRef, setTarjetaRef] = useState("");
   const [paymentTermDays, setPaymentTermDays] = useState(30);
   const [creditDueDate, setCreditDueDate] = useState(() => {
@@ -334,6 +336,7 @@ export function NewSaleView({
       if (draft.paymentValues) setPaymentValues(draft.paymentValues);
       if (draft.selectedBankAccountId) setSelectedBankAccountId(draft.selectedBankAccountId);
       if (draft.transferenciaRef) setTransferenciaRef(draft.transferenciaRef);
+      setTransferenciaFecha(draft.transferenciaFecha || "");
       if (draft.tarjetaRef) setTarjetaRef(draft.tarjetaRef);
       if (draft.paymentTermDays) setPaymentTermDays(draft.paymentTermDays);
       if (draft.creditDueDate) setCreditDueDate(draft.creditDueDate);
@@ -399,6 +402,7 @@ export function NewSaleView({
           paymentValues,
           selectedBankAccountId,
           transferenciaRef,
+          transferenciaFecha,
           tarjetaRef,
           paymentTermDays,
           creditDueDate,
@@ -435,6 +439,7 @@ export function NewSaleView({
     paymentValues,
     selectedBankAccountId,
     transferenciaRef,
+    transferenciaFecha,
     tarjetaRef,
     paymentTermDays,
     creditDueDate,
@@ -458,6 +463,7 @@ export function NewSaleView({
     setActiveMethods({ efectivo: false, transferencia: false, tarjeta: false, credito: false });
     setPaymentValues({ efectivo: "", transferencia: "", tarjeta: "", credito: "" });
     setTransferenciaRef("");
+    setTransferenciaFecha("");
     setTarjetaRef("");
     setCreditNotes("");
     setRestoredDraftInfo(null);
@@ -1056,6 +1062,12 @@ export function NewSaleView({
       return false;
     }
 
+    if (paymentSummary.transferencia > 0 && transferenciaFecha &&
+      (!validDate(transferenciaFecha) || transferenciaFecha > getEcuadorDate())) {
+      showError("Revisa la fecha del pago", "Ingresa una fecha de transferencia válida que no sea futura.");
+      return false;
+    }
+
     if (mode === "draft") {
       return true;
     }
@@ -1284,6 +1296,7 @@ export function NewSaleView({
             credito: paymentSummary.credito,
           },
           transferenciaRef: transferenciaRef.trim() || undefined,
+          transferenciaFecha: paymentSummary.transferencia > 0 ? transferenciaFecha || undefined : undefined,
           tarjetaRef: tarjetaRef.trim() || undefined,
           bankAccountId: selectedBankAccountId || undefined,
           creditDueDate: activeMethods.credito ? creditDueDate : undefined,
@@ -1340,6 +1353,7 @@ export function NewSaleView({
             credito: paymentSummary.credito,
           },
           transferenciaRef: transferenciaRef.trim() || undefined,
+          transferenciaFecha: paymentSummary.transferencia > 0 ? transferenciaFecha || undefined : undefined,
           tarjetaRef: tarjetaRef.trim() || undefined,
           bankAccountId: selectedBankAccountId || undefined,
           creditDueDate: activeMethods.credito ? creditDueDate : undefined,
@@ -1390,6 +1404,7 @@ export function NewSaleView({
     setOrderNumber("");
     setNotes("");
     setTransferenciaRef("");
+    setTransferenciaFecha("");
     setTarjetaRef("");
     setSriLogs([]);
     setActiveMethods({
@@ -2843,11 +2858,29 @@ export function NewSaleView({
                     <div>
                       <input
                         type="text"
+                        aria-label="N.º de comprobante de la transferencia"
                         placeholder="Nro. Comprobante / Ref. transferencia..."
                         value={transferenciaRef}
                         onChange={(e) => setTransferenciaRef(e.target.value)}
                         className="w-full text-[11px] py-1.5 px-2 rounded-md border border-slate-300 bg-white"
                       />
+                    </div>
+                    <div>
+                      <label htmlFor="new-sale-transfer-date" className="mb-1 block text-[10px] font-bold uppercase text-slate-600">
+                        Fecha del pago
+                      </label>
+                      <input
+                        id="new-sale-transfer-date"
+                        type="date"
+                        max={getEcuadorDate()}
+                        value={transferenciaFecha}
+                        onChange={event => setTransferenciaFecha(event.target.value)}
+                        aria-describedby="new-sale-transfer-date-help"
+                        className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs"
+                      />
+                      <p id="new-sale-transfer-date-help" className="mt-1 text-[10px] text-slate-600">
+                        Si se deja vacía, se usa la fecha de emisión.
+                      </p>
                     </div>
                   </div>
                 )}

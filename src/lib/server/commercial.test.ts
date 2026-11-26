@@ -11,6 +11,7 @@ import { collectionPermissions } from "../permissions.ts";
 import { planSnapshotRecovery } from "../recovery-plan.ts";
 import { planServicePeriod, calculateLines, scheduledServicePeriods, previewScheduledService, initialServicePeriod, serviceBillingStart } from "../commercial-core.ts";
 import { activeReceivables, summarizeOperatingExpenses, summarizeReceivables, summarizeCash } from "../financial-summary.ts";
+import { receivedPayments } from "../payment-report.ts";
 import type { Firestore } from "firebase-admin/firestore";
 import type { UserProfile } from "@/types";
 
@@ -22,6 +23,55 @@ const user:UserProfile={uid:"qa",email:"qa@example.test",displayName:"QA",role:"
 const initial=()=>({clients:[{id:"a",businessName:"PRUEBA CLIENTE",identificationType:"PASAPORTE",identificationNumber:"QA-00001",status:"activo",currentBalance:0},{id:"b",businessName:"PRUEBA CLIENTE B",identificationNumber:"QA-00002",status:"activo",currentBalance:0}],inventoryProducts:[{id:"srv",name:"Servicio QA",sku:"QA",type:"servicio",salePrice:100,ivaRate:15,stock:0,tracksStock:false,status:"activo"}],bankAccounts:[{id:"bank",bankName:"Banco QA",currentBalance:1000,initialBalance:1000,status:"activa"},{id:"bank2",bankName:"Banco QA 2",currentBalance:0,initialBalance:0,status:"activa"}],suppliers:[{id:"supplier",razonSocial:"PROVEEDOR QA",ruc:"QA-111",status:"activo"}]});
 const run=(db:Database,action:CommercialCommand["action"],data:Record<string,any>,operationId=randomUUID())=>executeCommercial(user,{action,data,operationId},db as unknown as Firestore);
 const sale=(clientId="a",extra={})=>({clientId,documentType:"nota_venta",status:"registrado",date:"2026-10-01",items:[{id:"line",productId:"srv",name:"Servicio QA",quantity:1,unitPrice:100,ivaRate:15,discount:0}],paymentMethod:"credito",...extra});
+
+test("La venta mixta lleva la fecha real de transferencia a cartera, banco y reporte de pagos", async () => {
+  const db = new Database(initial());
+  const invoice = await run(db, "issueSale", sale("a", {
+    paymentMethod: "transferencia", transferenciaFecha: "2026-09-28", transferenciaRef: "000921",
+    paymentAccounts: { transferencia: "bank", efectivo: "bank2" },
+    paymentsBreakdown: { transferencia: 100, efectivo: 15, tarjeta: 0, credito: 0 },
+  }));
+  const charge = db.row("monthlyCharges", `chg-inv-${invoice.id}`);
+  const transfer = charge.payments.find((payment: { method: string }) => payment.method === "transferencia");
+  assert.equal(invoice.date, "2026-10-01");
+  assert.equal(charge.saleDate, invoice.date);
+  assert.equal(charge.paymentDate, invoice.date);
+  assert.equal(charge.payments.find((payment: { method: string }) => payment.method === "efectivo").date, invoice.date);
+  assert.equal(transfer.date, "2026-09-28");
+  assert.equal(db.row("payments", transfer.id).date, transfer.date);
+  assert.equal(db.row("paymentApplications", transfer.id).date, transfer.date);
+  assert.equal(db.row("financialMovements", transfer.movementId).date, transfer.date);
+  const receipts = receivedPayments({ monthlyCharges: [charge], financialMovements: db.list("financialMovements"), bankAccounts: db.list("bankAccounts") });
+  assert.equal(receipts.find(payment => payment.reference === "000921")?.date, transfer.date);
+  assert.equal(charge.balanceRemaining, 0);
+});
+
+test("La venta por transferencia rechaza fechas imposibles o futuras y admite ventas anteriores sin fecha separada", async () => {
+  const db = new Database(initial());
+  const transfer = { paymentMethod: "transferencia", bankAccountId: "bank" };
+  for (const transferenciaFecha of ["2026-02-30", "2999-01-01"]) {
+    await assert.rejects(run(db, "issueSale", sale("a", { ...transfer, transferenciaFecha })), /fecha.*transferencia/i);
+  }
+  assert.equal(db.list("billingInvoices").length, 0);
+  assert.equal(db.list("sequences").length, 0);
+  assert.equal(db.list("financialMovements").length, 0);
+
+  const invoice = await run(db, "issueSale", sale("a", transfer));
+  assert.equal(db.list("financialMovements")[0].date, invoice.date);
+});
+
+test("Un borrador conserva la fecha de transferencia hasta que se registra el cobro", async () => {
+  const db = new Database(initial());
+  const draft = await run(db, "issueSale", sale("a", {
+    status: "borrador", paymentMethod: "transferencia", bankAccountId: "bank", transferenciaFecha: "2026-09-28",
+  }));
+  assert.equal(draft.transferenciaFecha, "2026-09-28");
+  assert.equal(db.list("financialMovements").length, 0);
+  await run(db, "editSale", { id: draft.id, updates: { transferenciaFecha: "2026-09-29" } });
+  const invoice = await run(db, "editSale", { id: draft.id, updates: { status: "registrado" } });
+  assert.equal(invoice.date, "2026-10-01");
+  assert.equal(db.list("financialMovements")[0].date, "2026-09-29");
+});
 
 test("La corrección de un cobro cambia cuenta, importe y aplicaciones con el mismo identificador de movimiento", async () => {
   const db = new Database(initial());
