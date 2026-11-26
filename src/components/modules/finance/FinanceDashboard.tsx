@@ -233,6 +233,7 @@ export function FinanceDashboard({
 
   const chargesPage = useDocumentPagination(filteredCharges, [activeTab, searchQuery, statusFilter, typeFilter, startDate, endDate]);
   const advancesPage = useDocumentPagination(filteredAdvances, [activeTab, advSearchQuery, showVoidedAdvances]);
+  const showAdvanceMonths = filteredAdvances.some(advance => advance.monthsCovered > 0);
 
   function advanceOrigin(advance: ClientAdvance) {
     const charge = advance.sourceChargeId ? chargeById.get(advance.sourceChargeId) : undefined;
@@ -765,7 +766,7 @@ export function FinanceDashboard({
                 <tr>
                   <th className="w-2/12 py-3 px-4">Fecha Anticipo</th>
                   <th className="w-3/12 py-3 px-4">Cliente / RUC</th>
-                  <th className="w-1/12 py-3 px-3 text-center">Meses</th>
+                  {showAdvanceMonths && <th scope="col" className="w-1/12 py-3 px-3 text-center">Meses</th>}
                   <th className="w-1/12 py-3 px-3 text-right">Monto Inicial</th>
                   <th className="w-1/12 py-3 px-3 text-right">Saldo Disponible</th>
                   <th className="w-2/12 py-3 px-3">Método / Banco</th>
@@ -776,7 +777,7 @@ export function FinanceDashboard({
               <tbody className="divide-y divide-[#f1f5f9]">
                 {(filteredAdvances || []).length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <td colSpan={showAdvanceMonths ? 8 : 7} className="py-12 text-center text-slate-400">
                       No hay pagos anticipados registrados hasta el momento.
                     </td>
                   </tr>
@@ -802,11 +803,9 @@ export function FinanceDashboard({
                           <span className="font-bold text-slate-900 block truncate">{adv.clientName}</span>
                           <span className="text-[11px] font-mono text-slate-500">{adv.clientRuc}</span>
                         </td>
-                        <td className="py-3 px-3 text-center">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            {adv.monthsCovered ? `${adv.monthsCovered} mes(es)` : "—"}
-                          </span>
-                        </td>
+                        {showAdvanceMonths && <td className="py-3 px-3 text-center tabular-nums">
+                          {adv.monthsCovered > 0 ? adv.monthsCovered : null}
+                        </td>}
                         <td className="py-3 px-3 text-right font-mono font-semibold text-slate-700">
                           ${safeNumber(adv.amount)}
                         </td>
@@ -816,15 +815,11 @@ export function FinanceDashboard({
                           </span>
                           {wasRefunded && <span className="block text-[10px] font-normal text-rose-700 mt-1">Devuelto: ${safeNumber(adv.refundedAmount)}</span>}
                         </td>
-                        <td className="py-3 px-3">
-                          <span className="text-slate-800 block truncate">{source?.paymentMethod || adv.method}</span>
-                          {bankName && (
-                            <span className="text-[10px] text-slate-500 block truncate">{bankName}</span>
-                          )}
-                          {reference && (
-                            <span className="text-[10px] text-slate-500 font-mono block truncate">Ref: {reference}</span>
-                          )}
-                          {adv.sourcePaymentId && <span className="mt-1 block text-[10px] text-slate-500">
+                        <td className="py-3 px-3 text-[9px] font-normal leading-none text-[#000000] [overflow-wrap:anywhere]">
+                          <span className="block">{source?.paymentMethod || adv.method}</span>
+                          {bankName && <span className="block">{bankName}</span>}
+                          {reference && <span className="block">Ref: {reference}</span>}
+                          {adv.sourcePaymentId && <span className="block">
                             {origin.originNumber ? `Origen ${origin.originNumber}` : "Saldo de un cobro revertido"}
                           </span>}
                         </td>
