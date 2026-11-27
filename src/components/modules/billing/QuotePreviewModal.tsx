@@ -211,6 +211,7 @@ export function QuotePreviewModal({
             <div
               id="quote-print-area"
               ref={printAreaRef}
+              data-document-preview
               style={{ fontFamily: "var(--font-inter, Inter), sans-serif" }}
               className="max-w-[850px] mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xs border border-slate-200 space-y-5 text-[11px] leading-relaxed text-slate-800 print:shadow-none print:border-none print:p-0 print:max-w-none print:w-full print:text-black"
             >

@@ -35,12 +35,12 @@ type PaginationControls = ReturnType<typeof useDocumentPagination>["controls"];
 export function DocumentTablePagination({ total, page, pageCount, start, end, pageSize, movePage, changePageSize }: PaginationControls) {
   if (total === 0) return null;
 
-  const buttonClass = "inline-flex min-h-8 items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-45 disabled:cursor-not-allowed";
+  const buttonClass = "inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 font-medium text-black hover:bg-slate-50 disabled:opacity-45 disabled:cursor-not-allowed";
 
   return (
-    <nav aria-label="Paginación de documentos" className="sticky left-0 flex flex-wrap items-center justify-between gap-x-5 gap-y-2 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 print:hidden">
+    <nav aria-label="Paginación de documentos" className="sticky left-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-slate-200 bg-white px-2 py-1.5 text-[11px] text-black print:hidden">
       <p aria-live="polite" className="tabular-nums">Mostrando {start + 1}–{end} de {total}</p>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <label className="flex items-center gap-2">
           Filas por página
           <select
@@ -49,7 +49,7 @@ export function DocumentTablePagination({ total, page, pageCount, start, end, pa
               const size = DOCUMENT_PAGE_SIZES.find(option => option === Number(event.currentTarget.value));
               if (size) changePageSize(size);
             }}
-            className="min-h-8 rounded-md border border-slate-300 bg-white px-2 text-slate-700"
+            className="rounded-md border border-slate-200 bg-white px-2 text-black"
           >
             {DOCUMENT_PAGE_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
           </select>

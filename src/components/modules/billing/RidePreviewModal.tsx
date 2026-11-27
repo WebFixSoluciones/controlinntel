@@ -314,6 +314,7 @@ export function RidePreviewModal({
                ===================================================== */
             <div
               ref={printAreaRef}
+              data-document-preview
               id="ticket-print-area"
               className="w-[310px] mx-auto bg-white p-5 rounded-lg shadow-md border border-slate-200 font-mono text-[11px] leading-snug text-slate-900 print:shadow-none print:border-none print:w-full"
             >
@@ -437,6 +438,7 @@ export function RidePreviewModal({
                ===================================================== */
             <div
               ref={printAreaRef}
+              data-document-preview
               id="ride-print-area"
               className="w-[794px] max-w-none shrink-0 mx-auto bg-white p-6 rounded-lg shadow-xs border border-slate-200 space-y-4 text-[11.5px] leading-snug print:shadow-none print:border-none print:p-0 print:space-y-3"
             >

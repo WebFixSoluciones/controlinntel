@@ -75,6 +75,7 @@ export function ClientDossierTab({ client }: ClientDossierTabProps) {
       <div
         id="dossier-print-area"
         ref={dossierPrintRef}
+        data-document-preview
         className="bg-white p-6 rounded-xl border border-[#e2e8f0] shadow-2xs space-y-6 print:border-none print:shadow-none print:p-0"
       >
         {/* Brand Header */}

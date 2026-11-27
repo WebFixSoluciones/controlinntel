@@ -1460,8 +1460,8 @@ test("Flujo E2E 26: Estandarización Global de Diseño UI/UX Fase 3 (Tablas Maes
   const purchaseHistoryPath = path.resolve(rootDir, "src/components/modules/purchases/PurchaseHistoryTab.tsx");
   const purchaseHistoryContent = fs.readFileSync(purchaseHistoryPath, "utf8");
   assert.ok(
-    purchaseHistoryContent.includes("table-fixed w-full text-left text-xs border-collapse") &&
-      purchaseHistoryContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    purchaseHistoryContent.includes("table-fixed w-full") &&
+      purchaseHistoryContent.includes('<thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">'),
     "PurchaseHistoryTab debe implementar table-fixed y cabecera corporativa azul"
   );
   assert.ok(
@@ -1502,8 +1502,8 @@ test("Flujo E2E 27: Validación Clean Enterprise Fase 4 en Finanzas y Modales de
   const finDashPath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
   const finDashContent = fs.readFileSync(finDashPath, "utf8");
   assert.ok(
-    finDashContent.includes("table-fixed w-full text-left text-xs border-collapse") &&
-      finDashContent.includes("bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]"),
+    finDashContent.includes("table-fixed w-full") &&
+      finDashContent.includes('<thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">'),
     "FinanceDashboard debe utilizar table-fixed y thead corporativo"
   );
   assert.ok(!finDashContent.includes("rounded-2xl"), "FinanceDashboard no debe tener rounded-2xl");
@@ -2346,26 +2346,22 @@ test("Flujo E2E 39: Alineación Estricta a la Derecha de Iconos de Acción en Fi
   const rootDir = process.cwd();
   const financePath = path.resolve(rootDir, "src/components/modules/finance/FinanceDashboard.tsx");
   const financeContent = fs.readFileSync(financePath, "utf8");
+  const compactStyles = fs.readFileSync(path.resolve(rootDir, "src/app/compact-ui.css"), "utf8");
+  assert.match(compactStyles, /\.ui-table-actions\s*\{[^}]*justify-content:\s*flex-end/);
 
-  // 1. Cobros por Comprobante en Finanzas: Header text-right y contenedor justify-end
+  // Cobros y anticipos usan el mismo grupo de acciones alineado a la derecha.
   assert.ok(
-    financeContent.includes('text-right">Acciones</th>') &&
-      financeContent.includes('flex items-center justify-end gap-1'),
-    "FinanceDashboard debe alinear la cabecera y los iconos de acción a la derecha en Cobros por Comprobante"
+    (financeContent.match(/text-right">Acciones<\/th>/g) ?? []).length >= 2 &&
+      (financeContent.match(/className="ui-table-actions"/g) ?? []).length >= 2,
+    "Cobranzas y Anticipos deben alinear sus cabeceras y grupos de acciones a la derecha"
   );
 
-  // 2. Anticipos de Clientes en Finanzas: Header text-right y contenedor justify-end
-  assert.ok(
-    financeContent.includes('flex items-center justify-end gap-1.5'),
-    "FinanceDashboard debe alinear los botones de acción a la derecha en Anticipos de Clientes"
-  );
-
-  // 3. Verificación en Compras, Proyectos y Clientes
+  // Compras también usa el grupo compartido.
   const purchasesPath = path.resolve(rootDir, "src/components/modules/purchases/PurchaseHistoryTab.tsx");
   const purchasesContent = fs.readFileSync(purchasesPath, "utf8");
   assert.ok(
     purchasesContent.includes('text-right">Acciones</th>') &&
-      purchasesContent.includes('flex items-center justify-end gap-1'),
+      purchasesContent.includes('className="ui-table-actions"'),
     "PurchaseHistoryTab debe tener los iconos de acción alineados a la derecha"
   );
 });

@@ -55,15 +55,11 @@ import type { SriFiscalEvidence } from "@/types";
 
 function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { claveAcceso?: string; status?: string; emailStatus?: string; commercialReconciliationStatus?: string } }) {
   const environment = doc.ambiente || doc.claveAcceso?.[23];
-  const color = isFiscalAuthorized(doc)
-    ? environment === "1" ? "bg-sky-50 text-sky-800 border-sky-200" : "bg-emerald-50 text-emerald-800 border-emerald-200"
-    : doc.estadoSRI === "DEVUELTA" || doc.estadoSRI === "NO AUTORIZADO"
-      ? "bg-rose-50 text-rose-800 border-rose-200" : "bg-amber-50 text-amber-800 border-amber-200";
-  return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><span className={`whitespace-nowrap rounded border px-1.5 text-[10px] font-medium leading-[15px] ${color}`}>
+  return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><span className="ui-badge">
     {fiscalStateLabel(doc)}
-  </span>{environment === "1" && <span className="text-[9px] font-medium leading-[11px] text-sky-700">PRUEBAS</span>}</span>
-    {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="mt-1 block text-[10px] text-slate-500">Correo: {({enviado:"confirmado",enviando:"en curso",pendiente:"pendiente",desactivado:"automático desactivado",parcial:"entrega parcial",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
-    {doc.commercialReconciliationStatus === "pendiente" && <span className="mt-1 block text-[10px] font-semibold text-amber-700">Requiere conciliación de cartera</span>}
+  </span>{environment === "1" && <span className="ui-cell-meta">Pruebas</span>}</span>
+    {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="ui-cell-meta mt-0.5 block">Correo: {({enviado:"confirmado",enviando:"en curso",pendiente:"pendiente",desactivado:"automático desactivado",parcial:"entrega parcial",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
+    {doc.commercialReconciliationStatus === "pendiente" && <span className="ui-cell-meta mt-0.5 block">Requiere conciliación de cartera</span>}
   </>;
 }
 
@@ -485,11 +481,11 @@ export function BillingManager() {
     Boolean(dateTo);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Barra de Filtros (Oculta en vista Recurrentes porque tiene su propia barra de periodo/filtros) */}
       {activeTab !== "recurrentes" && (
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="ui-toolbar flex flex-wrap items-center justify-between bg-white border border-[#e2e8f0]">
+        <div className="relative min-w-0 flex-[1_1_14rem]">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -669,18 +665,18 @@ export function BillingManager() {
       {/* 1. Facturas */}
       {activeTab === "facturas" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Facturas electrónicas" tabIndex={0}>
+            <table className="table-fixed w-full min-w-[44rem] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">Comprobante</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
-                  <th className="py-3 px-3 w-1/12 text-right">Subtotal</th>
-                  <th className="py-3 px-3 w-1/12 text-right">IVA</th>
-                  <th className="py-3 px-4 w-1/12 text-right font-black">Total</th>
-                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
-                  <th className="py-3 px-4 w-2/12 text-right">Acciones</th>
+                  <th scope="col" className="w-[17%]">Comprobante</th>
+                  <th scope="col" className="w-20">Fecha</th>
+                  <th scope="col">Cliente / RUC</th>
+                  <th scope="col" className="w-[7%] text-right">Subtotal</th>
+                  <th scope="col" className="w-[6%] text-right">IVA</th>
+                  <th scope="col" className="w-[7%] text-right">Total</th>
+                  <th scope="col" className="w-[12%] text-center">Estado</th>
+                  <th scope="col" className="w-36 text-right lg:w-56">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -700,11 +696,11 @@ export function BillingManager() {
                     return (
                       <tr key={inv.id} className="hover:bg-[#f8f9ff] transition">
                         <td className="py-3 px-4">
-                          <div className="font-mono font-bold text-[#0b1c30]">
+                          <div className="break-words">
                             {inv.documentNumber}
                           </div>
                           <span
-                            className="text-xs font-mono text-[#737686] truncate max-w-[200px] block"
+                            className="ui-cell-meta block break-words"
                             title={inv.claveAcceso}
                           >
                             {originSale
@@ -714,15 +710,10 @@ export function BillingManager() {
                               : `Clave: ${(inv.claveAcceso || "").slice(-10)}`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-[#475569] whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{inv.date}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-[#0b1c30]">{inv.clientName}</div>
-                          <div className="text-xs font-mono text-[#737686]">RUC: {inv.clientRuc}</div>
+                        <td className="whitespace-nowrap">{inv.date}</td>
+                        <td>
+                          <div className="break-words">{inv.clientName}</div>
+                          <div className="ui-cell-meta break-words">RUC: {inv.clientRuc}</div>
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-[#0b1c30]">
                           ${safeNumber(inv.subtotal15)}
@@ -737,7 +728,7 @@ export function BillingManager() {
                           <FiscalStatus doc={inv} />
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
+                          <div className="ui-table-actions">
                             <button
                               onClick={() => handleOpenRide(inv)}
                               className="p-1.5 rounded-lg text-[#737686] hover:text-[#004ac6] hover:bg-[#eff4ff] transition cursor-pointer"

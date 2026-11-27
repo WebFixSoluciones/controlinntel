@@ -1,0 +1,305 @@
+@media screen {
+  :root {
+    --ui-font: var(--font-inter, Inter), system-ui, sans-serif;
+    --ui-data-size: 10px;
+    --ui-detail-size: 9px;
+    --ui-label-size: 11px;
+    --ui-ink: #000000;
+    --ui-blue: #004ac6;
+    --ui-blue-hover: #003da6;
+    --ui-soft-blue: #eff4ff;
+    --ui-table-head: #f4f7fd;
+    --ui-line: #dce4f0;
+    --ui-radius: 6px;
+    --ui-control-height: 28px;
+    --ui-row-control: 26px;
+    --ui-icon-size: 14px;
+  }
+
+  .app-header + main {
+    font-family: var(--ui-font);
+    font-size: var(--ui-label-size);
+    line-height: 1.4;
+  }
+
+  .app-header h1 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: normal;
+  }
+
+  /* Solo las tablas de trabajo. Los documentos conservan su maquetación. */
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    font-family: var(--ui-font);
+    font-size: var(--ui-data-size);
+    line-height: 1.2;
+    color: var(--ui-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-table-scroll {
+    max-inline-size: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) :is(thead, thead th) {
+    background-color: var(--ui-table-head);
+    color: var(--ui-blue);
+    font-family: var(--ui-font);
+    font-size: var(--ui-data-size);
+    font-weight: 600;
+    letter-spacing: normal;
+    line-height: 1.2;
+    text-transform: none;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) thead th {
+    padding: 0.4375rem 0.5rem;
+    white-space: normal;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) tbody td:not([colspan]) {
+    padding: 0.3125rem 0.5rem;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) tbody td,
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) tbody td :where(a, span, div, small, p, strong, label, time, code):not(:where([role="status"], [role="button"], button *, [role="button"] *)) {
+    color: var(--ui-ink);
+    font-family: var(--ui-font);
+    font-size: var(--ui-data-size);
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.2;
+    text-transform: none;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *)) tbody td
+  :is(small, [class~="text-[9px]"], [class~="text-[10px]"], .ui-cell-meta, .ui-cell-meta *):not(.ui-badge) {
+    font-size: var(--ui-detail-size);
+    line-height: 1;
+  }
+
+  .ui-cell-meta {
+    color: var(--ui-ink);
+    font-family: var(--ui-font);
+    font-size: var(--ui-detail-size);
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  /*
+   * Las etiquetas existentes comparten borde, color y densidad. Los controles
+   * interactivos y las barras gráficas conservan sus propias reglas.
+   */
+  :is(.app-header + main, [data-inntel-overlay]) :is(span, small)[class*="rounded"][class*="bg-"][class*="px-"]:not(:where(:empty, [data-document-preview] *, .recharts-wrapper *, .leaflet-container *, button *, a *, .ui-badge *)),
+  :is(.app-header + main, [data-inntel-overlay]) .ui-badge:not(:where([data-document-preview] *)) {
+    display: inline-flex;
+    max-inline-size: 100%;
+    align-items: center;
+    gap: 0.1875rem;
+    padding: 0.125rem 0.3125rem;
+    border: 1px solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: var(--ui-soft-blue);
+    color: var(--ui-ink);
+    font: 500 var(--ui-detail-size)/1.2 var(--ui-font);
+    letter-spacing: normal;
+    text-transform: none;
+    overflow-wrap: anywhere;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) .ui-badge svg {
+    color: var(--ui-blue);
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(input, select, textarea, button, [role="button"]):not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    font-family: var(--ui-font);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(select, textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"], [type="image"], [type="button"], [type="submit"], [type="reset"])):not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    min-block-size: var(--ui-control-height);
+    max-inline-size: 100%;
+    border-radius: var(--ui-radius);
+    border-color: var(--ui-line);
+    color: var(--ui-ink);
+    font-size: var(--ui-label-size);
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"], [type="image"], [type="button"], [type="submit"], [type="reset"])):not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    padding-block: 0.25rem;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(select, .ui-cell-control):not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    background-color: white;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) .ui-cell-control:not(:where([data-document-preview] *)) {
+    min-block-size: var(--ui-control-height);
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    padding-inline: 0.5rem;
+    border: 1px solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    color: var(--ui-ink);
+    font-size: var(--ui-label-size);
+    line-height: 1.2;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) select.ui-cell-control:not(:where([data-document-preview] *)) {
+    padding-inline-end: 0.25rem;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(select, textarea, input):focus-visible:not(:where([data-document-preview] *, .leaflet-container *)) {
+    border-color: var(--ui-blue);
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(button, a[role="button"]):is([class*="bg-"], [class~="border"], .ui-button, .ui-cell-control):not(:where(:has(img, h1, h2, h3, h4, table, dl, div), .ui-data-link, .ui-icon-button, [data-action-icon], [role="switch"], [data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
+    min-block-size: var(--ui-control-height);
+    padding-block: 0.25rem;
+    border-radius: var(--ui-radius);
+    font-size: var(--ui-label-size);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(button, a[role="button"]):is(
+    [class~="bg-amber-500"], [class~="bg-amber-600"], [class~="bg-emerald-600"], [class~="bg-emerald-700"],
+    [class~="bg-green-600"], [class~="bg-indigo-600"], [class~="bg-purple-600"], [class~="bg-purple-700"],
+    [class~="bg-violet-600"], [class~="bg-sky-600"], [class~="bg-teal-600"], [class~="bg-[#004ac6]"], [class~="bg-blue-600"]
+  ):not(:where([data-document-preview] *, .leaflet-container *, [role="switch"])) {
+    background-color: var(--ui-blue);
+    color: #fff;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) :is(button, a[role="button"]):is(
+    [class~="bg-amber-500"], [class~="bg-amber-600"], [class~="bg-emerald-600"], [class~="bg-emerald-700"],
+    [class~="bg-green-600"], [class~="bg-indigo-600"], [class~="bg-purple-600"], [class~="bg-purple-700"],
+    [class~="bg-violet-600"], [class~="bg-sky-600"], [class~="bg-teal-600"], [class~="bg-[#004ac6]"], [class~="bg-blue-600"]
+  ):not(:where(:disabled, [data-document-preview] *, .leaflet-container *, [role="switch"])):hover {
+    background-color: var(--ui-blue-hover);
+  }
+
+  .ui-toolbar {
+    gap: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--ui-radius);
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *)) tbody td :is(select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"]), .ui-cell-control),
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *)) tbody td button:is([class*="bg-"], [class~="border"]):not(:where(.ui-icon-button, [data-action-icon], .ui-data-link, [role="switch"])) {
+    min-block-size: var(--ui-row-control);
+    font-size: var(--ui-data-size);
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) .ui-data-link,
+  :is(.app-header + main, [data-inntel-overlay]) table:not(:where([data-document-preview] *)) tbody td button:not(:where([class*="bg-"], [class~="border"], [data-action-icon], .ui-icon-button, :has(> svg:only-child))) {
+    color: var(--ui-ink);
+    font-family: var(--ui-font);
+    font-size: var(--ui-data-size);
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) .ui-data-link:hover {
+    color: var(--ui-blue);
+    text-decoration: underline;
+  }
+
+  .ui-table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(button, a):is(.ui-icon-button, [data-action-icon]):not(:where([data-document-preview] *)),
+  :is(.app-header + main, [data-inntel-overlay]) td button:is([title], [aria-label]):is([class~="p-1"], [class~="p-1.5"], [class~="p-2"], [class~="size-6"], [class~="size-7"], [class~="size-8"], [class~="w-8"]):has(> svg:only-child):not(:where([role="switch"], [data-document-preview] *)) {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 var(--ui-row-control);
+    inline-size: var(--ui-row-control);
+    min-inline-size: var(--ui-row-control);
+    block-size: var(--ui-row-control);
+    min-block-size: var(--ui-row-control);
+    padding: 0;
+    border: 1px solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: white;
+    color: var(--ui-blue);
+    box-shadow: none;
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(button, a):is(.ui-icon-button, [data-action-icon]):not(:where(:disabled, [data-document-preview] *)):hover,
+  :is(.app-header + main, [data-inntel-overlay]) td button:is([title], [aria-label]):is([class~="p-1"], [class~="p-1.5"], [class~="p-2"], [class~="size-6"], [class~="size-7"], [class~="size-8"], [class~="w-8"]):has(> svg:only-child):not(:where(:disabled, [role="switch"], [data-document-preview] *)):hover {
+    background-color: var(--ui-soft-blue);
+    color: var(--ui-blue);
+    cursor: pointer;
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(button, a):is(.ui-icon-button, [data-action-icon]):not(:where([data-document-preview] *)) > svg,
+  :is(.app-header + main, [data-inntel-overlay]) td button:is([title], [aria-label]):is([class~="p-1"], [class~="p-1.5"], [class~="p-2"], [class~="size-6"], [class~="size-7"], [class~="size-8"], [class~="w-8"]):has(> svg:only-child):not(:where([role="switch"], [data-document-preview] *)) > svg {
+    inline-size: var(--ui-icon-size);
+    block-size: var(--ui-icon-size);
+    color: inherit;
+    stroke-width: 1.75;
+  }
+
+  .ui-kpi {
+    min-inline-size: 0;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--ui-line);
+    border-radius: var(--ui-radius);
+    background: white;
+  }
+
+  .ui-kpi-label {
+    color: var(--ui-ink);
+    font-size: var(--ui-label-size);
+    font-weight: 500;
+  }
+
+  .ui-kpi-value {
+    color: var(--ui-ink);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-kpi-detail {
+    color: var(--ui-ink);
+    font-size: var(--ui-detail-size);
+    font-weight: 400;
+  }
+
+  .app-header + main .soft-tab {
+    min-block-size: var(--ui-control-height);
+    padding: 0.25rem 0.5rem;
+    font-size: var(--ui-label-size);
+    line-height: 1.2;
+  }
+
+  #app-navigation .soft-nav-item {
+    min-block-size: var(--ui-control-height);
+    padding-block: 0.375rem;
+    font-size: var(--ui-label-size);
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(.ui-icon-button, [data-action-icon]):focus-visible {
+    outline: 2px solid var(--ui-blue);
+    outline-offset: 2px;
+  }
+
+  @media (pointer: coarse) {
+    :root {
+      --ui-control-height: 36px;
+      --ui-row-control: 32px;
+    }
+  }
+}

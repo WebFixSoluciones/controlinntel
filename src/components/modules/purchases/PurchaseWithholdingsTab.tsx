@@ -197,6 +197,7 @@ export function PurchaseWithholdingsTab({
             <div
               id="withholding-print-area"
               ref={withholdingPrintRef}
+              data-document-preview
               className="p-6 space-y-4 overflow-y-auto flex-1 text-xs bg-white"
             >
               <p className="font-bold text-amber-800">REGISTRO LOCAL · AUTORIZACIÓN SRI SIN VERIFICAR</p>

@@ -4,6 +4,7 @@ import { createSearchMatcher } from "@/lib/search";
 import { compareDocumentsDescending } from "@/lib/sales-policy";
 
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import React, { useState } from "react";
 import { useApp } from "@/lib/state";
 import { canAccessSubmodule, canUser } from "@/lib/permissions";
@@ -12,13 +13,11 @@ import { cents, money } from "@/lib/commercial-core";
 import {
   Search,
   Plus,
-  Eye,
   Layers,
   Percent,
   X,
 } from "lucide-react";
 import { PurchaseInvoice } from "@/types";
-import { Pencil, Trash2 } from "lucide-react";
 import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
 
 interface PurchaseHistoryTabProps {
@@ -61,27 +60,28 @@ export function PurchaseHistoryTab({
   const invoicesPage = useDocumentPagination(filteredInvoices, [searchQuery, filterSupplier, filterStatus, dateFrom, dateTo]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Filter and Search Bar with Action Button */}
-      <div className="flex flex-wrap items-end justify-between gap-3 p-3 bg-white rounded-xl border border-[#e2e8f0] shadow-2xs">
+      <div className="ui-toolbar flex flex-wrap items-center justify-between bg-white rounded-xl border border-[#e2e8f0]">
         <div className="relative w-full sm:w-96">
           <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
+            aria-label="Buscar compras"
             placeholder="Buscar por proveedor, RUC, factura o clave..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs text-[#0b1c30] placeholder-[#737686] focus:outline-hidden focus:border-[#004ac6] focus:bg-white transition-colors"
+            className="ui-cell-control w-full !pl-9"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
           {/* Supplier Filter */}
           <select
             aria-label="Filtrar por proveedor"
             value={filterSupplier}
             onChange={(e) => setFilterSupplier(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
+            className="ui-cell-control max-w-full cursor-pointer"
           >
             <option value="todos">Todos los Proveedores</option>
             {suppliers.map((s) => (
@@ -96,7 +96,7 @@ export function PurchaseHistoryTab({
             aria-label="Filtrar por estado de pago"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-[#f8f9ff] border border-[#e2e8f0] rounded-lg text-xs font-medium text-[#434655] focus:outline-hidden focus:border-[#004ac6] focus:bg-white cursor-pointer"
+            className="ui-cell-control cursor-pointer"
           >
             <option value="todos">Todos los Estados</option>
             <option value="pagado">Pagado</option>
@@ -105,46 +105,46 @@ export function PurchaseHistoryTab({
             <option value="eliminadas">Eliminadas</option>
           </select>
 
-          <label className="text-xs text-slate-600">Desde
+          <label className="flex items-center gap-1.5 text-xs">Desde
             <input type="date" value={dateFrom} max={dateTo || undefined} aria-invalid={invalidRange} aria-describedby={invalidRange ? "purchase-date-error" : undefined}
-              onChange={event => setDateFrom(event.target.value)} className="ml-2 rounded-lg border border-[#e2e8f0] bg-white px-2 py-2 text-xs" />
+              onChange={event => setDateFrom(event.target.value)} className="ui-cell-control" />
           </label>
-          <label className="text-xs text-slate-600">Hasta
+          <label className="flex items-center gap-1.5 text-xs">Hasta
             <input type="date" value={dateTo} min={dateFrom || undefined} aria-invalid={invalidRange} aria-describedby={invalidRange ? "purchase-date-error" : undefined}
-              onChange={event => setDateTo(event.target.value)} className="ml-2 rounded-lg border border-[#e2e8f0] bg-white px-2 py-2 text-xs" />
+              onChange={event => setDateTo(event.target.value)} className="ui-cell-control" />
           </label>
           <button type="button" onClick={() => { setDateFrom(""); setDateTo(""); setSearchQuery(""); setFilterSupplier("todos"); setFilterStatus("todos"); }}
-            className="rounded-lg border border-[#e2e8f0] px-3 py-2 text-xs text-slate-600">Limpiar filtros</button>
+            className="ui-cell-control cursor-pointer hover:text-[#004ac6]">Limpiar filtros</button>
           <button
             disabled={!canAccessSubmodule(currentUser, "compras", "registrar_compra") || !canUser(currentUser, "compras", "canRegisterPurchase")}
             onClick={onOpenNewPurchase}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Registrar Compra</span>
+            <span>Registrar compra</span>
           </button>
         </div>
       </div>
 
       {invalidRange && <p id="purchase-date-error" role="alert" className="text-xs text-red-600">La fecha Desde no puede ser posterior a Hasta.</p>}
-      <p role="status" className="text-xs text-slate-600 tabular-nums">{filteredInvoices.length} de {filterStatus === "eliminadas" ? purchaseInvoices.length - activeInvoices.length : activeInvoices.length} compras {filterStatus === "eliminadas" ? "eliminadas" : "activas"} · Total filtrado: ${money(filteredInvoices.reduce((sum, invoice) => sum + cents(invoice.total), 0)).toFixed(2)}</p>
+      <p role="status" className="text-xs tabular-nums">{filteredInvoices.length} de {filterStatus === "eliminadas" ? purchaseInvoices.length - activeInvoices.length : activeInvoices.length} compras {filterStatus === "eliminadas" ? "eliminadas" : "activas"} · Total filtrado: ${money(filteredInvoices.reduce((sum, invoice) => sum + cents(invoice.total), 0)).toFixed(2)}</p>
 
       {/* Table of Invoices */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse min-w-[1280px]">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+        <div className="ui-table-scroll" role="region" aria-label="Historial de compras" tabIndex={0}>
+          <table className="table-fixed w-full min-w-[55rem] text-left border-collapse">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4 w-[8%]">Fecha</th>
-                <th className="py-3 px-4 w-[14%]">N° Comprobante</th>
-                <th className="py-3 px-4 w-[20%]">Proveedor / RUC</th>
-                <th className="py-3 px-4 w-[7%] text-center">Condición</th>
-                <th className="py-3 px-4 w-[7%] text-right">Subtotal</th>
-                <th className="py-3 px-4 w-[6%] text-right">IVA</th>
-                <th className="py-3 px-4 w-[8%] text-right font-black">Total Factura</th>
-                <th className="py-3 px-4 w-[8%] text-center">Estado Pago</th>
-                <th className="py-3 px-4 w-[7%] text-center">Inventario</th>
-                <th className="py-3 px-4 w-[15%] text-right">Acciones</th>
+                <th scope="col" className="w-[4.5rem] px-2 py-2">Fecha</th>
+                <th scope="col" className="w-[8rem] px-2 py-2">Comprobante</th>
+                <th scope="col" className="px-2 py-2">Proveedor / RUC</th>
+                <th scope="col" className="w-16 px-2 py-2 text-center">Condición</th>
+                <th scope="col" className="w-[4.5rem] px-2 py-2 text-right">Subtotal</th>
+                <th scope="col" className="w-16 px-2 py-2 text-right">IVA</th>
+                <th scope="col" className="w-[4.5rem] px-2 py-2 text-right">Total</th>
+                <th scope="col" className="w-[5.5rem] px-2 py-2 text-center">Estado de pago</th>
+                <th scope="col" className="w-[4.5rem] px-2 py-2 text-center">Inventario</th>
+                <th scope="col" className="w-[calc(var(--ui-row-control)*5+32px)] px-2 py-2 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -161,105 +161,81 @@ export function PurchaseHistoryTab({
 
                   return (
                     <tr key={inv.id} className="hover:bg-[#f8f9ff] transition-colors">
-                      <td className="py-3 px-4 font-medium text-[#0b1c30] whitespace-nowrap">
+                      <td className="px-2 py-1.5 tabular-nums whitespace-nowrap">
                         {String(inv.date || "").slice(0, 10)}
                       </td>
 
-                      <td className="py-3 px-4 font-mono font-bold text-[#004ac6] whitespace-nowrap">
+                      <td className="px-2 py-1.5 font-semibold tabular-nums [overflow-wrap:anywhere]">
                         {inv.documentNumber}
                       </td>
 
-                      <td className="py-3 px-4 max-w-xs">
-                        <div className="font-bold text-[#0b1c30] truncate" title={inv.supplierName}>
+                      <td className="px-2 py-1.5">
+                        <div className="font-semibold truncate" title={inv.supplierName}>
                           {inv.supplierName}
                         </div>
-                        <div className="text-xs font-mono text-[#737686]">
+                        <div className="ui-cell-meta">
                           {inv.supplierRuc}
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
-                            inv.paymentCondition === "contado"
-                              ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
-                              : "bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]"
-                          }`}
-                        >
-                          {inv.paymentCondition === "contado" ? "Contado" : "Crédito"}
-                        </span>
+                      <td className="px-2 py-1.5 text-center">
+                        {inv.paymentCondition === "contado" ? "Contado" : "Crédito"}
                       </td>
 
-                      <td className="py-3 px-4 text-right font-mono font-medium text-[#434655]">
+                      <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                         ${inv.subtotal.toFixed(2)}
                       </td>
 
-                      <td className="py-3 px-4 text-right font-mono font-medium text-[#737686]">
+                      <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                         ${inv.ivaAmount.toFixed(2)}
                       </td>
 
-                      <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
+                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">
                         ${inv.total.toFixed(2)}
                       </td>
 
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
-                            inv.status === "anulada"
-                              ? "bg-slate-100 text-slate-600 border border-slate-300"
-                              : isPaid
-                              ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
-                              : isPartial
-                              ? "bg-[#fffbeb] text-[#b45309] border border-[#fde68a]"
-                              : "bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]"
-                          }`}
-                        >
-                          {inv.status === "anulada" ? "Eliminada" : isPaid ? "Pagado" : isPartial ? "Abono Parcial" : "Pendiente"}
+                      <td className="px-2 py-1.5 text-center">
+                        <span className="ui-badge">
+                          {inv.status === "anulada" ? "Eliminada" : isPaid ? "Pagado" : isPartial ? "Abono parcial" : "Pendiente"}
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
-                            inv.inventoryStatus === "ingresado"
-                              ? "bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]"
-                              : "bg-[#f1f5f9] text-[#64748b] border border-[#cbd5e1]"
-                          }`}
-                        >
-                          {inv.inventoryStatus === "ingresado" ? inv.status === "anulada" ? "Revertido" : "Ingresado" : "N/A"}
-                        </span>
+                      <td className="px-2 py-1.5 text-center">
+                        {inv.inventoryStatus === "ingresado" ? inv.status === "anulada" ? "Revertido" : "Ingresado" : "N/A"}
                       </td>
 
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
+                      <td className="px-2 py-1.5 text-right">
+                        <div className="ui-table-actions">
+                          <ActionIconButton action="view"
                             onClick={() => setSelectedInvoice(inv)}
-                            className="p-1.5 rounded-lg text-[#004ac6] hover:bg-[#eff4ff] transition-colors cursor-pointer"
-                            title="Ver Detalle"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                            title="Ver detalle"
+                            label={`Ver detalle de la compra ${inv.documentNumber}`}
+                          />
 
-                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canEditPurchase") && <button onClick={() => setCorrection({ invoice: inv, mode: "edit" })} title="Editar compra" aria-label={`Editar compra ${inv.documentNumber}`} className="rounded-lg p-1.5 text-blue-700 hover:bg-blue-50"><Pencil className="h-4 w-4" /></button>}
-                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canDeletePurchase") && <button onClick={() => setCorrection({ invoice: inv, mode: "delete" })} title="Eliminar compra" aria-label={`Eliminar compra ${inv.documentNumber}`} className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /></button>}
+                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canEditPurchase") && <ActionIconButton action="edit" onClick={() => setCorrection({ invoice: inv, mode: "edit" })} title="Editar compra" label={`Editar compra ${inv.documentNumber}`} />}
+                          {inv.status !== "anulada" && canUser(currentUser, "compras", "canDeletePurchase") && <ActionIconButton action="delete" onClick={() => setCorrection({ invoice: inv, mode: "delete" })} title="Eliminar compra" label={`Eliminar compra ${inv.documentNumber}`} />}
 
                           {inv.status !== "anulada" && onOpenWithholdingForInvoice && canAccessSubmodule(currentUser, "compras", "retenciones") && canUser(currentUser, "compras", "canEmitWithholding") && (
                             <button
+                              type="button"
                               onClick={() => onOpenWithholdingForInvoice(inv)}
-                              className="p-1.5 rounded-lg text-[#059669] hover:bg-[#ecfdf5] transition-colors cursor-pointer"
-                              title="Emitir Retención SRI"
+                              className="ui-icon-button"
+                              title="Emitir retención SRI"
+                              aria-label="Emitir retención SRI"
                             >
-                              <Percent className="w-4 h-4" />
+                              <Percent aria-hidden="true" />
                             </button>
                           )}
 
                           {inv.status !== "anulada" && onOpenCreditNoteForInvoice && canAccessSubmodule(currentUser, "compras", "notas_credito") && canUser(currentUser, "compras", "canRegisterPurchase") && (
                             <button
+                              type="button"
                               onClick={() => onOpenCreditNoteForInvoice(inv)}
-                              className="p-1.5 rounded-lg text-[#b45309] hover:bg-[#fffbeb] transition-colors cursor-pointer"
-                              title="Registrar Nota de Crédito"
+                              className="ui-icon-button"
+                              title="Registrar nota de crédito"
+                              aria-label="Registrar nota de crédito"
                             >
-                              <Layers className="w-4 h-4" />
+                              <Layers aria-hidden="true" />
                             </button>
                           )}
                         </div>

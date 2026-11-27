@@ -45,7 +45,6 @@ import {
   ExternalLink,
   Pencil,
   Clock,
-  Sparkles,
 } from "lucide-react";
 
 function suggestedContractEnd(start: string, duration: ServiceContractDuration) {
@@ -226,19 +225,19 @@ export function ClientContractTab({ client }: { client: Client }) {
   const getDurationLabel = (duration?: ServiceContractDuration): string => {
     switch (duration) {
       case "mensual":
-        return "1 Mes";
+        return "1 mes";
       case "trimestral":
-        return "3 Meses (Trimestral)";
+        return "3 meses (trimestral)";
       case "semestral":
-        return "6 Meses (Semestral)";
+        return "6 meses (semestral)";
       case "anual":
-        return "1 Año (Anual)";
+        return "1 año (anual)";
       case "bianual":
-        return "2 Años (Bianual)";
+        return "2 años (bianual)";
       case "indefinido":
         return "Indefinido";
       default:
-        return "1 Año";
+        return "1 año";
     }
   };
 
@@ -266,7 +265,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       const contractDiff = diffInCalendarDays(today, contractEndDate);
       if (contractDiff < 0) {
         return {
-          label: `Contrato Caducado (${Math.abs(contractDiff)}d)`,
+          label: `Contrato caducado (${Math.abs(contractDiff)}d)`,
           tone: "rose" as const,
           daysLeft: contractDiff,
           isContractExpired: true,
@@ -1432,20 +1431,21 @@ export function ClientContractTab({ client }: { client: Client }) {
         )}
 
         {/* Barra de búsqueda y filtro rápido de estado con botones de acción alineados a la derecha */}
-        <div className="p-3 px-6 border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between gap-3">
+        <div className="ui-toolbar border-b border-[#e2e8f0] bg-white flex flex-wrap items-center justify-between">
           <div className="relative min-w-0 w-full sm:flex-1 sm:max-w-xs">
-            <Search className="w-3.5 h-3.5 text-[#64748b] absolute left-3 top-2.5" />
+            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#64748b]" />
             <input
               type="text"
+              aria-label="Buscar por servicio o SKU"
               placeholder="Buscar por servicio o SKU..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-xs pl-8 pr-3 py-1.5 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#64748b] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-colors"
+              className="w-full rounded-md border border-[#e2e8f0] pl-8 pr-2"
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1">
               {[
                 { id: "todos", label: "Todos" },
                 { id: "facturables", label: "Activos" },
@@ -1458,22 +1458,17 @@ export function ClientContractTab({ client }: { client: Client }) {
                     key={tab.id}
                     type="button"
                     onClick={() => setServiceFilter(tab.id as any)}
-                    className={`px-3 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    aria-pressed={isActive}
+                    className={`inline-flex min-h-7 cursor-pointer items-center gap-1 rounded-md border px-2 font-medium transition-colors ${
                       isActive
-                        ? isWarningTab
-                          ? "bg-amber-600 text-white shadow-xs"
-                          : "bg-[#004ac6] text-white shadow-2xs"
-                        : isWarningTab
-                        ? "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
-                        : "bg-[#f8f9ff] text-[#434655] hover:bg-slate-100 border border-[#e2e8f0]"
+                        ? "border-[#dce9ff] bg-[#eff4ff] text-[#004ac6]"
+                        : "border-[#e2e8f0] bg-white hover:bg-slate-50"
                     }`}
                   >
-                    {isWarningTab && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
-                    <span>{tab.label}</span>
-                    {tab.id === "por_renovar" && serviceMetrics.expiringCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-white">
-                        {serviceMetrics.expiringCount}
-                      </span>
+                    {isWarningTab && <AlertTriangle aria-hidden="true" className="size-3 shrink-0 text-amber-600" />}
+                    <span className="block lowercase first-letter:uppercase">{tab.label}</span>
+                    {isWarningTab && (
+                      <span className="tabular-nums">{serviceMetrics.expiringCount}</span>
                     )}
                   </button>
                 );
@@ -1484,8 +1479,8 @@ export function ClientContractTab({ client }: { client: Client }) {
 
             {canAccessRoute(currentUser, "/ventas") && canAccessSubmodule(currentUser, "ventas", "recurrentes") && canUser(currentUser, "ventas", "canCreateInvoice") && (
               <Link href={`/ventas?sub=recurrentes&cliente=${encodeURIComponent(client.id)}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-semibold text-[#004ac6] hover:bg-blue-50">
-                <ExternalLink className="w-3.5 h-3.5" />
+                className="inline-flex min-h-7 items-center gap-1 rounded-md border border-[#e2e8f0] px-2 font-medium hover:bg-slate-50">
+                <ExternalLink aria-hidden="true" className="size-3.5" />
                 Ventas recurrentes
               </Link>
             )}
@@ -1493,46 +1488,52 @@ export function ClientContractTab({ client }: { client: Client }) {
             <button
               type="button"
               onClick={() => setIsAddingService((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              className="inline-flex min-h-7 cursor-pointer items-center gap-1 rounded-md bg-[#004ac6] px-2 font-semibold text-white transition-colors hover:bg-[#003da6]"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{isAddingService ? "Cerrar" : "Agregar Servicio"}</span>
+              <Plus aria-hidden="true" className="size-3.5" />
+              <span className="block lowercase first-letter:uppercase">{isAddingService ? "Cerrar" : "Agregar Servicio"}</span>
             </button>
             )}
           </div>
         </div>
 
         {/* Tabla de Control Individual de Servicios Contratados */}
-        <div role="region" aria-label="Tabla de servicios contratados" tabIndex={0} className="max-w-full overflow-x-auto overscroll-x-contain">
-          <table className={`w-full text-left text-xs table-fixed ${showPrices ? "min-w-[70rem]" : "min-w-[62rem]"}`}>
+        <div role="region" aria-label="Tabla de servicios contratados" tabIndex={0} className="ui-table-scroll overflow-x-auto overscroll-x-contain">
+          <table className={`w-full table-fixed text-left ${showPrices ? "min-w-[54rem]" : "min-w-[44rem]"}`}>
             <colgroup>
-              <col style={{ width: showPrices ? "33%" : "42%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "11%" }} />
-              {showPrices && <col style={{ width: "9%" }} />}
-              <col style={{ width: "11%" }} />
+              <col />
+              <col className="w-[5.5rem]" />
+              <col className="w-[8rem]" />
+              <col className="w-[6.25rem]" />
+              <col className="w-[5.5rem]" />
+              {showPrices && <col className="w-[5.75rem]" />}
+              <col
+                style={{
+                  width: showPrices
+                    ? "calc(5 * var(--ui-row-control, 26px) + 2.125rem)"
+                    : "calc(2 * var(--ui-row-control, 26px) + 1.25rem)",
+                }}
+              />
             </colgroup>
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+            <thead>
               <tr>
-                <th className="py-3 px-3">Servicio</th>
-                <th className="py-3 px-2">Ciclo</th>
-                <th className="py-3 px-2">Renovación</th>
-                <th className="py-3 px-2 text-center">Estado</th>
-                <th className="py-3 px-2 text-center">Facturar</th>
-                {showPrices && <th className="py-3 px-2 text-right">Tarifa</th>}
-                <th className="py-3 px-3 text-right">Acciones</th>
+                <th scope="col">Servicio</th>
+                <th scope="col">Ciclo</th>
+                <th scope="col">Renovación</th>
+                <th scope="col">Estado</th>
+                <th scope="col" className="text-center">Facturar</th>
+                {showPrices && <th scope="col" className="text-right">Tarifa</th>}
+                <th scope="col" className="text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f1f5f9] text-[#0b1c30]">
+            <tbody className="divide-y divide-[#f1f5f9]">
               {filteredServices.length === 0 ? (
                 <tr>
-                  <td colSpan={showPrices ? 7 : 6} className="py-10 text-center text-xs text-[#737686]">
-                    <p className="font-bold text-[#434655]">
+                  <td colSpan={showPrices ? 7 : 6} className="text-center">
+                    <p className="font-semibold">
                       No hay servicios registrados con este filtro.
                     </p>
-                    {canAssign && <p className="text-xs text-[#64748b] mt-1">Usa Agregar Servicio para asignar un servicio del inventario.</p>}
+                    {canAssign && <p className="ui-cell-meta mt-1">Usa «Agregar servicio» para asignar un servicio del inventario.</p>}
                   </td>
                 </tr>
               ) : (
@@ -1540,72 +1541,45 @@ export function ClientContractTab({ client }: { client: Client }) {
                   const isBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
                   const renewal = getRenewalStatus(svc.nextRenewalDate, svc.contractEndDate);
                   const price = svc.customPrice ?? svc.basePrice ?? 0;
+                  const billingType = svc.billingType === "postpago" || svc.billingType === "pospago" ? "Postpago" : "Prepago";
+                  const serviceDetails = [
+                    billingType,
+                    svc.serviceCategory && (svc.serviceCategory.charAt(0).toUpperCase() + svc.serviceCategory.slice(1)),
+                    svc.inventorySku,
+                    svc.autoRenew && "Renovación prevista",
+                  ].filter(Boolean).join(" · ");
+                  const billingDetails = [
+                    `Contrato: ${getDurationLabel(svc.contractDuration || "anual")}`,
+                    `Cobro: día ${svc.billingDay ?? 1}`,
+                    `Anticipo: día ${svc.advanceNoticeDay ?? 26}`,
+                    svc.contractEndDate && `Fin: ${formatDateEC(svc.contractEndDate)}`,
+                    svc.lastBilledPeriod ? `Últ. facturado: ${svc.lastBilledPeriod}` : `Alta: ${svc.installationDate || "—"}`,
+                    svc.lastNotificationSentAt && `Avisado: ${svc.lastNotificationSentAt}`,
+                  ].filter(Boolean).join(" · ");
 
                   return (
                     <tr
                       key={svc.id}
                       className={`transition-colors ${
-                        isBillable ? "hover:bg-[#f8f9ff]" : "bg-slate-50/70 text-slate-500"
+                        isBillable ? "hover:bg-[#f8f9ff]" : "bg-slate-50/70"
                       }`}
                     >
                       {/* 1. Servicio Contratado */}
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`font-bold text-xs break-words ${isBillable ? "text-[#0b1c30]" : "text-slate-500 line-through"}`}>
-                            {svc.planName}
-                          </span>
-                          <span className={`font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
-                            svc.billingType === "postpago" || svc.billingType === "pospago"
-                              ? "bg-purple-50 text-purple-700 border border-purple-200"
-                              : "bg-blue-50 text-blue-700 border border-blue-200"
-                          }`}>
-                            {svc.billingType === "postpago" || svc.billingType === "pospago" ? "POSTPAGO" : "PREPAGO"}
-                          </span>
-                          {svc.serviceCategory && (
-                            <span className="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
-                              {svc.serviceCategory}
-                            </span>
-                          )}
-                          {svc.autoRenew && (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>Renovación prevista</span>
-                            </span>
-                          )}
-                        </div>
+                      <td>
+                        <p className={`break-words font-semibold ${isBillable ? "" : "line-through"}`}>{svc.planName}</p>
+                        <p className="ui-cell-meta mt-0.5 break-words">{serviceDetails}</p>
                         {(svc.description || svc.notes) && (
-                          <p className="text-[11px] text-slate-600 line-clamp-2 mt-0.5 font-normal">
+                          <p className="ui-cell-meta mt-0.5 line-clamp-2 break-words">
                             {svc.description || svc.notes}
                           </p>
                         )}
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-1 flex-wrap">
-                          {svc.inventorySku && (
-                            <span className="font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-sm text-[9px] font-bold">
-                              {svc.inventorySku}
-                            </span>
-                          )}
-                          <span className="text-slate-600">
-                            Contrato: <strong>{getDurationLabel(svc.contractDuration || "anual")}</strong>
-                          </span>
-                          <span>• Cobro: Día {svc.billingDay ?? 1}</span>
-                          <span>• Anticipo: Día {svc.advanceNoticeDay ?? 26}</span>
-                          {svc.contractEndDate && (
-                            <span className="text-slate-500 font-mono">
-                              • Fin: {formatDateEC(svc.contractEndDate)}
-                            </span>
-                          )}
-                          <span>
-                            {svc.lastBilledPeriod
-                              ? `• Últ. facturado: ${svc.lastBilledPeriod}`
-                              : `• Alta: ${svc.installationDate || "—"}`}
-                          </span>
-                          {svc.lastNotificationSentAt && <span>• Avisado: {svc.lastNotificationSentAt}</span>}
-                        </div>
+                        <p className="ui-cell-meta mt-0.5 break-words">{billingDetails}</p>
                       </td>
 
                       {/* 2. Frecuencia (Mensual / Trimestral / Semestral / Anual) */}
-                      <td className="py-3.5 px-2">
+                      <td>
                         <select
+                          aria-label="Ciclo de facturación"
                           value={svc.billingFrequency || "mensual"}
                           onChange={(e) => {
                             const freq = e.target.value as ServiceBillingFrequency;
@@ -1616,7 +1590,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                               nextRenewalDate: nextDate,
                             });
                           }}
-                          className="w-full min-w-0 max-w-full bg-white border border-[#e2e8f0] rounded-lg px-2 py-1 text-xs font-bold text-[#0b1c30] focus:outline-hidden focus:border-[#004ac6] cursor-pointer"
+                          className="ui-cell-control w-full cursor-pointer rounded-md border border-[#e2e8f0] px-1.5"
                         >
                           <option value="mensual">Mensual</option>
                           <option value="trimestral">Trimestral</option>
@@ -1626,71 +1600,66 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 3. Próxima Renovación + Semáforo */}
-                      <td className="py-3.5 px-2">
-                        <div className="flex flex-col gap-1">
+                      <td>
+                        <div className="flex flex-col gap-0.5">
                           <input
                             type="date"
+                            aria-label="Fecha de renovación"
                             value={svc.nextRenewalDate || ""}
                             onChange={(e) =>
                               void saveInlineService(svc.id, { nextRenewalDate: e.target.value })
                             }
-                            className="w-full min-w-0 max-w-full bg-white border border-[#e2e8f0] rounded-lg px-2 py-0.5 text-xs font-mono text-[#0b1c30] cursor-pointer focus:outline-hidden focus:border-[#004ac6]"
+                            className="ui-cell-control w-full cursor-pointer rounded-md border border-[#e2e8f0] px-1.5 tabular-nums"
                           />
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold w-fit ${
-                              renewal.tone === "rose"
-                                ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                : renewal.tone === "amber"
-                                ? "bg-amber-50 text-amber-800 border border-amber-300"
-                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            }`}
-                          >
-                            <Clock className="w-2.5 h-2.5" />
+                          <span className="ui-cell-meta flex items-center gap-1">
+                            <span
+                              aria-hidden="true"
+                              className={`size-1.5 shrink-0 rounded-full ${
+                                {
+                                  rose: "bg-rose-600",
+                                  amber: "bg-amber-600",
+                                  emerald: "bg-emerald-600",
+                                  slate: "bg-slate-400",
+                                }[renewal.tone]
+                              }`}
+                            />
                             {renewal.label}
                           </span>
                         </div>
                       </td>
 
                       {/* 4. Estado Operativo */}
-                      <td className="py-3.5 px-2 text-center">
+                      <td>
                         <select
+                          aria-label="Estado del servicio"
                           value={svc.status}
                           onChange={(e) => handleStatusChange(svc, e.target.value as ServiceStatus)}
-                          className={`w-full min-w-0 max-w-full rounded-md px-1 py-1 text-[11px] font-bold uppercase border cursor-pointer focus:outline-hidden ${
-                            svc.status === "activo"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : svc.status === "por_renovar"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-slate-100 text-slate-600 border-slate-300"
-                          }`}
+                          className="ui-cell-control w-full cursor-pointer rounded-md border border-[#e2e8f0] px-1.5"
                         >
-                          <option value="activo">ACTIVO</option>
-                          <option value="por_renovar">POR RENOVAR</option>
-                          <option value="inactivo">INACTIVO</option>
-                          <option value="suspendido">SUSPENDIDO</option>
+                          <option value="activo">Activo</option>
+                          <option value="por_renovar">Por renovar</option>
+                          <option value="inactivo">Inactivo</option>
+                          <option value="suspendido">Suspendido</option>
                         </select>
                       </td>
 
                       {/* 5. Switch Facturable vs No Facturado en el ciclo actual */}
-                      <td className="py-3.5 px-2 text-center">
+                      <td className="text-center">
                         <button
                           type="button"
                           onClick={() => handleToggleBillable(svc)}
-                          className={`inline-flex w-full min-w-0 max-w-full justify-center items-center gap-1 px-1 py-1 rounded-md text-[10px] font-bold uppercase transition cursor-pointer ${
-                            isBillable
-                              ? "bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] hover:bg-blue-100"
-                              : "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
-                          }`}
+                          className="ui-cell-control inline-flex cursor-pointer items-center justify-center gap-1 rounded-md border border-[#e2e8f0] px-1.5 hover:bg-slate-50"
+                          aria-pressed={isBillable}
                           aria-label="Clic para incluir o excluir este servicio de la factura del ciclo actual" title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
                         >
                           {isBillable ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5 text-[#004ac6]" />
+                              <CheckCircle2 aria-hidden="true" className="size-3 shrink-0" />
                               <span>Facturable</span>
                             </>
                           ) : (
                             <>
-                              <Ban className="w-3.5 h-3.5 text-amber-700" />
+                              <Ban aria-hidden="true" className="size-3 shrink-0" />
                               <span>Excluido</span>
                             </>
                           )}
@@ -1698,34 +1667,34 @@ export function ClientContractTab({ client }: { client: Client }) {
                       </td>
 
                       {/* 6. Tarifa Base */}
-                      {showPrices && <td className="py-3.5 px-2 text-right font-mono text-xs">
-                        <span className={`block font-bold ${isBillable ? "text-emerald-700 font-bold" : "text-slate-400 line-through"}`}>
+                      {showPrices && <td className="text-right tabular-nums">
+                        <span className={`block font-semibold ${isBillable ? "" : "line-through"}`}>
                           ${safeNumber(price)}
                         </span>
-                        <span className="block text-[10px] text-slate-500 font-medium">
+                        <span className="ui-cell-meta mt-0.5 block">
                           ${safeNumber(svc.priceConIva ?? calculatePriceWithTax(price, svc.ivaRate ?? 0))} c/IVA
                         </span>
                       </td>}
 
                       {/* 7. Acciones: WhatsApp, Correo, Editar, Renovar, Eliminar */}
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="grid grid-cols-3 items-center justify-items-center gap-1">
+                      <td className="text-right">
+                        <div className="ui-table-actions whitespace-nowrap">
                           {showPrices && <button
                             type="button"
                             onClick={() => handleNotifyWhatsApp(svc)}
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                            className="ui-icon-button cursor-pointer"
                             aria-label="Notificar renovación por WhatsApp" title="Notificar renovación por WhatsApp"
                           >
-                            <MessageCircle className="w-4 h-4" />
+                            <MessageCircle aria-hidden="true" />
                           </button>}
 
                           {showPrices && <button
                             type="button"
                             onClick={() => handleNotifyEmail(svc)}
-                            className="p-1.5 text-[#004ac6] hover:bg-[#eff4ff] rounded-lg transition cursor-pointer"
-                            aria-label="Notificar renovación por Correo Electrónico" title="Notificar renovación por Correo Electrónico"
+                            className="ui-icon-button cursor-pointer"
+                            aria-label="Notificar renovación por correo electrónico" title="Notificar renovación por correo electrónico"
                           >
-                            <Mail className="w-4 h-4" />
+                            <Mail aria-hidden="true" />
                           </button>}
 
                           {canEditPrices && <ActionIconButton action="edit" type="button" onClick={() => handleOpenEditService(svc)} aria-label="Editar nombre, descripción o tarifa del servicio" title="Editar nombre, descripción o tarifa del servicio" />}
@@ -1733,11 +1702,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                           <button
                             type="button"
                             onClick={() => handleRenewService(svc)}
-                            className="col-span-2 w-full justify-center px-1 py-1 text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            className="ui-icon-button cursor-pointer"
                             aria-label="Renovar por +1 periodo y activar servicio" title="Renovar por +1 periodo y activar servicio"
                           >
-                            <RefreshCw className="w-3 h-3" />
-                            <span>Renovar</span>
+                            <RefreshCw aria-hidden="true" />
                           </button>
 
                           <ActionIconButton action="delete" type="button" onClick={() =>

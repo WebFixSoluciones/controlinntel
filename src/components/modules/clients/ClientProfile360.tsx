@@ -987,6 +987,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50">
               <div
                 ref={accountStatementPrintRef}
+                data-document-preview
                 className="bg-white p-8 rounded-xl border border-slate-200 shadow-2xs space-y-6 print:border-none print:shadow-none print:p-0"
               >
                 {/* Header con Membrete */}
@@ -1204,6 +1205,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
             <div className="p-6 bg-slate-50/50">
               <div
                 ref={receiptPrintRef}
+                data-document-preview
                 className="bg-white p-6 rounded-xl border border-slate-200 space-y-4 text-xs font-mono"
               >
                 <div className="text-center pb-3 border-b border-dashed border-slate-300 space-y-1">

@@ -14,14 +14,20 @@ import {
   Briefcase,
   Plus,
   Search,
-  Filter,
-  Eye,
   Trash2,
-  Calendar,
   TrendingUp,
   RefreshCw,
   ExternalLink,
 } from "lucide-react";
+
+const statusLabels: Record<ProjectStatus, string> = {
+  inicio: "Inicio / planeado",
+  en_proceso: "En proceso",
+  revision: "En revisión",
+  terminado: "Terminado",
+  en_pausa: "En pausa",
+  cancelado: "Cancelado",
+};
 
 export function ProjectsManager() {
   const {
@@ -111,16 +117,6 @@ export function ProjectsManager() {
     return { total, enProceso, enRevision, terminados, totalPresupuesto, totalEjecutado };
   }, [activeProjects, clientProjects]);
 
-  // Status Badge styling helper
-  const statusStyles: Record<ProjectStatus, { bg: string; text: string; border: string; label: string }> = {
-    inicio: { bg: "bg-slate-100", text: "text-slate-700", border: "border-slate-300", label: "Inicio / Planeado" },
-    en_proceso: { bg: "bg-blue-100", text: "text-blue-800", border: "border-blue-300", label: "En Proceso" },
-    revision: { bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-300", label: "En Revisión" },
-    terminado: { bg: "bg-emerald-100", text: "text-emerald-800", border: "border-emerald-300", label: "Terminado" },
-    en_pausa: { bg: "bg-purple-100", text: "text-purple-800", border: "border-purple-300", label: "En Pausa" },
-    cancelado: { bg: "bg-rose-100", text: "text-rose-800", border: "border-rose-300", label: "Cancelado" },
-  };
-
   // Handlers
   const handleOpenCreateProject = () => {
     setProjectToEdit(null);
@@ -140,7 +136,7 @@ export function ProjectsManager() {
   const handleStatusChange = async (projectId: string, newStatus: ProjectStatus) => {
     try {
       await updateProject(projectId, { status: newStatus });
-      showSuccess("Estado Actualizado", "El estado del proyecto se ha modificado correctamente.");
+      showSuccess("Estado actualizado", "El estado del proyecto se ha modificado correctamente.");
     } catch {
       showError("Error", "No se pudo actualizar el estado del proyecto.");
     }
@@ -148,12 +144,12 @@ export function ProjectsManager() {
 
   const handleDeleteProject = (project: Project) => {
     showConfirm(
-      "¿Enviar Proyecto a la Papelera?",
+      "¿Enviar proyecto a la papelera?",
       `El proyecto "${project.title}" se moverá a la papelera de reciclaje. Podrás restaurarlo o purgarlo definitivamente en cualquier momento.`,
       async () => {
         try {
           await deleteProject(project.id);
-          showSuccess("Proyecto en Papelera", `"${project.title}" ha sido enviado a la papelera.`);
+          showSuccess("Proyecto en papelera", `"${project.title}" ha sido enviado a la papelera.`);
           if (selectedProjectId === project.id) {
             setSelectedProjectId(null);
           }
@@ -161,7 +157,7 @@ export function ProjectsManager() {
           showError("Error", "No se pudo mover el proyecto a la papelera.");
         }
       },
-      "Mover a Papelera"
+      "Mover a papelera"
     );
   };
 
@@ -177,129 +173,121 @@ export function ProjectsManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-3">
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyectos</div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{kpis.total}</span>
-            <span className="text-xs text-slate-400 font-medium">activos</span>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="ui-kpi">
+          <div className="ui-kpi-label">Total de proyectos</div>
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="ui-kpi-value">{kpis.total}</span>
+            <span className="ui-kpi-detail">activos</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Proceso</div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-600">{kpis.enProceso}</span>
-            <span className="text-xs text-blue-500 font-medium">en ejecución</span>
+        <div className="ui-kpi">
+          <div className="ui-kpi-label">En proceso</div>
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="ui-kpi-value">{kpis.enProceso}</span>
+            <span className="ui-kpi-detail">en ejecución</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">En Revisión</div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-600">{kpis.enRevision}</span>
-            <span className="text-xs text-amber-500 font-medium">supervisión</span>
+        <div className="ui-kpi">
+          <div className="ui-kpi-label">En revisión</div>
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="ui-kpi-value">{kpis.enRevision}</span>
+            <span className="ui-kpi-detail">supervisión</span>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Terminados</div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">{kpis.terminados}</span>
-            <span className="text-xs text-emerald-600 font-medium">finalizados</span>
+        <div className="ui-kpi">
+          <div className="ui-kpi-label">Terminados</div>
+          <div className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="ui-kpi-value">{kpis.terminados}</span>
+            <span className="ui-kpi-detail">finalizados</span>
           </div>
         </div>
       </div>
 
       {/* Filter, Search Bar & Actions */}
-      <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="ui-toolbar flex flex-wrap items-center justify-between">
+        <div className="relative min-w-[13rem] max-w-md grow">
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" aria-hidden="true" />
           <input
             type="text"
+            aria-label="Buscar proyectos"
             placeholder="Buscar por nombre de proyecto, cliente o POP..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+            className="ui-cell-control w-full !pl-7"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filtros:</span>
-          </div>
-
+        <div className="flex flex-wrap items-center gap-1.5">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
+            aria-label="Filtrar proyectos por estado"
+            className="ui-cell-control"
           >
-            <option value="todos">Estado: Todos</option>
-            <option value="inicio">Inicio / Planeado</option>
-            <option value="en_proceso">En Proceso</option>
-            <option value="revision">En Revisión</option>
-            <option value="terminado">Terminado</option>
-            <option value="en_pausa">En Pausa</option>
-            <option value="cancelado">Cancelado</option>
+            <option value="todos">Todos los estados</option>
+            {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
 
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:border-[#004ac6] transition-all cursor-pointer"
+            aria-label="Filtrar proyectos por tipo"
+            className="ui-cell-control"
           >
-            <option value="todos">Tipo: Todos</option>
-            <option value="cliente">Asignado a Clientes</option>
-            <option value="infraestructura_interna">POP / Infraestructura</option>
+            <option value="todos">Todos los tipos</option>
+            <option value="cliente">Asignado a clientes</option>
+            <option value="infraestructura_interna">POP / infraestructura</option>
           </select>
 
-          <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
-
-          {/* Botones de Acción: Papelera y Nuevo Proyecto */}
           <button
+            type="button"
             onClick={() => setIsTrashModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 transition-all cursor-pointer shadow-2xs"
-            title="Papelera de reciclaje de proyectos eliminados"
+            className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap border border-slate-200 bg-white px-2 text-[11px] font-semibold text-[#004ac6] hover:bg-blue-50"
+            title="Papelera de proyectos eliminados"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="size-3.5" aria-hidden="true" />
             <span>Papelera</span>
           </button>
 
           <button
+            type="button"
             disabled={!canRoleAction(currentUser,"proyectos","canCreateProject")}
             onClick={handleOpenCreateProject}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#004ac6] text-white text-xs font-bold hover:bg-[#003da6] transition-all cursor-pointer shadow-xs"
+            className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap bg-[#004ac6] px-2 text-[11px] font-semibold text-white hover:bg-[#003da6] disabled:opacity-40"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Nuevo Proyecto</span>
+            <Plus className="size-3.5" aria-hidden="true" />
+            <span>Nuevo proyecto</span>
           </button>
         </div>
       </div>
 
       {/* Master Projects Table */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="ui-table-scroll" role="region" aria-label="Lista de proyectos" tabIndex={0}>
+          <table className="table-fixed w-full min-w-[56rem] border-collapse text-left">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3.5 px-4 w-[22%]">Nombre del Proyecto</th>
-                <th className="py-3.5 px-4 w-[18%]">Cliente Asignado</th>
-                <th className="py-3.5 px-4 w-[10%]">Fecha Inicio</th>
-                <th className="py-3.5 px-4 w-[10%]">Fecha Fin</th>
-                <th className="py-3.5 px-4 w-[13%]">Tareas Globales</th>
-                <th className="py-3.5 px-4 w-[10%]">Presupuesto</th>
-                <th className="py-3.5 px-4 w-[10%]">Estado</th>
-                <th className="py-3.5 px-4 w-[7%] text-right">Acciones</th>
+                <th scope="col">Nombre del proyecto</th>
+                <th scope="col" className="w-[19%]">Cliente asignado</th>
+                <th scope="col" className="w-[5rem]">Fecha de inicio</th>
+                <th scope="col" className="w-[5rem]">Fecha de fin</th>
+                <th scope="col" className="w-[5rem]">Tareas globales</th>
+                <th scope="col" className="w-[6rem] text-right">Presupuesto</th>
+                <th scope="col" className="w-[7.5rem]">Estado</th>
+                <th scope="col" className="w-[11rem] text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-medium">
+            <tbody className="divide-y divide-slate-100">
               {filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-xs text-slate-400">
-                    <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <td colSpan={8} className="!py-8 text-center">
+                    <Briefcase className="mx-auto mb-1 size-5 text-slate-400" aria-hidden="true" />
                     No se encontraron proyectos activos con los criterios seleccionados.
                   </td>
                 </tr>
@@ -319,115 +307,70 @@ export function ProjectsManager() {
                   ).length;
                   const taskPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-                  const curStatus = statusStyles[p.status] || statusStyles.inicio;
+                  const clientLabel = p.type === "cliente"
+                    ? (p.clientName || "Cliente sin asignar")
+                    : (p.nodeName || "POP / nodo interno");
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="hover:bg-slate-50/70 transition-colors group"
-                    >
-                      {/* 1. Nombre de Proyecto (sin icono, solo título y fases) */}
-                      <td className="py-4 px-4">
-                        <div>
-                          <button
-                            onClick={() => setSelectedProjectId(p.id)}
-                            className="font-bold text-slate-900 hover:text-[#004ac6] text-left transition-colors cursor-pointer text-xs flex items-center gap-1.5"
-                          >
-                            <span>{p.title}</span>
-                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-[#004ac6]" />
-                          </button>
-                          <div className="mt-1">
-                            <span className="inline-block text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                              {p.columns.length} fases canva
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 2. Cliente Asignado (sin icono) */}
-                      <td className="py-4 px-4">
-                        <span className="text-slate-800 font-bold block truncate max-w-[200px]">
-                          {p.type === "cliente" ? (p.clientName || "Cliente No Asignado") : (p.nodeName || "POP / Nodo Interno")}
-                        </span>
-                      </td>
-
-                      {/* 3. Fecha Inicio */}
-                      <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{p.startDate}</span>
-                        </div>
-                      </td>
-
-                      {/* 4. Fecha Fin */}
-                      <td className="py-4 px-4 font-mono text-[11px] text-slate-600">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{p.endDate}</span>
-                        </div>
-                      </td>
-
-                      {/* 5. Tareas Globales (Píldora minimalista) */}
-                      <td className="py-4 px-4">
-                        <div
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                            totalTasks === 0
-                              ? "bg-slate-100 text-slate-500 border-slate-200"
-                              : completedTasks === totalTasks
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-blue-50 text-[#004ac6] border-blue-200"
-                          }`}
+                    <tr key={p.id} className="hover:bg-[#f8f9ff]">
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProjectId(p.id)}
+                          className="group inline-flex max-w-full items-center gap-1 text-left hover:underline"
+                          title={p.title}
                         >
-                          <span className="font-bold">{completedTasks}/{totalTasks}</span>
-                          <span className="text-[10px] opacity-75">tareas</span>
-                          {totalTasks > 0 && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/80 shadow-2xs">
-                              {taskPercent}%
-                            </span>
-                          )}
-                        </div>
+                          <span className="truncate">{p.title}</span>
+                          <ExternalLink className="size-3 shrink-0 text-[#004ac6] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true" />
+                        </button>
+                        <span className="ui-cell-meta block">{p.columns.length} fases canva</span>
                       </td>
 
-                      {/* 6. Presupuesto (sin costo) */}
-                      <td className="py-4 px-4 font-mono text-xs text-slate-800 font-bold">
+                      <td>
+                        <span className="block truncate" title={clientLabel}>{clientLabel}</span>
+                      </td>
+
+                      <td className="whitespace-nowrap tabular-nums">{p.startDate}</td>
+                      <td className="whitespace-nowrap tabular-nums">{p.endDate}</td>
+
+                      <td className="tabular-nums">
+                        <span className="block">{completedTasks}/{totalTasks} tareas</span>
+                        {totalTasks > 0 && <span className="ui-cell-meta block">{taskPercent}%</span>}
+                      </td>
+
+                      <td className="text-right tabular-nums [overflow-wrap:anywhere]">
                         {showFinancialAmounts ? `$${(p.estimatedBudget || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "—"}
                       </td>
 
-                      {/* 7. Estado del Proyecto */}
-                      <td className="py-4 px-4">
-                        <div className="relative inline-block">
-                          <select
-                            value={p.status}
-                            onChange={(e) => handleStatusChange(p.id, e.target.value as ProjectStatus)}
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-hidden transition-all ${curStatus.bg} ${curStatus.text} ${curStatus.border}`}
-                          >
-                            <option value="inicio">Inicio / Planeado</option>
-                            <option value="en_proceso">En Proceso</option>
-                            <option value="revision">En Revisión</option>
-                            <option value="terminado">Terminado</option>
-                            <option value="en_pausa">En Pausa</option>
-                            <option value="cancelado">Cancelado</option>
-                          </select>
-                        </div>
+                      <td>
+                        <select
+                          value={p.status}
+                          onChange={(e) => handleStatusChange(p.id, e.target.value as ProjectStatus)}
+                          aria-label={`Estado del proyecto ${p.title}`}
+                          className="ui-cell-control w-full"
+                        >
+                          {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                        </select>
                       </td>
 
-                      {/* 8. Iconos de Acciones Solicitados */}
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* 👁️ Ver Proyecto */}
-                          <button
+                      <td className="text-right">
+                        <div className="ui-table-actions">
+                          <ActionIconButton
+                            action="view"
                             onClick={() => setSelectedProjectId(p.id)}
-                            title="Ver Canva del Proyecto"
-                            className="p-1.5 text-slate-500 hover:text-[#004ac6] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                            title="Ver canva del proyecto"
+                            label={`Ver proyecto ${p.title}`}
+                          />
+                          <ActionIconButton
+                            action="edit"
+                            disabled={!canRoleAction(currentUser,"proyectos","canEditProject")}
+                            onClick={() => handleOpenEditProject(p)}
+                            title="Editar datos del proyecto"
+                            label={`Editar proyecto ${p.title}`}
+                          />
 
-                          {/* ✏️ Editar Proyecto */}
-                          <ActionIconButton action="edit" disabled={!canRoleAction(currentUser,"proyectos","canEditProject")} onClick={() => handleOpenEditProject(p)} title="Editar Datos del Proyecto" />
-
-                          {/* 🔄 Cambiar Estado */}
                           <button
+                            type="button"
                             onClick={() => {
                               // Quick cycle status
                               const flow: ProjectStatus[] = ["inicio", "en_proceso", "revision", "terminado"];
@@ -435,23 +378,30 @@ export function ProjectsManager() {
                               const nextStatus = flow[(currentIndex + 1) % flow.length];
                               handleStatusChange(p.id, nextStatus);
                             }}
-                            title="Avanzar Estado Rápido"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                            title="Avanzar estado"
+                            aria-label={`Avanzar estado del proyecto ${p.title}`}
+                            className="ui-icon-button"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw aria-hidden="true" strokeWidth={1.8} />
                           </button>
 
-                          {/* 📊 Ver Diagrama de Proyecto (Gantt) */}
                           <button
+                            type="button"
                             onClick={() => handleOpenGantt(p)}
-                            title="Ver Diagrama de Fechas y Cronograma"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                            title="Ver cronograma"
+                            aria-label={`Ver cronograma del proyecto ${p.title}`}
+                            className="ui-icon-button"
                           >
-                            <TrendingUp className="w-4 h-4" />
+                            <TrendingUp aria-hidden="true" strokeWidth={1.8} />
                           </button>
 
-                          {/* 🗑️ Eliminar Proyecto (Envía a Papelera) */}
-                          <ActionIconButton action="delete" disabled={!canRoleAction(currentUser,"proyectos","canDeleteProject")} onClick={() => handleDeleteProject(p)} title="Enviar Proyecto a Papelera" />
+                          <ActionIconButton
+                            action="delete"
+                            disabled={!canRoleAction(currentUser,"proyectos","canDeleteProject")}
+                            onClick={() => handleDeleteProject(p)}
+                            title="Enviar proyecto a papelera"
+                            label={`Enviar proyecto ${p.title} a papelera`}
+                          />
                         </div>
                       </td>
                     </tr>

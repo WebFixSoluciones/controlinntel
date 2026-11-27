@@ -10,11 +10,11 @@ import { api } from "@/lib/api-client";
 import { isClosedTicketStatus } from "@/lib/ticket-status";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
-import { Ticket, TicketStatus } from "@/types";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { Ticket, TicketPriority, TicketStatus } from "@/types";
 import {
   Plus,
   Search,
-  Eye,
   MessageSquare,
   Lock,
   Headphones,
@@ -27,6 +27,22 @@ import { TicketSubjectsModal } from "./TicketSubjectsModal";
 interface TicketsBoardProps {
   onOpenNewModal: () => void;
 }
+
+const statusFilters = [
+  { value: "todos", label: "Todos" },
+  { value: "abiertos", label: "Abiertos" },
+  { value: "en_progreso", label: "En progreso" },
+  { value: "respondido", label: "Respondidos" },
+  { value: "en_espera", label: "En espera" },
+  { value: "resueltos", label: "Resueltos" },
+];
+
+const priorityLabels: Record<TicketPriority, string> = {
+  critica: "Crítica",
+  alta: "Alta",
+  media: "Media",
+  baja: "Baja",
+};
 
 export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   const { tickets, updateTicketStatus, ticketDepartments, currentUser, refresh } = useApp();
@@ -134,101 +150,51 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
   }
 
   return (
-    <div className="w-full space-y-6 animate-in fade-in duration-200">
-      {/* 1. WHMCS Filter and Action Bar */}
-      <div className="bg-white rounded-xl p-4 border border-[#e2e8f0] shadow-2xs space-y-3.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Status Tabs (WHMCS Style) */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0]">
-            <button
-              onClick={() => setFilterStatus("todos")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "todos"
-                  ? "bg-white text-[#004ac6] shadow-xs"
-                  : "text-[#434655] hover:text-[#0b1c30]"
-              }`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setFilterStatus("abiertos")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "abiertos"
-                  ? "bg-rose-600 text-white shadow-xs"
-                  : "text-[#434655] hover:text-rose-700"
-              }`}
-            >
-              Abiertos
-            </button>
-            <button
-              onClick={() => setFilterStatus("en_progreso")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "en_progreso"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-[#434655] hover:text-blue-700"
-              }`}
-            >
-              En Progreso
-            </button>
-            <button
-              onClick={() => setFilterStatus("respondido")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "respondido"
-                  ? "bg-purple-600 text-white shadow-xs"
-                  : "text-[#434655] hover:text-purple-700"
-              }`}
-            >
-              Respondidos
-            </button>
-            <button
-              onClick={() => setFilterStatus("en_espera")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "en_espera"
-                  ? "bg-amber-600 text-white shadow-xs"
-                  : "text-[#434655] hover:text-amber-700"
-              }`}
-            >
-              En Espera
-            </button>
-            <button
-              onClick={() => setFilterStatus("resueltos")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterStatus === "resueltos"
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "text-[#434655] hover:text-emerald-700"
-              }`}
-            >
-              Resueltos
-            </button>
+    <div className="min-w-0 space-y-3">
+      <div className="ui-toolbar flex flex-col items-stretch">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-slate-200 bg-[#f8f9ff] p-0.5" role="group" aria-label="Filtrar tickets por estado">
+            {statusFilters.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilterStatus(value)}
+                aria-pressed={filterStatus === value}
+                className="soft-nav-item px-2 py-1 text-[11px] font-semibold"
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {currentUser.role === "superadmin" && tickets.some(ticket => !/^TK-\d{3,}$/.test(ticket.ticketNumber)) &&
               <button type="button" disabled={numbering} onClick={numberPreviousTickets}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#004ac6]">
+                className="min-h-7 whitespace-nowrap border border-slate-200 bg-white px-2 text-[11px] font-semibold text-[#004ac6] hover:bg-blue-50 disabled:opacity-40">
                 {numbering ? "Numerando…" : "Numerar anteriores"}
               </button>}
             {canManageTicketDepartments(currentUser) && <button type="button" onClick={() => setDepartmentsOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-[#004ac6]">
-              <Building2 className="h-4 w-4" /> Departamentos
+              className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap border border-slate-200 bg-white px-2 text-[11px] font-semibold text-[#004ac6] hover:bg-blue-50">
+              <Building2 className="size-3.5" aria-hidden="true" /> Departamentos
             </button>}
             <button
               type="button"
               onClick={() => setIsSubjectsOpen(true)}
               disabled={!canRoleAction(currentUser,"tickets","canManageSubjects")}
-              className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-[#004ac6] border border-blue-200 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+              className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap border border-slate-200 bg-white px-2 text-[11px] font-semibold text-[#004ac6] hover:bg-blue-50 disabled:opacity-40"
               title="Configurar los asuntos disponibles al crear tickets"
             >
-              <ListChecks className="w-4 h-4" />
+              <ListChecks className="size-3.5" aria-hidden="true" />
               <span>Asuntos</span>
             </button>
             <button
+              type="button"
               onClick={onOpenNewModal}
               disabled={!canRoleAction(currentUser,"tickets","canCreateTicket")}
-              className="flex items-center gap-2 px-4 py-2 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer whitespace-nowrap"
+              className="inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap bg-[#004ac6] px-2 text-[11px] font-semibold text-white hover:bg-[#003da6] disabled:opacity-40"
             >
-              <Plus className="w-4 h-4" />
-              <span>Abrir Ticket</span>
+              <Plus className="size-3.5" aria-hidden="true" />
+              <span>Abrir ticket</span>
             </button>
           </div>
         </div>
@@ -236,16 +202,17 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
         <TicketSubjectsModal isOpen={isSubjectsOpen} onClose={() => setIsSubjectsOpen(false)} />
 
         {/* Filter Inputs Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
           {/* Search Box */}
           <div className="relative">
-            <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" aria-hidden="true" />
             <input
               type="text"
+              aria-label="Buscar tickets"
               placeholder="Buscar por ticket #, cliente o falla..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#0b1c30] placeholder-[#737686] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all"
+              className="ui-cell-control w-full !pl-7"
             />
           </div>
 
@@ -253,9 +220,10 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           <select
             value={filterDepartment}
             onChange={(e) => setFilterDepartment(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            aria-label="Filtrar tickets por departamento"
+            className="ui-cell-control w-full"
           >
-            <option value="todos">Todos los Departamentos</option>
+            <option value="todos">Todos los departamentos</option>
             {ticketDepartments.map(row => <option key={row.id} value={row.id}>{row.name}{row.active ? "" : " (inactivo)"}</option>)}
           </select>
 
@@ -263,22 +231,24 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            aria-label="Filtrar tickets por prioridad SLA"
+            className="ui-cell-control w-full"
           >
-            <option value="todas">Todas las Prioridades SLA</option>
-            <option value="critica">Crítica (SLA Inmediato)</option>
-            <option value="alta">Alta</option>
-            <option value="media">Media</option>
-            <option value="baja">Baja</option>
+            <option value="todas">Todas las prioridades SLA</option>
+            <option value="critica">{priorityLabels.critica} (SLA inmediato)</option>
+            <option value="alta">{priorityLabels.alta}</option>
+            <option value="media">{priorityLabels.media}</option>
+            <option value="baja">{priorityLabels.baja}</option>
           </select>
 
           {/* Assignee Filter */}
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
-            className="w-full text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] bg-[#f8f9ff] text-[#434655] focus:bg-white focus:outline-hidden focus:border-[#004ac6] transition-all font-medium"
+            aria-label="Filtrar tickets por asignado"
+            className="ui-cell-control w-full"
           >
-            <option value="todos">Todos los Asignados</option>
+            <option value="todos">Todos los asignados</option>
             {distinctAssignees.map((a) => (
               <option key={a} value={a}>
                 {a}
@@ -289,31 +259,31 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
       </div>
 
       {/* 2. Tickets Table */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="ui-table-scroll" role="region" aria-label="Lista de tickets" tabIndex={0}>
+          <table className="table-fixed w-full min-w-[56rem] border-collapse text-left">
+            <thead className="bg-[#f8f9ff] text-[#004ac6] border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-4 font-bold w-1/12">N° Ticket</th>
-                <th className="py-3 px-4 font-bold w-2/12">Incidencia / Asunto</th>
-                <th className="py-3 px-4 font-bold w-2/12">Cliente</th>
-                <th className="py-3 px-4 font-bold w-1/12">Departamento</th>
-                <th className="py-3 px-4 font-bold w-1/12">Asignado a</th>
-                <th className="py-3 px-4 font-bold text-center w-1/12">Prioridad SLA</th>
-                <th className="py-3 px-4 font-bold text-center w-1/12">Estado</th>
-                <th className="py-3 px-4 font-bold text-right w-1/12">Fecha</th>
-                <th className="py-3 px-4 font-bold text-center w-1/12">Asistencia</th>
-                <th className="py-3 px-4 font-bold text-right w-1/12">Acción</th>
+                <th scope="col" className="w-[5.25rem]">N.º de ticket</th>
+                <th scope="col">Incidencia / asunto</th>
+                <th scope="col" className="w-[14%]">Cliente</th>
+                <th scope="col" className="w-[6rem]">Departamento</th>
+                <th scope="col" className="w-[6rem]">Asignado a</th>
+                <th scope="col" className="w-[5rem] text-center">Prioridad SLA</th>
+                <th scope="col" className="w-[6.5rem]">Estado</th>
+                <th scope="col" className="w-[4.5rem] text-right">Fecha</th>
+                <th scope="col" className="w-[4.75rem] text-center">Asistencia</th>
+                <th scope="col" className="w-[4rem] text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e8f0] text-[#0b1c30]">
+            <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-xs text-[#737686]">
-                    <Headphones className="w-10 h-10 mx-auto mb-2 text-[#cbd5e1]" />
-                    <p className="font-semibold text-[#434655]">No se encontraron tickets de soporte</p>
-                    <p className="text-[11px] text-[#737686] mt-0.5">
-                      Ajusta los filtros de búsqueda o haz clic en &quot;Abrir Ticket&quot; para registrar una nueva solicitud.
+                  <td colSpan={10} className="!py-8 text-center">
+                    <Headphones className="mx-auto mb-1 size-5 text-slate-400" aria-hidden="true" />
+                    <p>No se encontraron tickets de soporte</p>
+                    <p className="ui-cell-meta mt-1">
+                      Ajusta los filtros de búsqueda o haz clic en «Abrir ticket» para registrar una nueva solicitud.
                     </p>
                   </td>
                 </tr>
@@ -321,106 +291,92 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                 filtered.map((t) => {
                   const msgCount = (t.messages || []).length;
                   const internalCount = (t.messages || []).filter((m) => m.isInternal).length;
+                  const department = departmentLabel(ticketDepartments, t.department);
+                  const assignee = t.assignedToName || "NOC central";
 
                   return (
-                    <tr key={t.id} className="hover:bg-[#f8f9ff] transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-[#004ac6] whitespace-nowrap">
+                    <tr key={t.id} className="hover:bg-[#f8f9ff]">
+                      <td className="tabular-nums">
                         <button
+                          type="button"
                           onClick={() => setSelectedTicketId(t.id)}
-                          className="hover:underline cursor-pointer"
+                          className="text-left hover:underline [overflow-wrap:anywhere]"
                         >
                           {t.ticketNumber}
                         </button>
                       </td>
-                      <td className="py-3 px-4 max-w-xs">
+                      <td>
                         <button
+                          type="button"
                           onClick={() => setSelectedTicketId(t.id)}
-                          className="font-bold text-[#0b1c30] text-left hover:text-[#004ac6] line-clamp-1 cursor-pointer block"
+                          title={t.title}
+                          className="block max-w-full truncate text-left hover:underline"
                         >
                           {t.title}
                         </button>
-                        <div className="text-[11px] text-[#737686] line-clamp-1">{t.description}</div>
+                        <div className="ui-cell-meta truncate" title={t.description}>{t.description}</div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-[#0b1c30] line-clamp-1">{t.clientName}</div>
-                        {t.nodeName && <div className="text-[10px] text-[#737686] line-clamp-1">{t.nodeName}</div>}
+                      <td>
+                        <div className="truncate" title={t.clientName}>{t.clientName}</div>
+                        {t.nodeName && <div className="ui-cell-meta truncate" title={t.nodeName}>{t.nodeName}</div>}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
-                          {departmentLabel(ticketDepartments, t.department)}
-                        </span>
+                      <td>
+                        <span className="block truncate" title={department}>{department}</span>
                       </td>
-                      <td className="py-3 px-4 text-[#434655] font-medium whitespace-nowrap">
-                        {t.assignedToName || "NOC Central"}
+                      <td>
+                        <span className="block truncate" title={assignee}>{assignee}</span>
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            t.priority === "critica"
-                              ? "bg-rose-100 text-rose-800 border border-rose-200"
-                              : t.priority === "alta"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
-                              : "bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]"
-                          }`}
-                        >
-                          {t.priority}
-                        </span>
+                      <td className="text-center">
+                        <span className="ui-badge">{priorityLabels[t.priority] || t.priority}</span>
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td>
                         <select
                           value={t.status}
                           onChange={(e) => void handleStatusChange(t, e.target.value as TicketStatus)}
                           aria-label={`Estado del ticket ${t.ticketNumber}`}
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-bold cursor-pointer transition-colors ${
-                            t.status === "abierto"
-                              ? "bg-rose-50 border-rose-200 text-rose-700"
-                              : t.status === "en_progreso"
-                              ? "bg-blue-50 border-blue-200 text-blue-700"
-                              : t.status === "respondido"
-                              ? "bg-purple-50 border-purple-200 text-purple-700"
-                              : t.status === "en_espera"
-                              ? "bg-amber-50 border-amber-200 text-amber-700"
-                              : "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          }`}
+                          className="ui-cell-control w-full"
                         >
                           <option value="abierto">Abierto</option>
-                          <option value="en_progreso">En Progreso</option>
+                          <option value="en_progreso">En progreso</option>
                           <option value="respondido">Respondido</option>
-                          <option value="en_espera">En Espera</option>
+                          <option value="en_espera">En espera</option>
                           {isClosedTicketStatus(t.status) && <option value={t.status} disabled>{t.status === "resuelto" ? "Resuelto" : "Cerrado"}</option>}
                         </select>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-[11px] text-[#737686] whitespace-nowrap">
+                      <td className="whitespace-nowrap text-right tabular-nums">
                         {new Date(t.createdAt).toLocaleDateString("es-EC")}
                       </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5 text-xs text-[#737686]">
+                      <td className="text-center">
+                        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 tabular-nums">
                           <span
-                            className="flex items-center gap-0.5 text-[11px] font-bold text-[#434655]"
+                            className="inline-flex items-center gap-0.5"
                             title="Total de respuestas en el ticket"
                           >
-                            <MessageSquare className="w-3 h-3 text-[#737686]" />
+                            <MessageSquare className="size-3" aria-hidden="true" />
+                            <span className="sr-only">Respuestas</span>
                             {msgCount}
                           </span>
                           {internalCount > 0 && (
                             <span
-                              className="flex items-center gap-0.5 text-[10px] font-bold text-amber-700 bg-amber-100 px-1 rounded-md"
+                              className="ui-cell-meta inline-flex items-center gap-0.5"
                               title="Notas internas privadas"
                             >
-                              <Lock className="w-2.5 h-2.5" />
+                              <Lock className="size-2.5" aria-hidden="true" />
+                              <span className="sr-only">Notas internas</span>
                               {internalCount}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedTicketId(t.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#004ac6] bg-[#eff4ff] hover:bg-[#dce9ff] transition-colors cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Ver Asistencia</span>
-                        </button>
+                      <td className="text-right">
+                        <div className="ui-table-actions">
+                          <ActionIconButton
+                            action="view"
+                            onClick={() => setSelectedTicketId(t.id)}
+                            title="Ver asistencia"
+                            label={`Ver asistencia del ticket ${t.ticketNumber}`}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

@@ -436,28 +436,30 @@ export function FinanceDashboard({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       {/* VISTA 1: COBROS POR COMPROBANTE DE VENTA */}
       {activeTab === "comprobantes" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           {/* Barra de Filtros */}
-          <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#fcfdff]">
-            <div className="flex flex-wrap items-center gap-2.5 flex-1">
-              <div className="relative min-w-[240px]">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+          <div className="ui-toolbar border-b border-[#e2e8f0] flex flex-wrap items-center justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <div className="relative w-60 max-w-full">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  aria-label="Buscar comprobantes"
                   placeholder="Buscar Nro Comprobante, cliente o RUC..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#f8f9ff] text-xs text-slate-900 rounded-lg pl-8 pr-3 py-1.5 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="ui-cell-control w-full !pl-8"
                 />
               </div>
 
               <select
+                aria-label="Filtrar por tipo de comprobante"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-slate-700 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                className="ui-cell-control"
               >
                 <option value="todos">Todos los Comprobantes</option>
                 <option value="nota_venta">Notas de Venta</option>
@@ -465,9 +467,10 @@ export function FinanceDashboard({
               </select>
 
               <select
+                aria-label="Filtrar por estado del cobro"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg border border-[#e2e8f0] text-xs font-semibold text-slate-700 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                className="ui-cell-control"
               >
                 <option value="todos">Todos los Estados</option>
                 <option value="pendiente">Pendientes</option>
@@ -475,25 +478,25 @@ export function FinanceDashboard({
                 <option value="pagado">Pagados</option>
               </select>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-500">Desde:</span>
+              <label className="flex items-center gap-1.5">
+                <span>Desde</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="ui-cell-control"
                 />
-              </div>
+              </label>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-slate-500">Hasta:</span>
+              <label className="flex items-center gap-1.5">
+                <span>Hasta</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-slate-800 bg-[#f8f9ff] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                  className="ui-cell-control"
                 />
-              </div>
+              </label>
 
               {(startDate || endDate || searchQuery || statusFilter !== "todos" || typeFilter !== "todos") && (
                 <button
@@ -505,25 +508,25 @@ export function FinanceDashboard({
                     setStatusFilter("todos");
                     setTypeFilter("todos");
                   }}
-                  className="text-xs text-[#004ac6] hover:underline font-bold cursor-pointer"
+                  className="ui-cell-control cursor-pointer hover:text-[#004ac6]"
                 >
                   Limpiar filtros
                 </button>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               {canAccessSubmodule(currentUser, "finanzas", "reportes") && (
-                <Link href="/finanzas?sub=reportes&reporte=pagos" className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-[#004ac6] hover:bg-blue-50">
+                <Link href="/finanzas?sub=reportes&reporte=pagos" className="ui-cell-control inline-flex items-center hover:text-[#004ac6]">
                   Reporte de pagos
                 </Link>
               )}
               <button
                 type="button"
                 onClick={handleExportBatch}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-[#e2e8f0] rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+                className="ui-cell-control inline-flex items-center gap-1.5 cursor-pointer hover:text-[#004ac6]"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <FileSpreadsheet className="w-3.5 h-3.5" />
                 <span>Exportar cartera</span>
               </button>
 
@@ -536,24 +539,24 @@ export function FinanceDashboard({
                 className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Registrar Cobro</span>
+                <span>Registrar cobro</span>
               </button>
             </div>
           </div>
 
           {/* Tabla de Cobros */}
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left text-xs border-collapse">
-              <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+          <div className="ui-table-scroll" role="region" aria-label="Cobranzas" tabIndex={0}>
+            <table className="table-fixed w-full min-w-[48rem] text-left border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="w-[18%] py-3 px-4">Comprobante</th>
-                  <th className="w-[10%] py-3 px-3">Fecha Venta</th>
-                  <th className="w-[24%] py-3 px-4">Cliente / RUC</th>
-                  <th className="w-[10%] py-3 px-3 text-right">Total Venta</th>
-                  <th className="w-[10%] py-3 px-3 text-right">Abonado</th>
-                  <th className="w-[10%] py-3 px-3 text-right">Saldo Pend.</th>
-                  <th className="w-[9%] py-3 px-3 text-center">Estado</th>
-                  <th className="w-[9%] py-3 px-3 text-right">Acciones</th>
+                  <th scope="col" className="w-[20%] px-2 py-2">Comprobante</th>
+                  <th scope="col" className="w-20 px-2 py-2">Fecha de venta</th>
+                  <th scope="col" className="px-2 py-2">Cliente / RUC</th>
+                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Total de venta</th>
+                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Abonado</th>
+                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Saldo pendiente</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-center">Estado</th>
+                  <th scope="col" className="w-[calc(var(--ui-row-control)*4+28px)] px-2 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -601,105 +604,88 @@ export function FinanceDashboard({
                     return (
                       <tr key={charge.id} className="hover:bg-[#f8f9ff] transition-colors">
                         {/* Comprobante */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-mono font-bold text-slate-900 block">
+                        <td className="px-2 py-1.5">
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                            <span className="font-semibold tabular-nums [overflow-wrap:anywhere]">
                               {charge.invoiceNumber || "S/N"}
                             </span>
-                            <span
-                              className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-sm border ${
-                                isNotaVenta
-                                  ? "bg-purple-50 text-purple-700 border-purple-200"
-                                  : "bg-blue-50 text-blue-700 border-blue-200"
-                              }`}
-                            >
-                              {isNotaVenta ? "Nota Venta" : "Factura SRI"}
+                            <span className="ui-badge">
+                              {isNotaVenta ? "Nota de venta" : "Factura SRI"}
                             </span>
                           </div>
                           {charge.serviceDescription && (
-                            <span className="text-[10px] text-slate-500 truncate block mt-0.5 max-w-[220px]" title={charge.serviceDescription}>
+                            <span className="ui-cell-meta block truncate" title={charge.serviceDescription}>
                               {charge.serviceDescription}
                             </span>
                           )}
                         </td>
 
                         {/* Fecha Venta */}
-                        <td className="py-3 px-3 font-mono text-slate-600">
+                        <td className="px-2 py-1.5 tabular-nums whitespace-nowrap">
                           {charge.saleDate || charge.paymentDate || `${charge.year || 2026}-${String(charge.month || 1).padStart(2, "0")}-01`}
                         </td>
 
                         {/* Cliente / RUC */}
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block truncate" title={charge.clientName}>
+                        <td className="px-2 py-1.5">
+                          <span className="font-semibold block truncate" title={charge.clientName}>
                             {charge.clientName}
                           </span>
-                          <span className="text-[11px] font-mono text-slate-500">
+                          <span className="ui-cell-meta block">
                             {charge.clientRuc || "Consumidor Final"}
                           </span>
                           {clientAdvanceSum > 0 && !isPaid && !isCancelled && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-700 font-bold bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded mt-0.5">
-                              <Sparkles className="w-2.5 h-2.5" />
-                              Favor: ${safeNumber(clientAdvanceSum)}
+                            <span className="ui-cell-meta block">
+                              A favor: ${safeNumber(clientAdvanceSum)}
                             </span>
                           )}
                         </td>
 
                         {/* Total Venta */}
-                        <td className="py-3 px-3 text-right font-mono text-slate-700 font-semibold">
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                           ${safeNumber(charge.total)}
                         </td>
 
                         {/* Abonado */}
-                        <td className="py-3 px-3 text-right font-mono text-emerald-700 font-semibold">
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                           ${safeNumber(paid)}
                         </td>
 
                         {/* Saldo Pendiente */}
-                        <td className="py-3 px-3 text-right font-mono font-bold">
-                          <span className={balance > 0 ? "text-amber-700" : "text-slate-400"}>
-                            ${safeNumber(balance)}
-                          </span>
+                        <td className="px-2 py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">
+                          ${safeNumber(balance)}
                         </td>
 
                         {/* Estado */}
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                              isCancelled
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : isPaid
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : isPartial
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}
-                          >
+                        <td className="px-2 py-1.5 text-center">
+                          <span className="ui-badge">
                             {isCancelled ? "Anulado" : isPaid ? "Pagado" : isPartial ? "Parcial" : "Pendiente"}
                           </span>
                         </td>
 
                         {/* Acciones */}
-                        <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                        <td className="px-2 py-1.5 text-right">
+                          <div className="ui-table-actions">
                             {!isPaid && !isCancelled && (
                               <button
                                 type="button"
-                                title="Registrar Cobro / Abono"
+                                title="Registrar cobro / abono"
+                                aria-label="Registrar cobro / abono"
                                 onClick={() => setPayingCharge(charge)}
-                                className="p-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-md transition cursor-pointer shadow-xs"
+                                className="ui-icon-button"
                               >
-                                <CreditCard className="w-3.5 h-3.5" />
+                                <CreditCard aria-hidden="true" />
                               </button>
                             )}
 
                             {(charge.payments && charge.payments.length > 0) && (
                               <button
                                 type="button"
-                                title="Ver Historial de Abonos"
+                                title="Ver historial de abonos"
+                                aria-label="Ver historial de abonos"
                                 onClick={() => setHistoryCharge(charge)}
-                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition cursor-pointer"
+                                className="ui-icon-button"
                               >
-                                <History className="w-3.5 h-3.5" />
+                                <History aria-hidden="true" />
                               </button>
                             )}
 
@@ -726,15 +712,15 @@ export function FinanceDashboard({
       {/* VISTA 2: ANTICIPOS DE CLIENTES */}
       {activeTab === "anticipos" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="p-3.5 border-b border-[#e2e8f0] flex flex-wrap items-center justify-between gap-3 text-xs bg-[#fcfdff]">
-            <div className="relative min-w-[280px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+          <div className="ui-toolbar border-b border-[#e2e8f0] flex flex-wrap items-center justify-between">
+            <div className="relative w-72 max-w-full">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input aria-label="Buscar anticipo"
                 type="text"
                 placeholder="Buscar anticipo por cliente o RUC..."
                 value={advSearchQuery}
                 onChange={(e) => setAdvSearchQuery(e.target.value)}
-                className="w-full bg-[#f8f9ff] text-xs text-slate-900 rounded-lg pl-8 pr-3 py-1.5 border border-[#e2e8f0] focus:bg-white focus:outline-hidden focus:border-[#004ac6]"
+                className="ui-cell-control w-full !pl-8"
               />
             </div>
 
@@ -753,25 +739,25 @@ export function FinanceDashboard({
                 setIsAdvanceModalOpen(true);
                 setEditingAdvance(null);
               }}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#004ac6] hover:bg-[#003da6] text-white rounded-lg text-xs font-bold transition cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Registrar Anticipo</span>
+              <span>Registrar anticipo</span>
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[62rem] text-left text-xs border-collapse">
-              <thead className="bg-[#f8f9ff] text-amber-800 font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
+          <div className="ui-table-scroll" role="region" aria-label="Anticipos de clientes" tabIndex={0}>
+            <table className="table-fixed w-full min-w-[53rem] text-left border-collapse">
+              <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
                 <tr>
-                  <th className="w-2/12 py-3 px-4">Fecha Anticipo</th>
-                  <th className="w-3/12 py-3 px-4">Cliente / RUC</th>
-                  {showAdvanceMonths && <th scope="col" className="w-1/12 py-3 px-3 text-center">Meses</th>}
-                  <th className="w-1/12 py-3 px-3 text-right">Monto Inicial</th>
-                  <th className="w-1/12 py-3 px-3 text-right">Saldo Disponible</th>
-                  <th className="w-2/12 py-3 px-3">Método / Banco</th>
-                  <th className="w-1/12 py-3 px-3 text-center">Estado</th>
-                  <th className="w-[13rem] py-3 px-3 text-right">Acciones</th>
+                  <th scope="col" className="w-20 px-2 py-2">Fecha</th>
+                  <th scope="col" className="px-2 py-2">Cliente / RUC</th>
+                  {showAdvanceMonths && <th scope="col" className="w-12 px-2 py-2 text-center">Meses</th>}
+                  <th scope="col" className="w-20 px-2 py-2 text-right">Monto inicial</th>
+                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Saldo disponible</th>
+                  <th scope="col" className="w-[20%] px-2 py-2">Método / banco</th>
+                  <th scope="col" className="w-28 px-2 py-2 text-center">Estado</th>
+                  <th scope="col" className="w-[calc(var(--ui-row-control)*5+32px)] px-2 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -798,46 +784,36 @@ export function FinanceDashboard({
                     const dialogData = { advance: adv, ...origin, status: advanceLabel };
                     return (
                       <tr key={adv.id} className="hover:bg-[#f8f9ff] transition-colors">
-                        <td className="py-3 px-4 font-mono text-slate-600">{adv.date}</td>
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block truncate">{adv.clientName}</span>
-                          <span className="text-[11px] font-mono text-slate-500">{adv.clientRuc}</span>
+                        <td className="px-2 py-1.5 tabular-nums whitespace-nowrap">{adv.date}</td>
+                        <td className="px-2 py-1.5">
+                          <span className="font-semibold block truncate" title={adv.clientName}>{adv.clientName}</span>
+                          <span className="ui-cell-meta block">{adv.clientRuc}</span>
                         </td>
-                        {showAdvanceMonths && <td className="py-3 px-3 text-center tabular-nums">
+                        {showAdvanceMonths && <td className="px-2 py-1.5 text-center tabular-nums">
                           {adv.monthsCovered > 0 ? adv.monthsCovered : null}
                         </td>}
-                        <td className="py-3 px-3 text-right font-mono font-semibold text-slate-700">
+                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                           ${safeNumber(adv.amount)}
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-bold">
-                          <span className={adv.remaining > 0 ? "text-emerald-700" : "text-slate-400"}>
-                            ${safeNumber(adv.remaining)}
-                          </span>
-                          {wasRefunded && <span className="block text-[10px] font-normal text-rose-700 mt-1">Devuelto: ${safeNumber(adv.refundedAmount)}</span>}
+                        <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
+                          <span className="whitespace-nowrap">${safeNumber(adv.remaining)}</span>
+                          {wasRefunded && <span className="ui-cell-meta block">Devuelto: ${safeNumber(adv.refundedAmount)}</span>}
                         </td>
-                        <td className="py-3 px-3 text-[9px] font-normal leading-none text-[#000000] [overflow-wrap:anywhere]">
-                          <span className="block">{source?.paymentMethod || adv.method}</span>
-                          {bankName && <span className="block">{bankName}</span>}
-                          {reference && <span className="block">Ref: {reference}</span>}
-                          {adv.sourcePaymentId && <span className="block">
+                        <td className="px-2 py-1.5 [overflow-wrap:anywhere]">
+                          <span className="ui-cell-meta block">{source?.paymentMethod || adv.method}</span>
+                          {bankName && <span className="ui-cell-meta block">{bankName}</span>}
+                          {reference && <span className="ui-cell-meta block">Ref: {reference}</span>}
+                          {adv.sourcePaymentId && <span className="ui-cell-meta block">
                             {origin.originNumber ? `Origen ${origin.originNumber}` : "Saldo de un cobro revertido"}
                           </span>}
                         </td>
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
-                              isCancelled
-                                ? "bg-rose-50 text-rose-700 border-rose-200"
-                                : isAvailable
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-slate-100 text-slate-600 border-slate-200"
-                            }`}
-                          >
+                        <td className="px-2 py-1.5 text-center">
+                          <span className="ui-badge">
                             {advanceLabel}
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="px-2 py-1.5 text-right">
+                          <div className="ui-table-actions">
                             <ActionIconButton action="view" label={`Ver anticipo de ${adv.clientName}`} onClick={() => setAdvanceDetails({ ...dialogData, mode: "view" })} />
                             {!isCancelled && canEditAdvances && <ActionIconButton action="edit" label={`Editar anticipo de ${adv.clientName}`}
                               disabled={!canEdit} title={canEdit ? "Editar anticipo" : "El ingreso de origen requiere conciliación"}
@@ -849,14 +825,15 @@ export function FinanceDashboard({
                               <button
                                 type="button"
                                 title="Aplicar este anticipo a un cobro"
+                                aria-label="Aplicar este anticipo a un cobro"
                                 onClick={() => {
                                   setSelectedAdvanceToApply(adv);
                                   setAmountToApplyFromAdv(adv.remaining);
                                   setTargetChargeIdForAdvance("");
                                 }}
-                                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[11px] font-bold transition cursor-pointer"
+                                className="ui-icon-button"
                               >
-                                Aplicar
+                                <CreditCard aria-hidden="true" />
                               </button>
                             )}
 
@@ -873,9 +850,9 @@ export function FinanceDashboard({
                                       showError("Error", err instanceof Error ? err.message : "No se pudo registrar la devolución.");
                                     }
                                 }, "Registrar devolución")}
-                                className="p-1 text-rose-500 hover:text-rose-700 rounded transition cursor-pointer"
+                                className="ui-icon-button"
                               >
-                                <Undo2 className="w-3.5 h-3.5" />
+                                <Undo2 aria-hidden="true" />
                               </button>
                             )}
                           </div>

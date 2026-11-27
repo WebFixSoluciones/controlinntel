@@ -245,7 +245,7 @@ export function SalesManager() {
       {activeTab === "notas_venta" && (
         <div className="space-y-4">
           {/* Filters Bar Unificada con Botón de Acción */}
-          <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="ui-toolbar flex flex-wrap items-center justify-between border border-[#e2e8f0] bg-white">
             <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -442,7 +442,7 @@ export function SalesManager() {
       {activeTab === "cotizaciones" && (
         <div className="space-y-4">
           {/* Quotes Filter Bar Unificada con Botón de Acción */}
-          <div className="bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="ui-toolbar flex flex-wrap items-center justify-between border border-[#e2e8f0] bg-white">
             <div className="flex flex-1 items-center gap-3 min-w-[260px] flex-wrap sm:flex-nowrap">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-[#737686] absolute left-3 top-1/2 -translate-y-1/2" />

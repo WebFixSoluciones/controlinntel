@@ -348,7 +348,7 @@ function HeaderContent() {
 
 export function Header() {
   return (
-    <Suspense fallback={<header className="h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between" />}>
+    <Suspense fallback={<header className="app-header h-16 bg-white border-b border-[#e2e8f0] px-8 flex items-center justify-between" />}>
       <HeaderContent />
     </Suspense>
   );
