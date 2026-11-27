@@ -30,6 +30,7 @@ import {
   generateArcotelRenewalLetterDocx,
   triggerBrowserDownload,
 } from "@/lib/doc-generator";
+import { Badge } from "@/components/ui/Badge";
 
 
 const STORAGE_TEMPLATES_KEY = "inntel_custom_templates_v1";
@@ -448,9 +449,9 @@ export function TemplateGenerator() {
                         {replacement && <p className="mt-1 text-xs text-slate-500">{replacement.fileName} · v{replacement.version || 1}</p>}
                       </td>
                       <td className="py-3.5 px-4 w-3/12 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${tmpl.badgeBg}`}>
+                        <Badge className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${tmpl.badgeBg}`}>
                           {replacement ? getFileBadge(replacement.fileName).label : tmpl.format}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3.5 px-4 w-3/12 text-right whitespace-nowrap">
                         <button
@@ -519,16 +520,16 @@ export function TemplateGenerator() {
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-[#0b1c30] text-xs">{item.name}</p>
                           {currentVer > 1 && (
-                            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-blue-100 text-[#004ac6] border border-blue-200">
+                            <Badge className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-blue-100 text-[#004ac6] border border-blue-200">
                               v{currentVer}
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 w-2/12 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                        <Badge className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                           {item.category}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3.5 px-4 w-3/12">
                         <div className="flex items-center gap-2">
@@ -750,9 +751,9 @@ export function TemplateGenerator() {
                     </span>
                     <span className="text-slate-500 text-[10px]">({editingTemplate.fileSize})</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 shrink-0">
+                  <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-200 text-slate-700 shrink-0">
                     v{editingTemplate.version || 1}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 

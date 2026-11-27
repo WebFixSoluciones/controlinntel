@@ -11,6 +11,7 @@ import {
   Radio,
   Calendar,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ProjectTrashModalProps {
   isOpen: boolean;
@@ -93,12 +94,12 @@ export function ProjectTrashModal({ isOpen, onClose }: ProjectTrashModalProps) {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <strong className="text-xs text-slate-900">{p.title}</strong>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                    <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 uppercase">
                       {p.status}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
+                    <span className="ui-emphasis flex items-center gap-1">
                       {p.type === "cliente" ? <Building2 className="w-3 h-3 text-slate-400" /> : <Radio className="w-3 h-3 text-slate-400" />}
                       {p.type === "cliente" ? p.clientName : p.nodeName}
                     </span>

@@ -42,6 +42,7 @@ import { formatFinanceCategory } from "./FinanceDashboard";
 import { expenseCategoriesWithDefaults } from "@/lib/expense-categories";
 import { inReportPeriod, chargeReportDate, purchaseBalance, reportCashSeries } from "@/lib/company-reporting";
 import { CompanyReportsPanel } from "./CompanyReportsPanel";
+import { Badge } from "@/components/ui/Badge";
 
 type ReportTab = "resumen" | "cobranzas" | "gastos" | "cxc" | "cxp" | "bancos";
 
@@ -632,9 +633,9 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                     Relación entre ventas emitidas, cobros realizados y saldo pendiente
                   </p>
                 </div>
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-blue-50 text-[#004ac6] border border-blue-200">
+                <Badge className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-blue-50 text-[#004ac6] border border-blue-200">
                   {cobranzasMetrics.tasaEfectividad.toFixed(1)}% Cobrado
-                </span>
+                </Badge>
               </div>
 
               <div className="space-y-3">
@@ -797,10 +798,10 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                           {String(c.saleDate || `${c.year}-${String(c.month).padStart(2, "0")}-01`).slice(0, 10)}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="font-bold text-slate-900 block truncate">{c.clientName}</span>
+                          <span className="ui-emphasis font-bold text-slate-900 block truncate">{c.clientName}</span>
                           <span className="text-[11px] font-mono text-slate-500">{c.clientRuc || "Consumidor Final"}</span>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono font-semibold text-slate-800">
+                        <td className="ui-emphasis py-3 px-3 text-right font-mono font-semibold text-slate-800">
                           ${safeNumber(c.total)}
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-bold text-emerald-700">
@@ -812,7 +813,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <span
+                          <Badge
                             className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
                               isCancelled
                                 ? "bg-rose-50 text-rose-700 border-rose-200"
@@ -824,7 +825,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                             }`}
                           >
                             {c.status}
-                          </span>
+                          </Badge>
                         </td>
                       </tr>
                     );
@@ -880,9 +881,9 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                       <td className="py-3 px-4 font-mono text-slate-600">{e.expenseDate}</td>
                       <td className="py-3 px-4 font-bold text-slate-900">{e.supplierName}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                        <Badge className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                           {expenseLabel(e.category)}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3 px-4 text-slate-700 truncate" title={e.description}>
                         {e.description || "Gasto Operativo"}
@@ -941,10 +942,10 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                       <td className="py-3 px-3 font-mono text-slate-600">{c.saleDate}</td>
                       <td className="py-3 px-3 font-mono text-amber-700">{c.dueDate}</td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-slate-900 block truncate">{c.clientName}</span>
+                        <span className="ui-emphasis font-bold text-slate-900 block truncate">{c.clientName}</span>
                         <span className="text-[11px] font-mono text-slate-500">{c.clientRuc || "Consumidor Final"}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 font-semibold">
+                      <td className="ui-emphasis py-3 px-3 text-right font-mono text-slate-700 font-semibold">
                         ${safeNumber(c.total)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-amber-700">
@@ -1003,7 +1004,7 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                         <span className="font-bold text-slate-900 block truncate">{i.supplierName}</span>
                         <span className="text-[11px] font-mono text-slate-500">{i.supplierRuc}</span>
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 font-semibold">
+                      <td className="ui-emphasis py-3 px-3 text-right font-mono text-slate-700 font-semibold">
                         ${safeNumber(i.total)}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-purple-700">
@@ -1057,9 +1058,9 @@ function FinancialReportsDetails({ from, to }: { from: string; to: string }) {
                         ${safeNumber(b.balanceFloat)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                        <Badge className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                           {b.sharePct.toFixed(1)}%
-                        </span>
+                        </Badge>
                       </td>
                     </tr>
                   ))}

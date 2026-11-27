@@ -15,6 +15,7 @@ import {
   TicketDepartment,
 } from "@/types";
 import { Send, Lock, MessageSquare, User, Building2, Phone, Mail, MapPin, Wifi, ExternalLink, CheckCircle2, Clock, RotateCcw, Sparkles, Layers, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface TicketDetailProps {
   id: string;
@@ -186,10 +187,10 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs font-black text-[#004ac6] bg-[#eff4ff] px-2.5 py-0.5 rounded-lg border border-[#bfdbfe]">
+              <Badge className="font-mono text-xs font-black text-[#004ac6] bg-[#eff4ff] px-2.5 py-0.5 rounded-lg border border-[#bfdbfe]">
                 {ticket.ticketNumber}
-              </span>
-              <span
+              </Badge>
+              <Badge
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   ticket.status === "abierto"
                     ? "bg-rose-50 text-rose-700 border border-rose-200"
@@ -203,9 +204,9 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                 }`}
               >
                 {ticket.status.replace(/_/g, " ")}
-              </span>
+              </Badge>
 
-              <span
+              <Badge
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                   ticket.priority === "critica"
                     ? "bg-rose-100 text-rose-800"
@@ -215,7 +216,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                 }`}
               >
                 SLA: {ticket.priority}
-              </span>
+              </Badge>
             </div>
 
             <h2 className="text-base font-bold text-[#0b1c30] mt-1 line-clamp-1">
@@ -317,10 +318,10 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                       <User className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="font-bold text-xs text-[#0b1c30]">{ticket.clientName}</span>
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#f1f5f9] text-[#434655]">
+                      <span className="ui-emphasis font-bold text-xs text-[#0b1c30]">{ticket.clientName}</span>
+                      <Badge className="ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#f1f5f9] text-[#434655]">
                         Cliente / Solicitud Inicial
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                   <span className="text-[11px] text-[#737686] font-mono">
@@ -366,7 +367,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
 
                         <div>
                           <span className="font-bold text-xs">{m.authorName}</span>
-                          <span
+                          <Badge
                             className={`ml-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                               isInternal
                                 ? "bg-amber-200 text-amber-900"
@@ -376,7 +377,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                             }`}
                           >
                             {isInternal ? "Nota Interna" : isStaff ? "Agente de Soporte" : "Cliente"}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
 
@@ -556,7 +557,7 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
 
             {/* Bloque 1: Cliente & Contacto */}
             <div className="pt-3 space-y-2 text-xs">
-              <div className="font-bold text-sm text-[#0b1c30] leading-snug">
+              <div className="ui-emphasis font-bold text-sm text-[#0b1c30] leading-snug">
                 {ticket.clientName}
               </div>
               {client?.identificationNumber && (
@@ -600,15 +601,15 @@ export function TicketDetail({ id, onBack, resolveOnOpen }: TicketDetailProps) {
                 <span>Servicio Afectado</span>
               </div>
               <div className="bg-[#f8f9ff] p-3 rounded-xl border border-[#e2e8f0] space-y-1.5">
-                <div className="font-bold text-[#004ac6]">
+                <div className="ui-emphasis font-bold text-[#004ac6]">
                   {ticket.serviceName || service?.planName || "Sin servicio asignado"}
                 </div>
                 {service?.ipv4Address && (
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-[#737686]">IP Asignada:</span>
-                    <span className="font-mono font-bold text-[#0b1c30] bg-white px-2 py-0.5 rounded-md border border-[#cbd5e1]">
+                    <Badge className="font-mono font-bold text-[#0b1c30] bg-white px-2 py-0.5 rounded-md border border-[#cbd5e1]">
                       {service.ipv4Address}
-                    </span>
+                    </Badge>
                   </div>
                 )}
 

@@ -18,6 +18,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import type { MonthlyCharge } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 export function AccountsReceivableTab() {
   const { currentUser, monthlyCharges } = useApp();
@@ -134,21 +135,21 @@ export function AccountsReceivableTab() {
                   <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{c.invoiceNumber}</td>
                     <td className="py-3 px-4">
-                      <div className="font-bold text-slate-900 truncate">{c.clientName}</div>
+                      <div className="ui-emphasis font-bold text-slate-900 truncate">{c.clientName}</div>
                       <div className="text-[11px] font-mono text-slate-500">{c.clientRuc}</div>
                     </td>
                     <td className="py-3 px-4 text-slate-700 truncate">{c.serviceDescription}</td>
                     <td className="py-3 px-4 text-center text-slate-500 font-mono">
                       {c.month}/{c.year}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-700">
+                    <td className="ui-emphasis py-3 px-4 text-right font-mono text-slate-700">
                       ${safeNumber(c.total)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                       ${safeNumber(balance)}
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span
+                      <Badge
                         className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                           isPaid
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -156,7 +157,7 @@ export function AccountsReceivableTab() {
                         }`}
                       >
                         {isPaid ? "Cobrado" : c.status === "parcial" ? "Parcial" : balance > 0 ? "Pendiente" : "Sin saldo"}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="py-3 px-4 text-center">
                       {!isPaid && balance > 0 && canCollect ? (

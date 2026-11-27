@@ -28,6 +28,7 @@ import {
 import { downloadAuthorizedFiscalXml, authorizedFiscalPdf } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
+import { Badge } from "@/components/ui/Badge";
 
 interface RidePreviewModalProps {
   isOpen: boolean;
@@ -280,7 +281,7 @@ export function RidePreviewModal({
         <header className="shrink-0 border-b border-slate-200 bg-white print:hidden">
           <div className="flex items-start justify-between gap-3 px-4 py-3 sm:px-6">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-semibold text-slate-500">{isNotaVenta ? "Comprobante interno" : fiscalAuthorized ? "RIDE electrónico" : "Vista previa SRI"}</span><span className={`rounded px-2 py-0.5 font-semibold ${fiscalAuthorized ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{isNotaVenta ? doc.status : fiscalStateLabel(doc)}</span></div>
+              <div className="flex flex-wrap items-center gap-2 text-xs"><span className="font-semibold text-slate-500">{isNotaVenta ? "Comprobante interno" : fiscalAuthorized ? "RIDE electrónico" : "Vista previa SRI"}</span><Badge className={`rounded px-2 py-0.5 font-semibold ${fiscalAuthorized ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{isNotaVenta ? doc.status : fiscalStateLabel(doc)}</Badge></div>
               <h2 className="mt-1 text-sm font-semibold text-slate-900">{docTypeLabel} <span className="font-mono">{docNumber}</span></h2>
             </div>
             <button type="button" aria-label="Cerrar vista previa" onClick={onClose} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="size-5" /></button>

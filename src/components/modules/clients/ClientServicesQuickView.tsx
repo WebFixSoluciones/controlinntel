@@ -11,6 +11,7 @@ import { canViewClientServicePart } from "@/lib/permissions";
 import { safeNumber } from "@/lib/print-service";
 import { useApp } from "@/lib/state";
 import type { Client } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 const heading = "bg-[#f8f9ff] text-[11px] font-semibold uppercase text-[#004ac6]";
 const cell = "px-3 py-2.5 align-top";
@@ -19,11 +20,11 @@ const table = "w-full table-fixed border-collapse text-left text-xs";
 function DocumentStatus({ status }: { status?: string }) {
   const key = status?.toLowerCase();
   const valid = key === "pagado" || key === "autorizada" || key === "autorizado";
-  return <span className={`inline-block max-w-full break-words rounded border px-1.5 py-0.5 text-[11px] font-semibold capitalize ${valid
+  return <Badge className={`inline-block max-w-full break-words rounded border px-1.5 py-0.5 text-[11px] font-semibold capitalize ${valid
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
     : "border-slate-200 bg-slate-50 text-slate-700"}`}>
     {key === "autorizada" ? "Autorizado" : key?.replaceAll("_", " ") || "Sin estado"}
-  </span>;
+  </Badge>;
 }
 
 export function ClientServicesQuickView({ client, onClose, onOpenHistory }: {
@@ -59,7 +60,7 @@ export function ClientServicesQuickView({ client, onClose, onOpenHistory }: {
       <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:px-5">
         <div className="min-w-0">
           <h2 id="client-services-overview-title" className="font-semibold">Servicios del cliente</h2>
-          <p className="mt-1 break-words text-xs text-slate-600">{client.businessName}</p>
+          <p className="ui-emphasis mt-1 break-words text-xs text-slate-600">{client.businessName}</p>
         </div>
         <button type="button" aria-label="Cerrar servicios" onClick={onClose} className="shrink-0 rounded-lg p-1.5 hover:bg-slate-200">
           <X aria-hidden="true" className="size-4" />
@@ -67,10 +68,10 @@ export function ClientServicesQuickView({ client, onClose, onOpenHistory }: {
       </header>
       <div role="group" aria-label="Vistas de servicios" className="soft-tab-strip shrink-0 border-b border-slate-100 px-4 py-2 sm:px-5">
         {showActive && <button type="button" aria-pressed={activeTab} className="soft-nav-item soft-tab" onClick={() => setTab("active")}>
-          Servicios activos <span className="rounded-full bg-slate-100 px-1.5 text-[10px] tabular-nums text-slate-600">{services.length}</span>
+          Servicios activos <Badge className="rounded-full bg-slate-100 px-1.5 text-[10px] tabular-nums text-slate-600">{services.length}</Badge>
         </button>}
         {showHistory && <button type="button" aria-pressed={!activeTab} className="soft-nav-item soft-tab" onClick={() => setTab("history")}>
-          Historial de comprobantes <span className="rounded-full bg-slate-100 px-1.5 text-[10px] tabular-nums text-slate-600">{history.length}</span>
+          Historial de comprobantes <Badge className="rounded-full bg-slate-100 px-1.5 text-[10px] tabular-nums text-slate-600">{history.length}</Badge>
         </button>}
       </div>
       <section className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-5">
@@ -85,7 +86,7 @@ export function ClientServicesQuickView({ client, onClose, onOpenHistory }: {
               </tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {services.map(service => <tr key={service.id}>
-                  <td className={`${cell} break-words font-semibold`}>{service.planName || "Servicio"}
+                  <td className={`ui-emphasis ${cell} break-words font-semibold`}>{service.planName || "Servicio"}
                     {service.downloadMbps > 0 && <p className="mt-0.5 text-[11px] font-normal text-slate-500">
                       {service.downloadMbps} Mbps de bajada · {service.uploadMbps} Mbps de subida
                     </p>}
@@ -119,7 +120,7 @@ export function ClientServicesQuickView({ client, onClose, onOpenHistory }: {
                         </td>
                         <td className={`${cell} whitespace-nowrap tabular-nums`}>{formatDateEC(row.issuedDate || row.date || "") || "—"}</td>
                         <td className={`${cell} break-words`}>{row.description || "—"}</td>
-                        {showPrices && <td className={`${cell} text-right font-semibold tabular-nums`}>${safeNumber(row.total)}</td>}
+                        {showPrices && <td className={`ui-emphasis ${cell} text-right font-semibold tabular-nums`}>${safeNumber(row.total)}</td>}
                         <td className={cell}><DocumentStatus status={row.status} /></td>
                       </tr>)}
                     </tbody>

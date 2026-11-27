@@ -280,7 +280,7 @@ export function TramiteModal({
                 {defaultClientId ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-white border border-[#e2e8f0] rounded-xl text-[#0b1c30] font-semibold text-xs">
                     <Building2 className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                    <span className="truncate">{clientName || defaultClientName}</span>
+                    <span className="ui-emphasis truncate">{clientName || defaultClientName}</span>
                   </div>
                 ) : (
                   <select

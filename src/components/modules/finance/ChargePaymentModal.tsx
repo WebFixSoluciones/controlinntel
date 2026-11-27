@@ -81,14 +81,14 @@ export function ChargePaymentModal({ charge, onClose }: { charge: MonthlyCharge;
         <header className="flex items-start justify-between gap-2 border-b border-slate-200 bg-slate-50 p-4">
           <div className="min-w-0">
             <h3 id={titleId} className="flex items-center gap-2 break-words text-sm font-bold"><CreditCard className="h-4 w-4 shrink-0 text-[#004ac6]" /> Registrar cobro</h3>
-            <p className="mt-1 break-words text-xs text-slate-600">{charge.invoiceNumber} · {charge.clientName}</p>
+            <p className="ui-emphasis mt-1 break-words text-xs text-slate-600">{charge.invoiceNumber} · {charge.clientName}</p>
           </div>
           <button type="button" aria-label="Cerrar" disabled={busy} onClick={onClose} className="rounded-lg p-2"><X className="h-4 w-4" /></button>
         </header>
         <form onSubmit={register} className="space-y-4 p-4 text-xs">
           <div className="grid grid-cols-2 gap-3 tabular-nums">
             <p className="rounded-lg border border-slate-200 bg-slate-50 p-3">Deuda de esta nota<strong className="mt-1 block text-sm text-amber-800">${safeNumber(balance)}</strong></p>
-            <p className="rounded-lg border border-blue-200 bg-blue-50 p-3">Saldo a favor disponible<strong className="mt-1 block text-sm text-[#004ac6]">${safeNumber(credit.total)}</strong></p>
+            <p className="rounded-lg border border-blue-200 bg-blue-50 p-3">Saldo a favor disponible<strong className="ui-emphasis mt-1 block text-sm text-[#004ac6]">${safeNumber(credit.total)}</strong></p>
           </div>
           {current.notes && <p className="rounded-lg bg-slate-50 p-3 text-slate-600"><strong>Acuerdo de cobranza:</strong> {current.notes}</p>}
           <div className="flex flex-wrap gap-2" aria-label="Origen del cobro">
@@ -134,7 +134,7 @@ export function ChargePaymentModal({ charge, onClose }: { charge: MonthlyCharge;
           </label>
           <div aria-live="polite" className="rounded-lg border border-slate-200 p-3 tabular-nums">
             <p>Deuda restante después de confirmar: <strong>${safeNumber(Math.max(0, balance - (Number.isFinite(paymentAmount) ? paymentAmount : 0)))}</strong></p>
-            {source === "advance" && <p className="mt-1">Saldo a favor restante: <strong>${safeNumber(Math.max(0, credit.total - (Number.isFinite(paymentAmount) ? paymentAmount : 0)))}</strong></p>}
+            {source === "advance" && <p className="mt-1">Saldo a favor restante: <strong className="ui-emphasis">${safeNumber(Math.max(0, credit.total - (Number.isFinite(paymentAmount) ? paymentAmount : 0)))}</strong></p>}
           </div>
           {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-rose-700">{error}</p>}
           <footer className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-3">

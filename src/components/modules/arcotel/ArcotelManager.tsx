@@ -26,6 +26,7 @@ import {
   Building2,
   Bell,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ArcotelManagerProps {
   client?: Client;
@@ -748,7 +749,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                         <td className="py-3.5 px-5 text-slate-600">{file.uploadedAt.split("T")[0]}</td>
                         <td className="py-3.5 px-5 text-slate-700">{file.uploadedBy}</td>
                         <td className="py-3.5 px-5 text-center">
-                          <span
+                          <Badge
                             className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                               file.status === "vigente"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -756,7 +757,7 @@ export function ArcotelManager({ client, isEmbedded = false }: ArcotelManagerPro
                             }`}
                           >
                             {file.status}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3.5 px-5 text-right">
                           <div className="flex items-center justify-end gap-1.5">

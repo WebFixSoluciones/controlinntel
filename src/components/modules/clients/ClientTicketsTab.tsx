@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { TicketModal } from "../tickets/TicketModal";
 import { TicketDetail } from "../tickets/TicketDetail";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientTicketsTabProps {
   client: Client;
@@ -63,29 +64,29 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
     switch (priority) {
       case "critica":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse" />
             Crítica
-          </span>
+          </Badge>
         );
       case "alta":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+          <Badge className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
             Alta
-          </span>
+          </Badge>
         );
       case "media":
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+          <Badge className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
             Media
-          </span>
+          </Badge>
         );
       case "baja":
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-50 text-slate-600 border border-slate-200">
+          <Badge className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-50 text-slate-600 border border-slate-200">
             Baja
-          </span>
+          </Badge>
         );
     }
   };
@@ -94,46 +95,46 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
     switch (status) {
       case "abierto":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-sky-50 text-sky-700 border border-sky-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-sky-50 text-sky-700 border border-sky-200">
             Abierto
-          </span>
+          </Badge>
         );
       case "en_progreso":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
             En Progreso
-          </span>
+          </Badge>
         );
       case "respondido":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
             Respondido
-          </span>
+          </Badge>
         );
       case "en_espera":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-purple-50 text-purple-700 border border-purple-200">
             En Espera
-          </span>
+          </Badge>
         );
       case "respuesta_cliente":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
             Respuesta Cliente
-          </span>
+          </Badge>
         );
       case "resuelto":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
             Resuelto
-          </span>
+          </Badge>
         );
       case "cerrado":
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">
             Cerrado
-          </span>
+          </Badge>
         );
     }
   };
@@ -265,7 +266,7 @@ export function ClientTicketsTab({ client }: ClientTicketsTabProps) {
                       <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400 capitalize truncate">
                         <span>{t.category ? t.category.replace("_", " ") : "Soporte"}</span>
                         {t.nodeName && <span>• {t.nodeName}</span>}
-                        {t.serviceName && <span>• {t.serviceName}</span>}
+                        {t.serviceName && <span className="ui-emphasis">• {t.serviceName}</span>}
                       </div>
                     </td>
 

@@ -16,6 +16,7 @@ import { printHtmlElement } from "@/lib/print-service";
 import { useToast } from "@/lib/toast-context";
 import { ClientCommercialReport } from "../clients/ClientCommercialReport";
 import { ReceivedPaymentsReport } from "./ReceivedPaymentsReport";
+import { Badge } from "@/components/ui/Badge";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -107,7 +108,27 @@ export function CompanyReportsPanel({ from, to, onPeriodChange, children }: { fr
       </>}
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex flex-wrap gap-2 print:hidden"><input aria-label="Buscar en reporte de empresa" placeholder="Buscar en este reporte" value={search} onChange={event => setSearch(event.target.value)} className={`${field} flex-1`} />{states.length > 0 && <select aria-label="Estado del reporte" value={status} onChange={event => setStatus(event.target.value)} className={field}><option value="">Todos los estados</option>{states.map(value => <option key={value}>{value}</option>)}</select>}</div>
-        <div role="region" aria-label="Datos del reporte de empresa" tabIndex={0} className="max-w-full overflow-x-auto"><table className="w-full min-w-[42rem] text-left print:min-w-0 print:table-fixed"><thead className="bg-slate-50"><tr>{columns.map(column => <th scope="col" key={column.key} aria-sort={column.key === sortColumn ? "descending" : undefined} className="p-3 print:p-1">{column.label}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{filteredRows.map((row, index) => <tr key={String(row.id || index)} className={documentsTab ? documentsPage.printableRowClass(index) : undefined}>{columns.map(column => <td key={column.key} className="p-3 align-top [overflow-wrap:anywhere] print:break-words print:p-1">{column.money && typeof row[column.key] === "number" ? `$${Number(row[column.key]).toFixed(2)}` : column.date && row[column.key] ? String(row[column.key]).slice(0, 10) : String(row[column.key] ?? "—")}</td>)}</tr>)}{!filteredRows.length && <tr><td colSpan={columns.length} className="p-8 text-center">Sin registros con estos filtros.</td></tr>}</tbody></table></div>
+        <div role="region" aria-label="Datos del reporte de empresa" tabIndex={0} className="max-w-full overflow-x-auto">
+          <table className="w-full min-w-[42rem] text-left print:min-w-0 print:table-fixed">
+            <thead className="bg-slate-50"><tr>{columns.map(column => <th scope="col" key={column.key} aria-sort={column.key === sortColumn ? "descending" : undefined} className="p-3 print:p-1">{column.label}</th>)}</tr></thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredRows.map((row, index) => <tr key={String(row.id || index)} className={documentsTab ? documentsPage.printableRowClass(index) : undefined}>
+                {columns.map(column => {
+                  const value = row[column.key];
+                  const display = column.money && typeof value === "number"
+                    ? `$${value.toFixed(2)}`
+                    : column.date && value ? String(value).slice(0, 10) : String(value ?? "—");
+                  const emphasis = ["clientName", "supplierName", "total", "amount"].includes(column.key);
+                  const isStatus = ["status", "paymentStatus"].includes(column.key);
+                  return <td key={column.key} className={cn("p-3 align-top [overflow-wrap:anywhere] print:break-words print:p-1", emphasis && "ui-emphasis")}>
+                    {isStatus ? <Badge>{display}</Badge> : display}
+                  </td>;
+                })}
+              </tr>)}
+              {!filteredRows.length && <tr><td colSpan={columns.length} className="p-8 text-center">Sin registros con estos filtros.</td></tr>}
+            </tbody>
+          </table>
+        </div>
         {documentsTab && <DocumentTablePagination {...documentsPage.controls} />}
         {tab !== "resumen" && <p className="mt-3 font-semibold">{filteredRows.length} registro(s) · {tab === "caja" ? <>Entradas: ${filteredRows.filter(row => row.type === "ingreso").reduce((sum, row) => sum + Number(row.amount), 0).toFixed(2)} · Salidas: ${filteredRows.filter(row => row.type === "egreso").reduce((sum, row) => sum + Number(row.amount), 0).toFixed(2)} · Neto: ${filteredRows.reduce((sum, row) => sum + (row.type === "ingreso" ? 1 : -1) * Number(row.amount), 0).toFixed(2)}</> : <>Total filtrado: ${filteredRows.reduce((sum, row) => sum + Number(row.total ?? row.amount ?? 0), 0).toFixed(2)}</>}</p>}
       </section>

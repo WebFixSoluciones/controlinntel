@@ -16,6 +16,7 @@ import {
 } from "@/lib/inventory-service";
 import { CategoryBrandModal } from "./CategoryBrandModal";
 import { X, Package, Wrench, DollarSign, Building2, CheckCircle, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -657,9 +658,9 @@ export function ProductModal({
                           {w.name}
                         </span>
                         {productToEdit ? (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold text-xs">
+                          <Badge className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold text-xs">
                             {whStock}
-                          </span>
+                          </Badge>
                         ) : (
                           <input
                             type="number"

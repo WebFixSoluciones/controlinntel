@@ -81,7 +81,7 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
         <label className="grid gap-1 font-medium">Cuenta de recepción<select className={field} value={accountId} onChange={event => setAccountId(event.target.value)}><option value="">Todas las cuentas y cajas</option>{accounts.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
         <label className="grid gap-1 font-medium">Estado de referencia<select className={field} value={status} onChange={event => setStatus(event.target.value)}><option value="">Todos los estados</option>{["Con comprobante", "Sin comprobante", "Revisar referencia de venta", "Sin movimiento vinculado"].map(label => <option key={label}>{label}</option>)}</select></label>
       </div>
-      <p className="text-slate-600 tabular-nums">{results.length} resultados · Total de ingresos con movimiento <strong>${total.toFixed(2)}</strong></p>
+      <p className="text-slate-600 tabular-nums">{results.length} resultados · Total de ingresos con movimiento <strong className="ui-emphasis">${total.toFixed(2)}</strong></p>
     </div>
     <div role="region" aria-label="Listado de pagos recibidos" tabIndex={0} className="overflow-x-auto">
       <table className="w-full min-w-[60rem] text-left">
@@ -91,9 +91,9 @@ export function ReceivedPaymentsReport({ from, to }: { from: string; to: string 
             <td className="whitespace-nowrap px-4 py-3">{row.date || "—"}</td>
             <td className="px-4 py-3">{row.account || "—"}<small className="block text-slate-500">{row.method}</small></td>
             <td className="px-4 py-3 font-mono [overflow-wrap:anywhere]">{row.reference || "—"}</td>
-            <td className="px-4 py-3">{row.client || "—"}<small className="block text-slate-500">{row.ruc}</small></td>
+            <td className="px-4 py-3"><span className="ui-emphasis">{row.client || "—"}</span><small className="block text-slate-500">{row.ruc}</small></td>
             <td className="px-4 py-3">{row.documents || row.kind}{row.originDocument && row.originDocument !== row.documents && <small className="block text-slate-500">Origen {row.originDocument}</small>}</td>
-            <td className="whitespace-nowrap px-4 py-3 text-right font-mono">${row.amount.toFixed(2)}</td>
+            <td className="ui-emphasis whitespace-nowrap px-4 py-3 text-right font-mono">${row.amount.toFixed(2)}</td>
             <td className="px-4 py-3">{row.status}</td>
             <td className="px-4 py-3">
               <div className="flex justify-end gap-1.5">

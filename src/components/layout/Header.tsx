@@ -16,6 +16,7 @@ import {
   Menu,
 } from "lucide-react";
 import { ProfileModal } from "./ProfileModal";
+import { Badge } from "@/components/ui/Badge";
 
 function getPageTitle(pathname: string, subParam: string | null): string {
   if (pathname === "/") return "Dashboard";
@@ -264,10 +265,10 @@ function HeaderContent() {
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-slate-900 truncate">{cleanUserName}</p>
                   <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
-                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
+                  <Badge className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#eff4ff] text-[#004ac6] capitalize">
                     <Shield className="w-2.5 h-2.5" />
                     {currentUser.accessRoleName || currentUser.role}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 

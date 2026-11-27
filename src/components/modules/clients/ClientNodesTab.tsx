@@ -19,6 +19,7 @@ import {
   Table,
   Map,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 const ClientNodesOverviewMap = dynamic(
   () => import("./ClientNodesOverviewMap"),
@@ -218,12 +219,12 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                           <span className="min-w-0 break-words font-semibold text-slate-900">{node.name}</span>
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1 text-[9px]">
-                          <span className={`rounded px-1.5 py-0.5 font-semibold ${isSuspended ? "bg-amber-50 text-amber-700" : isRetired ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+                          <Badge className={`rounded px-1.5 py-0.5 font-semibold ${isSuspended ? "bg-amber-50 text-amber-700" : isRetired ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
                             {isSuspended ? "Suspendido" : isRetired ? "Retirado" : "Activo"}
-                          </span>
-                          {isReported && <span title="Reportado ARCOTEL" className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-[#004ac6]">
+                          </Badge>
+                          {isReported && <Badge title="Reportado ARCOTEL" className="inline-flex items-center gap-0.5 rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-[#004ac6]">
                             <ShieldCheck className="size-2.5" /> ARCOTEL
-                          </span>}
+                          </Badge>}
                         </div>
                         {node.totalCapacityMbps > 0 && <p className="mt-1 text-[10px] font-semibold text-[#004ac6]">{node.totalCapacityMbps} Mbps</p>}
                         {node.notes && <p className="mt-1 break-words text-[10px] text-slate-500">{node.notes}</p>}
@@ -234,9 +235,9 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                         <div className="space-y-1 text-xs">
                           <div className="flex flex-wrap items-center gap-1 font-semibold text-slate-800">
                             <MapPin className="w-3.5 h-3.5 text-[#004ac6] shrink-0" />
-                            <span className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 text-[10px] font-bold">
+                            <Badge className="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-md border border-slate-200 text-[10px] font-bold">
                               {node.province || "Ecuador"}
-                            </span>
+                            </Badge>
                             {node.canton && (
                               <span className="text-[11px] text-slate-700">/ {node.canton}</span>
                             )}
@@ -283,9 +284,9 @@ export function ClientNodesTab({ client }: ClientNodesTabProps) {
                                     <span className="min-w-0 break-words font-bold text-slate-900">{p.providerName}</span>
                                   </div>
                                   {p.capacityMbps > 0 && (
-                                    <span className="text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                    <Badge className="text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                                       {p.capacityMbps} Mbps
-                                    </span>
+                                    </Badge>
                                   )}
                                 </div>
                                 {(p.circuitId || p.ipv4Subnet || p.ipv4Subnets?.length || p.ipv6Prefix) && (

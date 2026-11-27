@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
 import { Ticket as TicketIcon, Activity, ShieldCheck, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function TicketsRecientesCard() {
   const { tickets } = useApp();
@@ -13,13 +14,13 @@ export function TicketsRecientesCard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "abierto":
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">Abierto</span>;
+        return <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">Abierto</Badge>;
       case "en_progreso":
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">En Progreso</span>;
+        return <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">En Progreso</Badge>;
       case "resuelto":
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">Resuelto</span>;
+        return <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">Resuelto</Badge>;
       default:
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">{status}</span>;
+        return <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-50 text-slate-700 border border-slate-200">{status}</Badge>;
     }
   };
 
@@ -51,7 +52,7 @@ export function TicketsRecientesCard() {
                     <span className="font-mono text-[10px] font-bold text-[#004ac6]">{t.ticketNumber}</span>
                     <span className="font-bold text-[#0b1c30] truncate block">{t.title}</span>
                   </div>
-                  <span className="text-[11px] text-[#737686] truncate block mt-0.5">
+                  <span className="ui-emphasis text-[11px] text-[#737686] truncate block mt-0.5">
                     {t.clientName} {t.assignedToName ? `• ${t.assignedToName}` : ""}
                   </span>
                 </div>
@@ -126,9 +127,9 @@ export function AuditActivityTable() {
                       </div>
                     </td>
                     <td className="py-3.5 px-6">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${formatActionBadge(log.action)}`}>
+                      <Badge className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${formatActionBadge(log.action)}`}>
                         {log.action}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="py-3.5 px-6">
                       <p className="font-semibold text-[#0b1c30] truncate max-w-md">{log.resource}</p>

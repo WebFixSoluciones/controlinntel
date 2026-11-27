@@ -164,7 +164,7 @@ export function ExpensesManager() {
                   <td className="p-3">{categoryNames.get(expense.category) || expense.category.replaceAll("_", " ")}</td>
                   <td className="p-3">{expense.description}{expense.invoiceNumber && <span className="block text-slate-500">{expense.invoiceNumber}</span>}</td>
                   <td className="p-3">{accountNames.get(expense.bankAccountId || "") || "—"}</td>
-                  <td className="p-3 text-right font-mono font-semibold">${expense.amount.toFixed(2)}</td>
+                  <td className="ui-emphasis p-3 text-right font-mono">${expense.amount.toFixed(2)}</td>
                   {canRegister && <td className="p-3"><div className="flex justify-end gap-2">
                     <ActionIconButton action="edit" type="button" disabled={busy} aria-label={`Editar gasto de ${expense.supplierName}`} onClick={() => editExpense(expense)} />
                     <ActionIconButton action="delete" type="button" disabled={busy} aria-label={`Eliminar gasto de ${expense.supplierName}`} onClick={() => removeExpense(expense)} />
@@ -194,7 +194,7 @@ export function ExpensesManager() {
                 showSuppliers && supplierKey.length >= 2 ? <div aria-label="Resultados de proveedores" className="mt-1 max-h-44 overflow-y-auto rounded-lg border border-slate-200">
                   {supplierMatches.map(supplier => <button key={supplier.id} type="button" className="block w-full px-3 py-2 text-left hover:bg-blue-50"
                     onClick={() => { setSupplierId(supplier.id); setSupplierQuery(supplier.razonSocial); setShowSuppliers(false); }}>
-                    <strong>{supplier.razonSocial}</strong> <span className="text-slate-600">{supplier.ruc}</span>{supplier.nombreComercial && <span className="block text-slate-500">{supplier.nombreComercial}</span>}
+                    <strong className="ui-emphasis">{supplier.razonSocial}</strong> <span className="text-slate-600">{supplier.ruc}</span>{supplier.nombreComercial && <span className="block text-slate-500">{supplier.nombreComercial}</span>}
                   </button>)}
                   <button type="button" className="block w-full border-t border-slate-200 px-3 py-2 text-left text-[#004ac6]" onClick={() => setShowSuppliers(false)}>Usar como beneficiario manual</button>
                 </div> : <p className="mt-1 text-slate-500">También puedes escribir un beneficiario ocasional.</p>}

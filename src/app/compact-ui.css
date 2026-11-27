@@ -8,6 +8,15 @@
     --ui-blue: #004ac6;
     --ui-blue-hover: #003da6;
     --ui-soft-blue: #eff4ff;
+    --ui-badge-blue-bg: #e3ebfa;
+    --ui-badge-blue-border: #a4c1f7;
+    --ui-badge-green-bg: #b9efd1;
+    --ui-badge-green-border: #70d9a0;
+    --ui-badge-green-ink: #006b30;
+    --ui-badge-red-bg: #ffd0d0;
+    --ui-badge-red-border: #ff9292;
+    --ui-badge-red-ink: #a50000;
+    --ui-delete: #d2182c;
     --ui-table-head: #f4f7fd;
     --ui-line: #dce4f0;
     --ui-radius: 6px;
@@ -26,6 +35,16 @@
     font-size: 0.9375rem;
     font-weight: 600;
     letter-spacing: normal;
+  }
+
+  /* Texto secundario sobre las superficies claras de la aplicación. */
+  :is(.app-header, .app-header + main, :where(#app-navigation), [data-inntel-overlay]) :where(
+    [class~="text-[#737686]"], [class~="text-[#64748b]"], [class~="text-[#475569]"], [class~="text-[#434655]"], [class~="text-[#94a3b8]"], [class~="text-[#334155]"], [class~="text-[#878a99]"],
+    [class~="text-slate-300"], [class~="text-slate-400"], [class~="text-slate-500"], [class~="text-slate-600"], [class~="text-slate-700"], [class~="text-slate-800"], [class~="text-slate-900"],
+    [class~="text-gray-400"], [class~="text-gray-500"], [class~="text-gray-600"], [class~="text-gray-700"], [class~="text-gray-800"], [class~="text-gray-900"],
+    [class~="text-zinc-400"], [class~="text-zinc-500"], [class~="text-zinc-600"], [class~="text-neutral-400"], [class~="text-neutral-500"], [class~="text-neutral-600"]
+  ):not(:where(svg, svg *, .ui-badge, [data-badge-tone], [data-document-preview] *, .leaflet-container *, .recharts-wrapper *, [class~="bg-slate-800"] *, [class~="bg-slate-900"] *, [class~="bg-slate-950"] *, [class~="bg-black"] *, [class~="bg-[#0b1c30]"] *)) {
+    color: var(--ui-ink);
   }
 
   /* Solo las tablas de trabajo. Los documentos conservan su maquetación. */
@@ -93,24 +112,24 @@
    * interactivos y las barras gráficas conservan sus propias reglas.
    */
   :is(.app-header + main, [data-inntel-overlay]) :is(span, small)[class*="rounded"][class*="bg-"][class*="px-"]:not(:where(:empty, [data-document-preview] *, .recharts-wrapper *, .leaflet-container *, button *, a *, .ui-badge *)),
-  :is(.app-header + main, [data-inntel-overlay]) .ui-badge:not(:where([data-document-preview] *)) {
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) .ui-badge:not(:where([data-document-preview] *)) {
     display: inline-flex;
     max-inline-size: 100%;
     align-items: center;
     gap: 0.1875rem;
     padding: 0.125rem 0.3125rem;
-    border: 1px solid var(--ui-line);
+    border: 1px solid var(--ui-badge-border, var(--ui-badge-blue-border));
     border-radius: var(--ui-radius);
-    background: var(--ui-soft-blue);
-    color: var(--ui-ink);
+    background: var(--ui-badge-bg, var(--ui-badge-blue-bg));
+    color: var(--ui-badge-ink, var(--ui-blue));
     font: 500 var(--ui-detail-size)/1.2 var(--ui-font);
     letter-spacing: normal;
     text-transform: none;
     overflow-wrap: anywhere;
   }
 
-  :is(.app-header + main, [data-inntel-overlay]) .ui-badge svg {
-    color: var(--ui-blue);
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) .ui-badge :is(svg, span, small):not([data-badge-tone]) {
+    color: inherit;
   }
 
   :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(input, select, textarea, button, [role="button"]):not(:where([data-document-preview] *, .leaflet-container *, .recharts-wrapper *)) {
@@ -231,14 +250,15 @@
     border: 1px solid var(--ui-line);
     border-radius: var(--ui-radius);
     background: white;
-    color: var(--ui-blue);
+    color: var(--ui-action-ink, var(--ui-blue));
     box-shadow: none;
   }
 
   :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(button, a):is(.ui-icon-button, [data-action-icon]):not(:where(:disabled, [data-document-preview] *)):hover,
   :is(.app-header + main, [data-inntel-overlay]) td button:is([title], [aria-label]):is([class~="p-1"], [class~="p-1.5"], [class~="p-2"], [class~="size-6"], [class~="size-7"], [class~="size-8"], [class~="w-8"]):has(> svg:only-child):not(:where(:disabled, [role="switch"], [data-document-preview] *)):hover {
-    background-color: var(--ui-soft-blue);
-    color: var(--ui-blue);
+    background-color: var(--ui-action-hover, var(--ui-soft-blue));
+    border-color: var(--ui-action-border, var(--ui-line));
+    color: var(--ui-action-ink, var(--ui-blue));
     cursor: pointer;
   }
 
@@ -246,7 +266,7 @@
   :is(.app-header + main, [data-inntel-overlay]) td button:is([title], [aria-label]):is([class~="p-1"], [class~="p-1.5"], [class~="p-2"], [class~="size-6"], [class~="size-7"], [class~="size-8"], [class~="w-8"]):has(> svg:only-child):not(:where([role="switch"], [data-document-preview] *)) > svg {
     inline-size: var(--ui-icon-size);
     block-size: var(--ui-icon-size);
-    color: inherit;
+    color: var(--ui-icon-ink, inherit);
     stroke-width: 1.75;
   }
 
@@ -294,6 +314,51 @@
   :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(.ui-icon-button, [data-action-icon]):focus-visible {
     outline: 2px solid var(--ui-blue);
     outline-offset: 2px;
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) :is(button, select, a)[data-badge-tone]:not(:where([data-document-preview] *)) {
+    background-color: var(--ui-badge-bg, var(--ui-badge-blue-bg));
+    border-color: var(--ui-badge-border, var(--ui-badge-blue-border));
+    color: var(--ui-badge-ink, var(--ui-blue));
+  }
+
+  [data-badge-tone="positive"] {
+    --ui-badge-bg: var(--ui-badge-green-bg);
+    --ui-badge-border: var(--ui-badge-green-border);
+    --ui-badge-ink: var(--ui-badge-green-ink);
+  }
+
+  [data-badge-tone="negative"] {
+    --ui-badge-bg: var(--ui-badge-red-bg);
+    --ui-badge-border: var(--ui-badge-red-border);
+    --ui-badge-ink: var(--ui-badge-red-ink);
+  }
+
+  [data-badge-tone="neutral"] {
+    --ui-badge-bg: var(--ui-badge-blue-bg);
+    --ui-badge-border: var(--ui-badge-blue-border);
+    --ui-badge-ink: var(--ui-blue);
+  }
+
+  :is(.app-header, .app-header + main, [data-inntel-overlay]) .ui-badge span:empty[class*="rounded-full"] {
+    background-color: currentColor;
+  }
+
+  :is(.app-header + main, [data-inntel-overlay]) .ui-emphasis:not(:where([data-document-preview] *)),
+  :is(.app-header + main, [data-inntel-overlay]) table tbody td :is(b, strong):not(:where([data-document-preview] *)) {
+    font-weight: 600;
+  }
+
+  :is(button, a[role="button"]) :is(svg.lucide-trash, svg.lucide-trash-2),
+  :is(button, a)[data-action-icon="delete"] > svg {
+    --ui-icon-ink: var(--ui-delete);
+    color: var(--ui-delete);
+  }
+
+  :is(button, a)[data-action-icon="delete"] {
+    --ui-action-ink: var(--ui-delete);
+    --ui-action-hover: #fff0f1;
+    --ui-action-border: var(--ui-badge-red-border);
   }
 
   @media (pointer: coarse) {

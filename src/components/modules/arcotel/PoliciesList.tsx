@@ -6,6 +6,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { ShieldCheck, Plus, Clock } from "lucide-react";
 import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
+import { Badge } from "@/components/ui/Badge";
 
 interface PoliciesListProps {
   onOpenNewModal: () => void;
@@ -90,7 +91,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    <Badge className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       isUrgent
                         ? "border-amber-200 bg-amber-50 text-amber-800"
                         : isExpired
@@ -98,7 +99,7 @@ export function PoliciesList({ onOpenNewModal }: PoliciesListProps) {
                         : "border-emerald-200 bg-emerald-50 text-emerald-800"
                     }`}>
                       {dynamicStatus.replace("_", " ")}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-5 py-4 text-right">
                     <ActionIconButton action="delete" type="button" onClick={() =>

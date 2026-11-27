@@ -17,6 +17,7 @@ import {
 import { useApp } from "@/lib/state";
 import { canTradeWithClient } from "@/lib/sales-policy";
 import { ClientQuote, InvoiceItem } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 interface BillingQuoteModalProps {
   isOpen: boolean;
@@ -362,9 +363,9 @@ export function BillingQuoteModal({
                             SKU: {p.sku} | PVP: ${p.salePrice.toFixed(2)}
                           </p>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eff4ff] text-[#004ac6]">
+                        <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#eff4ff] text-[#004ac6]">
                           {p.type}
-                        </span>
+                        </Badge>
                       </div>
                     ))}
                     {filteredProducts.length === 0 && searchProductTerm.trim() && (
@@ -512,7 +513,7 @@ export function BillingQuoteModal({
               </div>
               <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm font-black">
                 <span>TOTAL COTIZACIÓN:</span>
-                <span className="text-xl font-mono text-amber-400">${total.toFixed(2)}</span>
+                <span className="ui-emphasis text-xl font-mono text-amber-400">${total.toFixed(2)}</span>
               </div>
             </div>
           </div>

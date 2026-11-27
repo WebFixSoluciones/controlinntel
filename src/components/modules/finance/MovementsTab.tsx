@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatFinanceCategory } from "./FinanceDashboard";
 import { expenseCategoriesWithDefaults } from "@/lib/expense-categories";
+import { Badge } from "@/components/ui/Badge";
 
 export function MovementsTab() {
   const { financialMovements, bankAccounts, addFinancialMovement, expenseCategories } = useApp();
@@ -172,7 +173,7 @@ export function MovementsTab() {
                   <tr key={m.id} className="hover:bg-[#f8f9ff] transition-colors">
                     <td className="px-2 py-1.5 tabular-nums whitespace-nowrap">{m.date}</td>
                     <td className="px-2 py-1.5 text-center">
-                      <span className="ui-badge">
+                      <Badge>
                         {isIngreso ? (
                           <>
                             <ArrowDownLeft aria-hidden="true" className="size-2.5" />
@@ -184,7 +185,7 @@ export function MovementsTab() {
                             Egreso
                           </>
                         )}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-2 py-1.5 font-semibold truncate" title={m.description}>
                       {m.description}
@@ -203,7 +204,7 @@ export function MovementsTab() {
                         </span>
                       )}
                     </td>
-                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">
+                    <td className="ui-emphasis px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                       {isIngreso ? "+" : "-"}${safeNumber(m.amount)}
                     </td>
                   </tr>

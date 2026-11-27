@@ -13,6 +13,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { SriCompanyConfig } from "@/types";
 import { formatearSecuencialSRI } from "@/lib/sri-service";
+import { Badge } from "@/components/ui/Badge";
 
 interface SriConfigModalProps {
   isOpen: boolean;
@@ -148,13 +149,13 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
                 <span>Certificado de Firma Electrónica (.p12 / .pfx)</span>
               </div>
               {firmaActiva ? (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Badge className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                   FIRMA VINCULADA
-                </span>
+                </Badge>
               ) : (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                <Badge className="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                   SIN FIRMA CARGADA
-                </span>
+                </Badge>
               )}
             </div>
 
@@ -192,9 +193,9 @@ export function SriConfigModal({ isOpen, onClose }: SriConfigModalProps) {
           <div className="p-4 bg-[#f8f9ff] rounded-lg border border-[#e2e8f0] space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#e2e8f0]">
               <span className="font-bold text-slate-800">Sucursal (Establecimiento) & Punto de Emisión</span>
-              <span className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+              <Badge className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
                 Serie: {String(form.establecimiento || "010").padStart(3, "0")}-{String(form.puntoEmision || "001").padStart(3, "0")}
-              </span>
+              </Badge>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

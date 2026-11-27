@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { PurchaseInvoice } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 export function AccountsPayableTab() {
   const {
@@ -251,7 +252,7 @@ export function AccountsPayableTab() {
                       {inv.dueDate || "Sin plazo"}
                     </td>
                     <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <span
+                      <Badge
                         className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                           dueInfo.color === "red"
                             ? "bg-rose-50 text-rose-700 border-rose-200"
@@ -261,9 +262,9 @@ export function AccountsPayableTab() {
                         }`}
                       >
                         {dueInfo.label}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-slate-700">
+                    <td className="ui-emphasis py-3 px-4 text-right font-mono text-slate-700">
                       ${safeNumber(inv.total)}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-emerald-600">

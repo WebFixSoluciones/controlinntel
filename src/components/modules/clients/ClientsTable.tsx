@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   Plus,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientsTableProps {
   onSelectClient: (client: Client) => void;
@@ -310,12 +311,12 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                     >
                       {/* Cliente (Razón Social) */}
                       <td className="py-3.5 px-5">
-                        <span className="text-xs font-semibold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors">
+                        <span className="ui-emphasis text-xs font-semibold text-[#0b1c30] group-hover:text-[#004ac6] transition-colors">
                           {client.businessName}
                         </span>
-                        <span className={`block w-fit mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+                        <Badge className={`block w-fit mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
                           {clientStatusLabel(client.status)}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Columna Servicios: Botón minimalista no de burbuja */}
@@ -443,7 +444,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="grid grid-cols-1 gap-2 border-b p-4 text-xs sm:grid-cols-3">
-              <div className="rounded-lg border bg-slate-50 p-3">Total de operaciones vigentes<strong className="mt-1 block font-mono text-base">${history.total.toFixed(2)}</strong></div>
+              <div className="rounded-lg border bg-slate-50 p-3">Total de operaciones vigentes<strong className="ui-emphasis mt-1 block font-mono text-base">${history.total.toFixed(2)}</strong></div>
               <div className="rounded-lg border bg-slate-50 p-3">Operaciones vigentes<strong className="mt-1 block font-mono text-base">{history.count}</strong></div>
               <div className="rounded-lg border bg-amber-50 p-3">Saldo pendiente registrado<strong className="mt-1 block font-mono text-base">${history.pending.toFixed(2)}</strong>{history.reconciliationCount > 0 && <span className="mt-1 block text-amber-800">{history.reconciliationCount} registro(s) requieren conciliación.</span>}</div>
             </div>
@@ -454,8 +455,8 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
                   <tbody className="divide-y">{historyPage.rows.map(row => <tr key={row.id} className="hover:bg-slate-50">
                     <td className="px-3 py-3 font-mono font-semibold">{row.documentNumber}{row.sourceNumber && <span className="mt-1 block text-[10px] font-normal text-slate-500">Origen: {row.sourceNumber}</span>}{row.testDocuments?.length > 0 && <span className="mt-1 block max-w-64 text-[10px] font-normal text-slate-500">Pruebas SRI: {row.testDocuments.join(", ")}</span>}</td>
                     <td className="px-3 py-3">{row.kind}</td><td className="whitespace-nowrap px-3 py-3">{row.date}</td><td className="px-3 py-3 capitalize">{row.paymentMethod}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right font-mono">${row.total.toFixed(2)}</td><td className="whitespace-nowrap px-3 py-3 text-right font-mono">{row.pending === null ? "Por conciliar" : `$${row.pending.toFixed(2)}`}</td>
-                    <td className="px-3 py-3"><span className="inline-block rounded border bg-slate-50 px-2 py-1 text-[10px] font-semibold">{row.status}</span>{row.needsReconciliation && <span className="mt-1 block text-amber-700">Revisar cartera vinculada</span>}</td>
+                    <td className="ui-emphasis whitespace-nowrap px-3 py-3 text-right font-mono">${row.total.toFixed(2)}</td><td className="whitespace-nowrap px-3 py-3 text-right font-mono">{row.pending === null ? "Por conciliar" : `$${row.pending.toFixed(2)}`}</td>
+                    <td className="px-3 py-3"><Badge className="inline-block rounded border bg-slate-50 px-2 py-1 text-[10px] font-semibold">{row.status}</Badge>{row.needsReconciliation && <span className="mt-1 block text-amber-700">Revisar cartera vinculada</span>}</td>
                   </tr>)}</tbody>
                 </table>
               )}
@@ -490,7 +491,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
               {/* Client & Debt Info Card */}
               <div className="bg-rose-50/70 border border-rose-200 rounded-lg p-4 text-left space-y-2 text-xs">
                 <div className="flex justify-between items-center border-b border-rose-200/60 pb-2">
-                  <span className="font-bold text-[#0b1c30] truncate max-w-[220px]">
+                  <span className="ui-emphasis font-bold text-[#0b1c30] truncate max-w-[220px]">
                     {blockedDeleteClient.client.businessName}
                   </span>
                   <span className="font-mono text-[#737686] text-xs">
@@ -596,10 +597,10 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
 
                 <div className="flex justify-between items-center pt-1 text-xs">
                   <span className="text-[#475569] font-semibold">Estado de Cuentas:</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-xs">
+                  <Badge className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-xs">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     Al Día (Saldo $0.00)
-                  </span>
+                  </Badge>
                 </div>
               </div>
 

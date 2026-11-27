@@ -65,7 +65,7 @@ export function AdvanceDetailsDialog({ advance, source, originNumber, status, on
       <header className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 p-4">
         <div>
           <h2 id="advance-details-title" className="text-base font-semibold">{title}</h2>
-          <p className="mt-1 text-xs text-slate-600">{advance.clientName} · {advance.clientRuc}</p>
+          <p className="ui-emphasis mt-1 text-xs text-slate-600">{advance.clientName} · {advance.clientRuc}</p>
         </div>
         <button type="button" aria-label="Cerrar" disabled={busy} onClick={onClose} className="rounded-md p-1.5 hover:bg-slate-200">
           <X aria-hidden="true" className="size-4" />

@@ -15,6 +15,7 @@ import { NewSaleView } from "../billing/NewSaleView";
 import { QuotePreviewModal } from "../billing/QuotePreviewModal";
 import { BillingQuoteModal } from "../billing/BillingQuoteModal";
 import { canTradeWithClient } from "@/lib/sales-policy";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientQuotesManagerProps {
   client: Client;
@@ -285,37 +286,37 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
     switch (status) {
       case "facturada":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Facturada</span>
-          </span>
+          </Badge>
         );
       case "orden_pedido":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
             <ShoppingCart className="w-3.5 h-3.5 text-blue-600" />
             <span>Orden Pedido</span>
-          </span>
+          </Badge>
         );
       case "aprobada":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-sky-50 text-sky-700 border border-sky-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-sky-50 text-sky-700 border border-sky-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
             <span>Aprobada</span>
-          </span>
+          </Badge>
         );
       case "enviada":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
             <span>Enviada</span>
-          </span>
+          </Badge>
         );
       case "borrador":
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
             <span>Borrador</span>
-          </span>
+          </Badge>
         );
     }
   };
@@ -329,9 +330,9 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
             <BackButton type="button" onClick={() => setConvertingQuote(null)} title="Volver a Cotizaciones" label="Volver a Cotizaciones" />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                <Badge className="font-mono text-xs font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                   {convertingQuote.quoteNumber}
-                </span>
+                </Badge>
                 <h3 className="font-bold text-sm text-slate-900">
                   Transformar Cotización a Venta
                 </h3>
@@ -427,7 +428,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                   >
                     <span>{tab.label}</span>
                     {tab.count > 0 && (
-                      <span
+                      <Badge
                         className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                           isActive
                             ? "bg-white/20 text-white"
@@ -435,7 +436,7 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                         }`}
                       >
                         {tab.count}
-                      </span>
+                      </Badge>
                     )}
                   </button>
                 );
@@ -510,12 +511,12 @@ export function ClientQuotesManager({ client }: ClientQuotesManagerProps) {
                       <span className="font-bold text-slate-900 block">{q.title}</span>
                       <div className="mt-1 flex flex-wrap gap-1">
                         {q.items.map((it, idx) => (
-                          <span
+                          <Badge
                             key={idx}
                             className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium"
                           >
                             {it.quantity}x {it.description}
-                          </span>
+                          </Badge>
                         ))}
                       </div>
                     </td>

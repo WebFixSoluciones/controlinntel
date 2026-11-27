@@ -15,6 +15,7 @@ import {
 import { ProjectTaskModal } from "./ProjectTaskModal";
 import { ProjectGanttModal } from "./ProjectGanttModal";
 import { Kanban, ListTodo, Calendar, TrendingUp, Plus, Search, Clock, Building2, Radio, User, CheckSquare, MessageSquare, X, Briefcase, ExternalLink, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export const COLUMN_COLORS: Record<
   string,
@@ -350,15 +351,15 @@ export function ProjectWorkspace({
                   </h1>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-0.5">
                     {project.type === "cliente" ? (
-                      <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                      <Badge className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                         <Building2 className="w-3.5 h-3.5 text-[#004ac6]" />
                         {project.clientName || "Cliente Asignado"}
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                      <Badge className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                         <Radio className="w-3.5 h-3.5 text-[#004ac6]" />
                         {project.nodeName || "POP / Infraestructura"}
-                      </span>
+                      </Badge>
                     )}
                     <span className="text-slate-300">·</span>
                     <span className="inline-flex items-center gap-1 text-slate-600">
@@ -566,9 +567,9 @@ export function ProjectWorkspace({
                       <h3 className="text-xs font-bold text-[#0b1c30] uppercase tracking-wider truncate">
                         {column.label}
                       </h3>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-[#e2e8f0] text-[#475569]">
+                      <Badge className="text-xs font-bold px-2 py-0.5 rounded-md bg-[#e2e8f0] text-[#475569]">
                         {columnTasks.length}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -623,13 +624,13 @@ export function ProjectWorkspace({
                               </span>
 
                               <div className="flex items-center gap-1.5">
-                                <span
+                                <Badge
                                   className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
                                     priorityBadges[task.priority]?.bg || "bg-slate-100 text-slate-700 border border-slate-200"
                                   }`}
                                 >
                                   {priorityBadges[task.priority]?.text || task.priority}
-                                </span>
+                                </Badge>
 
                                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
                                   <ActionIconButton action="edit" onClick={(e) => {
@@ -646,10 +647,10 @@ export function ProjectWorkspace({
 
                             {taskTramites.length > 0 && (
                               <div className="flex items-center gap-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                                <Badge className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                                   <FileText className="w-3 h-3 text-[#004ac6]" />
                                   <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
-                                </span>
+                                </Badge>
                               </div>
                             )}
 
@@ -819,7 +820,7 @@ export function ProjectWorkspace({
                         </td>
 
                         <td className="py-3 px-4">
-                          <span
+                          <Badge
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
                               task.priority === "urgente"
                                 ? "bg-rose-100 text-rose-700"
@@ -831,7 +832,7 @@ export function ProjectWorkspace({
                             }`}
                           >
                             {task.priority}
-                          </span>
+                          </Badge>
                         </td>
 
                         <td className="py-3 px-4">
@@ -852,14 +853,14 @@ export function ProjectWorkspace({
                           {taskTramites.length > 0 ? (
                             <div className="flex flex-wrap items-center gap-1 max-w-[140px]">
                               {taskTramites.map((trm) => (
-                                <span
+                                <Badge
                                   key={trm.id}
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   title={`${trm.documentNumber}: ${trm.reason}`}
                                 >
                                   <FileText className="w-3 h-3 text-indigo-600 shrink-0" />
                                   <span className="font-mono truncate">{trm.documentNumber}</span>
-                                </span>
+                                </Badge>
                               ))}
                             </div>
                           ) : (
@@ -869,9 +870,9 @@ export function ProjectWorkspace({
 
                         <td className="py-3 px-4">
                           {totalSubtasks > 0 ? (
-                            <span className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <Badge className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                               {completedSubtasks}/{totalSubtasks} ({Math.round((completedSubtasks / totalSubtasks) * 100)}%)
-                            </span>
+                            </Badge>
                           ) : (
                             <span className="text-slate-400 text-[11px]">-</span>
                           )}

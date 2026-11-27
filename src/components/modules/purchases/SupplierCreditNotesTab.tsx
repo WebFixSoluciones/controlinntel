@@ -15,6 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import { PurchaseInvoice } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 interface SupplierCreditNotesTabProps {
   initialInvoice?: PurchaseInvoice | null;
@@ -191,7 +192,7 @@ export function SupplierCreditNotesTab({
                     {note.reason.replace(/_/g, " ")}
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <span
+                    <Badge
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         note.items && note.items.length > 0
                           ? "bg-[#ecfdf5] text-[#059669] border border-[#a7f3d0]"
@@ -199,7 +200,7 @@ export function SupplierCreditNotesTab({
                       }`}
                     >
                       {note.items && note.items.length > 0 ? "Sí (Salida Kardex)" : "No (Financiero)"}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-bold text-[#059669]">
                     -${note.total.toFixed(2)}

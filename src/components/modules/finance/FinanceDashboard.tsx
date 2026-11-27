@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { generateBillingBatchExcel, triggerBrowserDownload } from "@/lib/doc-generator";
 import type { MonthlyCharge, ClientAdvance, FinancialMovement } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 const PAYMENT_METHODS = [
   "Transferencia Bancaria",
@@ -609,9 +610,9 @@ export function FinanceDashboard({
                             <span className="font-semibold tabular-nums [overflow-wrap:anywhere]">
                               {charge.invoiceNumber || "S/N"}
                             </span>
-                            <span className="ui-badge">
+                            <Badge>
                               {isNotaVenta ? "Nota de venta" : "Factura SRI"}
-                            </span>
+                            </Badge>
                           </div>
                           {charge.serviceDescription && (
                             <span className="ui-cell-meta block truncate" title={charge.serviceDescription}>
@@ -627,7 +628,7 @@ export function FinanceDashboard({
 
                         {/* Cliente / RUC */}
                         <td className="px-2 py-1.5">
-                          <span className="font-semibold block truncate" title={charge.clientName}>
+                          <span className="ui-emphasis font-semibold block truncate" title={charge.clientName}>
                             {charge.clientName}
                           </span>
                           <span className="ui-cell-meta block">
@@ -641,7 +642,7 @@ export function FinanceDashboard({
                         </td>
 
                         {/* Total Venta */}
-                        <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
+                        <td className="ui-emphasis px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
                           ${safeNumber(charge.total)}
                         </td>
 
@@ -657,9 +658,9 @@ export function FinanceDashboard({
 
                         {/* Estado */}
                         <td className="px-2 py-1.5 text-center">
-                          <span className="ui-badge">
+                          <Badge>
                             {isCancelled ? "Anulado" : isPaid ? "Pagado" : isPartial ? "Parcial" : "Pendiente"}
-                          </span>
+                          </Badge>
                         </td>
 
                         {/* Acciones */}
@@ -786,7 +787,7 @@ export function FinanceDashboard({
                       <tr key={adv.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="px-2 py-1.5 tabular-nums whitespace-nowrap">{adv.date}</td>
                         <td className="px-2 py-1.5">
-                          <span className="font-semibold block truncate" title={adv.clientName}>{adv.clientName}</span>
+                          <span className="ui-emphasis font-semibold block truncate" title={adv.clientName}>{adv.clientName}</span>
                           <span className="ui-cell-meta block">{adv.clientRuc}</span>
                         </td>
                         {showAdvanceMonths && <td className="px-2 py-1.5 text-center tabular-nums">
@@ -796,7 +797,7 @@ export function FinanceDashboard({
                           ${safeNumber(adv.amount)}
                         </td>
                         <td className="px-2 py-1.5 text-right font-semibold tabular-nums">
-                          <span className="whitespace-nowrap">${safeNumber(adv.remaining)}</span>
+                          <span className="ui-emphasis whitespace-nowrap">${safeNumber(adv.remaining)}</span>
                           {wasRefunded && <span className="ui-cell-meta block">Devuelto: ${safeNumber(adv.refundedAmount)}</span>}
                         </td>
                         <td className="px-2 py-1.5 [overflow-wrap:anywhere]">
@@ -808,9 +809,9 @@ export function FinanceDashboard({
                           </span>}
                         </td>
                         <td className="px-2 py-1.5 text-center">
-                          <span className="ui-badge">
+                          <Badge>
                             {advanceLabel}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="px-2 py-1.5 text-right">
                           <div className="ui-table-actions">
@@ -881,7 +882,7 @@ export function FinanceDashboard({
                   Historial de Abonos: {historyCharge.invoiceNumber}
                 </h3>
                 <span className="text-[11px] text-slate-500">
-                  Cliente: <strong className="text-slate-800">{historyCharge.clientName}</strong>
+                  Cliente: <strong className="ui-emphasis text-slate-800">{historyCharge.clientName}</strong>
                 </span>
               </div>
               <button aria-label="Cerrar"
@@ -1028,7 +1029,7 @@ export function FinanceDashboard({
             <div className="text-center space-y-1">
               <h3 className="font-bold text-slate-900 text-sm">{deletingCharge.invoiceId ? "¿Anular la venta y su deuda?" : "¿Anular esta deuda manual?"}</h3>
               <p className="text-xs text-slate-600">
-                Se anulará {deletingCharge.invoiceId ? "la venta y su deuda" : "la deuda"} <strong>{deletingCharge.invoiceNumber}</strong> por <strong>${safeNumber(deletingCharge.total)}</strong>. El historial se conserva. Los abonos quedan como saldo a favor y la salida de inventario se revierte cuando corresponde. Esta acción no devuelve dinero al cliente.
+                Se anulará {deletingCharge.invoiceId ? "la venta y su deuda" : "la deuda"} <strong>{deletingCharge.invoiceNumber}</strong> por <strong className="ui-emphasis">${safeNumber(deletingCharge.total)}</strong>. El historial se conserva. Los abonos quedan como saldo a favor y la salida de inventario se revierte cuando corresponde. Esta acción no devuelve dinero al cliente.
               </p>
             </div>
 
@@ -1096,7 +1097,7 @@ export function FinanceDashboard({
               </div>}
               <div>
                 <p className="text-[11px] font-bold text-slate-700 mb-1">Cliente *</p>
-                {lockAdvanceClient ? <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">{editingAdvance?.clientName}</p>
+                {lockAdvanceClient ? <p className="ui-emphasis rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">{editingAdvance?.clientName}</p>
                   : <ClientSearchSelect clients={clients} value={advClientId} onChange={setAdvClientId} label="Cliente del anticipo" required />}
               </div>
 
@@ -1259,7 +1260,7 @@ export function FinanceDashboard({
                   Aplicar Anticipo a Comprobante
                 </h3>
                 <span className="text-[11px] text-slate-500">
-                  Cliente: <strong>{selectedAdvanceToApply.clientName}</strong> — Saldo disponible:{" "}
+                  Cliente: <strong className="ui-emphasis">{selectedAdvanceToApply.clientName}</strong> — Saldo disponible:{" "}
                   <strong className="text-emerald-700 font-mono">${safeNumber(selectedAdvanceToApply.remaining)}</strong>
                 </span>
               </div>

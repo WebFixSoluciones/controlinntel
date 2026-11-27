@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { TicketDetail } from "./TicketDetail";
 import { TicketSubjectsModal } from "./TicketSubjectsModal";
+import { Badge } from "@/components/ui/Badge";
+import { badgeTone } from "@/lib/badge-tone";
 
 interface TicketsBoardProps {
   onOpenNewModal: () => void;
@@ -317,7 +319,7 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                         <div className="ui-cell-meta truncate" title={t.description}>{t.description}</div>
                       </td>
                       <td>
-                        <div className="truncate" title={t.clientName}>{t.clientName}</div>
+                        <div className="ui-emphasis truncate" title={t.clientName}>{t.clientName}</div>
                         {t.nodeName && <div className="ui-cell-meta truncate" title={t.nodeName}>{t.nodeName}</div>}
                       </td>
                       <td>
@@ -327,11 +329,12 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
                         <span className="block truncate" title={assignee}>{assignee}</span>
                       </td>
                       <td className="text-center">
-                        <span className="ui-badge">{priorityLabels[t.priority] || t.priority}</span>
+                        <Badge>{priorityLabels[t.priority] || t.priority}</Badge>
                       </td>
                       <td>
                         <select
                           value={t.status}
+                          data-badge-tone={badgeTone(t.status)}
                           onChange={(e) => void handleStatusChange(t, e.target.value as TicketStatus)}
                           aria-label={`Estado del ticket ${t.ticketNumber}`}
                           className="ui-cell-control w-full"

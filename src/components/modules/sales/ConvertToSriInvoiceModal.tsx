@@ -281,7 +281,7 @@ export function ConvertToSriInvoiceModal({
             </div>
             <div className="border-t border-slate-300 pt-1.5 flex justify-between font-bold text-slate-900 text-sm">
               <span>Total Factura:</span>
-              <span className="font-mono text-[#004ac6]">${(sale.total || 0).toFixed(2)}</span>
+              <span className="ui-emphasis font-mono text-[#004ac6]">${(sale.total || 0).toFixed(2)}</span>
             </div>
           </div>
         </div>

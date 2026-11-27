@@ -11,6 +11,7 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export interface Coordinates {
   lat: number;
@@ -516,10 +517,10 @@ export default function NodeLocationMapPicker({
 
         {/* Indicador flotante sobre el mapa */}
         <div className="absolute top-2 left-2 z-20 pointer-events-none">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-bold shadow-sm">
+          <Badge className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-bold shadow-sm">
             <MapPin className="w-3 h-3 text-emerald-400" />
             Haz clic o arrastra el marcador para fijar la ubicación exacta
-          </span>
+          </Badge>
         </div>
       </div>
 

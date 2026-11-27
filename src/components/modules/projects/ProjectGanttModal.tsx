@@ -9,6 +9,7 @@ import {
   User,
   Layers,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ProjectGanttModalProps {
   isOpen: boolean;
@@ -81,10 +82,10 @@ export function ProjectGanttModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30">
+                <Badge className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30">
                   Diagrama Cronograma / Gantt
-                </span>
-                <span className="text-xs font-bold text-white/80">
+                </Badge>
+                <span className="ui-emphasis text-xs font-bold text-white/80">
                   {project.type === "cliente" ? project.clientName : project.nodeName}
                 </span>
               </div>
@@ -186,9 +187,9 @@ export function ProjectGanttModal({
                             }`}
                           />
                           <strong className="text-slate-900">{t.title}</strong>
-                          <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                          <Badge className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-slate-100 text-slate-600 border border-slate-200 uppercase">
                             {t.column.replace("_", " ")}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">

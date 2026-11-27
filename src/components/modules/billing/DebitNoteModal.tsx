@@ -194,7 +194,7 @@ export function DebitNoteModal({
           {targetInvoice && (
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-600 space-y-1">
               <span className="font-bold text-slate-800 block text-[11px]">Cliente Receptor:</span>
-              <p className="font-semibold text-slate-900">{targetInvoice.clientName}</p>
+              <p className="ui-emphasis font-semibold text-slate-900">{targetInvoice.clientName}</p>
               <p className="font-mono text-[11px]">RUC / Cédula: {targetInvoice.clientRuc} | {targetInvoice.clientEmail}</p>
             </div>
           )}
@@ -285,7 +285,7 @@ export function DebitNoteModal({
             </div>
             <div className="border-t border-slate-300 pt-1.5 flex justify-between font-bold text-slate-900 text-sm">
               <span>Total Nota de Débito:</span>
-              <span className="font-mono text-[#004ac6]">${total.toFixed(2)}</span>
+              <span className="ui-emphasis font-mono text-[#004ac6]">${total.toFixed(2)}</span>
             </div>
           </div>
 

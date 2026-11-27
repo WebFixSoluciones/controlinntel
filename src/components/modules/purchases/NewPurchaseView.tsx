@@ -10,6 +10,7 @@ import { useToast } from "@/lib/toast-context";
 import { parseSupplierSriXml } from "@/lib/purchases-service";
 import { UploadCloud, FileText, Plus, CheckCircle2, Building2, Boxes, CreditCard, Save, FileUp } from "lucide-react";
 import { PurchaseItem, PurchasePaymentCondition } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 interface NewPurchaseViewProps {
   onBack: () => void;
@@ -368,10 +369,10 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
               </span>
             </div>
             {xmlFileName && (
-              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+              <Badge className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {xmlFileName}
-              </span>
+              </Badge>
             )}
           </div>
 
@@ -740,7 +741,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
                       ${item.subtotal.toFixed(2)}
                     </td>
 
-                    <td className="py-2 px-2 text-right font-mono font-bold text-[#004ac6]">
+                    <td className="ui-emphasis py-2 px-2 text-right font-mono font-bold text-[#004ac6]">
                       ${item.total.toFixed(2)}
                     </td>
 
@@ -778,7 +779,7 @@ export function NewPurchaseView({ onBack, onSuccess }: NewPurchaseViewProps) {
               </div>
               <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                 <span>Total Factura:</span>
-                <span className="font-mono text-[#004ac6]">${grandTotal.toFixed(2)}</span>
+                <span className="ui-emphasis font-mono text-[#004ac6]">${grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>

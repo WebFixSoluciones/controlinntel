@@ -59,7 +59,7 @@ export function PurchaseCorrectionDialog({ invoice, mode, onClose }: { invoice: 
         {removing ? <>
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <p className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4" />Se retirará esta factura del listado activo.</p>
-            <p className="mt-2">Total: <strong>${invoice.total.toFixed(2)}</strong> · Fecha: {invoice.date} · RUC: {invoice.supplierRuc}</p>
+            <p className="mt-2">Total: <strong className="ui-emphasis">${invoice.total.toFixed(2)}</strong> · Fecha: {invoice.date} · RUC: {invoice.supplierRuc}</p>
             <ul className="mt-3 list-disc space-y-1 pl-5">
               <li>Se cancelará el saldo pendiente de ${invoice.balanceRemaining.toFixed(2)}.</li>
               {invoice.paidAmount > 0 && <li>Se revertirán los pagos registrados por ${invoice.paidAmount.toFixed(2)} en sus cuentas o saldos de proveedor de origen.</li>}
@@ -91,7 +91,7 @@ export function PurchaseCorrectionDialog({ invoice, mode, onClose }: { invoice: 
                 <button type="button" aria-label={`Quitar partida ${index + 1}`} onClick={() => setItems(previous => previous.filter((_, i) => i !== index))} className="p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>
               </div>)}
               {!locked && <button type="button" className="flex items-center gap-1 text-sm font-semibold text-blue-700" onClick={() => setItems(previous => [...previous, { id: crypto.randomUUID(), name: "", quantity: 1, unitCost: 0, discount: 0, ivaRate: 15, subtotal: 0, ivaAmount: 0, total: 0, warehouseId: "" }])}><Plus className="h-4 w-4" />Agregar partida</button>}
-              <p className="text-right text-sm font-bold">Total: {total === undefined ? "Revisa las partidas" : `$${total.toFixed(2)}`}</p>
+              <p className="ui-emphasis text-right text-sm font-bold">Total: {total === undefined ? "Revisa las partidas" : `$${total.toFixed(2)}`}</p>
             </div>
           </fieldset>
           <div className="grid gap-4 sm:grid-cols-2">

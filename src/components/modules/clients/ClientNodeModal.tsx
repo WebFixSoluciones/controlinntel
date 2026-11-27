@@ -31,6 +31,7 @@ import {
   Globe,
 } from "lucide-react";
 import type { DetectedLocationData } from "./NodeLocationMapPicker";
+import { Badge } from "@/components/ui/Badge";
 
 const NodeLocationMapPicker = dynamic(
   () => import("./NodeLocationMapPicker"),
@@ -442,7 +443,7 @@ export function ClientNodeModal({
               </h3>
               <p className="text-xs text-white/80 flex items-center gap-1.5 mt-0.5">
                 <Building2 className="w-3.5 h-3.5 text-white/80" />
-                <span className="font-semibold text-white">{client.businessName}</span>
+                <span className="ui-emphasis font-semibold text-white">{client.businessName}</span>
               </p>
             </div>
           </div>
@@ -570,9 +571,9 @@ export function ClientNodeModal({
                     </span>
                   </div>
                   {coordinates && (
-                    <span className="text-[10px] font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                    <Badge className="text-[10px] font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
                       GPS: {coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}
-                    </span>
+                    </Badge>
                   )}
                 </div>
 
@@ -833,9 +834,9 @@ export function ClientNodeModal({
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-slate-900 text-xs">{p.providerName}</span>
                               {p.capacityMbps > 0 && (
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-lg">
+                                <Badge className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#004ac6] rounded-lg">
                                   {p.capacityMbps} Mbps
-                                </span>
+                                </Badge>
                               )}
                             </div>
                             <div className="text-[11px] text-slate-500 font-mono mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center">

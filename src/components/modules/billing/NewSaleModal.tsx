@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { InvoiceItem, SriInvoice } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 interface NewSaleModalProps {
   isOpen: boolean;
@@ -558,7 +559,7 @@ export function NewSaleModal({
                           </div>
                           <div className="text-right">
                             {p.tracksStock ? (
-                              <span
+                              <Badge
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                   (stockInWh || 0) > 0
                                     ? "bg-emerald-100 text-emerald-800"
@@ -566,11 +567,11 @@ export function NewSaleModal({
                                 }`}
                               >
                                 Stock: {stockInWh} {p.unit}
-                              </span>
+                              </Badge>
                             ) : (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#004ac6]">
+                              <Badge className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#004ac6]">
                                 Servicio
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -697,7 +698,7 @@ export function NewSaleModal({
               </div>
               <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm font-black">
                 <span>TOTAL A PAGAR:</span>
-                <span className="text-xl font-mono text-emerald-400">${total.toFixed(2)}</span>
+                <span className="ui-emphasis text-xl font-mono text-emerald-400">${total.toFixed(2)}</span>
               </div>
             </div>
           </div>

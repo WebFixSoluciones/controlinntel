@@ -20,6 +20,7 @@ import {
   Calendar,
   AlertCircle,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 type Draft = Omit<ClientContractInfo, "id">;
 
@@ -154,30 +155,30 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
     switch (contractStatus) {
       case "vigente":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Vigente
-          </span>
+          </Badge>
         );
       case "por_renovar":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             Por Renovar
-          </span>
+          </Badge>
         );
       case "vencido":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Vencido
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-50 text-slate-700 border border-slate-200">
             {contractStatus}
-          </span>
+          </Badge>
         );
     }
   };
@@ -385,14 +386,14 @@ export function ContractsManager({ clientId }: { clientId?: string }) {
                     filteredContracts.map((c) => (
                       <tr key={c.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-4 px-5">
-                          <div className="font-bold text-[#0b1c30]">{clientName(c.clientId)}</div>
+                          <div className="ui-emphasis font-bold text-[#0b1c30]">{clientName(c.clientId)}</div>
                           <div className="text-[10px] text-[#737686] font-mono">
                             {clients.find((cl) => cl.id === c.clientId)?.identificationNumber}
                           </div>
                         </td>
                         <td className="py-4 px-5 font-mono font-bold text-[#004ac6]">{c.contractNumber}</td>
                         <td className="py-4 px-5">
-                          <div className="font-medium text-[#0b1c30]">{c.planName}</div>
+                          <div className="ui-emphasis font-medium text-[#0b1c30]">{c.planName}</div>
                           {c.notes && <div className="text-[10px] text-[#737686] truncate max-w-xs">{c.notes}</div>}
                         </td>
                         <td className="py-4 px-5 font-mono text-[11px] font-semibold text-[#434655]">

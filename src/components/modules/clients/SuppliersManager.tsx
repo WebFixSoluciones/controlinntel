@@ -24,6 +24,7 @@ import {
   limpiarTextoSri,
   limpiarEmailSri,
 } from "@/lib/sri-service";
+import { Badge } from "@/components/ui/Badge";
 
 export function SuppliersManager() {
   const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useApp();
@@ -276,7 +277,7 @@ export function SuppliersManager() {
                 filteredSuppliers.map((supplier) => (
                   <tr key={supplier.id} className="hover:bg-[#f8f9ff] transition-colors">
                     <td className="py-4 px-5">
-                      <div className="font-bold text-[#0b1c30] text-sm">{supplier.razonSocial}</div>
+                      <div className="ui-emphasis font-bold text-[#0b1c30] text-sm">{supplier.razonSocial}</div>
                       {supplier.nombreComercial && (
                         <div className="text-[11px] text-[#737686]">{supplier.nombreComercial}</div>
                       )}
@@ -285,9 +286,9 @@ export function SuppliersManager() {
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
+                      <Badge className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
                         {supplier.category.replace(/_/g, " ")}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="py-4 px-4">
                       <div className="space-y-1 text-xs">
@@ -312,14 +313,14 @@ export function SuppliersManager() {
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-[#434655] border border-slate-200">
+                      <Badge className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-[#434655] border border-slate-200">
                         <Clock className="w-3 h-3 text-[#004ac6]" />
                         <span>
                           {supplier.creditDaysDefault > 0
                             ? `${supplier.creditDaysDefault} días crédito`
                             : "Contado inmediato"}
                         </span>
-                      </span>
+                      </Badge>
                     </td>
                     <td className="py-4 px-5">
                       {supplier.bankAccountNumber ? (
@@ -372,7 +373,7 @@ export function SuppliersManager() {
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">
+                  <h3 className="ui-emphasis text-base font-bold text-white">
                     {editingSupplier ? `Editar Proveedor: ${editingSupplier.razonSocial || editingSupplier.nombreComercial || "Proveedor"}` : "Nuevo Proveedor"}
                   </h3>
                   <p className="text-xs text-white/80">

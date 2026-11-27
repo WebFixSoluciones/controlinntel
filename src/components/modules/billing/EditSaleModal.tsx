@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/state";
 import { InvoiceItem, SriInvoice } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 interface EditSaleModalProps {
   isOpen: boolean;
@@ -411,10 +412,10 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                 <h2 className="text-base font-bold leading-tight text-white">
                   Editar {docTitle}
                 </h2>
-                <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/10 text-white border border-white/20">
+                <Badge className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white/10 text-white border border-white/20">
                   {invoice.documentNumber}
-                </span>
-                <span
+                </Badge>
+                <Badge
                   className={`px-2 py-0.5 rounded-md text-[11px] font-bold capitalize ${
                     invoice.status === "autorizada" || invoice.status === "emitida"
                       ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"
@@ -422,7 +423,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                   }`}
                 >
                   {invoice.status}
-                </span>
+                </Badge>
               </div>
               <p className="text-xs text-blue-100 mt-0.5">
                 Modifica precios, cantidades, ítems o datos del cliente. Los saldos e inventarios se recalcularán automáticamente.
@@ -736,7 +737,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
                             <option value={15}>15%</option>
                           </select>
                         </td>
-                        <td className="py-2 px-3 text-right font-bold font-mono text-slate-800">
+                        <td className="ui-emphasis py-2 px-3 text-right font-bold font-mono text-slate-800">
                           ${it.total.toFixed(2)}
                         </td>
                         <td className="py-2 px-2 text-center">
@@ -866,7 +867,7 @@ export function EditSaleModal({ isOpen, invoice, onClose, onSuccess }: EditSaleM
               </div>
               <div className="border-t border-[#e2e8f0] pt-2 flex justify-between items-center">
                 <span className="text-sm font-black text-slate-900">Total a Pagar:</span>
-                <span className="text-lg font-black font-mono text-[#004ac6]">
+                <span className="ui-emphasis text-lg font-black font-mono text-[#004ac6]">
                   ${total.toFixed(2)}
                 </span>
               </div>

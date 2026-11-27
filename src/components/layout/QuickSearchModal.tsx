@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useApp } from "@/lib/state";
 import { Search, Users, ShieldCheck, Radio, X } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function QuickSearchModal() {
   const { isSearchOpen, setIsSearchOpen, searchQuery, setSearchQuery, clients, nodes, clientContracts } = useApp();
@@ -74,14 +75,14 @@ export function QuickSearchModal() {
                     className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#eff4ff] border border-transparent hover:border-[#cbdbf5] transition-colors group"
                   >
                     <div>
-                      <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{c.businessName}</p>
+                      <p className="ui-emphasis font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{c.businessName}</p>
                       <p className="text-[#737686] text-[11px]">
                         {c.identificationType}: {c.identificationNumber} • {c.phone}
                       </p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6]">
+                    <Badge className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#eff4ff] text-[#004ac6]">
                       {c.status.toUpperCase()}
-                    </span>
+                    </Badge>
                   </Link>
                 ))}
               </div>
@@ -131,7 +132,7 @@ export function QuickSearchModal() {
                       <p className="font-bold text-[#0b1c30] group-hover:text-[#004ac6]">{p.contractNumber}</p>
                       <p className="text-[#737686] text-[11px]">{clients.find(c => c.id === p.clientId)?.businessName || "Cliente no disponible"} • Vence: {p.expirationDate}</p>
                     </div>
-                    <span
+                    <Badge
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         p.status === "por_renovar"
                           ? "bg-amber-100 text-amber-800"
@@ -141,7 +142,7 @@ export function QuickSearchModal() {
                       }`}
                     >
                       {p.status.toUpperCase()}
-                    </span>
+                    </Badge>
                   </Link>
                 ))}
               </div>

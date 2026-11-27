@@ -14,6 +14,7 @@ import {
 } from "@/lib/sri-service";
 import { printHtmlElement, safeNumber, safeFloat } from "@/lib/print-service";
 import { printableBankTransferDetails } from "@/lib/bank-transfer-details";
+import { Badge } from "@/components/ui/Badge";
 
 interface QuotePreviewModalProps {
   isOpen?: boolean;
@@ -153,7 +154,7 @@ export function QuotePreviewModal({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-white/80">
                     FORMATO CONTÍFICO OFICIAL
                   </span>
-                  <span
+                  <Badge
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
                       quote.status === "facturada"
                         ? "bg-emerald-500 text-white"
@@ -163,7 +164,7 @@ export function QuotePreviewModal({
                     }`}
                   >
                     {quote.status}
-                  </span>
+                  </Badge>
                 </div>
                 <h3 className="font-bold text-white text-sm">
                   Cotización N° {quote.quoteNumber}

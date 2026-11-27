@@ -5,6 +5,7 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { validateIpv4OrCidr } from "@/lib/validation-engine";
 import { Radio, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function NodesList() {
   const { nodes, addNode } = useApp();
@@ -109,13 +110,13 @@ export function NodesList() {
               return (
                 <tr key={n.id} className="hover:bg-[#f8f9ff] transition-colors">
                   <td className="px-5 py-4">
-                    <span className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                    <Badge className={`inline-flex rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase ${
                       n.status === "online"
                         ? "border-[#a7f3d0] bg-[#ecfdf5] text-[#065f46]"
                         : "border-[#fde68a] bg-[#fffbeb] text-[#92400e]"
                     }`}>
                       {n.status.toUpperCase()}
-                    </span>
+                    </Badge>
                   </td>
                   <th scope="row" className="px-5 py-4 font-normal text-left">
                     <div className="font-bold text-slate-900">{n.name}</div>

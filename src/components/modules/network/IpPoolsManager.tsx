@@ -3,6 +3,7 @@
 import React from "react";
 import { useApp } from "@/lib/state";
 import { Network } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function IpPoolsManager() {
   const { ipPools } = useApp();
@@ -21,9 +22,9 @@ export function IpPoolsManager() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {ipPools.map((pool) => (
             <div key={pool.id} className="p-4 rounded-xl bg-[#f8f9ff] border border-[#e2e8f0] text-xs">
-              <span className="px-2.5 py-0.5 rounded-md text-[9px] font-bold uppercase bg-white border border-[#cbd5e1] text-[#434655]">
+              <Badge className="px-2.5 py-0.5 rounded-md text-[9px] font-bold uppercase bg-white border border-[#cbd5e1] text-[#434655]">
                 {pool.type.replace("_", " ")}
-              </span>
+              </Badge>
               <h4 className="font-bold text-[#0b1c30] text-xs mt-2">{pool.name}</h4>
               <p className="font-mono font-bold text-[#004ac6] mt-1">{pool.subnetCidr}</p>
               <div className="mt-2 text-[11px] text-[#737686] flex justify-between">

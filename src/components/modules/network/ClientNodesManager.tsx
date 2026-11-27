@@ -32,6 +32,7 @@ import {
   Navigation,
   Map,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function ClientNodesManager() {
   const { clients, clientServices, nodes, ipPools, addNode, updateNode, deleteNode } = useApp();
@@ -439,24 +440,24 @@ export function ClientNodesManager() {
     switch (nodeStatus) {
       case "online":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             En Línea
-          </span>
+          </Badge>
         );
       case "warning":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             Alerta
-          </span>
+          </Badge>
         );
       case "offline":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+          <Badge className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
             Fuera de Línea
-          </span>
+          </Badge>
         );
     }
   };
@@ -624,9 +625,9 @@ export function ClientNodesManager() {
                             )}
                             {n.mikrotikIp && (
                               <div className="mt-1">
-                                <span className="font-mono text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                                <Badge className="font-mono text-[10px] font-bold text-[#004ac6] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
                                   Router: {n.mikrotikIp}
-                                </span>
+                                </Badge>
                               </div>
                             )}
                           </td>
@@ -645,9 +646,9 @@ export function ClientNodesManager() {
                                           <Globe className="w-3 h-3" />
                                           {p.providerName || "Proveedor " + (pIdx + 1)}
                                         </span>
-                                        <span className="font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                                        <Badge className="font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200">
                                           {p.capacityMbps} Mbps
-                                        </span>
+                                        </Badge>
                                       </div>
                                       <div className="flex flex-wrap items-center gap-2 text-[10px] text-[#737686] mt-0.5">
                                         {p.circuitId && <span>ID: <strong className="text-slate-700 font-mono">{p.circuitId}</strong></span>}
@@ -731,10 +732,10 @@ export function ClientNodesManager() {
                             </div>
                           </td>
                           <td className="py-4 px-5 text-center">
-                            <span className="inline-flex items-center gap-1 font-bold font-mono text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
+                            <Badge className="inline-flex items-center gap-1 font-bold font-mono text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-200">
                               <Users className="w-3 h-3 text-[#004ac6]" />
                               {n.activeClientsCount}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="py-4 px-5 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
@@ -814,7 +815,7 @@ export function ClientNodesManager() {
                     clientAssociations.map(({ client, service, node }) => (
                       <tr key={client.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-4 px-5">
-                          <div className="font-bold text-[#0b1c30] text-sm">{client.businessName}</div>
+                          <div className="ui-emphasis font-bold text-[#0b1c30] text-sm">{client.businessName}</div>
                           <div className="text-[11px] font-mono text-[#737686]">
                             {client.identificationType}: {client.identificationNumber}
                           </div>
@@ -829,23 +830,23 @@ export function ClientNodesManager() {
                               <div className="text-[10px] text-[#737686]">{node.address}</div>
                             </div>
                           ) : (
-                            <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold text-[10px]">
+                            <Badge className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold text-[10px]">
                               Sin Nodo Asignado
-                            </span>
+                            </Badge>
                           )}
                         </td>
                         <td className="py-4 px-5">
                           {service ? (
-                            <span className="font-semibold text-slate-800">{service.planName}</span>
+                            <span className="ui-emphasis font-semibold text-slate-800">{service.planName}</span>
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
                         <td className="py-4 px-5">
                           {service?.ipv4Address ? (
-                            <span className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                            <Badge className="font-mono font-bold text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                               {service.ipv4Address}
-                            </span>
+                            </Badge>
                           ) : (
                             <span className="text-slate-400 font-mono">Dinámica / CGNAT</span>
                           )}
@@ -858,7 +859,7 @@ export function ClientNodesManager() {
                           )}
                         </td>
                         <td className="py-4 px-5 text-center">
-                          <span
+                          <Badge
                             className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               client.status === "activo"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -866,7 +867,7 @@ export function ClientNodesManager() {
                             }`}
                           >
                             {client.status}
-                          </span>
+                          </Badge>
                         </td>
                       </tr>
                     ))
@@ -981,9 +982,9 @@ export function ClientNodesManager() {
                                 {allIps.length > 0 ? (
                                   <div className="flex flex-col gap-1">
                                     {allIps.map((ip, i) => (
-                                      <span key={i} className="inline-block bg-blue-50 px-1.5 py-0.5 rounded text-[11px] border border-blue-100 font-mono">
+                                      <Badge key={i} className="inline-block bg-blue-50 px-1.5 py-0.5 rounded text-[11px] border border-blue-100 font-mono">
                                         {ip}
-                                      </span>
+                                      </Badge>
                                     ))}
                                   </div>
                                 ) : (

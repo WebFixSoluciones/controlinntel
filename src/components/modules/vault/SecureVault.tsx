@@ -16,6 +16,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function SecureVault({ clientId }: { clientId?: string }) {
   const app = useApp();
@@ -349,9 +350,9 @@ export function SecureVault({ clientId }: { clientId?: string }) {
                     {item.serviceName}
                   </th>
                   <td className="py-4 px-5">
-                    <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    <Badge className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                       {item.username}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="py-4 px-5">
                     <div className="font-mono font-bold text-[#004ac6] bg-blue-50/50 px-2.5 py-1 rounded-lg inline-block border border-blue-100">

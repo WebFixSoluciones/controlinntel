@@ -21,6 +21,7 @@ import {
   CheckSquare,
   FolderOpen,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientTramitesTabProps {
   client: Client;
@@ -307,15 +308,15 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
                       </td>
 
                       <td className="py-3 px-4 whitespace-nowrap text-center">
-                        <span
+                        <Badge
                           className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold border uppercase tracking-wider ${badge.bg}`}
                         >
                           {badge.label}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td className="py-3 px-4 whitespace-nowrap text-center">
-                        <span
+                        <Badge
                           className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold uppercase ${
                             t.priority === "urgente"
                               ? "bg-rose-50 text-rose-700 border border-rose-200"
@@ -325,7 +326,7 @@ export function ClientTramitesTab({ client }: ClientTramitesTabProps) {
                           }`}
                         >
                           {t.priority}
-                        </span>
+                        </Badge>
                       </td>
 
                       {/* Tarea / Proyecto Vinculado */}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useApp } from "@/lib/state";
 import { getEcuadorDate, diffInCalendarDays } from "@/lib/date-utils";
 import { ArrowRight, Globe, ShieldCheck, Clock, Server, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function ExpirationsTimeline() {
   const { policies, hostingDomains, clientServices, clients } = useApp();
@@ -121,13 +122,13 @@ export function ExpirationsTimeline() {
                           {item.domainOrService}
                         </span>
                       </div>
-                      <div className="text-[10px] text-[#737686] truncate mt-0.5">
+                      <div className="ui-emphasis text-[10px] text-[#737686] truncate mt-0.5">
                         {item.clientName}
                       </div>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span
+                      <Badge
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           isExpired
                             ? "bg-rose-100 text-rose-800 border border-rose-300 font-extrabold"
@@ -150,7 +151,7 @@ export function ExpirationsTimeline() {
                             ? "Vence Hoy"
                             : `${item.daysUntilExpiration}d`}
                         </span>
-                      </span>
+                      </Badge>
                     </div>
                   </div>
                 );
@@ -176,7 +177,7 @@ export function ExpirationsTimeline() {
                       <span className="text-[11px] text-[#737686] block">{p.insuranceCompany}</span>
                     </div>
 
-                    <span
+                    <Badge
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         isWarning
                           ? "bg-amber-50 text-amber-800 border border-amber-200"
@@ -184,7 +185,7 @@ export function ExpirationsTimeline() {
                       }`}
                     >
                       {isWarning ? "Por Vencer" : "Vigente"}
-                    </span>
+                    </Badge>
                   </div>
                 );
               })

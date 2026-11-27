@@ -35,6 +35,8 @@ import {
   Calendar,
   X,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { badgeTone } from "@/lib/badge-tone";
 
 export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurrentes";
 
@@ -354,15 +356,15 @@ export function SalesManager() {
                           {sale.date}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="font-bold text-[#0b1c30] block">{sale.clientName}</span>
+                          <span className="ui-emphasis font-bold text-[#0b1c30] block">{sale.clientName}</span>
                           <span className="text-xs font-mono text-[#737686]">RUC: {sale.clientRuc}</span>
                         </td>
                         <td className="py-3 px-4">
-                          <span className="capitalize font-medium text-[#475569] bg-slate-100 px-2 py-0.5 rounded-md text-xs">
+                          <Badge className="capitalize font-medium text-[#475569] bg-slate-100 px-2 py-0.5 rounded-md text-xs">
                             {sale.paymentMethod || "transferencia"}
-                          </span>
+                          </Badge>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
+                        <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                           ${(sale.total || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -377,15 +379,16 @@ export function SalesManager() {
                               }}
                               className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium leading-[13px] border transition cursor-pointer ${isFacturada ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-800 border-amber-200"}`}
                               title="Clic para ver Factura SRI vinculada"
+                              data-badge-tone={badgeTone(fiscalLabel)}
                             >
                               {isFacturada ? <CheckCircle2 className="size-3 shrink-0" /> : <Clock className="size-3 shrink-0" />}
                               <span className="flex flex-col items-start"><span className="whitespace-nowrap">{fiscalLabel}</span><span className="whitespace-nowrap font-mono text-[9px] leading-[12px]">{linkedSriInv.documentNumber}</span></span>
                             </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] leading-[14px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            <Badge className="inline-flex items-center gap-1 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] leading-[14px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
                               <Clock className="size-3 text-amber-500" />
                               <span>Pendiente SRI</span>
-                            </span>
+                            </Badge>
                           )}
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
@@ -522,14 +525,14 @@ export function SalesManager() {
                         <div className="text-xs text-[#737686]">Vence: {q.validUntil}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#0b1c30]">{q.clientName}</div>
+                        <div className="ui-emphasis font-bold text-[#0b1c30]">{q.clientName}</div>
                         <div className="text-xs font-mono text-[#737686]">RUC: {q.clientRuc}</div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
+                      <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                         ${q.total.toFixed(2)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span
+                        <Badge
                           className={`uppercase px-2 py-0.5 rounded-md text-xs font-bold border ${
                             q.status === "facturada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -539,7 +542,7 @@ export function SalesManager() {
                           }`}
                         >
                           {q.status}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
@@ -618,7 +621,7 @@ export function SalesManager() {
                 <h3 className="text-base font-bold text-[#0b1c30]">
                   Convertir a Nota de Venta
                 </h3>
-                <p className="text-xs text-[#737686]">
+                <p className="ui-emphasis text-xs text-[#737686]">
                   Cotización {quoteToConvert.quoteNumber} • {quoteToConvert.clientName} (${quoteToConvert.total.toFixed(2)})
                 </p>
               </div>

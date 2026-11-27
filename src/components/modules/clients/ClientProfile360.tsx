@@ -51,6 +51,7 @@ import {
   UploadCloud,
   FileBarChart,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientProfile360Props {
   client: Client | null;
@@ -336,10 +337,10 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
               }`}
               title={`Estado: ${client.status.toUpperCase()}`}
             />
-            <h1 className="text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase [overflow-wrap:anywhere]">
+            <h1 className="ui-emphasis text-sm sm:text-base font-bold text-slate-800 tracking-normal uppercase [overflow-wrap:anywhere]">
               {client.businessName}
             </h1>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{clientStatusLabel(client.status)}</span>
+            <Badge className={`px-2 py-0.5 rounded text-[10px] font-bold ${client.status === "retirado" ? "bg-rose-50 text-rose-700" : client.status === "activo" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{clientStatusLabel(client.status)}</Badge>
             <span className="h-3.5 w-px bg-slate-300" aria-hidden="true" />
             <span className="font-mono text-xs font-medium text-slate-600">
               RUC / CI: {client.identificationNumber}
@@ -451,24 +452,24 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {client.sriValidated && (
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <Badge className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                           <Check className="w-3 h-3" /> Validado SRI
-                        </span>
+                        </Badge>
                       )}
                       {client.tipoContribuyente && (
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] uppercase">
+                        <Badge className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff] uppercase">
                           Régimen: {client.tipoContribuyente.replace(/_/g, " ")}
-                        </span>
+                        </Badge>
                       )}
                       {client.obligadoContabilidad && (
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        <Badge className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                           Obligado Contabilidad
-                        </span>
+                        </Badge>
                       )}
                       {client.agenteRetencion && (
-                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <Badge className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                           Agente Retención
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -476,7 +477,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
                     <div>
                       <label className="text-xs font-semibold text-[#64748b] block mb-1">Razón Social / Cliente</label>
-                      <span className="font-bold text-[#0b1c30] text-sm block leading-snug">{client.businessName}</span>
+                      <span className="ui-emphasis font-bold text-[#0b1c30] text-sm block leading-snug">{client.businessName}</span>
                       {client.tradeName && client.tradeName !== client.businessName && (
                         <span className="block text-xs text-[#64748b] font-medium mt-1">
                           Nombre Comercial: <span className="text-[#0b1c30]">{client.tradeName}</span>
@@ -623,9 +624,9 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                               <span className="font-bold text-[#0b1c30] block text-sm">{contact.name}</span>
                               <span className="text-xs text-[#004ac6] font-semibold block">{contact.role || "Contacto"}</span>
                             </div>
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white text-[#64748b] border border-[#e2e8f0]">
+                            <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white text-[#64748b] border border-[#e2e8f0]">
                               #{idx + 1}
-                            </span>
+                            </Badge>
                           </div>
 
                           <div className="space-y-1.5 text-xs pt-2 border-t border-[#e2e8f0]">
@@ -732,7 +733,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                           >
                             <span>{tab.label}</span>
                             {tab.count > 0 && (
-                              <span
+                              <Badge
                                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
                                   isActive
                                     ? "bg-white/20 text-white"
@@ -742,7 +743,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                                 }`}
                               >
                                 {tab.count}
-                              </span>
+                              </Badge>
                             )}
                           </button>
                         );
@@ -817,9 +818,9 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                               {c.month}/{c.year}
                             </td>
                             <td className="py-3 px-4 text-slate-600 truncate">{c.serviceDescription}</td>
-                            <td className="py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
+                            <td className="ui-emphasis py-3 px-4 font-mono font-bold text-slate-900">${c.total.toFixed(2)}</td>
                             <td className="py-3 px-4 text-center">
-                              <span
+                              <Badge
                                 className={`px-2.5 py-0.5 rounded-md text-xs font-bold uppercase border ${
                                   c.status === "pagado"
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -827,7 +828,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                                 }`}
                               >
                                 {c.status}
-                              </span>
+                              </Badge>
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
@@ -893,7 +894,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                 <p className="text-xs text-slate-500">
                   Confirmas la eliminación permanente del cliente del sistema:
                 </p>
-                <p className="font-semibold text-slate-800 text-sm mt-1">{client.businessName}</p>
+                <p className="ui-emphasis font-semibold text-slate-800 text-sm mt-1">{client.businessName}</p>
                 <p className="font-mono text-slate-500 text-xs">RUC / CI: {client.identificationNumber}</p>
               </div>
 
@@ -959,7 +960,7 @@ export function ClientProfile360({ client, onClose, onEdit, initialTab, onTabCha
                 <Printer className="w-4 h-4 text-[#eff4ff]" />
                 <div>
                   <h3 className="font-bold text-sm text-white">Estado de Cuenta Oficial</h3>
-                  <p className="text-[11px] text-slate-300">
+                  <p className="ui-emphasis text-[11px] text-slate-300">
                     {client.businessName} • {client.identificationNumber}
                   </p>
                 </div>

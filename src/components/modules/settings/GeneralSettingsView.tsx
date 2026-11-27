@@ -11,6 +11,7 @@ import {
   Save,
   Coins,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function GeneralSettingsView() {
   const { showSuccess, showError } = useToast();
@@ -68,9 +69,9 @@ export function GeneralSettingsView() {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-[#e2e8f0] shadow-2xs">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
+          <Badge className="text-xs font-bold px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300">
             EMPRESA ACTIVA
-          </span>
+          </Badge>
           <span className="text-xs text-slate-500 font-medium hidden md:inline">
             {companyName} • RUC {ruc}
           </span>

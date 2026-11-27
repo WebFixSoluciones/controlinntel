@@ -33,6 +33,7 @@ import { calculatePriceWithTax, calculatePriceWithoutTax, inclusiveUnitPrice } f
 import { calculateSale } from "@/lib/sale-calculation";
 import { canCreateSalesClient } from "@/lib/sales-workspace";
 import { canReadCollection } from "@/lib/persistence-contracts";
+import { Badge } from "@/components/ui/Badge";
 
 interface NewSaleViewProps {
   onBack: () => void;
@@ -1497,14 +1498,14 @@ export function NewSaleView({
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-bold">
+              <Badge className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white text-xs font-bold">
                 {isNota ? <Receipt className="w-3.5 h-3.5 text-emerald-400" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
                 <span>Tipo de Documento: {isNota ? "Nota de Venta" : "Factura Electrónica"}</span>
-              </span>
+              </Badge>
 
-              <span className="text-sm font-mono font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
+              <Badge className="text-sm font-mono font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-md border border-slate-200">
                 CÓDIGO: {emittedInvoice.documentNumber}
-              </span>
+              </Badge>
 
               {!isNota && emittedInvoice.claveAcceso && (
                 <div className="flex items-center gap-1.5 bg-blue-50/70 border border-blue-200 px-2.5 py-1 rounded-md">
@@ -1607,7 +1608,7 @@ export function NewSaleView({
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Datos del Cliente
               </span>
-              <h2 className="text-lg font-black text-slate-900">
+              <h2 className="ui-emphasis text-lg font-black text-slate-900">
                 {emittedInvoice.clientName}
               </h2>
               <p className="text-xs font-mono text-slate-600">
@@ -1628,7 +1629,7 @@ export function NewSaleView({
                 <span className="text-xs font-semibold text-slate-500">
                   Fecha: <strong className="text-slate-900">{emittedInvoice.date}</strong>
                 </span>
-                <span
+                <Badge
                   className={`px-2.5 py-1 rounded-md text-xs font-black uppercase border ${
                     isVoided
                       ? "bg-rose-50 text-rose-700 border-rose-300"
@@ -1636,7 +1637,7 @@ export function NewSaleView({
                   }`}
                 >
                   {isVoided ? "ANULADO" : isNota ? "REGISTRADO" : "AUTORIZADO SRI"}
-                </span>
+                </Badge>
               </div>
 
               {!isVoided && (
@@ -1763,7 +1764,7 @@ export function NewSaleView({
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">
                         {emittedInvoice.paymentMethod}
                       </span>
-                      <span className="text-sm font-mono font-black text-slate-900">
+                      <span className="ui-emphasis text-sm font-mono font-black text-slate-900">
                         ${emittedInvoice.total.toFixed(2)}
                       </span>
                     </div>
@@ -1798,9 +1799,9 @@ export function NewSaleView({
                       {emittedInvoice.clientEmail || "Sin destinatario"}
                     </strong>
                   </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  <Badge className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                     {emailStatus === "sent" ? "Aceptado por proveedor" : emailStatus === "sending" ? "Solicitando envío" : "Sin envío confirmado"}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1852,7 +1853,7 @@ export function NewSaleView({
                 </div>
                 <div className="flex justify-between px-4 py-3 bg-slate-900 text-white text-sm font-black">
                   <span>TOTAL:</span>
-                  <span className="font-mono text-base">${emittedInvoice.total.toFixed(2)}</span>
+                  <span className="ui-emphasis font-mono text-base">${emittedInvoice.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -1934,10 +1935,10 @@ export function NewSaleView({
 
         <div className="flex flex-wrap items-center gap-2">
           {lastSavedTime && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <Badge className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Save className="w-3.5 h-3.5 text-emerald-600" />
               <span>Borrador autoguardado {lastSavedTime}</span>
-            </span>
+            </Badge>
           )}
           {(cartItems.length > 0 || selectedClientId || isConsumidorFinal) && (
             <button
@@ -1950,13 +1951,13 @@ export function NewSaleView({
               <span>Descartar</span>
             </button>
           )}
-          <span className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono font-bold text-slate-700">
+          <Badge className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-[11px] font-mono font-bold text-slate-700">
             Serie Activa: {selectedEstablecimiento || sriCompanyConfig.establecimiento || "010"}-
             {sriCompanyConfig.puntoEmision || "001"}
-          </span>
-          <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border bg-blue-50 text-[#004ac6] border-blue-200">
+          </Badge>
+          <Badge className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase border bg-blue-50 text-[#004ac6] border-blue-200">
             COMERCIAL / NOTA DE VENTA
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -2067,7 +2068,7 @@ export function NewSaleView({
                     <div className="rounded-lg bg-blue-50/60 border border-blue-200 p-2.5 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="font-bold text-xs text-slate-900 truncate" title={selectedClient.businessName}>
+                          <div className="ui-emphasis font-bold text-xs text-slate-900 truncate" title={selectedClient.businessName}>
                             {selectedClient.businessName}
                           </div>
                           <div className="text-[10px] font-mono text-slate-500 font-semibold">
@@ -2155,7 +2156,7 @@ export function NewSaleView({
                             className="w-full text-left px-3 py-2 hover:bg-blue-50/60 transition flex items-center justify-between cursor-pointer"
                           >
                             <div className="min-w-0 pr-2">
-                              <div className="font-bold text-xs text-slate-900 truncate">
+                              <div className="ui-emphasis font-bold text-xs text-slate-900 truncate">
                                 {c.businessName}
                               </div>
                               <div className="text-[10px] font-mono text-slate-500">
@@ -2425,9 +2426,9 @@ export function NewSaleView({
                   )}
 
                   {globalDiscountType === "no_iva" && (
-                    <span className="px-2 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono font-bold text-[10px] shrink-0">
+                    <Badge className="px-2 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-mono font-bold text-[10px] shrink-0">
                       -100% IVA
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -2655,7 +2656,7 @@ export function NewSaleView({
                 <span className="text-[10px] font-mono font-bold text-slate-500">
                   {nextSequentialPreview}
                 </span>
-                <span
+                <Badge
                   className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                     documentType === "nota_venta"
                       ? "bg-slate-900 text-emerald-300"
@@ -2663,7 +2664,7 @@ export function NewSaleView({
                   }`}
                 >
                   {documentType === "nota_venta" ? "Nota de Venta" : "Factura SRI"}
-                </span>
+                </Badge>
               </div>
             </div>
 
@@ -2687,7 +2688,7 @@ export function NewSaleView({
                 <span className="text-xs font-black uppercase text-slate-900">
                   Total a Pagar
                 </span>
-                <span className="text-2xl font-mono font-black text-[#004ac6]">
+                <span className="ui-emphasis text-2xl font-mono font-black text-[#004ac6]">
                   ${calculatedTotals.total.toFixed(2)}
                 </span>
               </div>
@@ -2962,7 +2963,7 @@ export function NewSaleView({
                   <span className="text-[9.5px] font-bold uppercase block opacity-75">
                     Cubierto
                   </span>
-                  <span className="text-xs font-bold block">
+                  <span className="ui-emphasis text-xs font-bold block">
                     {calculatedTotals.total === 0
                       ? (cartItems.length ? "Total cero" : "Sin ítems")
                       : !Object.values(activeMethods).some(Boolean)
@@ -3277,7 +3278,7 @@ export function NewSaleView({
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs font-semibold">{selectedClient?.businessName || "Selecciona un cliente"}</p>
+              <p className="ui-emphasis text-xs font-semibold">{selectedClient?.businessName || "Selecciona un cliente"}</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs tabular-nums">
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">
@@ -3297,16 +3298,16 @@ export function NewSaleView({
                 </div>
                 <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-200">
                   <span className="text-[10px] font-bold text-blue-800 block">Saldo a favor disponible</span>
-                  <strong className="mt-1 block text-sm font-mono text-[#004ac6]">{canViewClientCredit ? `$${clientCredit.total.toFixed(2)}` : "Sin acceso"}</strong>
+                  <strong className="ui-emphasis mt-1 block text-sm font-mono text-[#004ac6]">{canViewClientCredit ? `$${clientCredit.total.toFixed(2)}` : "Sin acceso"}</strong>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[10px] font-bold text-slate-600 block">Deuda de esta venta si aplicas el saldo</span>
-                  <strong className="mt-1 block text-sm font-mono">{canViewClientCredit ? `$${Math.max(0, paymentSummary.credito - clientCredit.total).toFixed(2)}` : "—"}</strong>
+                  <strong className="ui-emphasis mt-1 block text-sm font-mono">{canViewClientCredit ? `$${Math.max(0, paymentSummary.credito - clientCredit.total).toFixed(2)}` : "—"}</strong>
                 </div>
               </div>
 
               {canViewClientCredit && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs">
-                <p className="font-semibold text-blue-900">{clientCredit.total > 0 ? `Los anticipos pueden cubrir hasta $${Math.min(clientCredit.total, paymentSummary.credito).toFixed(2)} de esta venta.` : "Este cliente no tiene anticipos disponibles."}</p>
+                <p className="ui-emphasis font-semibold text-blue-900">{clientCredit.total > 0 ? `Los anticipos pueden cubrir hasta $${Math.min(clientCredit.total, paymentSummary.credito).toFixed(2)} de esta venta.` : "Este cliente no tiene anticipos disponibles."}</p>
                 <p className="mt-1 text-slate-600">Registrar la venta a crédito crea la deuda. Después pulsa «Cobrar / aplicar anticipo» para elegir el importe y confirmar el uso del saldo a favor. Cerrar este cuadro no aplica anticipos.</p>
                 {clientCredit.advances.length > 0 && <details className="mt-2">
                   <summary className="cursor-pointer font-semibold text-[#004ac6]">Ver detalle de {clientCredit.advances.length} anticipo(s)</summary>
@@ -3589,9 +3590,9 @@ export function NewSaleView({
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs text-slate-900">{prod.name}</span>
                           {inCartItem && (
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                            <Badge className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                               En Carrito ({inCartItem.quantity})
-                            </span>
+                            </Badge>
                           )}
                         </div>
                         <div className="text-[10px] font-mono text-slate-500">

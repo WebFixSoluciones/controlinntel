@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   Award,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export type InventoryTab =
   | "productos"
@@ -850,9 +851,9 @@ export function InventoryManager() {
                             )}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold mb-0.5">
+                            <Badge className="inline-block px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold mb-0.5">
                               {p.categoryName || "General"}
-                            </span>
+                            </Badge>
                             {p.brandName && (
                               <span className="block text-[10px] text-[#737686] font-medium">
                                 {p.brandName}
@@ -888,7 +889,7 @@ export function InventoryManager() {
                             {showProductPrices ? `$${(p.salePriceConIva ?? 0).toFixed(2)}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span
+                            <Badge
                               className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 p.status === "activo"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -896,7 +897,7 @@ export function InventoryManager() {
                               }`}
                             >
                               {p.status === "activo" ? "Activo" : "Inactivo"}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -1031,22 +1032,22 @@ export function InventoryManager() {
                       <tr key={s.id} className="hover:bg-[#f8f9ff] transition-colors">
                         <td className="py-3 px-4 font-mono font-bold text-[#004ac6]">{s.sku}</td>
                         <td className="py-3 px-4">
-                          <div className="font-bold text-[#0b1c30]">{s.name}</div>
+                          <div className="ui-emphasis">{s.name}</div>
                           {s.description && (
                             <div className="text-[11px] text-[#737686]">{s.description}</div>
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
+                          <Badge className="px-2 py-0.5 rounded-md bg-[#f1f5f9] text-[#434655] text-[10px] font-semibold">
                             {s.categoryName || "Servicios"}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3 px-4 text-center capitalize font-medium text-[#434655]">{s.unit}</td>
                         {showServicePrices && canViewCosts && <td className="py-3 px-4 text-right font-medium text-[#434655]">${(s.baseCost ?? 0).toFixed(2)}</td>}
                         {showServicePrices && <td className="py-3 px-4 text-right font-bold text-[#0b1c30]">${(s.salePrice ?? 0).toFixed(2)}</td>}
                         {showServicePrices && <td className="py-3 px-4 text-right font-bold text-emerald-700">${(s.salePriceConIva ?? 0).toFixed(2)}</td>}
                         <td className="py-3 px-4 text-center">
-                          <span
+                          <Badge
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               s.status === "activo"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -1054,7 +1055,7 @@ export function InventoryManager() {
                             }`}
                           >
                             {s.status === "activo" ? "Activo" : "Inactivo"}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -1199,9 +1200,9 @@ export function InventoryManager() {
                               {c.description || "—"}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className="px-2 py-0.5 rounded-md text-xs font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                              <Badge className="px-2 py-0.5 rounded-md text-xs font-bold uppercase bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
                                 {c.itemType || "ambos"}
-                              </span>
+                              </Badge>
                             </td>
                             <td className="py-3 px-4 text-center font-bold text-[#434655]">
                               {count}
@@ -1422,11 +1423,11 @@ export function InventoryManager() {
                           {(() => {
                             const badge = getKardexBadge(k.type);
                             return (
-                              <span
+                              <Badge
                                 className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold ${badge.className}`}
                               >
                                 {badge.label}
-                              </span>
+                              </Badge>
                             );
                           })()}
                           <div className="text-[10px] text-[#737686] line-clamp-1 mt-0.5">{k.concept}</div>
@@ -1561,9 +1562,9 @@ export function InventoryManager() {
                         <td className="py-3 px-4 font-medium text-emerald-700">{t.destWarehouseName}</td>
                         <td className="py-3 px-4 font-bold text-[#0b1c30]">{t.productName}</td>
                         <td className="py-3 px-4 text-center">
-                          <span className="px-2.5 py-0.5 rounded-md font-bold bg-[#eff4ff] text-[#004ac6] text-xs">
+                          <Badge className="px-2.5 py-0.5 rounded-md font-bold bg-[#eff4ff] text-[#004ac6] text-xs">
                             {t.quantity}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3 px-4 text-right font-bold text-[#434655]">{canViewCosts ? `$${t.totalCost.toFixed(2)}` : "—"}</td>
                         <td className="py-3 px-4 text-[#737686] max-w-xs truncate" title={t.reason}>
@@ -1669,9 +1670,9 @@ export function InventoryManager() {
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-[#0b1c30]">{w.name}</span>
                               {w.isDefault && (
-                                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+                                <Badge className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
                                   Principal
-                                </span>
+                                </Badge>
                               )}
                             </div>
                             {w.address && (
@@ -1687,7 +1688,7 @@ export function InventoryManager() {
                             {canViewCosts ? `$${totalValueInWh.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span
+                            <Badge
                               className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                                 w.status === "activo"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -1695,7 +1696,7 @@ export function InventoryManager() {
                               }`}
                             >
                               {w.status === "activo" ? "Activa" : "Inactiva"}
-                            </span>
+                            </Badge>
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -1820,7 +1821,7 @@ export function InventoryManager() {
                         </td>
                         <td className="py-3 px-4 font-semibold text-[#0b1c30]">{a.warehouseName}</td>
                         <td className="py-3 px-4 text-center">
-                          <span
+                          <Badge
                             className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                               a.type.includes("ingreso")
                                 ? "bg-emerald-100 text-emerald-800"
@@ -1828,7 +1829,7 @@ export function InventoryManager() {
                             }`}
                           >
                             {a.type.includes("ingreso") ? "Sumar (+)" : "Restar (-)"}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3 px-4 text-[#434655] font-medium">{a.concept}</td>
                         <td className="py-3 px-4">

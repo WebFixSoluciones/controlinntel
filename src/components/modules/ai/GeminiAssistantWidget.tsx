@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { askGeminiAssistant } from "@/lib/gemini-ai";
 import { Bot, Sparkles, Send, X, Shield, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface Message {
   role: "user" | "assistant";
@@ -97,9 +98,9 @@ export function GeminiAssistantWidget() {
               <div>
                 <h3 className="text-xs font-bold flex items-center gap-1.5">
                   Asistente IA Gemini
-                  <span className="px-1.5 py-0.2 bg-white/20 text-white rounded text-[9px] font-mono">
+                  <Badge className="px-1.5 py-0.2 bg-white/20 text-white rounded text-[9px] font-mono">
                     Flash 2.5
-                  </span>
+                  </Badge>
                 </h3>
                 <p className="text-[10px] text-blue-100 flex items-center gap-1">
                   <Shield className="w-2.5 h-2.5" /> Rol activo: {currentUser.role.toUpperCase()}

@@ -34,6 +34,7 @@ import {
   Briefcase,
   FileText,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export const ISP_FLOW_COLUMNS: { id: ProjectKanbanColumn; label: string; shortLabel: string; color: string; badge: string; dot: string }[] = [
   { id: "factibilidad", label: "1. Factibilidad Técnica", shortLabel: "Factibilidad", color: "border-slate-300 bg-slate-50 text-slate-800", badge: "bg-slate-100 text-slate-700 border-slate-200", dot: "bg-slate-400" },
@@ -514,9 +515,9 @@ export function ProjectTaskModal({
                       </div>
                     </div>
                   </div>
-                  <span className="text-[11px] bg-blue-100/80 text-[#004ac6] font-bold px-2.5 py-1 rounded-full border border-blue-200">
+                  <Badge className="text-[11px] bg-blue-100/80 text-[#004ac6] font-bold px-2.5 py-1 rounded-full border border-blue-200">
                     Canva Personalizado
-                  </span>
+                  </Badge>
                 </div>
               ) : projects.filter((p) => !p.isDeleted).length > 0 ? (
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
@@ -611,13 +612,13 @@ export function ProjectTaskModal({
                   <div className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
-                      <span className="font-bold text-slate-900">
+                      <span className="ui-emphasis font-bold text-slate-900">
                         {clientName || defaultClientName || clients.find((c) => c.id === defaultClientId)?.businessName || "Cliente"}
                       </span>
                     </div>
-                    <span className="font-mono text-[11px] font-semibold text-[#004ac6] bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                    <Badge className="font-mono text-[11px] font-semibold text-[#004ac6] bg-white px-2 py-0.5 rounded-md border border-blue-200">
                       {clients.find((c) => c.id === (clientId || defaultClientId))?.identificationNumber || "Activo"}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               ) : projectType === "cliente" ? (
@@ -828,9 +829,9 @@ export function ProjectTaskModal({
                       Balance Presupuestario
                     </span>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isOverBudget ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                  <Badge className={`text-xs font-bold px-2 py-0.5 rounded-full ${isOverBudget ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
                     {isOverBudget ? "Sobrecosto Detectado" : "Dentro de Presupuesto"}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 py-2 border-y border-slate-200/60 text-center">
@@ -1040,10 +1041,10 @@ export function ProjectTaskModal({
                             <span className="font-mono font-bold text-xs text-[#004ac6]">
                               {t.documentNumber}
                             </span>
-                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                            <Badge className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
                               {t.code}
-                            </span>
-                            <span
+                            </Badge>
+                            <Badge
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                                 t.dynamicStatus === "aprobado" || t.dynamicStatus === "finalizado"
                                   ? "bg-emerald-100 text-emerald-800"
@@ -1053,11 +1054,11 @@ export function ProjectTaskModal({
                               }`}
                             >
                               {t.dynamicStatus.replace("_", " ")}
-                            </span>
+                            </Badge>
                             {t.priority === "urgente" && (
-                              <span className="text-[9px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded uppercase">
+                              <Badge className="text-[9px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded uppercase">
                                 Urgente
-                              </span>
+                              </Badge>
                             )}
                           </div>
                           <p className="text-xs font-semibold text-slate-800 truncate" title={t.reason}>
@@ -1135,9 +1136,9 @@ export function ProjectTaskModal({
                           <div>
                             <span className="text-xs font-bold text-slate-800">{note.authorName}</span>
                             {note.authorRole && (
-                              <span className="ml-1.5 text-[9px] uppercase px-1.5 py-0.2 rounded font-bold bg-slate-100 text-slate-600">
+                              <Badge className="ml-1.5 text-[9px] uppercase px-1.5 py-0.2 rounded font-bold bg-slate-100 text-slate-600">
                                 {note.authorRole}
-                              </span>
+                              </Badge>
                             )}
                           </div>
                         </div>

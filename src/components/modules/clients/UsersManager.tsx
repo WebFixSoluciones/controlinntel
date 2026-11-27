@@ -14,6 +14,7 @@ import {
 import { SystemUser, UserModulePermissions } from "@/types";
 import { UserFormView } from "./UserFormView";
 import { DEFAULT_ACCOUNT_PERMISSIONS, effectiveAccountPermissions } from "@/lib/permissions";
+import { Badge } from "@/components/ui/Badge";
 
 export function UsersManager() {
   const {
@@ -232,9 +233,9 @@ export function UsersManager() {
                             <div className="font-bold text-[#0b1c30] text-sm flex items-center gap-1.5">
                               <span>{u.displayName || "Sin Nombre"}</span>
                               {u.uid === currentUser?.uid && (
-                                <span className="text-[10px] px-2 py-0.5 bg-[#eff4ff] text-[#004ac6] font-bold rounded-md border border-blue-200">
+                                <Badge className="text-[10px] px-2 py-0.5 bg-[#eff4ff] text-[#004ac6] font-bold rounded-md border border-blue-200">
                                   Tú
-                                </span>
+                                </Badge>
                               )}
                             </div>
                             <div className="text-[11px] text-[#737686] font-mono mt-0.5">{u.email}</div>
@@ -243,11 +244,11 @@ export function UsersManager() {
                       </td>
 
                       <td className="py-4 px-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
+                        <Badge className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe] capitalize">
                           {u.accessRoleName || (u.role === "superadmin" ? "Superadmin" : u.role)}
                           {u.accessRoleStatus && u.accessRoleStatus !== "activo" && <span className="ml-1 text-[10px] text-red-600">Rol inactivo o no disponible</span>}
                           {!!Object.keys(u.permissionOverrides || {}).length && <span className="ml-1 text-[10px] text-blue-700">Personalizado</span>}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td className="py-4 px-4 text-[#434655]">
@@ -255,7 +256,7 @@ export function UsersManager() {
                       </td>
 
                       <td className="py-4 px-4 text-center">
-                        <span
+                        <Badge
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border ${
                             isActive
                               ? "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
@@ -263,7 +264,7 @@ export function UsersManager() {
                           }`}
                         >
                           {isActive ? "Activo" : "Suspendido"}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td className="py-4 px-4 text-right">

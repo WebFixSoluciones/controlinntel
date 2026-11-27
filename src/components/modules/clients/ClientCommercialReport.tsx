@@ -53,7 +53,7 @@ export function ClientCommercialReport({ clientId, from: controlledFrom, to: con
       <div role="region" aria-label="Reporte de clientes" tabIndex={0} className="max-w-full overflow-x-auto"><table style={{ minWidth: financial ? "68rem" : "44rem" }} className="w-full text-left print:min-w-0 print:table-fixed print:text-[8px]">
         <colgroup>{columns.map(column => <col key={column.key} style={{ width: `${(columnWeights[column.key] || 10) / totalWidth * 100}%` }} />)}</colgroup>
         <thead className="bg-slate-50"><tr>{columns.map(column => <th scope="col" key={column.key} className="p-3 print:p-1">{column.label}</th>)}</tr></thead>
-        <tbody className="divide-y divide-slate-100">{exportRows.map(row => <tr key={row.id}>{columns.map(column => <td key={column.key} className={`p-3 align-top print:break-words print:p-1 ${column.money ? "whitespace-nowrap font-mono" : "[overflow-wrap:anywhere]"}`}>{column.money ? `$${Number(row[column.key as keyof typeof row] || 0).toFixed(2)}` : String(row[column.key as keyof typeof row] ?? "")}</td>)}</tr>)}
+        <tbody className="divide-y divide-slate-100">{exportRows.map(row => <tr key={row.id}>{columns.map(column => <td key={column.key} className={`p-3 align-top print:break-words print:p-1 ${column.money ? "ui-emphasis whitespace-nowrap font-mono" : "[overflow-wrap:anywhere]"} ${column.key === "name" || column.key === "tradeName" ? "ui-emphasis" : ""}`}>{column.money ? `$${Number(row[column.key as keyof typeof row] || 0).toFixed(2)}` : String(row[column.key as keyof typeof row] ?? "")}</td>)}</tr>)}
           {!rows.length && <tr><td colSpan={columns.length} className="p-8 text-center text-slate-500">No hay clientes con estos filtros.</td></tr>}
         </tbody></table></div>
     </>}

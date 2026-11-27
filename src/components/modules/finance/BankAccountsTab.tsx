@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { BankAccount } from "@/types";
 import { canUser } from "@/lib/permissions";
+import { Badge } from "@/components/ui/Badge";
 
 export function BankAccountsTab() {
   const { bankAccounts = [], addBankAccount, updateBankAccount, transferBetweenAccounts, adjustBankBalance, currentUser } = useApp();
@@ -277,7 +278,7 @@ export function BankAccountsTab() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span
+                      <Badge
                         className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase ${
                           isActive
                             ? "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]"
@@ -285,7 +286,7 @@ export function BankAccountsTab() {
                         }`}
                       >
                         {account.status}
-                      </span>
+                      </Badge>
                       <ActionIconButton action="edit" type="button" disabled={!canManage} onClick={() => handleOpenEdit(account)} title="Editar cuenta bancaria" />
                       {canManage && <button type="button" className="text-xs text-blue-700 px-2 py-1 border rounded" onClick={() => {setAdjustingAccount(account);setAdjustDelta("");setAdjustReason("");}}>Ajustar saldo</button>}
                       <button

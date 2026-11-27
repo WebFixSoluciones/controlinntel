@@ -13,6 +13,7 @@ import {
   Save,
   KeyRound,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -102,17 +103,17 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <h3 className="text-sm font-bold text-slate-900 truncate">
                   {displayName || currentUser.displayName}
                 </h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                <Badge className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Activo
-                </span>
+                </Badge>
               </div>
               <p className="text-xs text-slate-500 truncate">{email || currentUser.email}</p>
               <div className="mt-1 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#004ac6]/10 text-[#004ac6] capitalize">
+                <Badge className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#004ac6]/10 text-[#004ac6] capitalize">
                   <ShieldCheck className="w-3 h-3" />
                   {currentUser.role}
-                </span>
+                </Badge>
                 {department && (
                   <span className="text-[11px] text-slate-500">
                     • {department}

@@ -15,6 +15,7 @@ import {
   Shield,
   Filter,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function UserManager() {
   const { systemUsers, deleteSystemUser, toggleUserStatus, currentUser } = useApp();
@@ -101,45 +102,45 @@ export function UserManager() {
     switch (role) {
       case "superadmin":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase bg-gradient-to-r from-amber-100 to-amber-200 text-amber-900 border border-amber-300 shadow-2xs">
             <Crown className="w-3 h-3 text-amber-600" /> Super Admin
-          </span>
+          </Badge>
         );
       case "admin":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-100 text-sky-800 border border-sky-200">
+          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-sky-100 text-sky-800 border border-sky-200">
             <Shield className="w-3 h-3 text-sky-600" /> Administrador
-          </span>
+          </Badge>
         );
       case "finanzas":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
             Finanzas & Cobranzas
-          </span>
+          </Badge>
         );
       case "tecnico":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 border border-indigo-200">
             Ingeniería NOC
-          </span>
+          </Badge>
         );
       case "soporte":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
             Soporte Helpdesk
-          </span>
+          </Badge>
         );
       case "legal":
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-purple-100 text-purple-800 border border-purple-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-purple-100 text-purple-800 border border-purple-200">
             Legal & ARCOTEL
-          </span>
+          </Badge>
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+          <Badge className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
             Consulta
-          </span>
+          </Badge>
         );
     }
   };
@@ -150,9 +151,9 @@ export function UserManager() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#434655]">Total Operadores:</span>
-          <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
+          <Badge className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-[#eff4ff] text-[#004ac6] border border-[#bfdbfe]">
             {totalUsers}
-          </span>
+          </Badge>
         </div>
 
         <button
@@ -265,9 +266,9 @@ export function UserManager() {
                             <p className="font-bold text-slate-900 flex items-center gap-1.5">
                               {u.displayName}
                               {u.uid === currentUser.uid && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800">
+                                <Badge className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800">
                                   Tú
-                                </span>
+                                </Badge>
                               )}
                             </p>
                             <span className="font-mono text-[11px] text-slate-400">{u.email}</span>
@@ -284,36 +285,36 @@ export function UserManager() {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-wrap gap-1 max-w-xs">
                           {u.permissions?.includes("all") ? (
-                            <span className="text-[9px] font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
+                            <Badge className="text-[9px] font-bold uppercase bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
                               Acceso Total
-                            </span>
+                            </Badge>
                           ) : (
                             <>
                               {u.permissions?.includes("manage_network") && (
-                                <span className="text-[9px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200 px-1.5 py-0.2 rounded">
+                                <Badge className="text-[9px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200 px-1.5 py-0.2 rounded">
                                   Nodos
-                                </span>
+                                </Badge>
                               )}
                               {u.permissions?.includes("manage_policies") && (
-                                <span className="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded">
+                                <Badge className="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded">
                                   Arcotel
-                                </span>
+                                </Badge>
                               )}
                               {u.permissions?.includes("manage_finance") && (
-                                <span className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                <Badge className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded">
                                   Cobros
-                                </span>
+                                </Badge>
                               )}
                               {u.permissions
                                 ?.filter((p) => !["all", "manage_network", "manage_policies", "manage_finance"].includes(p))
                                 .slice(0, 2)
                                 .map((p) => (
-                                  <span
+                                  <Badge
                                     key={p}
                                     className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded"
                                   >
                                     {p.replace("manage_", "").replace("export_", "")}
-                                  </span>
+                                  </Badge>
                                 ))}
                             </>
                           )}

@@ -43,6 +43,7 @@ import {
   Briefcase,
   FileText,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientTasksTabProps {
   client: Client;
@@ -363,9 +364,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
+                <Badge className="text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
                   Notificación de Equipo
-                </span>
+                </Badge>
                 <span className="text-xs font-bold text-slate-800">
                   {currentUser.displayName || "Técnico Asignado"}
                 </span>
@@ -629,35 +630,35 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                         </span>
 
                         {/* Deadline / Cronograma Semáforo */}
-                        <span
+                        <Badge
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${deadline.color}`}
                         >
                           <Calendar className="w-3 h-3" />
                           <span>{deadline.label}</span>
-                        </span>
+                        </Badge>
 
                         {/* Is assigned to logged user */}
                         {myTask && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#004ac6] text-white">
+                          <Badge className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#004ac6] text-white">
                             <User className="w-3 h-3" />
                             A tu cargo
-                          </span>
+                          </Badge>
                         )}
 
                         {/* Project Badge */}
                         {task.projectName && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
+                          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-[#004ac6] border border-blue-200">
                             <Briefcase className="w-3 h-3" />
                             <span>{task.projectName}</span>
-                          </span>
+                          </Badge>
                         )}
 
                         {/* Trámites Vinculados Badge */}
                         {taskTramites.length > 0 && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                             <FileText className="w-3 h-3" />
                             <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
-                          </span>
+                          </Badge>
                         )}
                       </div>
 
@@ -762,9 +763,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                                   {trm.entity.split("(")[0].trim()} • {trm.submissionDate}
                                 </span>
                               </div>
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase shrink-0">
+                              <Badge className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase shrink-0">
                                 {trm.dynamicStatus.replace("_", " ")}
-                              </span>
+                              </Badge>
                             </div>
                           ))}
                         </div>
@@ -864,9 +865,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                                   <div className="flex items-center gap-1.5">
                                     <strong className="text-slate-800">{note.authorName}</strong>
                                     {note.authorRole && (
-                                      <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold uppercase text-[9px]">
+                                      <Badge className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-bold uppercase text-[9px]">
                                         {note.authorRole}
-                                      </span>
+                                      </Badge>
                                     )}
                                   </div>
                                   <span className="text-slate-400 font-mono">
@@ -948,9 +949,9 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-md">
+                    <Badge className="text-xs font-bold bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-md">
                       {colTasks.length}
-                    </span>
+                    </Badge>
                     <button
                       onClick={() => {
                         setTaskToEdit(null);
@@ -997,7 +998,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                             </span>
 
                             <div className="flex items-center gap-1.5">
-                              <span
+                              <Badge
                                 className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
                                   task.priority === "urgente"
                                     ? "bg-rose-50 text-rose-700 border-rose-200"
@@ -1009,7 +1010,7 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
                                 }`}
                               >
                                 {task.priority}
-                              </span>
+                              </Badge>
 
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <ActionIconButton action="edit" onClick={() => {
@@ -1031,10 +1032,10 @@ export function ClientTasksTab({ client }: ClientTasksTabProps) {
 
                             {taskTramites.length > 0 && (
                               <div className="flex items-center gap-1 mb-1">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
+                                <Badge className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] border border-[#dce9ff]">
                                   <FileText className="w-3 h-3 text-[#004ac6]" />
                                   <span>{taskTramites.length} {taskTramites.length === 1 ? "Trámite" : "Trámites"}</span>
-                                </span>
+                                </Badge>
                               </div>
                             )}
 

@@ -194,7 +194,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                 Cliente Afectado *
               </label>
               {initialClientId ? (
-                <div className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
+                <div className="ui-emphasis w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 font-bold text-slate-800">
                   {selectedClient?.businessName || "Cliente Asignado"}
                 </div>
               ) : (
@@ -238,7 +238,7 @@ export function TicketModal({ isOpen, onClose, initialClientId }: TicketModalPro
                             }`}
                           >
                             <div>
-                              <div className="text-slate-800 font-medium">{c.businessName}</div>
+                              <div className="ui-emphasis text-slate-800 font-medium">{c.businessName}</div>
                               <div className="text-[10px] text-slate-500 font-mono">
                                 {c.identificationNumber} • {c.phone || "Sin teléfono"}
                               </div>

@@ -277,7 +277,7 @@ export function CreditNoteModal({
                       </td>
                       <td className="py-2 px-3 text-right font-mono text-slate-700">${it.unitPrice.toFixed(2)}</td>
                       <td className="py-2 px-2 text-center font-bold text-slate-700">{it.ivaRate}%</td>
-                      <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                      <td className="ui-emphasis py-2 px-3 text-right font-mono font-bold text-slate-900">
                         ${it.total.toFixed(2)}
                       </td>
                       <td className="py-2 px-2 text-center">
@@ -306,7 +306,7 @@ export function CreditNoteModal({
             </div>
             <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm font-black">
               <span>TOTAL NOTA DE CRÉDITO:</span>
-              <span className="text-xl font-mono text-rose-400">${total.toFixed(2)}</span>
+              <span className="ui-emphasis text-xl font-mono text-rose-400">${total.toFixed(2)}</span>
             </div>
           </div>
 

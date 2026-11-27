@@ -6,6 +6,7 @@ import { useApp } from "@/lib/state";
 import { monthlyCashSummary } from "@/lib/commercial-core";
 import { getEcuadorDate } from "@/lib/date-utils";
 import { Users, Banknote, Receipt, CreditCard } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function MetricsCards() {
   const { clients, financialMovements, currentUser } = useApp();
@@ -33,9 +34,9 @@ export function MetricsCards() {
           <span className="text-2xl font-black text-[#0b1c30] tracking-tight font-tnum">
             {activeClients}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
+          <Badge className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
             Actuales
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -54,9 +55,9 @@ export function MetricsCards() {
           <span className="text-2xl font-black text-[#0b1c30] tracking-tight font-tnum">
             ${mrr.toLocaleString("es-EC", { minimumFractionDigits: 2 })}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
+          <Badge className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ecfdf5] text-[#065f46] flex items-center gap-1 border border-[#a7f3d0]">
             Confirmados
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -95,13 +96,13 @@ export function MetricsCards() {
           }`}>
             {isNetNegative ? "-" : ""}${Math.abs(netUtility).toLocaleString("es-EC", { minimumFractionDigits: 2 })}
           </span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+          <Badge className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
             isNetNegative
               ? "bg-[#fef2f2] text-[#991b1b] border-[#fecaca]"
               : "bg-[#ecfdf5] text-[#065f46] border-[#a7f3d0]"
           }`}>
             {isNetNegative ? "Negativa" : "Positiva"}
-          </span>
+          </Badge>
         </div>
       </div>
       </>}

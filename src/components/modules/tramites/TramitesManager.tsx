@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   History,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function TramitesManager() {
   const { regulatoryTramites, deleteRegulatoryTramite } = useApp();
@@ -117,23 +118,23 @@ export function TramitesManager() {
   const getPriorityBadge = (priority: RegulatoryTramite["priority"]) => {
     if (priority === "urgente") {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
+        <Badge className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
           <AlertTriangle className="w-2.5 h-2.5" />
           <span>Urgente</span>
-        </span>
+        </Badge>
       );
     }
     if (priority === "alta") {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+        <Badge className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
           Alta
-        </span>
+        </Badge>
       );
     }
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
+      <Badge className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600">
         Normal
-      </span>
+      </Badge>
     );
   };
 
@@ -336,11 +337,11 @@ export function TramitesManager() {
                       </td>
 
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span
+                        <Badge
                           className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border ${badge.bg}`}
                         >
                           {badge.label}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td className="py-3.5 px-5 text-right whitespace-nowrap">

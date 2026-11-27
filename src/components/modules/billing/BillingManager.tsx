@@ -52,12 +52,13 @@ import { compareDocumentsDescending } from "@/lib/sales-policy";
 import { api, downloadAuthorizedFiscalXml } from "@/lib/api-client";
 import type { FiscalKind } from "@/lib/server/sri-documents";
 import type { SriFiscalEvidence } from "@/types";
+import { Badge } from "@/components/ui/Badge";
 
 function FiscalStatus({ doc }: { doc: SriFiscalEvidence & { claveAcceso?: string; status?: string; emailStatus?: string; commercialReconciliationStatus?: string } }) {
   const environment = doc.ambiente || doc.claveAcceso?.[23];
-  return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><span className="ui-badge">
+  return <><span className="inline-flex flex-col items-center gap-0.5 align-middle"><Badge>
     {fiscalStateLabel(doc)}
-  </span>{environment === "1" && <span className="ui-cell-meta">Pruebas</span>}</span>
+  </Badge>{environment === "1" && <span className="ui-cell-meta">Pruebas</span>}</span>
     {doc.ambiente === "2" && isFiscalAuthorized(doc) && doc.emailStatus && <span className="ui-cell-meta mt-0.5 block">Correo: {({enviado:"confirmado",enviando:"en curso",pendiente:"pendiente",desactivado:"automático desactivado",parcial:"entrega parcial",error:"pendiente / error",no_confirmado:"sin confirmación"} as Record<string,string>)[doc.emailStatus] || doc.emailStatus}</span>}
     {doc.commercialReconciliationStatus === "pendiente" && <span className="ui-cell-meta mt-0.5 block">Requiere conciliación de cartera</span>}
   </>;
@@ -712,7 +713,7 @@ export function BillingManager() {
                         </td>
                         <td className="whitespace-nowrap">{inv.date}</td>
                         <td>
-                          <div className="break-words">{inv.clientName}</div>
+                          <div className="ui-emphasis break-words">{inv.clientName}</div>
                           <div className="ui-cell-meta break-words">RUC: {inv.clientRuc}</div>
                         </td>
                         <td className="py-3 px-3 text-right font-mono text-[#0b1c30]">
@@ -721,7 +722,7 @@ export function BillingManager() {
                         <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
                           ${safeNumber(inv.ivaTotal)}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30] text-sm">
+                        <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-[#0b1c30] text-sm">
                           ${safeNumber(inv.total)}
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -842,7 +843,7 @@ export function BillingManager() {
                       <td className="py-3 px-4 text-[#475569]">{q.date}</td>
                       <td className="py-3 px-4 text-[#475569]">{q.validUntil}</td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#0b1c30]">{q.clientName}</div>
+                        <div className="ui-emphasis font-bold text-[#0b1c30]">{q.clientName}</div>
                         <div className="text-xs font-mono text-[#737686]">{q.clientRuc}</div>
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-[#0b1c30]">
@@ -851,11 +852,11 @@ export function BillingManager() {
                       <td className="py-3 px-3 text-right font-mono text-sky-600 font-semibold">
                         ${safeNumber(q.ivaTotal)}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-amber-700 text-sm">
+                      <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-amber-700 text-sm">
                         ${safeNumber(q.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span
+                        <Badge
                           className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
                             q.status === "facturada"
                               ? "bg-emerald-50 text-emerald-700 border-emerald-300"
@@ -865,7 +866,7 @@ export function BillingManager() {
                           }`}
                         >
                           {q.status.toUpperCase()}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
@@ -954,13 +955,13 @@ export function BillingManager() {
                         {nc.invoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#0b1c30]">{nc.clientName}</div>
+                        <div className="ui-emphasis font-bold text-[#0b1c30]">{nc.clientName}</div>
                         <div className="text-xs font-mono text-[#737686]">{nc.clientRuc}</div>
                       </td>
                       <td className="py-3 px-4 text-[#475569] max-w-[220px] truncate" title={nc.reason}>
                         {nc.reason}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-rose-600 text-sm">
+                      <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-rose-600 text-sm">
                         ${safeNumber(nc.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
@@ -1037,13 +1038,13 @@ export function BillingManager() {
                         {nd.modifiedInvoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-bold text-[#0b1c30] block">{nd.clientName}</span>
+                        <span className="ui-emphasis font-bold text-[#0b1c30] block">{nd.clientName}</span>
                         <span className="text-xs font-mono text-[#737686]">{nd.clientRuc}</span>
                       </td>
                       <td className="py-3 px-4 text-[#475569] max-w-xs truncate">
                         {nd.reasons.map((r) => r.reason).join(", ")}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
+                      <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
                         ${safeNumber(nd.total)}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -1120,22 +1121,22 @@ export function BillingManager() {
                         {ret.invoiceNumber}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#0b1c30]">{ret.clientName}</div>
+                        <div className="ui-emphasis font-bold text-[#0b1c30]">{ret.clientName}</div>
                         <div className="text-xs font-mono text-[#737686]">{ret.clientRuc}</div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="space-y-0.5 text-xs">
                           {ret.items.map((it, idx) => (
-                            <span
+                            <Badge
                               key={idx}
                               className="inline-block mr-2 px-2 py-0.5 rounded-md bg-slate-100 text-[#475569] font-mono text-xs"
                             >
                               {it.taxType} {it.percentage}%: ${safeNumber(it.retainedAmount)}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700 text-sm">
+                      <td className="ui-emphasis py-3 px-4 text-right font-mono text-sm">
                         ${safeNumber(ret.totalRetained)}
                       </td>
                       <td className="py-3 px-3 text-center">
@@ -1218,7 +1219,7 @@ export function BillingManager() {
                         {g.route}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-[#0b1c30]">{g.destClientName}</div>
+                        <div className="ui-emphasis font-bold text-[#0b1c30]">{g.destClientName}</div>
                         <div className="text-xs text-[#737686] truncate max-w-[180px]">
                           {g.destAddress}
                         </div>
@@ -1387,7 +1388,7 @@ export function BillingManager() {
 
             <p className="text-xs text-slate-600 leading-relaxed">
               Al confirmar, se registrará una nota de venta para{" "}
-              <strong>{quoteToConvert.clientName}</strong> y se descontarán automáticamente las
+              <strong className="ui-emphasis">{quoteToConvert.clientName}</strong> y se descontarán automáticamente las
               existencias de los productos físicos en la bodega seleccionada.
             </p>
 
@@ -1639,10 +1640,10 @@ export function BillingManager() {
                           </td>
                           <td className="py-2.5 px-3 text-slate-600">{sale.date}</td>
                           <td className="py-2.5 px-3">
-                            <div className="font-bold text-slate-900">{sale.clientName}</div>
+                            <div className="ui-emphasis font-bold text-slate-900">{sale.clientName}</div>
                             <div className="text-[10px] font-mono text-slate-500">{sale.clientRuc}</div>
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                          <td className="ui-emphasis py-2.5 px-3 text-right font-mono font-bold text-slate-900">
                             ${safeNumber(sale.total)}
                           </td>
                           <td className="py-2.5 px-3 text-right">

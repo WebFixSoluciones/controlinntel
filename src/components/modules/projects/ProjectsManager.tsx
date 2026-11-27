@@ -1,5 +1,6 @@
 "use client";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { badgeTone } from "@/lib/badge-tone";
 
 import React, { useState, useMemo } from "react";
 import { canViewFinancialAmounts, canRoleAction } from "@/lib/permissions";
@@ -327,7 +328,7 @@ export function ProjectsManager() {
                       </td>
 
                       <td>
-                        <span className="block truncate" title={clientLabel}>{clientLabel}</span>
+                        <span className="ui-emphasis block truncate" title={clientLabel}>{clientLabel}</span>
                       </td>
 
                       <td className="whitespace-nowrap tabular-nums">{p.startDate}</td>
@@ -345,6 +346,7 @@ export function ProjectsManager() {
                       <td>
                         <select
                           value={p.status}
+                          data-badge-tone={badgeTone(p.status)}
                           onChange={(e) => handleStatusChange(p.id, e.target.value as ProjectStatus)}
                           aria-label={`Estado del proyecto ${p.title}`}
                           className="ui-cell-control w-full"

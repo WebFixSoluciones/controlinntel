@@ -46,6 +46,8 @@ import {
   Pencil,
   Clock,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+import { badgeTone } from "@/lib/badge-tone";
 
 function suggestedContractEnd(start: string, duration: ServiceContractDuration) {
   return validDate(start) && duration !== "indefinido" ? addDays(calculateContractEndDate(start, duration), -1) : "";
@@ -1001,9 +1003,9 @@ export function ClientContractTab({ client }: { client: Client }) {
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-1.5 py-0.5 rounded-md border border-[#dce9ff]">
+                              <Badge className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-1.5 py-0.5 rounded-md border border-[#dce9ff]">
                                 {prod.sku}
-                              </span>
+                              </Badge>
                               <span className="font-bold text-xs text-slate-900 truncate">
                                 {prod.name}
                               </span>
@@ -1361,9 +1363,9 @@ export function ClientContractTab({ client }: { client: Client }) {
               <div className="p-3 bg-white rounded-lg border border-[#e2e8f0] text-xs flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-2 py-0.5 rounded-md border border-[#dce9ff]">
+                    <Badge className="font-mono text-[10px] font-bold bg-[#eff4ff] text-[#004ac6] px-2 py-0.5 rounded-md border border-[#dce9ff]">
                       {selectedService.sku}
-                    </span>
+                    </Badge>
                     <span className="font-bold text-[#0b1c30]">{newSvcName || selectedService.name}</span>
                     {selectedService.categoryName && (
                       <span className="text-xs text-[#64748b]">• {selectedService.categoryName}</span>
@@ -1566,7 +1568,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     >
                       {/* 1. Servicio Contratado */}
                       <td>
-                        <p className={`break-words font-semibold ${isBillable ? "" : "line-through"}`}>{svc.planName}</p>
+                        <p className={`ui-emphasis break-words font-semibold ${isBillable ? "" : "line-through"}`}>{svc.planName}</p>
                         <p className="ui-cell-meta mt-0.5 break-words">{serviceDetails}</p>
                         {(svc.description || svc.notes) && (
                           <p className="ui-cell-meta mt-0.5 line-clamp-2 break-words">
@@ -1611,20 +1613,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                             }
                             className="ui-cell-control w-full cursor-pointer rounded-md border border-[#e2e8f0] px-1.5 tabular-nums"
                           />
-                          <span className="ui-cell-meta flex items-center gap-1">
-                            <span
-                              aria-hidden="true"
-                              className={`size-1.5 shrink-0 rounded-full ${
-                                {
-                                  rose: "bg-rose-600",
-                                  amber: "bg-amber-600",
-                                  emerald: "bg-emerald-600",
-                                  slate: "bg-slate-400",
-                                }[renewal.tone]
-                              }`}
-                            />
-                            {renewal.label}
-                          </span>
+                          <Badge className="w-fit">{renewal.label}</Badge>
                         </div>
                       </td>
 
@@ -1634,6 +1623,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                           aria-label="Estado del servicio"
                           value={svc.status}
                           onChange={(e) => handleStatusChange(svc, e.target.value as ServiceStatus)}
+                          data-badge-tone={badgeTone(svc.status)}
                           className="ui-cell-control w-full cursor-pointer rounded-md border border-[#e2e8f0] px-1.5"
                         >
                           <option value="activo">Activo</option>
@@ -1648,6 +1638,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <button
                           type="button"
                           onClick={() => handleToggleBillable(svc)}
+                          data-badge-tone={isBillable ? "neutral" : "negative"}
                           className="ui-cell-control inline-flex cursor-pointer items-center justify-center gap-1 rounded-md border border-[#e2e8f0] px-1.5 hover:bg-slate-50"
                           aria-pressed={isBillable}
                           aria-label="Clic para incluir o excluir este servicio de la factura del ciclo actual" title="Clic para incluir o excluir este servicio de la factura del ciclo actual"
@@ -1668,7 +1659,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
                       {/* 6. Tarifa Base */}
                       {showPrices && <td className="text-right tabular-nums">
-                        <span className={`block font-semibold ${isBillable ? "" : "line-through"}`}>
+                        <span className={`ui-emphasis block ${isBillable ? "" : "line-through"}`}>
                           ${safeNumber(price)}
                         </span>
                         <span className="ui-cell-meta mt-0.5 block">
@@ -1758,7 +1749,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </div>
                 <div>
                   <h3 id="client-service-edit-title" className="text-sm font-semibold text-balance leading-tight">Editar Servicio del Cliente</h3>
-                  <p className="text-[11px] text-white/80 break-words">
+                  <p className="ui-emphasis text-[11px] text-white/80 break-words">
                     {editingService.inventorySku ? `[${editingService.inventorySku}] ` : ""}
                     {editingService.planName}
                   </p>

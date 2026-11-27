@@ -34,7 +34,7 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <div className="p-4 border-b border-slate-200 space-y-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900"><FileText className="w-4 h-4 text-[#004ac6]" />Historial de facturación</h2>
-        <p className="text-xs text-slate-500">Facturas y notas de venta emitidas a {client.businessName}.</p>
+        <p className="ui-emphasis text-xs text-slate-500">Facturas y notas de venta emitidas a {client.businessName}.</p>
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
@@ -54,7 +54,7 @@ export function ClientInvoicesTab({ client }: { client: Client }) {
               <td className="px-4 py-3 whitespace-nowrap">{document.documentType === "nota_venta" ? "Nota de venta" : "Factura"}</td>
               <td className="px-4 py-3 whitespace-nowrap">{document.date?.slice(0, 10)}</td>
               <td className="px-4 py-3 max-w-xs"><p className="line-clamp-2">{(document.items || []).map(item => item.name).join(", ") || "Sin detalle"}</p></td>
-              <td className="px-4 py-3 font-semibold whitespace-nowrap">${safeNumber(document.total)}</td>
+              <td className="ui-emphasis px-4 py-3 font-semibold whitespace-nowrap">${safeNumber(document.total)}</td>
               <td className="px-4 py-3">{statusLabels[document.status] || document.status}</td>
               <td className="px-4 py-3"><button type="button" onClick={() => setSelectedId(document.id)} aria-label={`Ver comprobante ${document.documentNumber}`} className="inline-flex items-center gap-1.5 text-[#004ac6] font-semibold whitespace-nowrap"><Eye className="w-3.5 h-3.5" />Ver / Imprimir</button></td>
             </tr>)}

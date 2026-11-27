@@ -17,6 +17,7 @@ import {
   Check,
   User,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientContactsModalProps {
   isOpen: boolean;
@@ -346,9 +347,9 @@ export function ClientContactsModal({
                           {c.role || "Sin cargo especificado"}
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0 border border-slate-200">
+                      <Badge className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 shrink-0 border border-slate-200">
                         {idx === 0 ? "Principal" : `#${idx + 1}`}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="space-y-1 text-[11px] text-slate-600 pt-1.5 border-t border-slate-100">

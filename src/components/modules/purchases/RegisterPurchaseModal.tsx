@@ -693,7 +693,7 @@ export function RegisterPurchaseModal({
                         </td>
 
                         {/* Total */}
-                        <td className="py-2 px-3 text-right font-mono font-bold text-[#0b1c30]">
+                        <td className="ui-emphasis py-2 px-3 text-right font-mono font-bold text-[#0b1c30]">
                           ${item.total.toFixed(2)}
                         </td>
 
@@ -739,7 +739,7 @@ export function RegisterPurchaseModal({
               </div>
               <div className="flex justify-between text-[#0b1c30] font-bold text-sm pt-1 border-t border-[#e2e8f0]">
                 <span>Total a Pagar:</span>
-                <span className="font-mono text-[#004ac6]">${grandTotal.toFixed(2)}</span>
+                <span className="ui-emphasis font-mono text-[#004ac6]">${grandTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>

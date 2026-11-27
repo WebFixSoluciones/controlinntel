@@ -35,6 +35,7 @@ import {
   ChevronRight,
   CheckCircle2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientProjectKanbanProps {
   client: Client;
@@ -255,9 +256,9 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-md">
+                  <Badge className="text-xs font-bold bg-[#e2e8f0] text-[#475569] px-2 py-0.5 rounded-md">
                     {colTasks.length}
-                  </span>
+                  </Badge>
                   <button
                     onClick={() => handleOpenCreate(col.id)}
                     className="p-1 text-[#64748b] hover:text-[#004ac6] hover:bg-[#eff4ff] rounded-md transition-colors cursor-pointer"
@@ -298,7 +299,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                           </span>
 
                           <div className="flex items-center gap-1.5">
-                            <span
+                            <Badge
                               className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${
                                 task.priority === "urgente"
                                   ? "bg-rose-50 text-rose-700 border-rose-200"
@@ -310,7 +311,7 @@ export function ClientProjectKanban({ client }: ClientProjectKanbanProps) {
                               }`}
                             >
                               {task.priority}
-                            </span>
+                            </Badge>
 
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               <ActionIconButton action="edit" onClick={() => handleOpenEdit(task)} title="Editar Ficha" />

@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   Building2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -446,10 +447,10 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                 <span>1. Identificación Tributaria & Extracción SRI</span>
               </h4>
               {sriValidated && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   Validado en Catastro SRI {sriEstadoRuc ? `(${sriEstadoRuc})` : ""}
-                </span>
+                </Badge>
               )}
             </div>
 
@@ -529,13 +530,13 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="px-2 py-0.5 rounded-md bg-white border border-blue-200 font-bold text-[10px] text-[#004ac6] uppercase">
+                  <Badge className="px-2 py-0.5 rounded-md bg-white border border-blue-200 font-bold text-[10px] text-[#004ac6] uppercase">
                     {tipoContribuyente.replace("_", " ")}
-                  </span>
+                  </Badge>
                   {obligadoContabilidad && (
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-bold text-[10px] text-emerald-700">
+                    <Badge className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-bold text-[10px] text-emerald-700">
                       Obligado Contabilidad
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -746,9 +747,9 @@ export function ClientModal({ isOpen, onClose, clientToEdit }: ClientModalProps)
                           {contact.name || `Contacto #${index + 1}`}
                         </span>
                         {contact.role && (
-                          <span className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
+                          <Badge className="text-[10px] text-[#004ac6] bg-blue-50 px-2 py-0.5 rounded-md font-semibold border border-blue-200">
                             {contact.role}
-                          </span>
+                          </Badge>
                         )}
                       </div>
                       <ActionIconButton action="delete" type="button" onClick={() => handleRemoveContact(contact.id)} title="Eliminar este contacto" />

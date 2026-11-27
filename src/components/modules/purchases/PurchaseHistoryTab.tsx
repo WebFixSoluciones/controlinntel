@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { PurchaseInvoice } from "@/types";
 import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
+import { Badge } from "@/components/ui/Badge";
 
 interface PurchaseHistoryTabProps {
   onOpenNewPurchase: () => void;
@@ -170,7 +171,7 @@ export function PurchaseHistoryTab({
                       </td>
 
                       <td className="px-2 py-1.5">
-                        <div className="font-semibold truncate" title={inv.supplierName}>
+                        <div className="ui-emphasis truncate" title={inv.supplierName}>
                           {inv.supplierName}
                         </div>
                         <div className="ui-cell-meta">
@@ -179,7 +180,7 @@ export function PurchaseHistoryTab({
                       </td>
 
                       <td className="px-2 py-1.5 text-center">
-                        {inv.paymentCondition === "contado" ? "Contado" : "Crédito"}
+                        <Badge>{inv.paymentCondition === "contado" ? "Contado" : "Crédito"}</Badge>
                       </td>
 
                       <td className="px-2 py-1.5 text-right tabular-nums whitespace-nowrap">
@@ -190,18 +191,18 @@ export function PurchaseHistoryTab({
                         ${inv.ivaAmount.toFixed(2)}
                       </td>
 
-                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">
+                      <td className="ui-emphasis px-2 py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">
                         ${inv.total.toFixed(2)}
                       </td>
 
                       <td className="px-2 py-1.5 text-center">
-                        <span className="ui-badge">
+                        <Badge>
                           {inv.status === "anulada" ? "Eliminada" : isPaid ? "Pagado" : isPartial ? "Abono parcial" : "Pendiente"}
-                        </span>
+                        </Badge>
                       </td>
 
                       <td className="px-2 py-1.5 text-center">
-                        {inv.inventoryStatus === "ingresado" ? inv.status === "anulada" ? "Revertido" : "Ingresado" : "N/A"}
+                        <Badge>{inv.inventoryStatus === "ingresado" ? inv.status === "anulada" ? "Revertido" : "Ingresado" : "N/A"}</Badge>
                       </td>
 
                       <td className="px-2 py-1.5 text-right">
@@ -307,7 +308,7 @@ export function PurchaseHistoryTab({
                         </td>
                         <td className="py-2.5 px-3 text-center font-mono">{it.quantity}</td>
                         <td className="py-2.5 px-3 text-right font-mono">${it.unitCost.toFixed(2)}</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">${it.total.toFixed(2)}</td>
+                        <td className="ui-emphasis py-2.5 px-3 text-right font-mono font-bold text-[#0b1c30]">${it.total.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>

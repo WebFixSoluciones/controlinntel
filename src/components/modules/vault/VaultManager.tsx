@@ -8,6 +8,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/state";
 import { SecureVault } from "./SecureVault";
 import { KeyRound, ShieldCheck, Search, Users, Lock, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 
 export function VaultManager() {
   const { clients = [], clientVaultItems = [] } = useApp() || {};
@@ -90,10 +91,10 @@ export function VaultManager() {
                 <div className="flex items-center gap-3">
                   <BackButton onClick={() => setSelectedClientId(null)} label="Volver" />
                   <div className="h-5 w-px bg-slate-200" />
-                  <span className="text-xs font-bold text-[#0b1c30]">{selectedClient.businessName}</span>
-                  <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded border text-slate-600">
+                  <span className="ui-emphasis text-xs font-bold text-[#0b1c30]">{selectedClient.businessName}</span>
+                  <Badge className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded border text-slate-600">
                     {selectedClient.identificationNumber}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
@@ -156,13 +157,13 @@ export function VaultManager() {
                           return (
                             <tr key={client.id} className="hover:bg-[#f8f9ff] transition-colors">
                               <td className="py-4 px-5">
-                                <div className="font-bold text-[#0b1c30] text-sm">{client.businessName || "Sin Razón Social"}</div>
+                                <div className="ui-emphasis font-bold text-[#0b1c30] text-sm">{client.businessName || "Sin Razón Social"}</div>
                                 <div className="text-[10px] text-[#737686] font-mono mt-0.5">
                                   {client.identificationType || "RUC"}: {client.identificationNumber || "—"}
                                 </div>
                               </td>
                               <td className="py-4 px-5 text-center">
-                                <span
+                                <Badge
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
                                     hasItems
                                       ? "bg-blue-50 text-[#004ac6] border border-blue-200"
@@ -171,18 +172,18 @@ export function VaultManager() {
                                 >
                                   <Lock className="w-3 h-3" />
                                   <span>{items.length} {items.length === 1 ? "clave" : "claves"}</span>
-                                </span>
+                                </Badge>
                               </td>
                               <td className="py-4 px-5">
                                 {hasItems ? (
                                   <div className="flex flex-wrap gap-1.5 max-w-md">
                                     {items.map((item) => (
-                                      <span
+                                      <Badge
                                         key={item.id}
-                                        className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200"
+                                        className="ui-emphasis inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200"
                                       >
                                         {item.serviceName || "Servicio"}
-                                      </span>
+                                      </Badge>
                                     ))}
                                   </div>
                                 ) : (
@@ -190,10 +191,10 @@ export function VaultManager() {
                                 )}
                               </td>
                               <td className="py-4 px-5 text-center">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <Badge className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                                   <ShieldCheck className="w-3 h-3 text-emerald-600" />
                                   Bóveda Segura
-                                </span>
+                                </Badge>
                               </td>
                               <td className="py-4 px-5 text-right">
                                 <button
