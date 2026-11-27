@@ -4,6 +4,7 @@ import { createSearchMatcher } from "@/lib/search";
 import { clientSearchFields } from "@/lib/client-search";
 import { DocumentTablePagination, useDocumentPagination } from "@/components/ui/DocumentTablePagination";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { TableColumns } from "@/components/ui/TableColumns";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -667,17 +668,18 @@ export function BillingManager() {
       {activeTab === "facturas" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
           <div className="ui-table-scroll" role="region" aria-label="Facturas electrónicas" tabIndex={0}>
-            <table className="table-fixed w-full min-w-[44rem] text-left border-collapse text-xs">
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[55rem]">
+              <TableColumns weights={{ number: 17, date: 11, client: 26, subtotal: 10, tax: 8, total: 10, status: 18 }} actionIcons={8} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th scope="col" className="w-[17%]">Comprobante</th>
-                  <th scope="col" className="w-20">Fecha</th>
+                  <th scope="col">Comprobante</th>
+                  <th scope="col">Fecha</th>
                   <th scope="col">Cliente / RUC</th>
-                  <th scope="col" className="w-[7%] text-right">Subtotal</th>
-                  <th scope="col" className="w-[6%] text-right">IVA</th>
-                  <th scope="col" className="w-[7%] text-right">Total</th>
-                  <th scope="col" className="w-[12%] text-center">Estado</th>
-                  <th scope="col" className="w-36 text-right lg:w-56">Acciones</th>
+                  <th scope="col" className="text-right">Subtotal</th>
+                  <th scope="col" className="text-right">IVA</th>
+                  <th scope="col" className="text-right">Total</th>
+                  <th scope="col" className="text-center">Estado</th>
+                  <th scope="col" className="text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -812,19 +814,20 @@ export function BillingManager() {
       {/* 2. Cotizaciones */}
       {activeTab === "cotizaciones" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Listado de comprobantes" tabIndex={0}>
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[54rem]">
+              <TableColumns weights={{ number: 17, issue: 11, expiry: 11, client: 24, subtotal: 10, tax: 8, total: 10, status: 13 }} actionIcons={3} actionLabelWidth={134} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">No. Cotización</th>
-                  <th className="py-3 px-4 w-1/12">Emisión</th>
-                  <th className="py-3 px-4 w-1/12">Vigencia</th>
-                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
-                  <th className="py-3 px-3 w-1/12 text-right">Subtotal</th>
-                  <th className="py-3 px-3 w-1/12 text-right">IVA 15%</th>
-                  <th className="py-3 px-4 w-1/12 text-right font-black">Total</th>
-                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4">No. Cotización</th>
+                  <th className="py-3 px-4">Emisión</th>
+                  <th className="py-3 px-4">Vigencia</th>
+                  <th className="py-3 px-4">Cliente / RUC</th>
+                  <th className="py-3 px-3 text-right">Subtotal</th>
+                  <th className="py-3 px-3 text-right">IVA 15%</th>
+                  <th className="py-3 px-4 text-right font-black">Total</th>
+                  <th className="py-3 px-3 text-center">Estado</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -869,7 +872,7 @@ export function BillingManager() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="ui-table-actions">
                           {q.status !== "facturada" ? (
                             <button
                               onClick={() => setQuoteToConvert(q)}
@@ -923,18 +926,19 @@ export function BillingManager() {
       {/* 3. Notas de Crédito */}
       {activeTab === "notas_credito" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Listado de comprobantes" tabIndex={0}>
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[47rem]">
+              <TableColumns weights={{ number: 16, date: 11, invoice: 16, client: 20, reason: 14, total: 11, status: 12 }} actionIcons={4} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">No. Comprobante</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-2/12">Factura Modificada</th>
-                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
-                  <th className="py-3 px-4 w-1/12">Motivo</th>
-                  <th className="py-3 px-4 w-1/12 text-right font-black">Valor Acreditado</th>
-                  <th className="py-3 px-3 w-1/12 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4">No. Comprobante</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Factura Modificada</th>
+                  <th className="py-3 px-4">Cliente / RUC</th>
+                  <th className="py-3 px-4">Motivo</th>
+                  <th className="py-3 px-4 text-right font-black">Valor Acreditado</th>
+                  <th className="py-3 px-3 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -968,7 +972,7 @@ export function BillingManager() {
                         <FiscalStatus doc={nc} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="ui-table-actions">
                           {fiscalMailAction("nota_credito", nc)}
                           <button
                             onClick={() => handleOpenNcRide(nc)}
@@ -1006,18 +1010,19 @@ export function BillingManager() {
       {/* 3.5. Notas de Débito (Tipo 05) */}
       {activeTab === "notas_debito" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Listado de comprobantes" tabIndex={0}>
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[47rem]">
+              <TableColumns weights={{ number: 16, date: 11, invoice: 16, client: 20, reason: 14, total: 11, status: 12 }} actionIcons={4} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">No. Nota Débito</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-2/12">Factura Modificada</th>
-                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
-                  <th className="py-3 px-4 w-1/12">Motivos</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Total</th>
-                  <th className="py-3 px-4 w-1/12 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4">No. Nota Débito</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Factura Modificada</th>
+                  <th className="py-3 px-4">Cliente / RUC</th>
+                  <th className="py-3 px-4">Motivos</th>
+                  <th className="py-3 px-4 text-right">Total</th>
+                  <th className="py-3 px-4 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -1051,7 +1056,7 @@ export function BillingManager() {
                         <FiscalStatus doc={nd} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="ui-table-actions">
                           {fiscalMailAction("nota_debito", nd)}
                           <button
                             onClick={() => handleOpenDebitNoteRide(nd)}
@@ -1089,18 +1094,19 @@ export function BillingManager() {
       {/* 4. Retenciones */}
       {activeTab === "retenciones" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Listado de comprobantes" tabIndex={0}>
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[48rem]">
+              <TableColumns weights={{ number: 16, date: 11, invoice: 16, client: 20, taxes: 15, total: 10, status: 12 }} actionIcons={4} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">No. Retención</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-2/12">Factura Origen</th>
-                  <th className="py-3 px-4 w-3/12">Cliente Sujeto Retenido</th>
-                  <th className="py-3 px-4 w-1/12">Impuestos Retenidos</th>
-                  <th className="py-3 px-4 w-1/12 text-right font-black">Total Retenido</th>
-                  <th className="py-3 px-3 w-1/12 text-center">Estado SRI</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4">No. Retención</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Factura Origen</th>
+                  <th className="py-3 px-4">Cliente Sujeto Retenido</th>
+                  <th className="py-3 px-4">Impuestos Retenidos</th>
+                  <th className="py-3 px-4 text-right font-black">Total Retenido</th>
+                  <th className="py-3 px-3 text-center">Estado SRI</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -1143,7 +1149,7 @@ export function BillingManager() {
                         <FiscalStatus doc={ret} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="ui-table-actions">
                           {fiscalMailAction("retencion", ret)}
                           <button
                             onClick={() => handleOpenWithholdingRide(ret)}
@@ -1181,18 +1187,19 @@ export function BillingManager() {
       {/* 5. Guías de Remisión */}
       {activeTab === "guias_remision" && (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table-fixed w-full text-left border-collapse text-xs">
+          <div className="ui-table-scroll" role="region" aria-label="Listado de comprobantes" tabIndex={0}>
+            <table className="table-fixed w-full text-left border-collapse text-xs min-w-[48rem]">
+              <TableColumns weights={{ number: 15, date: 10, carrier: 17, route: 19, client: 17, cargo: 10, status: 12 }} actionIcons={4} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-2/12">No. Guía</th>
-                  <th className="py-3 px-4 w-1/12">Fecha</th>
-                  <th className="py-3 px-4 w-2/12">Transportista & Placa</th>
-                  <th className="py-3 px-4 w-2/12">Ruta</th>
-                  <th className="py-3 px-4 w-2/12">Destinatario</th>
-                  <th className="py-3 px-4 w-1/12">Mercadería</th>
-                  <th className="py-3 px-3 w-1/12 text-center">Estado</th>
-                  <th className="py-3 px-4 w-1/12 text-right">Acciones</th>
+                  <th className="py-3 px-4">No. Guía</th>
+                  <th className="py-3 px-4">Fecha</th>
+                  <th className="py-3 px-4">Transportista & Placa</th>
+                  <th className="py-3 px-4">Ruta</th>
+                  <th className="py-3 px-4">Destinatario</th>
+                  <th className="py-3 px-4">Mercadería</th>
+                  <th className="py-3 px-3 text-center">Estado</th>
+                  <th className="py-3 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -1235,7 +1242,7 @@ export function BillingManager() {
                         <FiscalStatus doc={g} />
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
+                        <div className="ui-table-actions">
                           {fiscalMailAction("guia_remision", g)}
                           <button
                             onClick={() => handleOpenRemissionRide(g)}

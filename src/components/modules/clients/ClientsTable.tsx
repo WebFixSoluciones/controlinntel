@@ -30,6 +30,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { TableColumns } from "@/components/ui/TableColumns";
 
 interface ClientsTableProps {
   onSelectClient: (client: Client) => void;
@@ -283,15 +284,16 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="table-fixed w-full text-left text-xs">
+        <div className="ui-table-scroll" role="region" aria-label="Directorio de clientes" tabIndex={0}>
+          <table className="table-fixed w-full text-left text-xs min-w-[36rem]">
+            <TableColumns weights={{ client: 34, services: 17, tradeName: 29, identification: 20 }} actionIcons={3} />
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
               <tr>
-                <th className="py-3 px-5 w-[30%]">Cliente / Razón Social</th>
-                <th className="py-3 px-4 w-[16%]">Servicios</th>
-                <th className="py-3 px-5 w-[22%]">Nombre Comercial</th>
-                <th className="py-3 px-5 w-[18%]">RUC / CI</th>
-                <th className="py-3 px-5 w-[14%] text-right">Acciones</th>
+                <th scope="col">Cliente / Razón Social</th>
+                <th scope="col">Servicios</th>
+                <th scope="col">Nombre Comercial</th>
+                <th scope="col">RUC / CI</th>
+                <th scope="col" className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9] font-medium text-[#434655]">
@@ -357,7 +359,7 @@ export function ClientsTable({ onSelectClient, onOpenNewModal }: ClientsTablePro
 
                       {/* Acciones: Ver Cliente, Ver Facturas, Eliminar */}
                       <td className="py-3.5 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="ui-table-actions" onClick={(e) => e.stopPropagation()}>
                           {/* 1. Ver Ficha del Cliente */}
                           <button
                             onClick={() => onSelectClient(client)}

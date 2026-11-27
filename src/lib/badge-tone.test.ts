@@ -14,8 +14,14 @@ test("distingue estados caducados, cerrados o fallidos de los positivos", () => 
   }
 });
 
-test("usa el tono general para métodos, tipos, estados pendientes y textos descriptivos", () => {
-  for (const label of ["Transferencia", "Contado", "Crédito", "Facturable", "Pendiente SRI", "Por vencer", "Cliente activo ABC", "Transferencia no confirmada", 12, undefined]) {
+test("usa naranja para pendientes y alertas sin confundirlos con estados cerrados", () => {
+  for (const label of ["Pendiente", "Pendiente SRI", "Contrato por caducar (8d)", "Por renovar (18d)", "A punto de caducar", "Por vencer", "Alerta", "En espera", "Por verificar", "Revisar período", "Abono parcial"]) {
+    assert.equal(badgeTone(label), "warning", label);
+  }
+});
+
+test("usa el tono general para métodos, tipos y textos descriptivos", () => {
+  for (const label of ["Transferencia", "Contado", "Crédito", "Facturable", "Cliente activo ABC", "Transferencia no confirmada", 12, undefined]) {
     assert.equal(badgeTone(label), "neutral", String(label));
   }
 });

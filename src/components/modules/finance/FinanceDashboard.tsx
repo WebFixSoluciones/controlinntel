@@ -8,6 +8,7 @@ import { isUnusedAdvance } from "@/lib/client-credit";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { TableColumns } from "@/components/ui/TableColumns";
 import { canAccessSubmodule, canUser } from "@/lib/permissions";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -547,17 +548,18 @@ export function FinanceDashboard({
 
           {/* Tabla de Cobros */}
           <div className="ui-table-scroll" role="region" aria-label="Cobranzas" tabIndex={0}>
-            <table className="table-fixed w-full min-w-[48rem] text-left border-collapse">
+            <table className="table-fixed w-full text-left border-collapse min-w-[52rem]">
+              <TableColumns weights={{ number: 19, date: 11, client: 24, total: 11, paid: 10, balance: 13, status: 12 }} actionIcons={4} />
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
                 <tr>
-                  <th scope="col" className="w-[20%] px-2 py-2">Comprobante</th>
-                  <th scope="col" className="w-20 px-2 py-2">Fecha de venta</th>
+                  <th scope="col" className="px-2 py-2">Comprobante</th>
+                  <th scope="col" className="px-2 py-2">Fecha de venta</th>
                   <th scope="col" className="px-2 py-2">Cliente / RUC</th>
-                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Total de venta</th>
-                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Abonado</th>
-                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Saldo pendiente</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-center">Estado</th>
-                  <th scope="col" className="w-[calc(var(--ui-row-control)*4+28px)] px-2 py-2 text-right">Acciones</th>
+                  <th scope="col" className="px-2 py-2 text-right">Total de venta</th>
+                  <th scope="col" className="px-2 py-2 text-right">Abonado</th>
+                  <th scope="col" className="px-2 py-2 text-right">Saldo pendiente</th>
+                  <th scope="col" className="px-2 py-2 text-center">Estado</th>
+                  <th scope="col" className="px-2 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -748,17 +750,18 @@ export function FinanceDashboard({
           </div>
 
           <div className="ui-table-scroll" role="region" aria-label="Anticipos de clientes" tabIndex={0}>
-            <table className="table-fixed w-full min-w-[53rem] text-left border-collapse">
+            <table className="table-fixed w-full text-left border-collapse min-w-[49rem]">
+              <TableColumns weights={{ date: 13, client: 26, ...(showAdvanceMonths ? { months: 8 } : {}), amount: 13, balance: 15, bank: 21, status: 12 }} actionIcons={5} />
               <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
                 <tr>
-                  <th scope="col" className="w-20 px-2 py-2">Fecha</th>
+                  <th scope="col" className="px-2 py-2">Fecha</th>
                   <th scope="col" className="px-2 py-2">Cliente / RUC</th>
-                  {showAdvanceMonths && <th scope="col" className="w-12 px-2 py-2 text-center">Meses</th>}
-                  <th scope="col" className="w-20 px-2 py-2 text-right">Monto inicial</th>
-                  <th scope="col" className="w-[5.5rem] px-2 py-2 text-right">Saldo disponible</th>
-                  <th scope="col" className="w-[20%] px-2 py-2">Método / banco</th>
-                  <th scope="col" className="w-28 px-2 py-2 text-center">Estado</th>
-                  <th scope="col" className="w-[calc(var(--ui-row-control)*5+32px)] px-2 py-2 text-right">Acciones</th>
+                  {showAdvanceMonths && <th scope="col" className="px-2 py-2 text-center">Meses</th>}
+                  <th scope="col" className="px-2 py-2 text-right">Monto inicial</th>
+                  <th scope="col" className="px-2 py-2 text-right">Saldo disponible</th>
+                  <th scope="col" className="px-2 py-2">Método / banco</th>
+                  <th scope="col" className="px-2 py-2 text-center">Estado</th>
+                  <th scope="col" className="px-2 py-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">

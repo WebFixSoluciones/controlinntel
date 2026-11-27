@@ -11,6 +11,7 @@ import { isClosedTicketStatus } from "@/lib/ticket-status";
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { TableColumns } from "@/components/ui/TableColumns";
 import { Ticket, TicketPriority, TicketStatus } from "@/types";
 import {
   Plus,
@@ -263,19 +264,20 @@ export function TicketsBoard({ onOpenNewModal }: TicketsBoardProps) {
       {/* 2. Tickets Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="ui-table-scroll" role="region" aria-label="Lista de tickets" tabIndex={0}>
-          <table className="table-fixed w-full min-w-[56rem] border-collapse text-left">
+          <table className="table-fixed w-full border-collapse text-left min-w-[56rem]">
+            <TableColumns weights={{ number: 10, issue: 21, client: 17, department: 12, assignee: 12, priority: 8, status: 12, date: 9, visits: 8 }} actionIcons={1} />
             <thead className="bg-[#f8f9ff] text-[#004ac6] border-b border-[#e2e8f0]">
               <tr>
-                <th scope="col" className="w-[5.25rem]">N.º de ticket</th>
+                <th scope="col">N.º de ticket</th>
                 <th scope="col">Incidencia / asunto</th>
-                <th scope="col" className="w-[14%]">Cliente</th>
-                <th scope="col" className="w-[6rem]">Departamento</th>
-                <th scope="col" className="w-[6rem]">Asignado a</th>
-                <th scope="col" className="w-[5rem] text-center">Prioridad SLA</th>
-                <th scope="col" className="w-[6.5rem]">Estado</th>
-                <th scope="col" className="w-[4.5rem] text-right">Fecha</th>
-                <th scope="col" className="w-[4.75rem] text-center">Asistencia</th>
-                <th scope="col" className="w-[4rem] text-right">Acciones</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Departamento</th>
+                <th scope="col">Asignado a</th>
+                <th scope="col" className="text-center">Prioridad SLA</th>
+                <th scope="col">Estado</th>
+                <th scope="col" className="text-right">Fecha</th>
+                <th scope="col" className="text-center">Asistencia</th>
+                <th scope="col" className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

@@ -1333,9 +1333,13 @@ test("Flujo E2E 24: Estandarización Global de Diseño UI/UX Fase 1 (Plantillas 
   // 3. ClientContractTab.tsx (Tab Servicios & Documentos)
   const contractPath = path.resolve(rootDir, "src/components/modules/clients/ClientContractTab.tsx");
   const contractContent = fs.readFileSync(contractPath, "utf8");
+  const tableColumnsContent = fs.readFileSync(path.resolve(rootDir, "src/components/ui/TableColumns.tsx"), "utf8");
   assert.ok(
     contractContent.includes("table-fixed") &&
-      contractContent.includes("<colgroup>") &&
+      contractContent.includes("<TableColumns") &&
+      tableColumnsContent.includes("<colgroup>") &&
+      tableColumnsContent.includes("weight / totalWeight * 100") &&
+      tableColumnsContent.includes("width: actionWidth") &&
       contractContent.includes('aria-label="Tabla de servicios contratados"') &&
       contractContent.includes("overflow-x-auto"),
     "ClientContractTab debe estructurar la tabla de servicios con layout fijo y columnas balanceadas"

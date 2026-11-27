@@ -20,6 +20,7 @@ import {
 import { PurchaseInvoice } from "@/types";
 import { PurchaseCorrectionDialog } from "./PurchaseCorrectionDialog";
 import { Badge } from "@/components/ui/Badge";
+import { TableColumns } from "@/components/ui/TableColumns";
 
 interface PurchaseHistoryTabProps {
   onOpenNewPurchase: () => void;
@@ -133,19 +134,20 @@ export function PurchaseHistoryTab({
       {/* Table of Invoices */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
         <div className="ui-table-scroll" role="region" aria-label="Historial de compras" tabIndex={0}>
-          <table className="table-fixed w-full min-w-[55rem] text-left border-collapse">
+          <table className="table-fixed w-full min-w-[58rem] text-left border-collapse">
+            <TableColumns weights={{ date: 10, number: 15, supplier: 18, terms: 9, subtotal: 9, tax: 8, total: 9, payment: 12, inventory: 10 }} actionIcons={5} />
             <thead className="bg-[#f8f9ff] text-[#004ac6] font-semibold border-b border-[#e2e8f0]">
               <tr>
-                <th scope="col" className="w-[4.5rem] px-2 py-2">Fecha</th>
-                <th scope="col" className="w-[8rem] px-2 py-2">Comprobante</th>
-                <th scope="col" className="px-2 py-2">Proveedor / RUC</th>
-                <th scope="col" className="w-16 px-2 py-2 text-center">Condición</th>
-                <th scope="col" className="w-[4.5rem] px-2 py-2 text-right">Subtotal</th>
-                <th scope="col" className="w-16 px-2 py-2 text-right">IVA</th>
-                <th scope="col" className="w-[4.5rem] px-2 py-2 text-right">Total</th>
-                <th scope="col" className="w-[5.5rem] px-2 py-2 text-center">Estado de pago</th>
-                <th scope="col" className="w-[4.5rem] px-2 py-2 text-center">Inventario</th>
-                <th scope="col" className="w-[calc(var(--ui-row-control)*5+32px)] px-2 py-2 text-right">Acciones</th>
+                <th scope="col">Fecha</th>
+                <th scope="col">Comprobante</th>
+                <th scope="col">Proveedor / RUC</th>
+                <th scope="col" className="text-center">Condición</th>
+                <th scope="col" className="text-right">Subtotal</th>
+                <th scope="col" className="text-right">IVA</th>
+                <th scope="col" className="text-right">Total</th>
+                <th scope="col" className="text-center">Estado de pago</th>
+                <th scope="col" className="text-center">Inventario</th>
+                <th scope="col" className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f1f5f9]">
@@ -171,7 +173,7 @@ export function PurchaseHistoryTab({
                       </td>
 
                       <td className="px-2 py-1.5">
-                        <div className="ui-emphasis truncate" title={inv.supplierName}>
+                        <div className="ui-emphasis [overflow-wrap:anywhere]" title={inv.supplierName}>
                           {inv.supplierName}
                         </div>
                         <div className="ui-cell-meta">

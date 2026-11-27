@@ -47,6 +47,7 @@ import {
   Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { TableColumns } from "@/components/ui/TableColumns";
 import { badgeTone } from "@/lib/badge-tone";
 
 function suggestedContractEnd(start: string, duration: ServiceContractDuration) {
@@ -1502,21 +1503,10 @@ export function ClientContractTab({ client }: { client: Client }) {
         {/* Tabla de Control Individual de Servicios Contratados */}
         <div role="region" aria-label="Tabla de servicios contratados" tabIndex={0} className="ui-table-scroll overflow-x-auto overscroll-x-contain">
           <table className={`w-full table-fixed text-left ${showPrices ? "min-w-[54rem]" : "min-w-[44rem]"}`}>
-            <colgroup>
-              <col />
-              <col className="w-[5.5rem]" />
-              <col className="w-[8rem]" />
-              <col className="w-[6.25rem]" />
-              <col className="w-[5.5rem]" />
-              {showPrices && <col className="w-[5.75rem]" />}
-              <col
-                style={{
-                  width: showPrices
-                    ? "calc(5 * var(--ui-row-control, 26px) + 2.125rem)"
-                    : "calc(2 * var(--ui-row-control, 26px) + 1.25rem)",
-                }}
-              />
-            </colgroup>
+            <TableColumns
+              weights={{ service: 30, frequency: 14, renewal: 18, status: 14, billing: 13, ...(showPrices ? { price: 11 } : {}) }}
+              actionIcons={showPrices ? 5 : 2}
+            />
             <thead>
               <tr>
                 <th scope="col">Servicio</th>

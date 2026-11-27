@@ -36,6 +36,7 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { TableColumns } from "@/components/ui/TableColumns";
 import { badgeTone } from "@/lib/badge-tone";
 
 export type SalesTab = "notas_venta" | "nueva_venta" | "cotizaciones" | "recurrentes";
@@ -323,16 +324,18 @@ export function SalesManager() {
 
           {/* Sales Table */}
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <table className="table-fixed w-full text-left text-xs border-collapse">
+            <div className="ui-table-scroll" role="region" aria-label="Listado de notas de venta" tabIndex={0}>
+            <table className="table-fixed w-full text-left text-xs border-collapse min-w-[49rem]">
+              <TableColumns weights={{ number: 20, date: 13, client: 27, payment: 14, total: 11, fiscalStatus: 25 }} actionIcons={3} actionLabelWidth={100} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th className="py-3 px-4 w-[14%]">Nro. Comprobante</th>
-                  <th className="py-3 px-4 w-[9%]">Fecha</th>
-                  <th className="py-3 px-4 w-[21%]">Cliente / RUC</th>
-                  <th className="py-3 px-4 w-[10%]">Método de Pago</th>
-                  <th className="py-3 px-4 w-[8%] text-right">Total</th>
-                  <th className="py-3 px-4 w-[16%] text-center">Estado SRI</th>
-                  <th className="py-3 px-4 w-[22%] text-right">Acciones</th>
+                  <th scope="col">Nro. Comprobante</th>
+                  <th scope="col">Fecha</th>
+                  <th scope="col">Cliente / RUC</th>
+                  <th scope="col">Método de Pago</th>
+                  <th scope="col" className="text-right">Total</th>
+                  <th scope="col" className="text-center">Estado SRI</th>
+                  <th scope="col" className="text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -356,7 +359,7 @@ export function SalesManager() {
                           {sale.date}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="ui-emphasis font-bold text-[#0b1c30] block">{sale.clientName}</span>
+                          <span className="ui-emphasis block [overflow-wrap:anywhere]">{sale.clientName}</span>
                           <span className="text-xs font-mono text-[#737686]">RUC: {sale.clientRuc}</span>
                         </td>
                         <td className="py-3 px-4">
@@ -392,7 +395,7 @@ export function SalesManager() {
                           )}
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1.5">
+                          <div className="ui-table-actions">
                             {/* Ver / Imprimir RIDE */}
                             <button
                               onClick={() => {
@@ -436,6 +439,7 @@ export function SalesManager() {
                 )}
               </tbody>
             </table>
+            </div>
             <DocumentTablePagination {...salesPage.controls} />
           </div>
         </div>
@@ -488,10 +492,12 @@ export function SalesManager() {
           </div>
 
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
-            <table className="table-fixed w-full text-left text-xs border-collapse">
+            <div className="ui-table-scroll" role="region" aria-label="Listado de cotizaciones" tabIndex={0}>
+            <table className="table-fixed w-full text-left text-xs border-collapse min-w-[46rem]">
+              <TableColumns weights={{ number: 23, dates: 22, client: 27, total: 13, status: 15 }} actionIcons={3} actionLabelWidth={140} />
               <thead>
                 <tr className="bg-[#f8f9ff] text-[#004ac6] font-bold text-xs uppercase tracking-wider border-b border-[#e2e8f0]">
-                  <th scope="col" aria-sort={quoteSortDirection} className="py-3 px-4 w-2/12">
+                  <th scope="col" aria-sort={quoteSortDirection}>
                     <button
                       type="button"
                       onClick={() => setQuoteSortDirection(direction => direction === "descending" ? "ascending" : "descending")}
@@ -502,11 +508,11 @@ export function SalesManager() {
                       <QuoteSortIcon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                     </button>
                   </th>
-                  <th className="py-3 px-4 w-2/12">Emisión / Vigencia</th>
-                  <th className="py-3 px-4 w-3/12">Cliente / RUC</th>
-                  <th className="py-3 px-4 w-2/12 text-right">Total</th>
-                  <th className="py-3 px-4 w-1/12 text-center">Estado</th>
-                  <th className="py-3 px-4 w-2/12 text-right">Acciones</th>
+                  <th scope="col">Emisión / Vigencia</th>
+                  <th scope="col">Cliente / RUC</th>
+                  <th scope="col" className="text-right">Total</th>
+                  <th scope="col" className="text-center">Estado</th>
+                  <th scope="col" className="text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f1f5f9]">
@@ -525,7 +531,7 @@ export function SalesManager() {
                         <div className="text-xs text-[#737686]">Vence: {q.validUntil}</div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="ui-emphasis font-bold text-[#0b1c30]">{q.clientName}</div>
+                        <div className="ui-emphasis [overflow-wrap:anywhere]">{q.clientName}</div>
                         <div className="text-xs font-mono text-[#737686]">RUC: {q.clientRuc}</div>
                       </td>
                       <td className="ui-emphasis py-3 px-4 text-right font-mono font-bold text-[#0b1c30]">
@@ -545,7 +551,7 @@ export function SalesManager() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
+                        <div className="ui-table-actions">
                           {q.status !== "facturada" && canUser(currentUser, "ventas", "canApproveQuotes") && canAccessSubmodule(currentUser, "ventas", "nueva_venta") ? (
                             <button
                               onClick={() => {
@@ -594,6 +600,7 @@ export function SalesManager() {
                 )}
               </tbody>
             </table>
+            </div>
             <DocumentTablePagination {...quotesPage.controls} />
           </div>
         </div>

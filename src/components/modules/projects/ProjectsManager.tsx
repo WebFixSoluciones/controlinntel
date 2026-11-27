@@ -1,5 +1,6 @@
 "use client";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { TableColumns } from "@/components/ui/TableColumns";
 import { badgeTone } from "@/lib/badge-tone";
 
 import React, { useState, useMemo } from "react";
@@ -271,17 +272,18 @@ export function ProjectsManager() {
       {/* Master Projects Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="ui-table-scroll" role="region" aria-label="Lista de proyectos" tabIndex={0}>
-          <table className="table-fixed w-full min-w-[56rem] border-collapse text-left">
+          <table className="table-fixed w-full border-collapse text-left min-w-[56rem]">
+            <TableColumns weights={{ project: 25, client: 20, start: 11, end: 11, tasks: 10, budget: 11, status: 17 }} actionIcons={5} />
             <thead className="bg-[#f8f9ff] text-[#004ac6] border-b border-[#e2e8f0]">
               <tr>
                 <th scope="col">Nombre del proyecto</th>
-                <th scope="col" className="w-[19%]">Cliente asignado</th>
-                <th scope="col" className="w-[5rem]">Fecha de inicio</th>
-                <th scope="col" className="w-[5rem]">Fecha de fin</th>
-                <th scope="col" className="w-[5rem]">Tareas globales</th>
-                <th scope="col" className="w-[6rem] text-right">Presupuesto</th>
-                <th scope="col" className="w-[7.5rem]">Estado</th>
-                <th scope="col" className="w-[11rem] text-right">Acciones</th>
+                <th scope="col">Cliente asignado</th>
+                <th scope="col">Fecha de inicio</th>
+                <th scope="col">Fecha de fin</th>
+                <th scope="col">Tareas globales</th>
+                <th scope="col" className="text-right">Presupuesto</th>
+                <th scope="col">Estado</th>
+                <th scope="col" className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
