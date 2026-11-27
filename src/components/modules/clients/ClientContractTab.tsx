@@ -20,7 +20,7 @@ import { canAccessRoute, canAccessSubmodule, canUser, canViewClientServicePart }
 import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import { safeNumber } from "@/lib/print-service";
-import { addDays, calculateLines, previewScheduledService, initialServicePeriod, serviceBillingStart, validDate } from "@/lib/commercial-core";
+import { addDays, calculateLines, previewScheduledService, initialServicePeriod, isServiceBillable, serviceBillingStart, validDate } from "@/lib/commercial-core";
 import {
   getEcuadorDate,
   diffInCalendarDays,
@@ -88,6 +88,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     sriCompanyConfig,
     addClientService,
     updateClientService,
+    setServiceBillingExclusion,
     deleteClientService,
     renewClientService,
   } = useApp();
@@ -118,6 +119,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [newSvcPeriodStartDate, setNewSvcPeriodStartDate] = useState(() => getEcuadorDate());
   const [newSvcEndDate, setNewSvcEndDate] = useState(() => suggestedContractEnd(getEcuadorDate(), "anual"));
   const [newSvcAutoRenew, setNewSvcAutoRenew] = useState(true);
+  const [newAutomaticBilling, setNewAutomaticBilling] = useState(true);
   const [newSvcPaymentMethod, setNewSvcPaymentMethod] = useState<ServicePaymentMethod>("credito");
   const [newCycleAnchor, setNewCycleAnchor] = useState<"calendario" | "aniversario">("aniversario");
   const [newPartialPolicy, setNewPartialPolicy] = useState<"prorrateo" | "completo">("prorrateo");
@@ -142,6 +144,7 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [editPeriodStartDate, setEditPeriodStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [editAutoRenew, setEditAutoRenew] = useState(true);
+  const [editAutomaticBilling, setEditAutomaticBilling] = useState(true);
   const [editPaymentMethod, setEditPaymentMethod] = useState<ServicePaymentMethod>("credito");
   const [editCycleAnchor, setEditCycleAnchor] = useState<"calendario" | "aniversario">("aniversario");
   const [editPartialPolicy, setEditPartialPolicy] = useState<"prorrateo" | "completo">("prorrateo");
@@ -149,16 +152,17 @@ export function ClientContractTab({ client }: { client: Client }) {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const today = getEcuadorDate();
+  const billingMonth = today.slice(0, 7);
   const assignmentSchedule = isAddingService && selectedService ? {
     id: selectedService.id, planName: newSvcName || selectedService.name, status: client.status,
     createdAt: `${today}T12:00:00-05:00`, contractStartDate: newSvcStartDate, contractEndDate: newSvcEndDate, billingPeriodStartDate: newSvcPeriodStartDate,
-    billingType: newSvcBillingType, billingFrequency: newSvcFreq, cycleAnchor: newCycleAnchor,
+    billingType: newSvcBillingType, billingFrequency: newSvcFreq, cycleAnchor: newCycleAnchor, automaticBillingEnabled: newAutomaticBilling,
     firstPeriodPolicy: newPartialPolicy, billingDay: newSvcBillingDay, advanceNoticeDay: newSvcAdvanceNoticeDay,
     customPrice: newSvcPriceSinIva === "" ? undefined : Number(newSvcPriceSinIva), ivaRate: newSvcIvaRate, zeroPriceReason: newZeroReason.trim(),
   } : null;
   const editSchedule = editingService ? {
     ...editingService, contractStartDate: editStartDate, contractEndDate: editEndDate, billingPeriodStartDate: editPeriodStartDate,
-    billingType: editBillingType, billingFrequency: editFreq, cycleAnchor: editCycleAnchor,
+    billingType: editBillingType, billingFrequency: editFreq, cycleAnchor: editCycleAnchor, automaticBillingEnabled: editAutomaticBilling,
     firstPeriodPolicy: editPartialPolicy, billingDay: editBillingDay, advanceNoticeDay: editAdvanceNoticeDay,
     basePrice: undefined, customPrice: editPriceSinIva === "" ? undefined : Number(editPriceSinIva), ivaRate: editIvaRate, zeroPriceReason: editZeroReason.trim(),
   } : null;
@@ -337,7 +341,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
       const hasSale = s.saleStatus === "emitida" || !!s.saleDocNumber;
       const isPendingSale = s.saleStatus === "pendiente_venta" || (!s.saleDocNumber && s.origin === "manual");
-      const isBillable = s.status === "activo" && s.isBillableInCurrentCycle !== false;
+      const isBillable = isServiceBillable(s, billingMonth);
       const renewal = getRenewalStatus(s.nextRenewalDate, s.contractEndDate);
       const isDueSoon = renewal.isExpiringSoon || renewal.daysLeft <= 15 || s.status === "por_renovar";
 
@@ -350,7 +354,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
       return matchesQuery && matchesFilter;
     });
-  }, [servicesForClient, searchQuery, serviceFilter]);
+  }, [servicesForClient, searchQuery, serviceFilter, billingMonth]);
 
   // Summary metrics for this client's services
   const serviceMetrics = useMemo(() => {
@@ -362,7 +366,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       (s) => s.saleStatus === "pendiente_venta" || (!s.saleDocNumber && s.origin === "manual")
     ).length;
     const billableList = servicesForClient.filter(
-      (s) => s.status === "activo" && s.isBillableInCurrentCycle !== false
+      (s) => isServiceBillable(s, billingMonth)
     );
     const nonBillableCount = total - billableList.length;
     const subtotalBillable = billableList.reduce(
@@ -384,7 +388,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       totalWithTax: Math.round(billableList.reduce((sum,s) => sum + (s.customPrice ?? s.basePrice ?? 0) * (1 + (s.ivaRate ?? 0) / 100), 0) * 100) / 100,
       expiringCount: expiringList.length,
     };
-  }, [servicesForClient]);
+  }, [servicesForClient, billingMonth]);
 
   // Handlers for product selection and real-time VAT price synchronization
   const handleSelectProduct = (prod: InventoryProduct) => {
@@ -436,6 +440,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     setNewSvcPeriodStartDate(getEcuadorDate());
     setNewSvcEndDate(suggestedContractEnd(getEcuadorDate(), "anual"));
     setNewSvcAutoRenew(true);
+    setNewAutomaticBilling(true);
     setNewSvcPaymentMethod("credito");
     setShowServiceDropdown(true);
   };
@@ -534,6 +539,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         contractStartDate: newSvcStartDate,
         contractEndDate: newSvcEndDate || undefined,
         autoRenew: newSvcAutoRenew,
+        automaticBillingEnabled: newAutomaticBilling,
         cycleAnchor: newCycleAnchor,
         firstPeriodPolicy: newPartialPolicy,
         zeroPriceReason: newZeroReason.trim(),
@@ -603,6 +609,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     setEditPeriodStartDate(serviceBillingStart(svc) || getEcuadorDate());
     setEditEndDate(svc.contractEndDate || "");
     setEditAutoRenew(svc.autoRenew ?? true);
+    setEditAutomaticBilling(svc.automaticBillingEnabled !== false);
     setEditCycleAnchor(svc.cycleAnchor || "aniversario");
     setEditPartialPolicy(svc.firstPeriodPolicy || "prorrateo");
     setEditZeroReason(svc.zeroPriceReason || "");
@@ -661,7 +668,7 @@ export function ClientContractTab({ client }: { client: Client }) {
     const priceConIvaNum =
       parseFloat(editPriceConIva) ||
       Math.round(priceSinIvaNum * (1 + editIvaRate / 100) * 100) / 100;
-    const period = initialServicePeriod({ ...editSchedule, status: "activo", isBillableInCurrentCycle: true });
+    const period = initialServicePeriod({ ...editSchedule, status: "activo", isBillableInCurrentCycle: true, excludedBillingMonths: [] });
     if (!period.eligible) {
       showError("Revisa el período", period.reason);
       return;
@@ -684,6 +691,7 @@ export function ClientContractTab({ client }: { client: Client }) {
         contractStartDate: editStartDate,
         contractEndDate: editEndDate,
         autoRenew: editAutoRenew,
+        automaticBillingEnabled: editAutomaticBilling,
         paymentMethod: editPaymentMethod,
         cycleAnchor: editCycleAnchor,
         firstPeriodPolicy: editPartialPolicy,
@@ -717,32 +725,20 @@ export function ClientContractTab({ client }: { client: Client }) {
 
   // Toggle billable in current cycle (Facturable vs No Facturado)
   const handleToggleBillable = async (svc: ClientService) => {
-    const currentlyBillable = svc.isBillableInCurrentCycle !== false && svc.status === "activo";
-    const nextBillable = !currentlyBillable;
+    const excluded = isServiceBillable(svc, billingMonth);
     try {
-      await updateClientService(svc.id, {
-        isBillableInCurrentCycle: nextBillable,
-        ...(nextBillable && svc.status !== "activo" ? { status: "activo" } : {}),
-        nonBillableReason: nextBillable ? "" : "Excluido del ciclo actual (No contratado este periodo)",
-      });
-      showSuccess(
-        nextBillable ? "Incluido en Facturación" : "Pasó a No Facturado",
-        nextBillable
-          ? `"${svc.planName}" se facturará normalmente en este ciclo.`
-          : `"${svc.planName}" fue marcado como No Facturado y no se cobrará en este ciclo.`
-      );
-    } catch {
-      showError("Error", "No se pudo actualizar la facturabilidad del servicio.");
+      await setServiceBillingExclusion(svc.id, billingMonth, excluded);
+      showSuccess(excluded ? "Período excluido" : "Período facturable", `Se actualizó ${svc.planName} para ${billingMonth}.`);
+    } catch (error) {
+      showError("Error", error instanceof Error ? error.message : "No se pudo actualizar la facturabilidad del servicio.");
     }
   };
 
   // Change operational status (Activo / Inactivo / Por Renovar / Suspendido)
   const handleStatusChange = async (svc: ClientService, newStatus: ServiceStatus) => {
-    const autoBillable = newStatus === "activo";
     try {
       await updateClientService(svc.id, {
         status: newStatus,
-        isBillableInCurrentCycle: autoBillable,
       });
       showSuccess(
         "Estado Actualizado",
@@ -780,7 +776,7 @@ export function ClientContractTab({ client }: { client: Client }) {
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, "_blank");
     await updateClientService(svc.id, {
-      lastNotificationSentAt: getEcuadorDate(),
+      lastNotificationPreparedAt: getEcuadorDate(),
     });
   };
 
@@ -809,7 +805,7 @@ export function ClientContractTab({ client }: { client: Client }) {
       "_self"
     );
     await updateClientService(svc.id, {
-      lastNotificationSentAt: getEcuadorDate(),
+      lastNotificationPreparedAt: getEcuadorDate(),
     });
   };
 
@@ -1354,6 +1350,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                     </div>
                   </label>
                 </div>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-900">
+                  <input type="checkbox" checked={newAutomaticBilling} onChange={e => setNewAutomaticBilling(e.target.checked)} />
+                  Emitir notas de venta automáticamente
+                </label>
               </div>
             </div>
 
@@ -1530,7 +1530,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                 </tr>
               ) : (
                 filteredServices.map((svc) => {
-                  const isBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
+                  const isBillable = isServiceBillable(svc, billingMonth);
                   const renewal = getRenewalStatus(svc.nextRenewalDate, svc.contractEndDate);
                   const price = svc.customPrice ?? svc.basePrice ?? 0;
                   const billingType = svc.billingType === "postpago" || svc.billingType === "pospago" ? "Postpago" : "Prepago";
@@ -1539,6 +1539,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     svc.serviceCategory && (svc.serviceCategory.charAt(0).toUpperCase() + svc.serviceCategory.slice(1)),
                     svc.inventorySku,
                     svc.autoRenew && "Renovación prevista",
+                    svc.automaticBillingEnabled === false && "Emisión automática desactivada",
                   ].filter(Boolean).join(" · ");
                   const billingDetails = [
                     `Contrato: ${getDurationLabel(svc.contractDuration || "anual")}`,
@@ -1546,7 +1547,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                     `Anticipo: día ${svc.advanceNoticeDay ?? 26}`,
                     svc.contractEndDate && `Fin: ${formatDateEC(svc.contractEndDate)}`,
                     svc.lastBilledPeriod ? `Últ. facturado: ${svc.lastBilledPeriod}` : `Alta: ${svc.installationDate || "—"}`,
-                    svc.lastNotificationSentAt && `Avisado: ${svc.lastNotificationSentAt}`,
+                    (svc.lastNotificationPreparedAt || svc.lastNotificationSentAt) && `Aviso preparado: ${svc.lastNotificationPreparedAt || svc.lastNotificationSentAt}`,
                   ].filter(Boolean).join(" · ");
 
                   return (
@@ -1628,6 +1629,7 @@ export function ClientContractTab({ client }: { client: Client }) {
                         <button
                           type="button"
                           onClick={() => handleToggleBillable(svc)}
+                          disabled={svc.status !== "activo"}
                           data-badge-tone={isBillable ? "neutral" : "negative"}
                           className="ui-cell-control inline-flex cursor-pointer items-center justify-center gap-1 rounded-md border border-[#e2e8f0] px-1.5 hover:bg-slate-50"
                           aria-pressed={isBillable}
@@ -2035,6 +2037,10 @@ export function ClientContractTab({ client }: { client: Client }) {
                     </div>
                   </label>
                 </div>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-900 md:col-span-2">
+                  <input type="checkbox" checked={editAutomaticBilling} onChange={e => setEditAutomaticBilling(e.target.checked)} />
+                  Emitir notas de venta automáticamente
+                </label>
               </div>
 
               {editSchedule && <div className="md:col-span-2"><ServiceBillingPreview service={editSchedule} today={today} /></div>}

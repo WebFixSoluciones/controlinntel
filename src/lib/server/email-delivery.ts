@@ -5,6 +5,7 @@ import { fiscalEmailHtml, fiscalMailLabels, fiscalMailAmount, type FiscalMailKin
 import type { RecordData } from "../commercial-core.ts";
 import { inntelEmailLogo } from "./email-brand.ts";
 import type { SriCompanyConfig } from "@/types";
+import type { Firestore } from "firebase-admin/firestore";
 
 /**
  * Entrega de documentos electrónicos por correo.
@@ -83,8 +84,7 @@ export function isEmailSettingsComplete(settings: EmailSettings): boolean {
 }
 
 /** Lee la contraseña SMTP almacenada en el servidor (nunca se expone). */
-export async function readEmailPassword(): Promise<string> {
-  const { db } = adminServices();
+export async function readEmailPassword(db: Firestore = adminServices().db): Promise<string> {
   const doc = await db.collection(EMAIL_SECRET_COLLECTION).doc(EMAIL_SECRET_DOC).get();
   const data = doc.data();
   return data?.password ? String(data.password) : "";
@@ -134,6 +134,15 @@ export interface SendEmailInput {
   attachments?: EmailAttachment[];
 }
 
+export class SmtpDeliveryError extends Error {
+  readonly rejected: boolean;
+
+  constructor(message: string, rejected: boolean) {
+    super(message);
+    this.rejected = rejected;
+  }
+}
+
 /** Envía un correo con la configuración indicada. Devuelve el `messageId`. */
 export async function sendEmailDetailed(input: SendEmailInput): Promise<{ messageId: string; accepted: string[]; rejected: string[] }> {
   const to = input.to.filter(isValidEmail);
@@ -158,7 +167,9 @@ export async function sendEmailDetailed(input: SendEmailInput): Promise<{ messag
     const address = (value: any) => String(typeof value === "string" ? value : value?.address || "").toLowerCase();
     return { messageId: String(info?.messageId || ""), accepted: (info.accepted || []).map(address), rejected: (info.rejected || []).map(address) };
   } catch (error: any) {
-    throw new Error(normalizeSmtpError(error));
+    const rejected = error?.code === "EAUTH" || error?.code === "EENVELOPE" ||
+      (error?.code === "EMESSAGE" && error.responseCode >= 400 && error.responseCode < 600);
+    throw new SmtpDeliveryError(normalizeSmtpError(error), rejected);
   } finally {
     try {
       transport.close();

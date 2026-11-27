@@ -114,7 +114,8 @@ export interface ClientService {
   contractStartDate?: string;                 // YYYY-MM-DD: Fecha de inicio del contrato
   billingPeriodStartDate?: string;            // YYYY-MM-DD: Inicio del ciclo de facturación, independiente del contrato.
   contractEndDate?: string;                   // YYYY-MM-DD: Fecha de fin de vigencia del contrato
-  autoRenew?: boolean;                        // true = auto-facturación recurrente durante el periodo contratado
+  autoRenew?: boolean;                        // Seguimiento de renovación contractual
+  automaticBillingEnabled?: boolean;          // false pausa únicamente la emisión automática
   paymentMethod?: ServicePaymentMethod;       // Forma de pago preferida del cliente para las facturas de este servicio
   serviceCategory?: ServiceCategory;          // Categoría del servicio
   cutoffDay: number;
@@ -129,8 +130,10 @@ export interface ClientService {
   nextRenewalDate?: string;       // YYYY-MM-DD: Fecha de próxima renovación / cobro
   lastBilledPeriod?: string;      // Ej: "2026-10" o "2026"
   isBillableInCurrentCycle?: boolean; // true = facturable, false = "No Facturado"
+  excludedBillingMonths?: string[];  // Meses de inicio del ciclo excluidos, en formato YYYY-MM.
   nonBillableReason?: string;
   lastNotificationSentAt?: string;
+  lastNotificationPreparedAt?: string;
   installationAddress?: string;
   coordinates?: { lat: number; lng: number };
   ontSerialNumber?: string;

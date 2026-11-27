@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { executeCommercial, runScheduledRecurringBilling, type CommercialCommand } from "./commercial.ts";
+import { executeCommercial, previewScheduledRecurringBilling, runScheduledRecurringBilling, type CommercialCommand } from "./commercial.ts";
 import { schemas } from "./schemas.ts";
 import { save, remove } from "./operations.ts";
 import { numberHistoricalTickets } from "./ticket-sequence.ts";
@@ -736,6 +736,66 @@ const servicePayload=(extra={})=>({clientId:"a",inventoryProductId:"srv",planId:
   contractStartDate:"2026-11-01",billingDay:1,advanceNoticeDay:26,status:"activo",...extra});
 
 const runSchedule = (db: Database, date: string) => runScheduledRecurringBilling(db as unknown as Firestore, date);
+
+test("La exclusión se limita al período y desactivar el automático permite emitir manualmente", async () => {
+  const db = new Database(initial());
+  const svc = await run(db, "assignService", servicePayload({ automaticBillingEnabled: false }));
+  assert.equal(scheduledServicePeriods(svc, "2026-12-01").length, 0);
+  await run(db, "setServiceBillingExclusion", { id: svc.id, period: "2026-11", excluded: true });
+  const excluded = db.row("clientServices", svc.id);
+  assert.equal(planServicePeriod(excluded, 11, 2026, "2026-11-01").eligible, false);
+  assert.equal(planServicePeriod(excluded, 12, 2026, "2026-12-01").eligible, true);
+  assert.equal(excluded.status, "activo");
+  assert.equal(db.list("billingInvoices").length, 0);
+});
+
+test("La vista previa detecta una nota previa y la conciliación vincula el período sin duplicar cartera", async () => {
+  const db = new Database(initial());
+  const svc = await run(db, "assignService", servicePayload({ cycleAnchor: "aniversario", contractStartDate: "2026-11-05" }));
+  const note = await run(db, "issueSale", sale("a", { date: "2026-11-20" }));
+  const storedNote = structuredClone(db.row("billingInvoices", note.id));
+  const preview = () => previewScheduledRecurringBilling(db as unknown as Firestore, "2026-12-01");
+  const row = (await preview()).rows.find(row => row.serviceId === svc.id);
+  assert.equal(row?.status, "review");
+  assert.equal(row?.candidateInvoiceId, note.id);
+  assert.equal((await runSchedule(db, "2026-12-01")).issued, 0);
+  assert.equal(db.list("billingInvoices").length, 1);
+  assert.equal(db.row("recurringScheduleRuns", "2026-12-01").reviewCount, 1);
+  await run(db, "reconcileRecurringPeriod", { serviceId: svc.id, periodStart: "2026-11-05", invoiceId: note.id });
+  assert.equal((await preview()).rows.find(row => row.serviceId === svc.id)?.status, "issued");
+  assert.equal(db.list("billingInvoices").length, 1);
+  assert.equal(db.list("monthlyCharges").length, 1);
+  assert.deepEqual(db.row("billingInvoices", note.id), storedNote);
+  await run(db, "cancelSale", { id: note.id });
+  assert.equal((await preview()).rows.find(row => row.serviceId === svc.id)?.status, "cancelled");
+  assert.equal((await runSchedule(db, "2026-12-01")).issued, 0);
+});
+
+test("Un reintento del mismo mes conserva la fecha real de emisión y acumula una sola nota", async () => {
+  const db = new Database(initial());
+  await run(db, "assignService", servicePayload({ contractStartDate: "2026-12-01" }));
+  const cl = db as unknown as Firestore;
+  assert.equal((await runScheduledRecurringBilling(cl, "2026-12-02", "2026-12-01")).issued, 1);
+  assert.equal((await runScheduledRecurringBilling(cl, "2026-12-03", "2026-12-01")).issued, 0);
+  assert.equal(db.list("billingInvoices")[0].date, "2026-12-02");
+  assert.equal(db.row("recurringScheduleRuns", "2026-12-01").issued, 1);
+});
+
+test("La ventana agotada deja clientes pendientes y el reintento concurrente emite una sola nota", async () => {
+  const db = new Database(initial());
+  await run(db, "assignService", servicePayload({ autoRenew: false, contractStartDate: "2026-12-01" }));
+  const firestore = db as unknown as Firestore;
+  assert.equal((await runScheduledRecurringBilling(firestore, "2026-12-01", "2026-12-01", 0)).pendingCount, 1);
+  assert.equal(db.row("recurringScheduleRuns", "2026-12-01").status, "partial");
+  assert.equal(db.list("billingInvoices").length, 0);
+  const results = await Promise.all([
+    runScheduledRecurringBilling(firestore, "2026-12-02", "2026-12-01"),
+    runScheduledRecurringBilling(firestore, "2026-12-02", "2026-12-01"),
+  ]);
+  assert.equal(results.reduce((sum, result) => sum + result.issued, 0), 1);
+  assert.equal(db.list("monthlyCharges").length, 1);
+  assert.equal(db.row("recurringScheduleRuns", "2026-12-01").status, "completed");
+});
 
 test("El inicio de período es independiente del contrato y la modalidad cambia la exigibilidad", () => {
   const service = { id: "separate-dates", ...servicePayload({ contractStartDate: "2026-11-01", billingPeriodStartDate: "2026-12-07", cycleAnchor: "aniversario" }) };

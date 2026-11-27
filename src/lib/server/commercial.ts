@@ -4,7 +4,7 @@ import type { UserProfile } from "@/types";
 import { adminServices } from "./admin.ts";
 import { HttpError, requirePermission } from "./security.ts";
 import { digest, recordOperation, type Effect } from "./operation-log.ts";
-import { calculateLines, cents, money, chargeBalance, planManualServicePeriod, scheduledServicePeriods, paymentDueOnIssue, serviceBillingStart, initialServicePeriod, validDate, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
+import { calculateLines, cents, money, chargeBalance, planManualServicePeriod, scheduledServicePeriods, paymentDueOnIssue, serviceBillingStart, initialServicePeriod, isServiceBillable, validDate, CommercialValidationError, type EligibleServicePeriod, type RecordData as Row } from "../commercial-core.ts";
 import { roundUnitPrice } from "../pricing.ts";
 import { canCreateSalesClient } from "../sales-workspace.ts";
 import { getEcuadorDate } from "../date-utils.ts";
@@ -15,8 +15,9 @@ import { canUser, canViewServicePrices, canAccessSubmodule, canViewFinancialAmou
 import { servicePriceFields, visibleServiceData } from "../service-visibility.ts";
 import { assertPurchaseActive, editPurchase, deletePurchase } from "./purchase-corrections.ts";
 import { assertReceiptVersion, correctDirectReceipt, correctReleasedAdvance, receiptChange, verifyReceiptAccount } from "./received-payment-corrections.ts";
+import { recurringNoteMatches } from "./recurring-note-matches.ts";
 
-export const commercialActions = ["createClient", "assignService", "editService", "issueSale", "editSale", "recur", "payCharge", "editReceivedPayment", "voidReceivedPayment", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
+export const commercialActions = ["createClient", "assignService", "editService", "setServiceBillingExclusion", "reconcileRecurringPeriod", "issueSale", "editSale", "recur", "payCharge", "editReceivedPayment", "voidReceivedPayment", "advance", "editAdvance", "voidAdvance", "applyAdvance", "applyClientCredit", "cancelSale", "cancelCharge", "retireClient", "retireService", "bankMovement", "transfer", "purchase", "editPurchase", "deletePurchase", "paySupplier", "cancelAdvance", "createProduct", "editProduct", "inventoryTransfer", "inventoryAdjustment", "supplierCredit", "supplierDebit", "createBank", "editBank", "adjustBank", "manualCharge", "startRun", "processRun", "expense", "editExpense", "deleteExpense", "reverseApplication"] as const;
 export type CommercialCommand = { action: typeof commercialActions[number]; operationId: string; data: Row };
 
 export class Context {
@@ -141,8 +142,26 @@ async function billingPeriodState(c: Context, service: Row, plan: EligibleServic
     invoice = historical.find(note => note.status !== "anulada") || historical[0] || {};
     invoiceId = invoice.id;
   }
-  if (period.status === "cancelled" || invoice.status === "anulada") return { state: "cancelled" as const, period, invoiceId };
-  return { state: period.id || invoice.id || legacyMatch ? "issued" as const : "pending" as const, period, invoiceId };
+  if (period.status === "cancelled" || invoice.status === "anulada") return { state: "cancelled" as const, period, invoiceId, invoice };
+  return { state: period.id || invoice.id || legacyMatch ? "issued" as const : "pending" as const, period, invoiceId, invoice };
+}
+
+async function recurringPeriodEvidence(c: Context, notes: Row[], service: Row, plan: EligibleServicePeriod, cutoff: string) {
+  const recorded = await billingPeriodState(c, service, plan);
+  if (recorded.state === "issued" && !recorded.invoice.id) {
+    return { status: "review" as const, reason: "El período figura como emitido, pero el documento vinculado no está disponible." };
+  }
+  if (recorded.state !== "pending") return { status: recorded.state, note: recorded.invoice };
+  const historical = recurringNoteMatches(notes, service, plan, cutoff);
+  const exact = historical.filter(match => match.exact);
+  const active = exact.filter(match => match.note.status !== "anulada");
+  if (active.length === 1) return { status: "issued" as const, note: active[0].note };
+  if (active.length > 1) return { status: "review" as const, reason: "Hay varias notas vigentes con el mismo servicio y período." };
+  if (exact.length) return { status: "cancelled" as const, note: exact[0].note };
+  if (!historical.length) return { status: "ready" as const };
+  const candidate = historical.length === 1 ? historical[0] : undefined;
+  return { status: "review" as const, note: candidate?.note, candidate,
+    reason: candidate ? "Posible nota previa sin vínculo al período. Verifica la cobertura antes de asociarla." : "Varias partidas pueden corresponder al período. Revisa los documentos antes de emitir." };
 }
 
 async function payCharge(c: Context, data: Row) {
@@ -318,14 +337,19 @@ async function cancelCharge(c: Context, id: string) {
 }
 
 async function cancelSalePeriods(c: Context, invoice: Row) {
+  const periods = new Map((await c.list("billingPeriods", "invoiceId", invoice.id)).map(period => [period.id, period]));
   for (const item of invoice.items || []) {
     if (!item.serviceId || !validDate(item.periodStart) || !validDate(item.periodEnd)) continue;
-    const service = await c.get("clientServices", item.serviceId, false);
     const id = `${item.serviceId}_${item.periodStart}_${item.periodEnd}`;
+    if (periods.has(id)) continue;
     const period = await c.get("billingPeriods", id, false);
     if (period.invoiceId && period.invoiceId !== invoice.id) continue;
-    c.put("billingPeriods", { ...period, id, serviceId: item.serviceId, clientId: invoice.clientId,
-      periodStart: item.periodStart, periodEnd: item.periodEnd, invoiceId: invoice.id, status: "cancelled" });
+    periods.set(id, { ...period, id, serviceId: item.serviceId, clientId: invoice.clientId,
+      periodStart: item.periodStart, periodEnd: item.periodEnd, invoiceId: invoice.id });
+  }
+  for (const period of periods.values()) {
+    const service = await c.get("clientServices", period.serviceId, false);
+    c.put("billingPeriods", { ...period, status: "cancelled" });
     if (!service.id || service.clientId !== invoice.clientId) continue;
     if (service.lastBilledInvoiceId !== invoice.id && service.saleInvoiceId !== invoice.id) continue;
     const remaining = (await c.list("billingPeriods", "serviceId", service.id))
@@ -544,7 +568,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const service=schemas.clientServices.parse({...serviceFields,id:old.id||randomUUID(),customPrice:price,basePrice:source.basePrice??product.salePrice??plan.defaultPrice,ivaRate:rate,planName:String(source.planName||"").trim()||product.name||plan.name,inventoryProductId:product.id||null,
         billingPeriodStartDate: source.billingPeriodStartDate ?? serviceBillingStart(old) ?? serviceBillingStart(source) ?? getEcuadorDate(),
         saleStatus: old.saleStatus || (old.saleInvoiceId || old.saleDocNumber ? "emitida" : "pendiente_venta"), saleInvoiceId: old.saleInvoiceId, saleDocNumber: old.saleDocNumber,
-        lastBilledPeriod: old.lastBilledPeriod, lastBilledInvoiceId: old.lastBilledInvoiceId,
+        lastBilledPeriod: old.lastBilledPeriod, lastBilledInvoiceId: old.lastBilledInvoiceId, excludedBillingMonths: old.excludedBillingMonths,
         status:source.status||"activo",billingType:source.billingType||"pospago",billingFrequency:source.billingFrequency||"mensual",cycleAnchor:source.cycleAnchor||"aniversario",
         contractStartDate:source.contractStartDate||source.installationDate||getEcuadorDate(),contractEndDate:source.contractEndDate||undefined,installationDate:source.installationDate||getEcuadorDate(),nodeId:source.nodeId||"",nodeName:source.nodeName||"Sin configurar",ipv4Address:source.ipv4Address||"",pppoeUser:source.pppoeUser||""});
       if(cents(price)===0&&!source.zeroPriceReason)throw new HttpError(400,"Registra el motivo de gratuidad.");
@@ -556,7 +580,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       const scheduleChanged = action === "assignService" || service.billingPeriodStartDate !== serviceBillingStart(old)
         || ["billingFrequency", "cycleAnchor", "firstPeriodPolicy"].some(key => service[key] !== old[key]);
       if (scheduleChanged) {
-        const validation = initialServicePeriod({ ...service, status: "activo", isBillableInCurrentCycle: true });
+        const validation = initialServicePeriod({ ...service, status: "activo", isBillableInCurrentCycle: true, excludedBillingMonths: [] });
         if (!validation.eligible) throw new HttpError(400, validation.reason);
       }
       if (old.lastBilledInvoiceId && service.billingPeriodStartDate !== serviceBillingStart(old)) {
@@ -572,6 +596,20 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       c.put("clients",{...client,totalActiveServices:services.filter(s=>s.id!==service.id&&s.status==="activo").length+(service.status==="activo"?1:0)});
       return service;
     }
+    case "setServiceBillingExclusion": {
+      if (typeof data.period !== "string" || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(data.period) || typeof data.excluded !== "boolean") {
+        throw new HttpError(400, "Indica un mes de facturación válido.");
+      }
+      const service = await c.get("clientServices", data.id);
+      if (service.status !== "activo") throw new HttpError(409, "Activa el servicio antes de cambiar su facturabilidad.");
+      const months = new Set<string>(Array.isArray(service.excludedBillingMonths) ? service.excludedBillingMonths : []);
+      if (data.excluded) months.add(data.period);
+      else months.delete(data.period);
+      const updated = { ...service, excludedBillingMonths: [...months].sort(),
+        ...(!data.excluded && service.isBillableInCurrentCycle === false ? { isBillableInCurrentCycle: true, nonBillableReason: "" } : {}) };
+      c.put("clientServices", updated);
+      return { id: service.id, period: data.period, excluded: data.excluded };
+    }
     case "issueSale": return issueSale(c,data);
     case "editSale": {
       const old=await c.get("billingInvoices",data.id),changes=commercialFields(data.updates||{});
@@ -580,6 +618,16 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(changes.documentType && changes.documentType !== old.documentType || changes.claveAcceso) throw new HttpError(400,"El tipo y la clave del documento se conservan.");
       if(changes.documentNumber&&changes.documentNumber!==old.documentNumber)throw new HttpError(400,"La numeración emitida no se modifica.");
       const calculated=calculateLines(changes.items||old.items);
+      if (changes.items && old.status !== "borrador") {
+        const links = await c.list("billingPeriods", "invoiceId", old.id);
+        for (const link of links) {
+          if (link.status !== "issued" || !Number.isInteger(link.legacyItemIndex)) continue;
+          const prior = old.items[link.legacyItemIndex], next = calculated.items[link.legacyItemIndex];
+          if (!prior || !next || ["id", "serviceId", "productId", "sku", "name", "periodStart", "periodEnd"].some(field => prior[field] !== next[field])) {
+            throw new HttpError(409, "La partida está vinculada a un período recurrente. Para sustituirla, anula la nota y registra la operación correcta.");
+          }
+        }
+      }
       if (!canUser(c.user, "ventas", "canApplyDiscounts") && calculated.items.some(item => { const previous = old.items.find((line: Row) => line.id === item.id); return Number(item.discountExact ?? item.discount) !== Number(previous?.discountExact ?? previous?.discount ?? 0); })) throw new HttpError(403, "No tienes permiso para cambiar descuentos.");
       for (const item of calculated.items) {
         delete item.costUnitSnapshot; delete item.costTotalSnapshot; delete item.costKindSnapshot;
@@ -620,6 +668,32 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       c.put("billingInvoices",updated);c.put("monthlyCharges",{...charge,total:calculated.total,subtotal:calculated.subtotal,ivaAmount:calculated.ivaTotal,balanceRemaining:money(remaining),status:remaining===0?"pagado":paid?"parcial":"pendiente",serviceDescription:calculated.items.map(i=>i.name).join(" + ")});
       await c.clientBalance(old.clientId);return updated;
     }
+    case "reconcileRecurringPeriod": {
+      const service = await c.get("clientServices", data.serviceId);
+      if (typeof data.periodStart !== "string" || !validDate(data.periodStart)) throw new HttpError(400, "Período inválido.");
+      const [year, month] = data.periodStart.split("-").map(Number);
+      const plan = planManualServicePeriod({ ...service, isBillableInCurrentCycle: true, excludedBillingMonths: [] }, month, year);
+      if (!plan.eligible || plan.periodStart !== data.periodStart) throw new HttpError(409, "El período cambió. Actualiza la vista previa.");
+      const notes = await c.list("billingInvoices", "clientId", service.clientId);
+      const evidence = await recurringPeriodEvidence(c, notes, service, plan, c.today);
+      if (evidence.status === "issued" && evidence.note?.id === data.invoiceId) return { invoiceId: data.invoiceId, periodStart: plan.periodStart };
+      if (evidence.status !== "review" || !evidence.candidate || evidence.candidate.note.id !== data.invoiceId) {
+        throw new HttpError(409, "La nota ya no es la única candidata de este servicio y período. Verifica la vista previa.");
+      }
+      const { note, itemIndex } = evidence.candidate;
+      const links = await c.list("billingPeriods", "invoiceId", note.id);
+      if (links.some(link => link.status !== "cancelled" && (link.serviceId === service.id || link.legacyItemIndex === itemIndex))) {
+        throw new HttpError(409, "La partida de la nota ya tiene un período asociado.");
+      }
+      c.put("billingPeriods", { id: plan.key, serviceId: service.id, clientId: service.clientId, periodStart: plan.periodStart,
+        periodEnd: plan.periodEnd, invoiceId: note.id, status: "issued", legacyItemIndex: itemIndex, reconciledBy: c.user.uid, reconciledAt: new Date().toISOString() });
+      const period = plan.periodStart.slice(0, 7);
+      if (!service.lastBilledPeriod || service.lastBilledPeriod <= period) {
+        c.put("clientServices", { ...service, lastBilledPeriod: period, lastBilledInvoiceId: note.id,
+          nextRenewalDate: String(service.nextRenewalDate || "") > plan.periodEnd ? service.nextRenewalDate : plan.periodEnd });
+      }
+      return { invoiceId: note.id, periodStart: plan.periodStart };
+    }
     case "recur": {
       if(typeof data.expectedTotal!=="number"||!Number.isFinite(data.expectedTotal))throw new HttpError(400,"Falta el total de la vista previa aprobada.");
       const client=await c.get("clients",data.clientId), services=await c.list("clientServices","clientId",client.id);
@@ -627,13 +701,16 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
       if(!Array.isArray(data.serviceIds)||!data.serviceIds.length) throw new HttpError(400,"Selecciona los servicios a emitir.");
       const selected=services.filter(s=>data.serviceIds.includes(s.id));
       if(selected.length!==new Set(data.serviceIds).size) throw new HttpError(400,"La selección contiene servicios de otro cliente o inexistentes.");
+      const notes = await c.list("billingInvoices", "clientId", client.id);
       const eligible: EligibleServicePeriod[] = [];
       for(const service of selected) {
         const plan = planManualServicePeriod(service, data.month, data.year);
         if(!plan.eligible) throw new HttpError(409,plan.reason);
-        if ((await billingPeriodState(c, service, plan)).state === "issued") {
+        const evidence = await recurringPeriodEvidence(c, notes, service, plan, c.today);
+        if (evidence.status === "issued") {
           throw new HttpError(409,`El período ${plan.periodStart} ya fue emitido; consulta su documento.`);
         }
+        if (evidence.status === "review") throw new HttpError(409, "Hay una nota previa que requiere conciliación. Revisa Control automático antes de emitir.");
         eligible.push(plan);
       }
       const previewTotal=calculateLines(eligible.map(p=>p.line)).total;
@@ -853,7 +930,7 @@ async function execute(c:Context, action:CommercialCommand["action"], data:Row):
 
 function visibleCommercialResult<T>(user: UserProfile, action: CommercialCommand["action"], result: T): T {
   if (!result || typeof result !== "object") return result;
-  if (["assignService", "editService", "retireService"].includes(action)) {
+  if (["assignService", "editService", "retireService", "setServiceBillingExclusion"].includes(action)) {
     const service = { ...visibleServiceData(user, "clientServices", result as Row) };
     if (!canViewServicePrices(user)) delete service.invoice;
     return service as T;
@@ -869,51 +946,138 @@ const recurringJobActor: UserProfile = {
   role: "superadmin", status: "activo", permissions: ["manage_finance"],
 };
 
-export async function runScheduledRecurringBilling(db: Firestore, today = getEcuadorDate()) {
-  if (!validDate(today) || !today.endsWith("-01")) return { date: today, issued: 0, failures: [] };
+async function scheduledClients(db: Firestore) {
   const active = await db.collection("clientServices").where("status", "==", "activo").select("clientId").get();
-  const clientIds = new Set(active.docs.map(doc => doc.get("clientId")).filter((id): id is string => typeof id === "string" && id !== ""));
-  const failures: { clientId: string; error: string }[] = [];
-  let issued = 0;
-  for (const clientId of clientIds) {
+  return [...new Set(active.docs.map(doc => doc.get("clientId")).filter((id): id is string => typeof id === "string" && id !== ""))].sort();
+}
+
+async function scheduledClientPeriods(c: Context, clientId: string, date: string) {
+  const client = await c.get("clients", clientId, false);
+  if (client.status !== "activo") return [];
+  const services = await c.list("clientServices", "clientId", clientId);
+  const notes = await c.list("billingInvoices", "clientId", clientId);
+  return (await Promise.all(services.map(async service => {
+    if (service.status !== "activo") return [];
+    const identity = { clientId, clientName: String(client.businessName || ""), serviceId: String(service.id), serviceName: String(service.planName || "") };
+    let periods: EligibleServicePeriod[];
     try {
-      const created = await db.runTransaction(async tx => {
-        const c = new Context(db, tx, recurringJobActor, randomUUID(), today);
-        const client = await c.get("clients", clientId, false);
-        if (client.status !== "activo") return false;
-        const services = await c.list("clientServices", "clientId", clientId);
-        const plans: EligibleServicePeriod[] = [];
-        const methods = new Set<string | undefined>();
-        for (const service of services) {
-          for (const plan of scheduledServicePeriods(service, today)) {
-            // Un período anulado solo se reemite por decisión explícita de un operador.
-            if ((await billingPeriodState(c, service, plan)).state !== "pending") continue;
-            plans.push(plan);
-            methods.add(service.paymentMethod);
-          }
-        }
-        if (!plans.length) return false;
-        const invoice = await issueRecurringSale(c, clientId, plans, methods.size === 1 ? [...methods][0] : undefined);
-        c.commit("scheduledRecurringBilling", { invoiceId: invoice.id }, digest([today, clientId, plans.map(plan => plan.key)]));
-        return true;
-      });
-      if (created) issued++;
+      const start = serviceBillingStart(service);
+      if (!start || !validDate(start)) throw new CommercialValidationError("Falta una fecha válida de inicio de facturación.");
+      periods = scheduledServicePeriods({ ...service, automaticBillingEnabled: true, isBillableInCurrentCycle: true, excludedBillingMonths: [] }, date);
     } catch (error) {
-      failures.push({ clientId, error: error instanceof Error ? error.message : "No se pudo emitir el ciclo." });
+      if (!(error instanceof CommercialValidationError)) throw error;
+      return [{ plan: null, row: { ...identity, periodStart: date, periodEnd: null, total: null,
+        status: "review" as const, reason: error.message, documentNumber: undefined, candidateInvoiceId: undefined } }];
     }
+    return Promise.all(periods.map(async plan => {
+      const period = plan.periodStart.slice(0, 7);
+      const reason = service.automaticBillingEnabled === false ? "Emisión automática desactivada."
+        : !isServiceBillable(service, period) ? "Servicio excluido de la facturación de este período." : undefined;
+      const evidence = await recurringPeriodEvidence(c, notes, service, plan, c.today > date ? c.today : date);
+      const status = reason && evidence.status === "ready" ? "excluded" as const : evidence.status;
+      return { plan, paymentMethod: service.paymentMethod as string | undefined, row: {
+        ...identity,
+        periodStart: plan.periodStart, periodEnd: plan.periodEnd, total: calculateLines([plan.line]).total, status,
+        reason: evidence.reason || (status === "excluded" ? reason : undefined),
+        documentNumber: evidence.note?.documentNumber as string | undefined,
+        candidateInvoiceId: evidence.candidate?.note.id as string | undefined,
+      } };
+    }));
+  }))).flat();
+}
+
+export async function previewScheduledRecurringBilling(db: Firestore, date: string) {
+  if (!validDate(date) || !date.endsWith("-01")) throw new HttpError(400, "Selecciona un mes válido para la vista previa.");
+  const clientIds = await scheduledClients(db);
+  const rows: Awaited<ReturnType<typeof scheduledClientPeriods>>[number]["row"][] = [];
+  for (let offset = 0; offset < clientIds.length; offset += 8) {
+    const batch = await Promise.all(clientIds.slice(offset, offset + 8).map(clientId => db.runTransaction(async tx =>
+      scheduledClientPeriods(new Context(db, tx, recurringJobActor, "preview", date), clientId, date), { readOnly: true })));
+    rows.push(...batch.flat().map(entry => entry.row));
   }
-  return { date: today, issued, failures };
+  return { date, rows: rows.sort((a, b) => a.clientName.localeCompare(b.clientName, "es") || a.periodStart.localeCompare(b.periodStart)) };
+}
+
+export async function runScheduledRecurringBilling(db: Firestore, today = getEcuadorDate(), date = today, stopAt = Date.now() + 45_000) {
+  const skipped = { date, issued: 0, reviewCount: 0, failures: [], pendingCount: 0 };
+  if (!validDate(today) || !validDate(date) || !date.endsWith("-01")
+    || today.slice(0, 7) !== date.slice(0, 7) || Number(today.slice(-2)) > 7) return skipped;
+  const runRef = db.collection("recurringScheduleRuns").doc(date);
+  const invocation = randomUUID();
+  const startedAt = new Date().toISOString();
+  const runState = await db.runTransaction(async tx => {
+    const previous = (await tx.get(runRef)).data();
+    if (previous?.status === "completed" || (previous?.status === "running"
+      && Date.now() - Date.parse(previous.startedAt) < 90_000)) return null;
+    tx.set(runRef, { ...previous, date, invocation, startedAt, status: "running", issued: previous?.issued || 0, reviewCount: previous?.reviewCount || 0 });
+    return {
+      cursor: typeof previous?.cursor === "string" ? previous.cursor : "",
+      reviewCount: previous?.cursor ? Number(previous.reviewCount || 0) : 0,
+      failures: (previous?.cursor ? previous.failures || [] : []) as { clientId: string; error: string }[],
+    };
+  });
+  if (!runState) return skipped;
+
+  let clientIds: string[];
+  try {
+    clientIds = (await scheduledClients(db)).filter(clientId => clientId > runState.cursor);
+  } catch (error) {
+    await db.runTransaction(async tx => {
+      const run = (await tx.get(runRef)).data();
+      if (run?.invocation === invocation) tx.set(runRef, { ...run, status: "failed",
+        failures: [{ clientId: "", error: "No se pudo consultar los servicios activos." }], completedAt: new Date().toISOString() });
+    });
+    throw error;
+  }
+  const failures = [...runState.failures];
+  let issued = 0, reviewCount = runState.reviewCount, processed = 0, cursor = runState.cursor;
+  for (const clientId of clientIds) {
+    if (Date.now() >= stopAt) break;
+    try {
+      const result = await db.runTransaction(async tx => {
+        const c = new Context(db, tx, recurringJobActor, randomUUID(), today);
+        const run = await c.get("recurringScheduleRuns", date);
+        if (run.invocation !== invocation) throw new HttpError(409, "La corrida fue retomada por otra ejecución.");
+        const periods = await scheduledClientPeriods(c, clientId, date);
+        const ready = periods.flatMap(entry => entry.plan && entry.row.status === "ready"
+          ? [{ plan: entry.plan, paymentMethod: entry.paymentMethod }] : []);
+        const review = periods.filter(entry => entry.row.status === "review").length;
+        if (!ready.length) return { created: false, review };
+        const methods = new Set(ready.map(entry => entry.paymentMethod));
+        const plans = ready.map(entry => entry.plan);
+        const invoice = await issueRecurringSale(c, clientId, plans, methods.size === 1 ? [...methods][0] : undefined);
+        c.commit("scheduledRecurringBilling", { invoiceId: invoice.id, scheduledDate: date }, digest([date, clientId, plans.map(plan => plan.key)]));
+        tx.update(runRef, { issued: Number(run.issued || 0) + 1 });
+        return { created: true, review };
+      });
+      if (result.created) issued++;
+      reviewCount += result.review;
+    } catch (error) {
+      if (!(error instanceof HttpError)) console.error("[recurring-schedule] Error de emisión", clientId, error);
+      failures.push({ clientId, error: error instanceof HttpError ? error.message : "No se pudo emitir el ciclo." });
+    }
+    processed++;
+    cursor = clientId;
+  }
+  const pendingCount = clientIds.length - processed;
+  await db.runTransaction(async tx => {
+    const run = (await tx.get(runRef)).data();
+    if (run?.invocation === invocation) tx.set(runRef, { ...run, reviewCount, failures, pendingCount,
+      cursor: pendingCount ? cursor : "", status: failures.length || reviewCount || pendingCount ? "partial" : "completed",
+      completedAt: new Date().toISOString() });
+  });
+  return { date, issued, reviewCount, failures, pendingCount };
 }
 
 export async function executeCommercial(user:UserProfile, command:CommercialCommand, database?:Firestore) {
-  const permission=["createClient","assignService","editService","retireClient","retireService"].includes(command.action)?"manage_clients":["createProduct","editProduct","inventoryTransfer","inventoryAdjustment"].includes(command.action)?"manage_network":"manage_finance";
+  const permission=["createClient","assignService","editService","retireClient","retireService","setServiceBillingExclusion"].includes(command.action)?"manage_clients":["createProduct","editProduct","inventoryTransfer","inventoryAdjustment"].includes(command.action)?"manage_network":"manage_finance";
   const salesClient = command.action === "createClient" && canCreateSalesClient(user);
   if (!salesClient) requirePermission(user,permission);
   if (command.action === "createClient" && command.data.service && !canUser(user, "clientes", "canEditClient")) throw new HttpError(403, "No tienes permiso para asignar un servicio al crear el cliente.");
   if (permission === "manage_finance" && !canViewFinancialAmounts(user)) throw new HttpError(403, "No tienes permiso para operar con importes comerciales o financieros.");
   const salesScreen = command.action === "issueSale" ? "nueva_venta"
     : ["editSale", "cancelSale"].includes(command.action) ? "notas_venta"
-    : ["recur", "startRun", "processRun"].includes(command.action) ? "recurrentes" : undefined;
+    : ["recur", "startRun", "processRun", "reconcileRecurringPeriod"].includes(command.action) ? "recurrentes" : undefined;
   if (salesScreen && !canAccessSubmodule(user, "ventas", salesScreen)) throw new HttpError(403, "No tienes acceso a esta función de Ventas.");
   const purchaseScreen = ["editPurchase", "deletePurchase"].includes(command.action) ? "historial_compras" : command.action === "purchase" ? "registrar_compra" : command.action === "supplierCredit" ? "notas_credito" : command.action === "supplierDebit" ? "notas_debito" : undefined;
   if (purchaseScreen && !canAccessSubmodule(user, "compras", purchaseScreen)) throw new HttpError(403, "No tienes acceso a esta función de Compras.");
@@ -926,8 +1090,8 @@ export async function executeCommercial(user:UserProfile, command:CommercialComm
   }
   if(user.role==="consulta") throw new HttpError(403,"Perfil de consulta.");
   const grants:Partial<Record<CommercialCommand["action"],[Parameters<typeof canUser>[1],string]>>={
-    createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],
-    issueSale:["ventas","canCreateInvoice"],editSale:["ventas","canEditPrices"],recur:["ventas","canCreateInvoice"],cancelSale:["ventas","canCancelInvoices"],
+    createClient:["clientes","canCreateClient"],assignService:["clientes","canEditClient"],editService:["clientes","canEditClient"],retireClient:["clientes","canDeleteClient"],retireService:["clientes","canEditClient"],setServiceBillingExclusion:["clientes","canEditClient"],
+    issueSale:["ventas","canCreateInvoice"],editSale:["ventas","canEditPrices"],recur:["ventas","canCreateInvoice"],reconcileRecurringPeriod:["ventas","canCreateInvoice"],cancelSale:["ventas","canCancelInvoices"],
     payCharge:["finanzas","canRegisterReceipts"],advance:["finanzas","canRegisterReceipts"],applyAdvance:["finanzas","canRegisterReceipts"],applyClientCredit:["finanzas","canRegisterReceipts"],cancelCharge:["finanzas","canCancelPayments"],cancelAdvance:["finanzas","canCancelPayments"],
     bankMovement:["finanzas",command.data.type==="egreso"?"canRegisterExpenses":"canRegisterReceipts"],createBank:["finanzas","canManageBankAccounts"],editBank:["finanzas","canManageBankAccounts"],adjustBank:["finanzas","canManageBankAccounts"],transfer:["finanzas","canTransferFunds"],manualCharge:["finanzas","canRegisterReceipts"],
     expense:["finanzas","canRegisterExpenses"],editExpense:["finanzas","canRegisterExpenses"],deleteExpense:["finanzas","canRegisterExpenses"],startRun:["ventas","canCreateInvoice"],processRun:["ventas","canCreateInvoice"],

@@ -48,6 +48,11 @@ export function serviceBillingStart(service: RecordData): string | undefined {
   return service.billingPeriodStartDate || service.contractStartDate || service.installationDate;
 }
 
+export function isServiceBillable(service: RecordData, period: string) {
+  return service.status === "activo" && service.isBillableInCurrentCycle !== false
+    && !(Array.isArray(service.excludedBillingMonths) && service.excludedBillingMonths.includes(period));
+}
+
 function servicePeriod(service: RecordData, month: number, year: number) {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2020 || year > 2100) throw new CommercialValidationError("Período inválido.");
   const skip = (reason: string) => ({ eligible: false as const, serviceId: String(service.id), reason });
@@ -64,6 +69,7 @@ function servicePeriod(service: RecordData, month: number, year: number) {
   const offset = monthDifference(origin, selected);
   if (offset < 0 || offset % months !== 0) return skip("No inicia un ciclo de este servicio en el mes elegido.");
   const periodStart = addMonthsSafely(origin, offset), periodEnd = addMonthsSafely(origin, offset + months);
+  if (!isServiceBillable(service, periodStart.slice(0, 7))) return skip("Servicio excluido de este período.");
   if (periodStart < start && !service.firstPeriodPolicy) return skip("Define la política del primer período parcial.");
   if (service.contractEndDate && periodStart > service.contractEndDate) return skip("Contrato vencido; requiere renovación.");
   if (service.contractEndDate && periodEnd > addDays(service.contractEndDate, 1)) return skip("El ciclo excede el contrato; requiere ajuste o renovación.");
@@ -121,7 +127,7 @@ export function paymentDueOnIssue(plans: EligibleServicePeriod[], emissionDate: 
 }
 
 export function scheduledServicePeriods(service: RecordData, today: string): EligibleServicePeriod[] {
-  if (!validDate(today) || !today.endsWith("-01")) return [];
+  if (!validDate(today) || !today.endsWith("-01") || service.automaticBillingEnabled === false) return [];
   const previousRun = addMonthsSafely(today, -1);
   const registeredDate = typeof service.createdAt === "string" && Number.isFinite(Date.parse(service.createdAt))
     ? getEcuadorDate(service.createdAt) : "";
@@ -137,6 +143,7 @@ export function scheduledServicePeriods(service: RecordData, today: string): Eli
 }
 
 export function previewScheduledService(service: RecordData, today: string) {
+  if (service.automaticBillingEnabled === false) return { reason: "Emisión automática desactivada. Puedes emitir manualmente." };
   const start = serviceBillingStart(service);
   if (!start || !validDate(start)) return { reason: "Selecciona el inicio del período." };
   const [year, month] = start.split("-").map(Number);

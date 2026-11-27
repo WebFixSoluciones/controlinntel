@@ -215,6 +215,7 @@ interface AppContextType {
     service: Omit<ClientService, "id">
   ) => Promise<ClientService>;
   updateClientService: (id: string, updates: Partial<ClientService>) => Promise<void>;
+  setServiceBillingExclusion: (id: string, period: string, excluded: boolean) => Promise<void>;
   deleteClientService: (id: string) => Promise<void>;
   renewClientService: (id: string) => Promise<void>;
   emitRecurringInvoiceForClient: (clientId: string, month: number, year: number, serviceIds?: string[]) => Promise<SriInvoice | null>;
@@ -1385,6 +1386,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await runCommercial("editService", { id, ...updates });
   };
 
+  const setServiceBillingExclusion = async (id: string, period: string, excluded: boolean) => {
+    await runCommercial("setServiceBillingExclusion", { id, period, excluded });
+  };
+
   const deleteClientService = async (id: string) => {
     await runCommercial("retireService", { id });
   };
@@ -2097,6 +2102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           deleteClient,
           addClientService,
           updateClientService,
+          setServiceBillingExclusion,
           deleteClientService,
           renewClientService,
           emitRecurringInvoiceForClient,

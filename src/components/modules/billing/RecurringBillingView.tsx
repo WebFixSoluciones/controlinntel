@@ -6,10 +6,10 @@ import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useApp } from "@/lib/state";
-import { calculateLines, planManualServicePeriod } from "@/lib/commercial-core";
+import { calculateLines, isServiceBillable, planManualServicePeriod, validDate } from "@/lib/commercial-core";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getEcuadorDate } from "@/lib/date-utils";
+import { diffInCalendarDays, getEcuadorDate } from "@/lib/date-utils";
 import { api } from "@/lib/api-client";
 import { useToast } from "@/lib/toast-context";
 import { Client, ClientService, ServiceBillingFrequency, ServiceStatus, SriInvoice } from "@/types";
@@ -27,8 +27,10 @@ import {
   BellRing,
   SlidersHorizontal,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { RecurringScheduleControl } from "./RecurringScheduleControl";
 
 const MONTHS = [
   "Enero",
@@ -45,6 +47,12 @@ const MONTHS = [
   "Diciembre",
 ];
 
+const RECURRING_VIEWS = [
+  { id: "lote", label: "Facturación", icon: Receipt },
+  { id: "renovaciones", label: "Renovaciones", icon: BellRing },
+  { id: "control", label: "Control automático", icon: ClipboardList },
+] as const;
+
 interface RecurringBillingViewProps {
   onOpenInvoiceRide?: (inv: SriInvoice) => void;
 }
@@ -55,6 +63,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
     clientServices,
     billingInvoices,
     updateClientService,
+    setServiceBillingExclusion,
     deleteClientService,
     renewClientService,
     emitRecurringInvoiceForClient,
@@ -64,8 +73,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   } = useApp();
   const { showSuccess, showError, showConfirm } = useToast();
 
-  // Sub-mode: "lote" (Emisión Recurrente por Cliente) | "renovaciones" (Alertas y Seguimiento Global)
-  const [subView, setSubView] = useState<"lote" | "renovaciones">("lote");
+  const [subView, setSubView] = useState<(typeof RECURRING_VIEWS)[number]["id"]>("lote");
 
   // Period selection
   const params = useSearchParams();
@@ -111,20 +119,19 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
   }, [billingInvoices, periodKey]);
 
   // Helper: calculate days until renewal
-  const getRenewalStatus = (nextDate?: string) => {
-    if (!nextDate) {
+  const getRenewalStatus = (nextDate?: string, contractEnd?: string) => {
+    const dates = [nextDate, contractEnd].filter((date): date is string => Boolean(date && validDate(date))).sort();
+    const target = dates[0];
+    if (!target) {
       return { label: "Sin fecha", tone: "slate" as const, daysLeft: 999 };
     }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(`${nextDate}T00:00:00`);
-    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = diffInCalendarDays(getEcuadorDate(), target);
 
     if (diffDays < 0) {
-      return { label: `Vencido hace ${Math.abs(diffDays)}d`, tone: "rose" as const, daysLeft: diffDays };
+      return { label: `${target === contractEnd ? "Contrato caducado" : "Vencido"} (${Math.abs(diffDays)}d)`, tone: "rose" as const, daysLeft: diffDays };
     }
     if (diffDays <= 15) {
-      return { label: `Vence en ${diffDays}d`, tone: "amber" as const, daysLeft: diffDays };
+      return { label: `${target === contractEnd ? "Contrato por caducar" : "Por renovar"} (${diffDays}d)`, tone: "amber" as const, daysLeft: diffDays };
     }
     return { label: `Al día (${diffDays}d)`, tone: "emerald" as const, daysLeft: diffDays };
   };
@@ -211,8 +218,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       .filter((s) => s.status !== "retirado")
       .map((svc) => {
         const client = clients.find((c) => c.id === svc.clientId);
-        const renewal = getRenewalStatus(svc.nextRenewalDate);
-        const isBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
+        const renewal = getRenewalStatus(svc.nextRenewalDate, svc.contractEndDate);
+        const isBillable = isServiceBillable(svc, periodKey);
         return { svc, client, renewal, isBillable };
       })
       .filter((item) => {
@@ -225,7 +232,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         }
         if (!matches(...clientSearchFields(item.client), item.svc.planName)) return false;
         if (renewalFilter === "por_renovar") {
-          return item.renewal.daysLeft <= 15 || item.svc.status === "por_renovar";
+          return item.client.status === "activo" && (item.svc.status === "activo" || item.svc.status === "por_renovar")
+            && (item.renewal.daysLeft <= 15 || item.svc.status === "por_renovar");
         }
         if (renewalFilter === "no_facturados") {
           return !item.isBillable;
@@ -236,7 +244,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
         return true;
       })
       .sort((a, b) => a.renewal.daysLeft - b.renewal.daysLeft);
-  }, [clientServices, clients, frequencyFilter, searchQuery, renewalFilter]);
+  }, [clientServices, clients, frequencyFilter, searchQuery, renewalFilter, periodKey]);
 
   // Summary KPIs
   const summaryStats = useMemo(() => {
@@ -254,8 +262,8 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       .reduce((sum, r) => sum + r.total, 0);
 
     const dueSoonCount = clientServices.filter((s) => {
-      if (s.status === "retirado") return false;
-      const ren = getRenewalStatus(s.nextRenewalDate);
+      if ((s.status !== "activo" && s.status !== "por_renovar") || !clients.some(client => client.id === s.clientId && client.status === "activo")) return false;
+      const ren = getRenewalStatus(s.nextRenewalDate, s.contractEndDate);
       return ren.daysLeft <= 15 || s.status === "por_renovar";
     }).length;
 
@@ -266,7 +274,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       totalPendingAmount: Math.round(totalPendingAmount * 100) / 100,
       dueSoonCount,
     };
-  }, [recurringClientsRows, clientServices]);
+  }, [recurringClientsRows, clientServices, clients]);
 
   // Emit single client recurring invoice
   const handleEmitClientInvoice = async (clientId: string, clientName: string) => {
@@ -373,19 +381,13 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
   // Toggle service billable status
   const handleToggleBillable = async (svc: ClientService) => {
-    const currentlyBillable = svc.status === "activo" && svc.isBillableInCurrentCycle !== false;
-    const nextBillable = !currentlyBillable;
-    await updateClientService(svc.id, {
-      isBillableInCurrentCycle: nextBillable,
-      ...(nextBillable && svc.status !== "activo" ? { status: "activo" } : {}),
-      nonBillableReason: nextBillable ? "" : `No facturado en ${periodKey}`,
-    });
-    showSuccess(
-      nextBillable ? "Servicio Facturable" : "Pasó a No Facturado",
-      nextBillable
-        ? `"${svc.planName}" se incluirá en la facturación.`
-        : `"${svc.planName}" fue excluido de la factura de este ciclo.`
-    );
+    const excluded = isServiceBillable(svc, periodKey);
+    try {
+      await setServiceBillingExclusion(svc.id, periodKey, excluded);
+      showSuccess(excluded ? "Período excluido" : "Período facturable", `Se actualizó ${svc.planName} para ${periodKey}.`);
+    } catch (error) {
+      showError("Error", error instanceof Error ? error.message : "No se pudo actualizar la facturabilidad del servicio.");
+    }
   };
 
   // WhatsApp 1-click reminder
@@ -405,7 +407,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
     await updateClientService(svc.id, {
-      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+      lastNotificationPreparedAt: getEcuadorDate(),
     });
   };
 
@@ -423,9 +425,42 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       "_self"
     );
     await updateClientService(svc.id, {
-      lastNotificationSentAt: new Date().toISOString().split("T")[0],
+      lastNotificationPreparedAt: getEcuadorDate(),
     });
   };
+
+  const viewSelector = (
+    <div role="group" aria-label="Vistas de recurrentes" className="flex flex-wrap items-center gap-1.5 rounded-xl bg-slate-100 p-1">
+      {RECURRING_VIEWS.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={subView === id}
+          onClick={() => setSubView(id)}
+          className={`flex cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-bold transition ${
+            subView === id ? "bg-white text-[#004ac6] shadow-2xs" : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Icon aria-hidden="true" className="size-3.5" />
+          <span>{label}</span>
+          {id === "renovaciones" && summaryStats.dueSoonCount > 0 && (
+            <Badge className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
+              {summaryStats.dueSoonCount}
+            </Badge>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (subView === "control") {
+    return (
+      <div className="space-y-5">
+        <div className="flex rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">{viewSelector}</div>
+        <RecurringScheduleControl clients={clients} services={clientServices} refresh={refresh} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -439,39 +474,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
       </div>
       {/* Top Bar: Selector de Vista + Periodo + Frecuencia */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
-        {/* Selector de Sub-vista */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => setSubView("lote")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
-              subView === "lote"
-                ? "bg-white text-[#004ac6] shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Facturación</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSubView("renovaciones")}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
-              subView === "renovaciones"
-                ? "bg-white text-[#004ac6] shadow-2xs"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <BellRing className="w-3.5 h-3.5" />
-            <span>Renovaciones</span>
-            {summaryStats.dueSoonCount > 0 && (
-              <Badge className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
-                {summaryStats.dueSoonCount}
-              </Badge>
-            )}
-          </button>
-        </div>
+        {viewSelector}
 
         {/* Controles de Periodo y Frecuencia */}
         <div className="flex flex-wrap items-center gap-2">
@@ -813,9 +816,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
                                     {row.services.map((svc) => {
-                                      const billable =
-                                        svc.status === "activo" &&
-                                        svc.isBillableInCurrentCycle !== false;
+                                      const billable = isServiceBillable(svc, periodKey);
                                       const price = svc.customPrice ?? svc.basePrice ?? 0;
                                       return (
                                         <tr key={svc.id} className="hover:bg-slate-50/60 transition">
@@ -850,7 +851,6 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                                 const st = e.target.value as ServiceStatus;
                                                 updateClientService(svc.id, {
                                                   status: st,
-                                                  isBillableInCurrentCycle: st === "activo",
                                                 });
                                               }}
                                               className="border border-slate-200 rounded px-2 py-0.5 text-[11px] font-bold uppercase bg-white cursor-pointer"
@@ -865,6 +865,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                                             <button
                                               type="button"
                                               onClick={() => handleToggleBillable(svc)}
+                                              disabled={svc.status !== "activo"}
                                               className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border cursor-pointer ${
                                                 billable
                                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -952,9 +953,9 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
 
                         <td className="py-3 px-4">
                           <div className="ui-emphasis font-bold text-slate-800">{svc.planName}</div>
-                          {svc.lastNotificationSentAt && (
-                            <span className="text-[10px] text-emerald-600 font-medium block">
-                              Notificado: {svc.lastNotificationSentAt}
+                          {(svc.lastNotificationPreparedAt || svc.lastNotificationSentAt) && (
+                            <span className="ui-cell-meta block">
+                              Aviso preparado: {svc.lastNotificationPreparedAt || svc.lastNotificationSentAt}
                             </span>
                           )}
                         </td>
@@ -1007,7 +1008,6 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                               const st = e.target.value as ServiceStatus;
                               updateClientService(svc.id, {
                                 status: st,
-                                isBillableInCurrentCycle: st === "activo",
                               });
                             }}
                             className={`rounded-lg px-2 py-1 text-[10px] font-bold uppercase border cursor-pointer ${
@@ -1029,6 +1029,7 @@ export function RecurringBillingView({ onOpenInvoiceRide }: RecurringBillingView
                           <button
                             type="button"
                             onClick={() => handleToggleBillable(svc)}
+                            disabled={svc.status !== "activo"}
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border cursor-pointer ${
                               isBillable
                                 ? "bg-blue-50 text-[#004ac6] border-blue-200"

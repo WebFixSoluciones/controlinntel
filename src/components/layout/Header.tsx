@@ -6,7 +6,6 @@ import { useApp } from "@/lib/state";
 import { useToast } from "@/lib/toast-context";
 import {
   Search,
-  Bell,
   HelpCircle,
   User,
   Settings,
@@ -16,6 +15,7 @@ import {
   Menu,
 } from "lucide-react";
 import { ProfileModal } from "./ProfileModal";
+import { RenewalNotificationMenu } from "./RenewalNotificationMenu";
 import { Badge } from "@/components/ui/Badge";
 
 function getPageTitle(pathname: string, subParam: string | null): string {
@@ -151,7 +151,7 @@ function HeaderContent() {
   const subParam = searchParams.get("sub");
   const pageTitle = getPageTitle(pathname, subParam);
 
-  const { currentUser, policies, tickets, setIsSearchOpen, resetDataToDefaults, logout, isNavigationOpen, setIsNavigationOpen } = useApp();
+  const { currentUser, setIsSearchOpen, logout, isNavigationOpen, setIsNavigationOpen } = useApp();
   const { showConfirm, showInfo, showSuccess } = useToast();
 
   const cleanUserName = (currentUser?.displayName || "Administrador")
@@ -176,9 +176,6 @@ function HeaderContent() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isProfileDropdownOpen]);
-
-  const urgentCount = policies.filter((p) => p.status === "por_vencer").length;
-  const criticalTickets = tickets.filter((t) => t.priority === "alta" || t.priority === "critica").length;
 
   return (
     <header className="app-header h-16 min-w-0 bg-white border-b border-[#e2e8f0] px-2 sm:px-4 xl:px-8 flex items-center justify-between gap-1 sticky top-0 z-30">
@@ -205,19 +202,7 @@ function HeaderContent() {
           <Search className="w-4 h-4" />
         </button>
 
-        {/* Notifications Bell */}
-        <div className="relative">
-          <button
-            onClick={() => setIsSearchOpen(true)}
-            className="p-2 rounded-lg text-[#434655] hover:text-[#004ac6] hover:bg-[#eff4ff] transition-all relative cursor-pointer"
-            title="Notificaciones regulatorias y operativas"
-          >
-            <Bell className="w-4 h-4" />
-            {(urgentCount > 0 || criticalTickets > 0) && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ef4444] ring-2 ring-white" />
-            )}
-          </button>
-        </div>
+        <RenewalNotificationMenu />
 
         {/* Help Icon */}
         <button

@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Acceso restringido." }, { status: 401 });
   }
   const today = getEcuadorDate();
-  if (!today.endsWith("-01")) return NextResponse.json({ date: today, issued: 0, skipped: true });
+  if (Number(today.slice(-2)) > 7) return NextResponse.json({ date: today, issued: 0, skipped: true });
   try {
-    const result = await runScheduledRecurringBilling(adminServices().db, today);
+    const result = await runScheduledRecurringBilling(adminServices().db, today, `${today.slice(0, 7)}-01`);
     return NextResponse.json(result, { status: result.failures.length ? 500 : 200 });
   } catch (error) {
     console.error("[recurring-schedule] Falló la ejecución:", error);

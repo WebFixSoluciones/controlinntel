@@ -80,6 +80,13 @@ Los anticipos aplicados conservan sus abonos ya realizados. Para anularlos, prim
 | Adjuntos | `DOCUMENTS_BUCKET` identifica el bucket privado de documentos. `BLOB_READ_WRITE_TOKEN` admite operaciones sobre archivos históricos de Vercel Blob cuando corresponde. |
 | Correo y tarea programada | `EMAIL_DELIVERY_WEBHOOK_URL` y `EMAIL_DELIVERY_WEBHOOK_TOKEN` configuran el adaptador opcional. `CRON_SECRET` autentica la tarea de recurrencia declarada en `vercel.json`. |
 
+### Control de ventas recurrentes
+
+- En **Ventas → Recurrentes → Control automático**, revisa el mes de ejecución. La vista previa contrasta el período contractual con las notas y los registros de emisión. Las coincidencias dudosas se detienen. Si una nota existente cubre el período, verifica su partida y confirma **Vincular nota existente** para conservar el documento y su cartera.
+- La ejecución crea notas de venta y la cuenta por cobrar en una misma transacción. Vercel inicia la tarea el día 1 alrededor de las 01:00 de Ecuador continental. Los días 2 a 7 retoma corridas incompletas o con incidencias. Los períodos ya registrados quedan protegidos en cualquier reintento. Revisa el resultado en **Ejecuciones recientes** o desde la campanita.
+- **Emitir notas de venta automáticamente** se administra en el servicio. Las exclusiones nuevas se guardan por mes de inicio del ciclo y también se aplican a la emisión manual. Las exclusiones heredadas conservan su efecto hasta que un operador reactive el servicio como facturable.
+- Los avisos por email se evalúan diariamente alrededor de las 08:00 de Ecuador continental. Requieren `RENEWAL_EMAIL_ENABLED=true` y el SMTP configurado. El día de anticipo del servicio prevalece sobre `RENEWAL_EMAIL_OFFSETS`, cuyo valor predeterminado es `15,7,1`. La consulta `GET /api/commercial/renewal-reminders?dryRun=true`, con la credencial de la tarea, cuenta los avisos sin enviar ni registrar intentos. El historial distingue la aceptación SMTP de los intentos pendientes de confirmar.
+
 ## Operación, recuperación y aceptación
 
 1. Registra el commit, versión de Node, resultados de CI y entorno de QA asociado a cada entrega.

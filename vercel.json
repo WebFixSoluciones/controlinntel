@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/commercial/recurring-schedule",
-      "schedule": "0 6 1 * *"
+      "schedule": "0 6 1-7 * *"
+    },
+    {
+      "path": "/api/commercial/renewal-reminders",
+      "schedule": "0 13 * * *"
     }
   ]
 }
